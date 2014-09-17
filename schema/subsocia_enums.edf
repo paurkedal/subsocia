@@ -1,0 +1,11 @@
+entity_type
+  0 structural
+ 16 authenticated_user
+ 17 personal_role
+ 18 person
+ 32 organizational_permission
+ 33 organizational_role
+ 34 organization
+ 64 application_permission
+ 65 application_role
+ 66 application
