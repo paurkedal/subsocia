@@ -1,0 +1,30 @@
+OASISFormat: 0.4
+Name: subsocia
+Version: 0.1
+Synopsis: People, organization, and authorization
+Authors: Petter A. Urkedal
+License: LGPL-3 with OCaml linking exception
+AlphaFeatures: ocamlbuild_more_args, pure_interface
+Plugins: DevFiles (0.4), META (0.4)
+BuildTools: ocamlbuild
+XOCamlbuildPluginTags: package(eliom.ocamlbuild)
+OCamlVersion: >= 4.01
+
+Library "subsocia"
+  Path: lib
+  Modules:
+    Subsocia_direct,
+    Subsocia_intf,
+    Subsocia_prereq
+  BuildDepends: caqti.lwt, extunix, lwt, prime.testing
+  ByteOpt: -thread
+  NativeOpt: -thread
+
+Document api
+  Title: Subsocia API Reference
+  Type: ocamlbuild (0.4)
+  InstallDir: $htmldir/html
+  BuildTools+: ocamldoc
+  XOCamlbuildPath: lib
+  XOCamlbuildLibraries: subsocia
+  DataFiles: COPYING ($docdir), COPYING.LESSER ($docdir)
