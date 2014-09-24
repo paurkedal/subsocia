@@ -14,7 +14,11 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+val (>>=) : 'a Lwt.t -> ('a -> 'b Lwt.t) -> 'b Lwt.t
+val (>|=) : 'a Lwt.t -> ('a -> 'b) -> 'b Lwt.t
+
 val cache_hertz : float
 val cache_second : float
+val cache_metric : Prime_cache_metric.t
 
 module Beacon : Prime_beacon.S

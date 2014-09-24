@@ -14,6 +14,9 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+let (>>=) = Lwt.(>>=)
+let (>|=) = Lwt.(>|=)
+
 let cache_hertz = Int64.to_float ExtUnixSpecific.(sysconf CLK_TCK)
 let cache_second = 1.0 /. cache_hertz
 

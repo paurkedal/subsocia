@@ -21,6 +21,7 @@ open Unprime_list
 open Unprime_option
 
 let entity_grade = 1e-3 *. cache_second
+let preceq_grade = 1e-2 *. cache_second (* TODO: Highly non-constant. *)
 
 module type S = Subsocia_intf.RW
 
@@ -69,6 +70,23 @@ module Q = struct
     | _ -> raise Missing_query_string
     end;
   |]
+
+  let select_precedes = prepare_fun @@ function
+    | `Pgsql ->
+      (* TODO: Utilize entity_rank when implemented. *)
+      "WITH RECURSIVE successors(entity_id) AS ( \
+	  SELECT i.superentity_id AS entity_id \
+	  FROM subsocia.inclusion i \
+	  WHERE i.is_subsumed = false \
+	    AND i.subentity_id = $1 \
+	UNION \
+	  SELECT i.superentity_id \
+	  FROM subsocia.inclusion i JOIN successors c \
+	    ON i.subentity_id = c.entity_id \
+	  WHERE i.is_subsumed = false \
+       ) \
+       SELECT 0 FROM successors WHERE entity_id = $2 LIMIT 1"
+    | _ -> raise Missing_query_string
 
   let create_entity = prepare_fun @@ function
     | `Pgsql ->
@@ -131,6 +149,7 @@ module type AMENDED_CONNECTION = sig
   val fetch : entity_id -> entity Lwt.t
   val min_max : int -> entity list Lwt.t
   val pred_succ : int -> int32 -> entity list Lwt.t
+  val precedes : int32 -> int32 -> bool Lwt.t
   val create : entity_type: int -> viewer: entity -> admin: entity ->
 	       unit -> entity Lwt.t
   val constrain : entity -> entity -> unit Lwt.t
@@ -148,6 +167,8 @@ let connect uri = (module struct
   end)
 
   let entity_by_id = Entity_by_id.create 31
+
+  let inclusion_cache = Prime_cache.create ~cache_metric 61
 
   module Amend_connection (C : CONNECTION) = struct
     include C
@@ -174,6 +195,11 @@ let connect uri = (module struct
     let pred_succ i entity_id =
       C.fold Q.select_pred_succ.(i) (List.push *< decode)
 	     Param.([|int32 entity_id|]) []
+
+    let precedes subentity_id superentity_id =
+      C.find Q.select_precedes (fun _ -> ())
+	     Param.([|int32 subentity_id; int32 superentity_id|]) >|=
+      function None -> false | Some () -> true
 
     let create ~entity_type ~viewer ~admin () =
       lwt entity_id_opt =
@@ -250,20 +276,32 @@ let connect uri = (module struct
   let create ~entity_type ~viewer ~admin () =
     use (fun (module C) -> C.create ~entity_type ~viewer ~admin ())
 
-  let preceq subentity superentity = assert false (* FIXME *)
+  let preceq subentity superentity =
+    if subentity.entity_id = superentity.entity_id then Lwt.return_true else
+    let k = subentity.entity_id, superentity.entity_id in
+    try Lwt.return (Prime_cache.find inclusion_cache k)
+    with Not_found ->
+      lwt c = use (fun (module C) ->
+		   C.precedes subentity.entity_id superentity.entity_id) in
+      Prime_cache.replace inclusion_cache preceq_grade k c;
+      Lwt.return c
 
   let constrain subentity superentity =
     lwt is_sub = preceq subentity superentity in
     if is_sub then Lwt.return_unit else
     lwt is_super = preceq superentity subentity in
     if is_super then Lwt.fail (Invalid_argument "cyclic constraint") else
+    (* TODO: Update entity_rank. *)
     use (fun (module C) -> C.constrain subentity superentity)
+    (* TODO: Update is_subsumed. *)
     (* FIXME: Clear or update pred and succ caches. *)
-    (* FIXME: Clear or update preceq cache. *)
+    (* FIXME: Clear or update inclusion cache. *)
 
   let unconstrain subentity superentity =
+    (* TODO: Update is_subsumed. *)
     use (fun (module C) -> C.unconstrain subentity superentity)
+    (* TODO: Update entity_rank. *)
     (* FIXME: Clear or update pred and succ caches. *)
-    (* FIXME: Clear or update preceq cache. *)
+    (* FIXME: Clear or update inclusion cache. *)
 
 end : S)
