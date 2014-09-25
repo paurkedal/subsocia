@@ -15,6 +15,8 @@
 
 CREATE SCHEMA subsocia;
 
+-- Core Relations
+
 CREATE TABLE subsocia.entity (
     entity_id SERIAL PRIMARY KEY,
     entity_type smallint NOT NULL,
@@ -28,6 +30,8 @@ CREATE TABLE subsocia.inclusion (
     is_subsumed boolean NOT NULL DEFAULT false,
     UNIQUE (superentity_id, subentity_id)
 );
+
+-- Change Log
 
 CREATE TABLE subsocia.entity_log (
     edit_time timestamp NOT NULL DEFAULT current_timestamp,
@@ -45,4 +49,11 @@ CREATE TABLE subsocia.inclusion_log (
     superentity_id integer NOT NULL REFERENCES subsocia.entity,
     subentity_id integer NOT NULL REFERENCES subsocia.entity,
     new_state boolean NOT NULL
+);
+
+-- Auxiliary Data
+
+CREATE TABLE subsocia.named_entity (
+    entity_id integer NOT NULL REFERENCES subsocia.entity,
+    entity_name text NOT NULL
 );

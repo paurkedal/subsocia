@@ -28,3 +28,21 @@ Document api
   XOCamlbuildPath: lib
   XOCamlbuildLibraries: subsocia
   DataFiles: COPYING ($docdir), COPYING.LESSER ($docdir)
+
+Library "subsocia-web"
+  Path: web
+  Modules: server/Subsocia_web
+  BuildDepends: eliom.server, prime
+  ByteOpt: -thread
+  NativeOpt: -thread
+  DataFiles:
+    static/css/*.css ($datadir/subsocia/static/css),
+    ../_build/web/client/*.js ($datadir/subsocia/static)
+  CompiledObject: native
+
+Executable "subsocia_web"
+  Path: web/client
+  BuildDepends: eliom.client, prime
+  MainIs: subsocia_web.ml
+  ByteOpt: -thread
+  Install: false
