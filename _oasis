@@ -33,7 +33,7 @@ Document api
 Library "subsocia-web"
   Path: web
   Modules: server/Subsocia_web
-  BuildDepends: eliom.server, prime
+  BuildDepends: eliom.server, prime, subsocia
   ByteOpt: -thread
   NativeOpt: -thread
   DataFiles:
@@ -43,7 +43,7 @@ Library "subsocia-web"
 
 Executable "subsocia_web"
   Path: web/client
-  BuildDepends: eliom.client, prime
+  BuildDepends: eliom.client, prime, subsocia
   MainIs: subsocia_web.ml
   ByteOpt: -thread
   Install: false
