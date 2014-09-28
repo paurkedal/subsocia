@@ -16,4 +16,6 @@
 
 module type S = Subsocia_intf.RW
 
+val schema_prefix : string ref
+
 val connect : Uri.t -> (module S)

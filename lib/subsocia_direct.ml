@@ -22,85 +22,83 @@ open Unprime_option
 
 let entity_grade = 1e-3 *. cache_second
 let preceq_grade = 1e-2 *. cache_second (* TODO: Highly non-constant. *)
+let schema_prefix = ref "subsocia."
 
 module type S = Subsocia_intf.RW
 
 module Q = struct
   open Caqti_query
 
-  let fetch = prepare_fun @@ function
-    | `Pgsql ->
-      "SELECT entity_id, entity_type, entity_rank, viewer_id, admin_id \
-       FROM subsocia.entity WHERE entity_id = $1"
-    | _ -> raise Missing_query_string
+  let q sql = prepare_fun @@ fun lang ->
+    let buf = Buffer.create (String.length sql) in
+    let conv =
+      match lang with
+      | `Pgsql ->
+	let n = ref 0 in
+	begin function
+	| '?' -> n := succ !n; Printf.bprintf buf "$%d" !n
+	| '@' -> Buffer.add_string buf !schema_prefix
+	| ch -> Buffer.add_char buf ch
+	end
+      | `Sqlite ->
+	begin function
+	| '@' -> ()
+	| ch -> Buffer.add_char buf ch
+	end
+      | _ -> raise Missing_query_string in
+    String.iter conv sql;
+    Buffer.contents buf
+
+  let fetch =
+    q "SELECT entity_id, entity_type, entity_rank, viewer_id, admin_id \
+       FROM @entity WHERE entity_id = ?"
 
   let select_min_max = [|
-    prepare_sql
-      "SELECT entity_id, entity_type, entity_rank, viewer_id, admin_id \
-       FROM subsocia.entity \
+    q "SELECT entity_id, entity_type, entity_rank, viewer_id, admin_id \
+       FROM @entity \
        WHERE not EXISTS \
-	(SELECT 0 FROM subsocia.inclusion WHERE superentity_id = entity_id)";
-    prepare_sql
-      "SELECT entity_id, entity_type, entity_rank, viewer_id, admin_id \
-       FROM subsocia.entity \
+	(SELECT 0 FROM @inclusion WHERE superentity_id = entity_id)";
+    q "SELECT entity_id, entity_type, entity_rank, viewer_id, admin_id \
+       FROM @entity \
        WHERE not EXISTS \
-	(SELECT 0 FROM subsocia.inclusion WHERE subentity_id = entity_id)";
+	(SELECT 0 FROM @inclusion WHERE subentity_id = entity_id)";
   |]
 
-  let select_pred_succ = Array.map prepare_fun [|
-    begin function
-    | `Pgsql ->
-      "SELECT entity_id, entity_type, entity_rank, viewer_id, admin_id \
-       FROM subsocia.entity JOIN subsocia.inclusion \
+  let select_pred_succ = [|
+    q "SELECT entity_id, entity_type, entity_rank, viewer_id, admin_id \
+       FROM @entity JOIN @inclusion \
 	 ON entity_id = subentity_id \
-       WHERE superentity_id = $1"
-    | _ -> raise Missing_query_string
-    end;
-    begin function
-    | `Pgsql ->
-      "SELECT entity_id, entity_type, entity_rank, viewer_id, admin_id \
-       FROM subsocia.entity JOIN subsocia.inclusion \
+       WHERE superentity_id = ?";
+    q "SELECT entity_id, entity_type, entity_rank, viewer_id, admin_id \
+       FROM @entity JOIN @inclusion \
 	 ON entity_id = superentity_id \
-       WHERE subentity_id = $1"
-    | _ -> raise Missing_query_string
-    end;
+       WHERE subentity_id = ?";
   |]
 
-  let select_precedes = prepare_fun @@ function
-    | `Pgsql ->
-      (* TODO: Utilize entity_rank when implemented. *)
+  let select_precedes =
+    q (* TODO: Utilize entity_rank when implemented. *)
       "WITH RECURSIVE successors(entity_id) AS ( \
 	  SELECT i.superentity_id AS entity_id \
-	  FROM subsocia.inclusion i \
+	  FROM @inclusion i \
 	  WHERE i.is_subsumed = false \
-	    AND i.subentity_id = $1 \
+	    AND i.subentity_id = ? \
 	UNION \
 	  SELECT i.superentity_id \
-	  FROM subsocia.inclusion i JOIN successors c \
+	  FROM @inclusion i JOIN successors c \
 	    ON i.subentity_id = c.entity_id \
 	  WHERE i.is_subsumed = false \
        ) \
-       SELECT 0 FROM successors WHERE entity_id = $2 LIMIT 1"
-    | _ -> raise Missing_query_string
+       SELECT 0 FROM successors WHERE entity_id = ? LIMIT 1"
 
-  let create_entity = prepare_fun @@ function
-    | `Pgsql ->
-      "INSERT INTO subsocia.entity \
-	(entity_type, viewer_id, admin_id) \
-       VALUES ($1, $2, $3) RETURNING entity_id"
-    | _ -> raise Missing_query_string
+  let create_entity =
+    q "INSERT INTO @entity (entity_type, viewer_id, admin_id) \
+       VALUES (?, ?, ?) RETURNING entity_id"
 
-  let insert_inclusion = prepare_fun @@ function
-    | `Pgsql ->
-      "INSERT INTO subsocia.inclusion (subentity_id, superentity_id) \
-       VALUES ($1, $2)"
-    | _ -> raise Missing_query_string
+  let insert_inclusion =
+    q "INSERT INTO @inclusion (subentity_id, superentity_id) VALUES (?, ?)"
 
-  let delete_inclusion = prepare_fun @@ function
-    | `Pgsql ->
-      "DELETE FROM subsocia.inclusion \
-       WHERE subentity_id = $1 AND superentity_id = $2"
-    | _ -> raise Missing_query_string
+  let delete_inclusion =
+    q "DELETE FROM @inclusion WHERE subentity_id = ? AND superentity_id = ?"
 end
 
 module Base = struct
