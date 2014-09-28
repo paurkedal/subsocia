@@ -30,21 +30,18 @@ module Q = struct
 
   let fetch = prepare_fun @@ function
     | `Pgsql ->
-      "SELECT entity_id, entity_type, entity_rank, \
-	      entity_viewer_id, entity_admin_id \
+      "SELECT entity_id, entity_type, entity_rank, viewer_id, admin_id \
        FROM subsocia.entity WHERE entity_id = $1"
     | _ -> raise Missing_query_string
 
   let select_min_max = [|
     prepare_sql
-      "SELECT entity_id, entity_type, entity_rank, \
-	      entity_viewer_id, entity_admin_id \
+      "SELECT entity_id, entity_type, entity_rank, viewer_id, admin_id \
        FROM subsocia.entity \
        WHERE not EXISTS \
 	(SELECT 0 FROM subsocia.inclusion WHERE superentity_id = entity_id)";
     prepare_sql
-      "SELECT entity_id, entity_type, entity_rank, \
-	      entity_viewer_id, entity_admin_id \
+      "SELECT entity_id, entity_type, entity_rank, viewer_id, admin_id \
        FROM subsocia.entity \
        WHERE not EXISTS \
 	(SELECT 0 FROM subsocia.inclusion WHERE subentity_id = entity_id)";
@@ -53,8 +50,7 @@ module Q = struct
   let select_pred_succ = Array.map prepare_fun [|
     begin function
     | `Pgsql ->
-      "SELECT entity_id, entity_type, entity_rank, \
-	      entity_viewer_id, entity_admin_id \
+      "SELECT entity_id, entity_type, entity_rank, viewer_id, admin_id \
        FROM subsocia.entity JOIN subsocia.inclusion \
 	 ON entity_id = subentity_id \
        WHERE superentity_id = $1"
@@ -62,8 +58,7 @@ module Q = struct
     end;
     begin function
     | `Pgsql ->
-      "SELECT entity_id, entity_type, entity_rank, \
-	      entity_viewer_id, entity_admin_id \
+      "SELECT entity_id, entity_type, entity_rank, viewer_id, admin_id \
        FROM subsocia.entity JOIN subsocia.inclusion \
 	 ON entity_id = superentity_id \
        WHERE subentity_id = $1"
@@ -91,7 +86,7 @@ module Q = struct
   let create_entity = prepare_fun @@ function
     | `Pgsql ->
       "INSERT INTO subsocia.entity \
-	(entity_type, entity_viewer_id, entity_admin_id) \
+	(entity_type, viewer_id, admin_id) \
        VALUES ($1, $2, $3) RETURNING entity_id"
     | _ -> raise Missing_query_string
 
