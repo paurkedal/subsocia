@@ -13,6 +13,7 @@ OCamlVersion: >= 4.01
 Library "subsocia"
   Path: lib
   Modules:
+    Subsocia_common,
     Subsocia_direct,
     Subsocia_intf,
     Subsocia_prereq

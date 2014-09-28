@@ -15,18 +15,32 @@
 
 CREATE SCHEMA subsocia;
 
+-- Types
+
+CREATE TABLE subsocia.entity_type (
+    entity_type_id SERIAL PRIMARY KEY,
+    entity_type_name text UNIQUE NOT NULL
+);
+CREATE TABLE subsocia.inclusion_type (
+    subentity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
+    superentity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
+    subentity_multiplicity smallint NOT NULL,
+    superentity_multiplicity smallint NOT NULL,
+    UNIQUE (subentity_type_id, superentity_type_id)
+);
+
 -- Core Relations
 
 CREATE TABLE subsocia.entity (
     entity_id SERIAL PRIMARY KEY,
-    entity_type smallint NOT NULL,
+    entity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
     entity_rank smallint NOT NULL DEFAULT 0,
     viewer_id integer NOT NULL REFERENCES subsocia.entity,
     admin_id integer NOT NULL REFERENCES subsocia.entity
 );
 CREATE TABLE subsocia.inclusion (
-    superentity_id integer NOT NULL REFERENCES subsocia.entity,
     subentity_id integer NOT NULL REFERENCES subsocia.entity,
+    superentity_id integer NOT NULL REFERENCES subsocia.entity,
     is_subsumed boolean NOT NULL DEFAULT false,
     UNIQUE (superentity_id, subentity_id)
 );
@@ -46,8 +60,8 @@ CREATE TABLE subsocia.inclusion_log (
     edit_time timestamp NOT NULL DEFAULT current_timestamp,
     edit_author_id integer NOT NULL REFERENCES subsocia.entity,
     edit_note text,
-    superentity_id integer NOT NULL REFERENCES subsocia.entity,
     subentity_id integer NOT NULL REFERENCES subsocia.entity,
+    superentity_id integer NOT NULL REFERENCES subsocia.entity,
     new_state boolean NOT NULL
 );
 

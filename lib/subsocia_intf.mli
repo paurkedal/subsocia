@@ -14,35 +14,64 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-module type RO = sig
+open Subsocia_common
 
-  type entity_id = int32
-  type entity_type = int
-  type entity
+module type ENTITY_TYPE = sig
+  type id = int32
+  type t
 
-  val entity_id : entity -> entity_id
-  val entity_type : entity -> entity_type
-  val entity_viewer_id : entity -> entity_id
-  val entity_admin_id : entity -> entity_id
+  val fetch : id -> t Lwt.t
+  val get_id : t -> id
+  val get_name : t -> string
+  val get_preds : t -> (id * Multiplicity.t) list
+  val get_succs : t -> (id * Multiplicity.t) list
+end
 
-  val fetch : entity_id -> entity Lwt.t
-  val entity_viewer : entity -> entity Lwt.t
-  val entity_admin : entity -> entity Lwt.t
+module type ENTITY_RO = sig
+  type entity_type_id
+  type entity_type
 
-  val min : unit -> entity list Lwt.t
-  val max : unit -> entity list Lwt.t
-  val pred : entity -> entity list Lwt.t
-  val succ : entity -> entity list Lwt.t
-  val preceq : entity -> entity -> bool Lwt.t
+  type id = int32
+  type t
+
+  val get_id : t -> id
+  val get_type_id : t -> entity_type_id
+  val get_viewer_id : t -> id
+  val get_admin_id : t -> id
+
+  val fetch : id -> t Lwt.t
+  val fetch_type : t -> entity_type Lwt.t
+  val fetch_viewer : t -> t Lwt.t
+  val fetch_admin : t -> t Lwt.t
+
+  val fetch_min : unit -> t list Lwt.t
+  val fetch_max : unit -> t list Lwt.t
+  val fetch_preds : t -> t list Lwt.t
+  val fetch_succs : t -> t list Lwt.t
+  val check_preceq : t -> t -> bool Lwt.t
 
 end
 
+module type ENTITY_RW = sig
+
+  include ENTITY_RO
+
+  val create : entity_type: entity_type -> viewer: t -> admin: t ->
+	       unit -> t Lwt.t
+
+  val constrain : t -> t -> unit Lwt.t
+  val unconstrain : t -> t -> unit Lwt.t
+
+end
+
+module type RO = sig
+  module Entity_type : ENTITY_TYPE
+  module Entity : ENTITY_RO with type entity_type_id := Entity_type.id
+			     and type entity_type := Entity_type.t
+end
+
 module type RW = sig
-  include RO
-
-  val create : entity_type: int -> viewer: entity -> admin: entity ->
-	       unit -> entity Lwt.t
-
-  val constrain : entity -> entity -> unit Lwt.t
-  val unconstrain : entity -> entity -> unit Lwt.t
+  module Entity_type : ENTITY_TYPE
+  module Entity : ENTITY_RW with type entity_type_id := Entity_type.id
+			     and type entity_type := Entity_type.t
 end
