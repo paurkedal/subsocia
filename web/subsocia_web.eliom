@@ -16,8 +16,10 @@
 
 {shared{
   open Eliom_content
+  open Printf
   open Unprime_list
-  open Subsocia_direct
+  let (>>=) = Lwt.(>>=)
+  let (>|=) = Lwt.(>|=)
 }}
 
 {client{
@@ -28,6 +30,9 @@
   end
 }}
 {server{
+  open Subsocia_common
+  open Subsocia_direct
+  let langs = [lang_of_string "en"]
   let subsocia_uri = Uri.of_string "postgresql:/"
   module Subsocia = (val Subsocia_direct.connect subsocia_uri)
 }}
@@ -51,14 +56,17 @@
 {server{
   let fetch_entity entity_id =
     lwt e = Subsocia.Entity.fetch entity_id in
-    let label e = Int32.to_string (Subsocia.Entity.get_id e) in
-    let mkneigh e = Subsocia.Entity.get_id e, label e in
+    let label e =
+      lwt et = Subsocia.Entity.fetch_type e in
+      let tn = Subsocia.Entity_type.get_display_name ~langs et in
+      Lwt.return (sprintf "%s #%ld" tn (Subsocia.Entity.get_id e)) in
+    let mkneigh e = label e >|= fun l -> Subsocia.Entity.get_id e, l in
     lwt preds = Subsocia.Entity.fetch_preds e in
     lwt succs = Subsocia.Entity.fetch_succs e in
-    Lwt.return
-      { ei_name = label e;
-	ei_preds = List.map mkneigh preds;
-	ei_succs = List.map mkneigh succs; }
+    lwt ei_name = label e in
+    lwt ei_preds = Lwt_list.map_s mkneigh preds in
+    lwt ei_succs = Lwt_list.map_s mkneigh succs in
+    Lwt.return {ei_name; ei_preds; ei_succs}
 }}
 
 {client{
