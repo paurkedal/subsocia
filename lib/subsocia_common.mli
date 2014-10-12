@@ -14,6 +14,17 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+type lang = int
+
+val lang_of_string : string -> lang
+val string_of_lang : lang -> string
+
+module Twine : sig
+  type t
+  val make : (lang * string) list -> t
+  val to_string : langs: lang list -> t -> string
+end
+
 module Multiplicity : sig
   type t =
     | May1

@@ -14,6 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+module Int_map : Map.S with type key = int
+
 val (>>=) : 'a Lwt.t -> ('a -> 'b Lwt.t) -> 'b Lwt.t
 val (>|=) : 'a Lwt.t -> ('a -> 'b) -> 'b Lwt.t
 

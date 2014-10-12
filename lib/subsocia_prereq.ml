@@ -14,6 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+module Int_map = Map.Make (struct type t = int let compare = compare end)
+
 let (>>=) = Lwt.(>>=)
 let (>|=) = Lwt.(>|=)
 
