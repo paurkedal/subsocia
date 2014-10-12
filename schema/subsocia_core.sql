@@ -21,6 +21,13 @@ CREATE TABLE subsocia.entity_type (
     entity_type_id SERIAL PRIMARY KEY,
     entity_type_name text UNIQUE NOT NULL
 );
+CREATE TABLE subsocia.entity_type_by_lang (
+    entity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
+    lang smallint NOT NULL,
+    display_name text NOT NULL,
+    display_name_pl text,
+    PRIMARY KEY (entity_type_id, lang)
+);
 CREATE TABLE subsocia.inclusion_type (
     subentity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
     superentity_type_id integer NOT NULL REFERENCES subsocia.entity_type,

@@ -52,7 +52,11 @@ module Q = struct
     Buffer.contents buf
 
   let fetch_entity_type =
-    q "SELECT entity_type_id, entity_name FROM @entity_type \
+    q "SELECT entity_type_id, entity_type_name FROM @entity_type \
+       WHERE entity_type_id = ?"
+
+  let fetch_entity_type_by_lang =
+    q "SELECT lang, display_name, display_name_pl FROM @entity_type_by_lang \
        WHERE entity_type_id = ?"
 
   let fetch_entity_type_preds =
@@ -120,6 +124,8 @@ module Base = struct
   type entity_type = {
     et_id : entity_type_id;
     et_name : string;
+    et_display_name : Twine.t;
+    et_display_name_pl : Twine.t;
     et_preds : (entity_type_id * Multiplicity.t) list;
     et_succs : (entity_type_id * Multiplicity.t) list;
     et_beacon : Beacon.t;
@@ -128,6 +134,8 @@ module Base = struct
   let dummy_entity_type = {
     et_id = Int32.zero;
     et_name = "";
+    et_display_name = Twine.make [];
+    et_display_name_pl = Twine.make [];
     et_preds = [];
     et_succs = [];
     et_beacon = Beacon.dummy;
@@ -208,6 +216,16 @@ let connect uri = (module struct
 		       C.Tuple.(fun tup -> text 1 tup) id_p with
       | None -> Lwt.fail Not_found
       | Some et_name ->
+	lwt display_name, display_name_pl =
+	  let add tup (acc, acc_pl) =
+	    let open C.Tuple in
+	    let lang = int 0 tup in
+	    ((lang, text 1 tup) :: acc,
+	     (match option text 2 tup
+	      with None -> acc_pl | Some s -> (lang, s) :: acc_pl)) in
+	  C.fold Q.fetch_entity_type_by_lang add id_p ([], []) in
+	let et_display_name = Twine.make display_name in
+	let et_display_name_pl = Twine.make display_name_pl in
 	let decode_rel tup acc =
 	  C.Tuple.(int32 0 tup, Multiplicity.of_int (int 1 tup)) :: acc in
 	lwt et_preds = C.fold Q.fetch_entity_type_preds decode_rel id_p [] in
@@ -215,7 +233,9 @@ let connect uri = (module struct
 	Lwt.return
 	  @@ Entity_type_by_id.merge entity_type_by_id
 	  @@ Beacon.embed entity_type_grade
-	  @@ fun et_beacon -> {et_id; et_name; et_preds; et_succs; et_beacon;}
+	  @@ fun et_beacon ->
+	  { et_id; et_name; et_display_name; et_display_name_pl;
+	    et_preds; et_succs; et_beacon }
 
     let decode tup =
       Entity_by_id.merge entity_by_id @@
@@ -287,6 +307,19 @@ let connect uri = (module struct
 
     let get_id {et_id} = et_id
     let get_name {et_name} = et_name
+    let get_display_name ~langs ?(pl = false) et =
+      if pl then begin
+	try
+	  try Twine.to_string ~langs et.et_display_name_pl
+	  with Not_found -> Twine.to_string ~langs et.et_display_name
+	with Not_found ->
+	  et.et_name ^ " entities"
+      end else begin
+	try
+	  Twine.to_string ~langs et.et_display_name
+	with Not_found ->
+	  et.et_name ^ " entity"
+      end
     let get_preds {et_preds} = et_preds
     let get_succs {et_succs} = et_succs
   end

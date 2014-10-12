@@ -23,6 +23,7 @@ module type ENTITY_TYPE = sig
   val fetch : id -> t Lwt.t
   val get_id : t -> id
   val get_name : t -> string
+  val get_display_name : langs: lang list -> ?pl: bool -> t -> string
   val get_preds : t -> (id * Multiplicity.t) list
   val get_succs : t -> (id * Multiplicity.t) list
 end
