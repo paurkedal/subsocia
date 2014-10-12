@@ -71,8 +71,8 @@
       let mktd j = td (if i + j * n < l then items.(i + j * n) else []) in
       tr (List.sample mktd m) in
     match List.sample mktr n with
-    | tr :: trs -> table ~a:[a_class ("multicol" :: cls)] tr trs
     | [] -> div ~a:[a_class ("multicol" :: "empty" :: cls)] []
+    | trs -> table ~a:[a_class ("multicol" :: cls)] trs
 
   let render_neigh (id, l) =
     let open Html5.F in
