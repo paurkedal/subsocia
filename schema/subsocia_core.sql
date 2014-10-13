@@ -19,11 +19,12 @@ CREATE SCHEMA subsocia;
 
 CREATE TABLE subsocia.entity_type (
     entity_type_id SERIAL PRIMARY KEY,
-    entity_type_name text UNIQUE NOT NULL
+    entity_type_name text UNIQUE NOT NULL,
+    entity_plugin text NOT NULL
 );
 CREATE TABLE subsocia.entity_type_by_lang (
     entity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
-    lang smallint NOT NULL,
+    lang integer NOT NULL,
     display_name text NOT NULL,
     display_name_pl text,
     PRIMARY KEY (entity_type_id, lang)
@@ -74,7 +75,14 @@ CREATE TABLE subsocia.inclusion_log (
 
 -- Auxiliary Data
 
-CREATE TABLE subsocia.named_entity (
+CREATE TABLE subsocia.person (
     entity_id integer NOT NULL REFERENCES subsocia.entity,
-    entity_name text NOT NULL
+    first_name text NOT NULL,
+    last_name text NOT NULL,
+    email text
+);
+CREATE TABLE subsocia.common_by_lang (
+    entity_id integer NOT NULL REFERENCES subsocia.entity,
+    lang integer NOT NULL,
+    common_name text NOT NULL
 );

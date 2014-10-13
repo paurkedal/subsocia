@@ -43,3 +43,17 @@ module Multiplicity : sig
   val of_char : char -> t
   val to_char : t -> char
 end
+
+type 'a attribute_type =
+  | At_bool : bool attribute_type
+  | At_int : int attribute_type
+  | At_string : string attribute_type
+
+type 'a attribute_key = string * 'a attribute_type
+
+type attribute_info = {
+  ai_key : 'a. 'a attribute_key;
+  ai_name : Twine.t;
+}
+
+val string_of_attribute : 'a attribute_type -> 'a -> string

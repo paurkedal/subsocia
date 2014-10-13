@@ -16,6 +16,18 @@
 
 open Subsocia_common
 
+module type ENTITY_PLUGIN = sig
+  val attributes : (Twine.t * attribute_info) list
+
+  type id = int32
+  type t
+
+  val fetch : id -> t Lwt.t
+  val fetch_display_name : t -> langs: lang list -> string Lwt.t
+  val fetch_attribute : t -> 'a attribute_key -> 'a Lwt.t
+  val store_attribute : t -> 'a attribute_key -> 'a -> unit Lwt.t
+end
+
 module type ENTITY_TYPE = sig
   type id = int32
   type t
@@ -26,6 +38,8 @@ module type ENTITY_TYPE = sig
   val get_display_name : langs: lang list -> ?pl: bool -> t -> string
   val get_preds : t -> (id * Multiplicity.t) list
   val get_succs : t -> (id * Multiplicity.t) list
+
+  val get_plugin : t -> (module ENTITY_PLUGIN)
 end
 
 module type ENTITY_RO = sig
@@ -51,6 +65,8 @@ module type ENTITY_RO = sig
   val fetch_succs : t -> t list Lwt.t
   val check_preceq : t -> t -> bool Lwt.t
 
+  val fetch_display_name : t -> langs: lang list -> string Lwt.t
+  val fetch_attribute : t -> 'a attribute_key -> 'a Lwt.t
 end
 
 module type ENTITY_RW = sig
@@ -63,6 +79,7 @@ module type ENTITY_RW = sig
   val constrain : t -> t -> unit Lwt.t
   val unconstrain : t -> t -> unit Lwt.t
 
+  val store_attribute : t -> 'a attribute_key -> 'a -> unit Lwt.t
 end
 
 module type RO = sig

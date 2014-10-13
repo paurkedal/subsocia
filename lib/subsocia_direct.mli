@@ -16,6 +16,9 @@
 
 module type S = Subsocia_intf.RW
 
+val register_entity_plugin : string -> (module Subsocia_intf.ENTITY_PLUGIN) ->
+			     unit
+
 val schema_prefix : string ref
 
 val connect : Uri.t -> (module S)

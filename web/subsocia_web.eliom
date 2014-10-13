@@ -57,9 +57,10 @@
   let fetch_entity entity_id =
     lwt e = Subsocia.Entity.fetch entity_id in
     let label e =
+      lwt en = Subsocia.Entity.fetch_display_name ~langs e in
       lwt et = Subsocia.Entity.fetch_type e in
       let tn = Subsocia.Entity_type.get_display_name ~langs et in
-      Lwt.return (sprintf "%s #%ld" tn (Subsocia.Entity.get_id e)) in
+      Lwt.return (sprintf "%s : %s" en tn) in
     let mkneigh e = label e >|= fun l -> Subsocia.Entity.get_id e, l in
     lwt preds = Subsocia.Entity.fetch_preds e in
     lwt succs = Subsocia.Entity.fetch_succs e in
