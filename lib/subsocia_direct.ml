@@ -24,9 +24,38 @@ open Unprime_option
 let entity_type_grade = 1e-3 *. cache_second
 let entity_grade = 1e-3 *. cache_second
 let preceq_grade = 1e-2 *. cache_second (* TODO: Highly non-constant. *)
+
 let schema_prefix = ref "subsocia."
 
-let entity_plugins = Hashtbl.create 11
+let format_query sql = Caqti_query.prepare_fun @@ fun lang ->
+  let buf = Buffer.create (String.length sql) in
+  let conv =
+    match lang with
+    | `Pgsql ->
+      let n = ref 0 in
+      begin function
+      | '?' -> n := succ !n; Printf.bprintf buf "$%d" !n
+      | '@' -> Buffer.add_string buf !schema_prefix
+      | ch -> Buffer.add_char buf ch
+      end
+    | `Sqlite ->
+      begin function
+      | '@' -> ()
+      | ch -> Buffer.add_char buf ch
+      end
+    | _ -> raise Caqti_query.Missing_query_string in
+  String.iter conv sql;
+  Buffer.contents buf
+
+module type CONNECTION_POOL = sig
+  val pool : (module Caqti_lwt.CONNECTION) Caqti_lwt.Pool.t
+end
+
+module type ENTITY_PLUGIN_FUNCTOR =
+  functor (Pool : CONNECTION_POOL) -> Subsocia_intf.ENTITY_PLUGIN
+
+let entity_plugins : (string, (module ENTITY_PLUGIN_FUNCTOR)) Hashtbl.t
+		   = Hashtbl.create 11
 let register_entity_plugin name plugin = Hashtbl.add entity_plugins name plugin
 
 module type S = Subsocia_intf.RW
@@ -34,25 +63,7 @@ module type S = Subsocia_intf.RW
 module Q = struct
   open Caqti_query
 
-  let q sql = prepare_fun @@ fun lang ->
-    let buf = Buffer.create (String.length sql) in
-    let conv =
-      match lang with
-      | `Pgsql ->
-	let n = ref 0 in
-	begin function
-	| '?' -> n := succ !n; Printf.bprintf buf "$%d" !n
-	| '@' -> Buffer.add_string buf !schema_prefix
-	| ch -> Buffer.add_char buf ch
-	end
-      | `Sqlite ->
-	begin function
-	| '@' -> ()
-	| ch -> Buffer.add_char buf ch
-	end
-      | _ -> raise Missing_query_string in
-    String.iter conv sql;
-    Buffer.contents buf
+  let q = format_query
 
   let fetch_entity_type =
     q "SELECT entity_type_id, entity_type_name, entity_plugin FROM @entity_type \
@@ -253,7 +264,10 @@ let connect uri = (module struct
 	lwt et_preds = C.fold Q.fetch_entity_type_preds decode_rel id_p [] in
 	lwt et_succs = C.fold Q.fetch_entity_type_succs decode_rel id_p [] in
 	let et_plugin = lazy
-	  try Hashtbl.find entity_plugins et_plugin_name
+	  try
+	    let module Pf = (val Hashtbl.find entity_plugins et_plugin_name) in
+	    let module P = Pf (struct let pool = pool end) in
+	    (module P : Subsocia_intf.ENTITY_PLUGIN)
 	  with Not_found ->
 	    failwith ("Missing plugin " ^ et_plugin_name ^ ".") in
 	Lwt.return
