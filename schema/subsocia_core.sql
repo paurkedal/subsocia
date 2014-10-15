@@ -76,13 +76,14 @@ CREATE TABLE subsocia.inclusion_log (
 -- Auxiliary Data
 
 CREATE TABLE subsocia.person (
-    entity_id integer NOT NULL REFERENCES subsocia.entity,
+    entity_id integer PRIMARY KEY REFERENCES subsocia.entity,
     first_name text NOT NULL,
     last_name text NOT NULL,
     email text
 );
-CREATE TABLE subsocia.common_by_lang (
+CREATE TABLE subsocia.group_by_lang (
     entity_id integer NOT NULL REFERENCES subsocia.entity,
     lang integer NOT NULL,
-    common_name text NOT NULL
+    common_name text NOT NULL,
+    PRIMARY KEY (entity_id, lang)
 );

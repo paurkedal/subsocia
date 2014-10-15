@@ -17,7 +17,7 @@
 open Subsocia_common
 
 module type ENTITY_PLUGIN = sig
-  val attributes : (Twine.t * attribute_info) list
+  val attributes : attribute_info list
 
   type id = int32
   type t

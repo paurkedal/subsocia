@@ -48,12 +48,16 @@ type 'a attribute_type =
   | At_bool : bool attribute_type
   | At_int : int attribute_type
   | At_string : string attribute_type
+  | At_twine : Twine.t attribute_type
 
 type 'a attribute_key = string * 'a attribute_type
 
+type exists_attribute_key =
+  Exists_attribute_key : 'a attribute_key -> exists_attribute_key
+
 type attribute_info = {
-  ai_key : 'a. 'a attribute_key;
+  ai_key : exists_attribute_key;
   ai_name : Twine.t;
 }
 
-val string_of_attribute : 'a attribute_type -> 'a -> string
+val string_of_attribute : langs: lang list -> 'a attribute_type -> 'a -> string

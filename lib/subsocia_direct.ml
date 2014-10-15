@@ -21,8 +21,9 @@ open Unprime
 open Unprime_list
 open Unprime_option
 
-let entity_type_grade = 1e-3 *. cache_second
-let entity_grade = 1e-3 *. cache_second
+let fetch_grade = 1e-3 *. cache_second
+let entity_type_grade = fetch_grade
+let entity_grade = fetch_grade
 let preceq_grade = 1e-2 *. cache_second (* TODO: Highly non-constant. *)
 
 let schema_prefix = ref "subsocia."

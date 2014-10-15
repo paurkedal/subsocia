@@ -106,21 +106,29 @@ type 'a attribute_type =
   | At_bool : bool attribute_type
   | At_int : int attribute_type
   | At_string : string attribute_type
+  | At_twine : Twine.t attribute_type
 
 type 'a attribute_key = string * 'a attribute_type
 
+type exists_attribute_key =
+  Exists_attribute_key : 'a attribute_key -> exists_attribute_key
+
 type attribute_info = {
-  ai_key : 'a. 'a attribute_key;
+  ai_key : exists_attribute_key;
   ai_name : Twine.t;
 }
 
-let string_of_attribute : type a. a attribute_type -> a -> string = function
+let string_of_attribute
+  : type a. langs: lang list -> a attribute_type -> a -> string
+  = fun ~langs -> function
   | At_bool -> (function true -> "true" | false -> "false")
   | At_int -> string_of_int
   | At_string -> fun s -> s
+  | At_twine -> Twine.to_string ~langs
 
 let attribute_of_string : type a. a attribute_type -> string -> a = function
   | At_bool -> (function "true" -> true | "false" -> false
 		       | _ -> invalid_arg "attribute_of_string")
   | At_int -> int_of_string
   | At_string -> fun s -> s
+  | At_twine -> fun _ -> assert false (* FIXME *)

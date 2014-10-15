@@ -18,6 +18,7 @@ module type S = Subsocia_intf.RW
 
 val schema_prefix : string ref
 val format_query : string -> Caqti_query.query
+val fetch_grade : float
 
 module type CONNECTION_POOL = sig
   val pool : (module Caqti_lwt.CONNECTION) Caqti_lwt.Pool.t

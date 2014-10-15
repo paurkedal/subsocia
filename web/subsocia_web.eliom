@@ -40,6 +40,7 @@
 {shared{
   type entity_info = {
     ei_name : string;
+    ei_attributes : (string * string) list;
     ei_preds : (Subsocia.Entity.id * string) list;
     ei_succs : (Subsocia.Entity.id * string) list;
   }
@@ -55,19 +56,28 @@
 
 {server{
   let fetch_entity entity_id =
-    lwt e = Subsocia.Entity.fetch entity_id in
     let label e =
       lwt en = Subsocia.Entity.fetch_display_name ~langs e in
       lwt et = Subsocia.Entity.fetch_type e in
       let tn = Subsocia.Entity_type.get_display_name ~langs et in
       Lwt.return (sprintf "%s : %s" en tn) in
+    lwt e = Subsocia.Entity.fetch entity_id in
+    lwt et = Subsocia.Entity.fetch_type e in
     let mkneigh e = label e >|= fun l -> Subsocia.Entity.get_id e, l in
     lwt preds = Subsocia.Entity.fetch_preds e in
     lwt succs = Subsocia.Entity.fetch_succs e in
     lwt ei_name = label e in
+    let fetchattr ai =
+      match ai.ai_key with
+      | Exists_attribute_key ((_, at) as ak) ->
+	lwt av = Subsocia.Entity.fetch_attribute e ak in
+	Lwt.return (Twine.to_string ~langs ai.ai_name,
+		    string_of_attribute ~langs at av) in
+    let module P = (val Subsocia.Entity_type.get_plugin et) in
+    lwt ei_attributes = Lwt_list.map_s fetchattr P.attributes in
     lwt ei_preds = Lwt_list.map_s mkneigh preds in
     lwt ei_succs = Lwt_list.map_s mkneigh succs in
-    Lwt.return {ei_name; ei_preds; ei_succs}
+    Lwt.return {ei_name; ei_attributes; ei_preds; ei_succs}
 }}
 
 {client{
@@ -89,10 +99,14 @@
 
   let render_browser ei =
     let open Html5.F in
+    let render_attribute (k, v) = tr [th [pcdata k]; td [pcdata v]] in
     div ~a:[a_class ["entity-browser"]] [
       multicol ~cls:["succ1"] (List.map render_neigh ei.ei_succs);
       div ~a:[a_class ["focus"; "box-top"]] [pcdata ei.ei_name];
-      div ~a:[a_class ["focus"; "box-middle"; "content"]] [pcdata "FIXME"];
+      div ~a:[a_class ["focus"; "box-middle"; "content"]] [
+	table ~a:[a_class ["assoc"]]
+	      (List.map render_attribute ei.ei_attributes)
+      ];
       div ~a:[a_class ["focus"; "box-bottom"; "content"]] [
 	multicol ~cls:["pred1"] (List.map render_neigh ei.ei_preds);
       ];
@@ -123,5 +137,6 @@ let main_handler () () =
 module Main_app =
   Eliom_registration.App (struct let application_name = "subsocia_web" end)
 let () =
+  ignore Subsocia_direct_plugins.registered;
   Main_app.register ~service:Services.main main_handler;
   Main_app.register ~service:Services.entity entity_handler
