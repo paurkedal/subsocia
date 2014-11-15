@@ -22,6 +22,8 @@ val string_of_lang : lang -> string
 module Twine : sig
   type t
   val make : (lang * string) list -> t
+  val equal : t -> t -> bool
+  val compare : t -> t -> int
   val to_string : langs: lang list -> t -> string
 end
 

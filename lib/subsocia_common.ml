@@ -47,6 +47,10 @@ module Twine = struct
   let make lms =
     List.fold (fun (lang, msg) -> Int_map.add lang msg) lms Int_map.empty
 
+  let equal = Int_map.equal (=)
+
+  let compare = Int_map.compare String.compare
+
   let rec to_string ~langs tw =
     match langs with
     | [] -> raise Not_found
