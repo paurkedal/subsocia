@@ -75,6 +75,15 @@ CREATE TABLE subsocia.inclusion_log (
 
 -- Auxiliary Data
 
+CREATE TABLE subsocia.auth_identity (
+    entity_id integer PRIMARY KEY REFERENCES subsocia.entity,
+    auth_method text NOT NULL,
+    auth_identity text NOT NULL,
+    auth_attributes text,
+    first_seen timestamp NOT NULL DEFAULT current_timestamp,
+    last_seen timestamp,
+    UNIQUE (auth_method, auth_identity)
+);
 CREATE TABLE subsocia.person (
     entity_id integer PRIMARY KEY REFERENCES subsocia.entity,
     first_name text NOT NULL,
