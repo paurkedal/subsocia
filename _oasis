@@ -18,7 +18,7 @@ Library "subsocia"
     Subsocia_direct_plugins,
     Subsocia_intf,
     Subsocia_prereq
-  BuildDepends: caqti.lwt, extunix, lwt, prime.testing
+  BuildDepends: caqti.lwt, extunix, lwt, panograph, prime.testing
   ByteOpt: -thread
   NativeOpt: -thread
 

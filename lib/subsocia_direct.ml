@@ -15,6 +15,7 @@
  *)
 
 open Caqti_lwt
+open Panograph_i18n
 open Subsocia_common
 open Subsocia_prereq
 open Unprime

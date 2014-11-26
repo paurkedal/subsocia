@@ -14,6 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Panograph_i18n
 open Subsocia_common
 open Subsocia_direct
 open Subsocia_prereq
@@ -22,7 +23,7 @@ module Group = struct
 
   let cn_info = {
     ai_key = Exists_attribute_key ("common_name", At_twine);
-    ai_name = Twine.make [lang_of_string "en", "common name"];
+    ai_name = Twine.make [Lang.of_string "en", "common name"];
   }
 
   module Q = struct
@@ -85,11 +86,11 @@ module Person = struct
 
   let first_name_info = {
     ai_key = Exists_attribute_key ("first_name", At_string);
-    ai_name = Twine.make [lang_of_string "en", "first name"];
+    ai_name = Twine.make [Lang.of_string "en", "first name"];
   }
   let last_name_info = {
     ai_key = Exists_attribute_key ("last_name", At_string);
-    ai_name = Twine.make [lang_of_string "en", "last name"];
+    ai_name = Twine.make [Lang.of_string "en", "last name"];
   }
 
   module Q = struct

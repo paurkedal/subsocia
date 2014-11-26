@@ -14,6 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Panograph_i18n
 open Subsocia_common
 
 module type ENTITY_PLUGIN = sig

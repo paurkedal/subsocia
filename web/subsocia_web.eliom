@@ -16,6 +16,7 @@
 
 {shared{
   open Eliom_content
+  open Panograph_i18n
   open Printf
   open Unprime_list
   let (>>=) = Lwt.(>>=)
@@ -32,7 +33,7 @@
 {server{
   open Subsocia_common
   open Subsocia_direct
-  let langs = [lang_of_string "en"]
+  let langs = [Lang.of_string "en"]
   let subsocia_uri = Uri.of_string "postgresql:/"
   module Subsocia = (val Subsocia_direct.connect subsocia_uri)
 }}

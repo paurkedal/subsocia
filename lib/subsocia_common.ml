@@ -15,48 +15,13 @@
  *)
 
 open Subsocia_prereq
+open Panograph_i18n
 open Printf
 open Unprime_char
 open Unprime_list
 open Unprime_string
 
 let invalid_arg_f fmt = ksprintf invalid_arg fmt
-
-type lang = int
-
-let lang_of_string s =
-  let int_of_letter c = Char.code (Char.lowercase c) - 0x60 in
-  let len = String.length s in
-  if len < 2 || len > 4 || not (String.for_all Char.is_alpha s) then
-    invalid_arg_f "lang_of_string: %s is not a valid ISO 639 language code." s;
-  let _, lang =
-    String.fold (fun c (k, lang) -> (k - 6, lang lor int_of_letter c lsl k))
-		s (18, 0) in
-  lang
-
-let string_of_lang lang =
-  let letter_of_int i = Char.chr (i + 0x60) in
-  let len =
-    if lang land 0xfff = 0 then if lang land 0x03ffff = 0 then 1 else 2
-			   else if lang land 0x00003f = 0 then 3 else 4 in
-  String.sample (fun i -> letter_of_int (lang lsr (18 - 6 * i) land 0x3f)) len
-
-module Twine = struct
-  type t = string Int_map.t
-
-  let make lms =
-    List.fold (fun (lang, msg) -> Int_map.add lang msg) lms Int_map.empty
-
-  let equal = Int_map.equal (=)
-
-  let compare = Int_map.compare String.compare
-
-  let rec to_string ~langs tw =
-    match langs with
-    | [] -> raise Not_found
-    | lang :: langs -> try Int_map.find lang tw
-		       with Not_found -> to_string ~langs tw
-end
 
 module Multiplicity = struct
   type t = May1 | Must1 | May | Must

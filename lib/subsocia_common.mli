@@ -14,18 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-type lang = int
-
-val lang_of_string : string -> lang
-val string_of_lang : lang -> string
-
-module Twine : sig
-  type t
-  val make : (lang * string) list -> t
-  val equal : t -> t -> bool
-  val compare : t -> t -> int
-  val to_string : langs: lang list -> t -> string
-end
+open Panograph_i18n
 
 module Multiplicity : sig
   type t = May1 | Must1 | May | Must
