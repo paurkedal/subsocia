@@ -28,11 +28,7 @@ module Twine : sig
 end
 
 module Multiplicity : sig
-  type t =
-    | May1
-    | Must1
-    | May
-    | Must
+  type t = May1 | Must1 | May | Must
 
   val ( * ) : t -> t -> t
 

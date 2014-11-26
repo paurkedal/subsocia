@@ -59,11 +59,7 @@ module Twine = struct
 end
 
 module Multiplicity = struct
-  type t =
-    | May1
-    | Must1
-    | May
-    | Must
+  type t = May1 | Must1 | May | Must
 
   let ( * ) a b =
     match a, b with
