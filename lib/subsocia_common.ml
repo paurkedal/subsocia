@@ -67,33 +67,39 @@ module Multiplicity = struct
   let to_string m = String.make 1 (to_char m)
 end
 
-type 'a attribute_type =
-  | At_bool : bool attribute_type
-  | At_int : int attribute_type
-  | At_string : string attribute_type
-  | At_twine : Twine.t attribute_type
+type 'a value_type =
+  | Vt_bool : bool value_type
+  | Vt_int : int value_type
+  | Vt_string : string value_type
+  | Vt_twine : Twine.t value_type
 
-type 'a attribute_key = string * 'a attribute_type
+type any_value_type = Any_value_type : 'a value_type -> any_value_type
 
-type exists_attribute_key =
-  Exists_attribute_key : 'a attribute_key -> exists_attribute_key
+let string_of_value_type : type a. a value_type -> string = function
+  | Vt_bool -> "bool"
+  | Vt_int -> "int"
+  | Vt_string -> "string"
+  | Vt_twine -> "twine"
 
-type attribute_info = {
-  ai_key : exists_attribute_key;
-  ai_name : Twine.t;
-}
+let any_value_type_of_string : string -> any_value_type = function
+  | "bool" -> Any_value_type Vt_bool
+  | "int" -> Any_value_type Vt_int
+  | "string" -> Any_value_type Vt_string
+  | "twine" -> Any_value_type Vt_twine
+  | _ -> invalid_arg "any_value_type_of_string"
 
-let string_of_attribute
-  : type a. langs: lang list -> a attribute_type -> a -> string
+type any_value = Any_value : 'a value_type * 'a -> any_value
+
+let string_of_value : type a. langs: lang list -> a value_type -> a -> string
   = fun ~langs -> function
-  | At_bool -> (function true -> "true" | false -> "false")
-  | At_int -> string_of_int
-  | At_string -> fun s -> s
-  | At_twine -> Twine.to_string ~langs
+  | Vt_bool -> (function true -> "true" | false -> "false")
+  | Vt_int -> string_of_int
+  | Vt_string -> fun s -> s
+  | Vt_twine -> Twine.to_string ~langs
 
-let attribute_of_string : type a. a attribute_type -> string -> a = function
-  | At_bool -> (function "true" -> true | "false" -> false
-		       | _ -> invalid_arg "attribute_of_string")
-  | At_int -> int_of_string
-  | At_string -> fun s -> s
-  | At_twine -> fun _ -> assert false (* FIXME *)
+let value_of_string : type a. a value_type -> string -> a = function
+  | Vt_bool -> (function "true" -> true | "false" -> false
+		       | _ -> invalid_arg "value_of_string")
+  | Vt_int -> int_of_string
+  | Vt_string -> fun s -> s
+  | Vt_twine -> fun _ -> assert false (* FIXME *)

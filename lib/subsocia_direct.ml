@@ -23,9 +23,11 @@ open Unprime_list
 open Unprime_option
 
 let fetch_grade = 1e-3 *. cache_second
+let attribute_key_grade = fetch_grade
 let entity_type_grade = fetch_grade
 let entity_grade = fetch_grade
 let preceq_grade = 1e-2 *. cache_second (* TODO: Highly non-constant. *)
+let attribution_grade = fetch_grade
 
 let schema_prefix = ref "subsocia."
 
@@ -53,60 +55,78 @@ module type CONNECTION_POOL = sig
   val pool : (module Caqti_lwt.CONNECTION) Caqti_lwt.Pool.t
 end
 
-module type ENTITY_PLUGIN_FUNCTOR =
-  functor (Pool : CONNECTION_POOL) -> Subsocia_intf.ENTITY_PLUGIN
-
-let entity_plugins : (string, (module ENTITY_PLUGIN_FUNCTOR)) Hashtbl.t
-		   = Hashtbl.create 11
-let register_entity_plugin name plugin = Hashtbl.add entity_plugins name plugin
-
-module type S = Subsocia_intf.RW
+module type S = Subsocia_intf.S
 
 module Q = struct
   open Caqti_query
 
   let q = format_query
 
-  let fetch_entity_type =
-    q "SELECT entity_type_id, entity_type_name, entity_plugin FROM @entity_type \
-       WHERE entity_type_id = ?"
+  (* Attribute key *)
 
-  let fetch_entity_type_by_lang =
-    q "SELECT lang, display_name, display_name_pl FROM @entity_type_by_lang \
-       WHERE entity_type_id = ?"
+  let attribute_key_by_id =
+    q "SELECT attribute_key_name, value_type FROM @attribute_key \
+       WHERE attribute_id = ?"
+  let attribute_key_by_name =
+    q "SELECT attribute_key_id, value_type FROM @attribute_key \
+       WHERE attribute_name = ?"
 
-  let fetch_entity_type_preds =
-    q "SELECT subentity_type_id, subentity_multiplicity \
+  (* Entity types *)
+
+  let entity_type_id_of_name =
+    q "SELECT entity_type_id FROM @entity_type WHERE entity_type_name = ?"
+  let entity_type_name_of_id =
+    q "SELECT entity_type_name FROM @entity_type WHERE entity_type_id = ?"
+
+  let inclusion_type_preds =
+    q "SELECT subentity_type_id, \
+	      subentity_multiplicity, superentity_multiplicity \
        FROM @inclusion_type WHERE superentity_type_id = ?"
-  let fetch_entity_type_succs =
-    q "SELECT superentity_type_id, superentity_multiplicity \
+  let inclusion_type_succs =
+    q "SELECT superentity_type_id, \
+	      subentity_multiplicity, superentity_multiplicity \
        FROM @inclusion_type WHERE subentity_type_id = ?"
 
-  let fetch =
-    q "SELECT entity_id, entity_type_id, entity_rank, viewer_id, admin_id \
-       FROM @entity WHERE entity_id = ?"
+  let attribution_type =
+    q "SELECT attribution_key_id, attribute_multiplicity \
+       FROM @attribution_type WHERE subentity_id = ? AND superentity_id = ?"
+  let attribution_type_preds =
+    q "SELECT subentity_type_id, attribution_key_id, attribute_multiplicity \
+       FROM @attribution_type WHERE superentity_type_id = ?"
+  let attribution_type_succs =
+    q "SELECT superentity_type_id, attribution_type_id, attribute_multiplicity \
+       FROM @attribution_type WHERE subentity_type_id = ?"
 
-  let select_min_max = [|
-    q "SELECT entity_id, entity_type_id, entity_rank, viewer_id, admin_id \
-       FROM @entity \
-       WHERE not EXISTS \
-	(SELECT 0 FROM @inclusion WHERE superentity_id = entity_id)";
-    q "SELECT entity_id, entity_type_id, entity_rank, viewer_id, admin_id \
-       FROM @entity \
-       WHERE not EXISTS \
-	(SELECT 0 FROM @inclusion WHERE subentity_id = entity_id)";
-  |]
+  (* Entites *)
 
-  let select_pred_succ = [|
-    q "SELECT entity_id, entity_type_id, entity_rank, viewer_id, admin_id \
-       FROM @entity JOIN @inclusion \
-	 ON entity_id = subentity_id \
-       WHERE superentity_id = ?";
-    q "SELECT entity_id, entity_type_id, entity_rank, viewer_id, admin_id \
-       FROM @entity JOIN @inclusion \
-	 ON entity_id = superentity_id \
-       WHERE subentity_id = ?";
-  |]
+  let inclusion_succs =
+    q "SELECT superentity_id FROM @inclusion WHERE subentity_id = ?"
+  let inclusion_preds =
+    q "SELECT subentity_id FROM @inclusion WHERE superentity_id = ?"
+
+  let entity_type = q "SELECT entity_type_id FROM @entity WHERE entity_id = ?"
+  let entity_viewer = q "SELECT viewer_id FROM @entity WHERE entity_id = ?"
+  let entity_admin = q "SELECT admin_id FROM @entity WHERE entity_id = ?"
+
+  let minimums =
+    q "SELECT entity_id FROM @entity \
+       WHERE not EXISTS \
+	(SELECT 0 FROM @inclusion WHERE superentity_id = entity_id)"
+
+  let maximums =
+    q "SELECT entity_id FROM @entity \
+       WHERE not EXISTS \
+	(SELECT 0 FROM @inclusion WHERE subentity_id = entity_id)"
+
+  let entity_preds =
+    q "SELECT entity_id FROM @entity JOIN @inclusion \
+			  ON entity_id = subentity_id \
+       WHERE superentity_id = ?"
+
+  let entity_succs =
+    q "SELECT entity_id FROM @entity JOIN @inclusion \
+			  ON entity_id = superentity_id \
+       WHERE subentity_id = ?"
 
   let select_precedes =
     q (* TODO: Utilize entity_rank when implemented. *)
@@ -132,105 +152,85 @@ module Q = struct
 
   let delete_inclusion =
     q "DELETE FROM @inclusion WHERE subentity_id = ? AND superentity_id = ?"
+
+  let select_text_attribution =
+    q "SELECT value FROM @text_attribution \
+       WHERE subentity_id = ? AND superentity_id = ? AND attribute_key_id = ?"
+  let select_integer_attribution =
+    q "SELECT value FROM @integer_attribution \
+       WHERE subentity_id = ? AND superentity_id = ? AND attribute_key_id = ?"
 end
 
+module Int32_set = Set.Make (Int32)
+module Int32_map = Map.Make (Int32)
+
+let memo_1lwt f =
+  let cache = Prime_cache.create ~cache_metric 23 in
+  let g x =
+    try Lwt.return (Prime_cache.find cache x)
+    with Not_found ->
+      lwt y = f x in
+      Prime_cache.replace cache fetch_grade x y;
+      Lwt.return y in
+  g, cache
+
+let memo_0lwt = memo_1lwt
+let memo_2lwt f = let g, c = memo_1lwt f in (fun x0 x1 -> g (x0, x1)), c
+let memo_3lwt f = let g, c = memo_1lwt f in (fun x0 x1 x2 -> g (x0, x1, x2)), c
+
 module Base = struct
+  type attribute_key_id = int32
   type entity_type_id = int32
-
-  type entity_type = {
-    et_id : entity_type_id;
-    et_name : string;
-    et_plugin_name : string;
-    et_plugin : (module Subsocia_intf.ENTITY_PLUGIN) Lazy.t;
-    et_display_name : Twine.t;
-    et_display_name_pl : Twine.t;
-    et_preds : (entity_type_id * Multiplicity.t) list;
-    et_succs : (entity_type_id * Multiplicity.t) list;
-    et_beacon : Beacon.t;
-  }
-
-  let dummy_entity_type = {
-    et_id = Int32.zero;
-    et_name = "";
-    et_plugin_name = "";
-    et_plugin = lazy (assert false);
-    et_display_name = Twine.make [];
-    et_display_name_pl = Twine.make [];
-    et_preds = [];
-    et_succs = [];
-    et_beacon = Beacon.dummy;
-  }
-
   type entity_id = int32
 
-  type entity_attr = {
-    ea_id : entity_id;
-    ea_fetch_display_name : langs: lang list -> string Lwt.t;
-    ea_fetch_attribute : 'a. 'a attribute_key -> 'a Lwt.t;
-    ea_store_attribute : 'a. 'a attribute_key -> 'a -> unit Lwt.t;
-    ea_beacon : Beacon.t;
-  }
+  module Id_set = Set.Make (Int32)
+  module Id_map = Map.Make (Int32)
 
-  let dummy_entity_attr = {
-    ea_id = Int32.zero;
-    ea_fetch_display_name = (fun ~langs -> assert false);
-    ea_fetch_attribute = (fun key -> assert false);
-    ea_store_attribute = (fun key v -> assert false);
-    ea_beacon = Beacon.dummy;
+  type 'a attribute_key = {
+    ak_id : attribute_key_id;
+    ak_name : string;
+    ak_value_type : 'a value_type;
+    ak_beacon : Beacon.t;
   }
+  type any_attribute_key = Any_t : 'a attribute_key -> any_attribute_key
 
-  type entity = {
-    e_id : entity_id;
-    e_type_id : entity_type_id;
-    e_rank : int;
-    e_viewer_id : entity_id;
-    e_admin_id : entity_id;
-    e_pred_succ : entity_list Weak.t;
-    e_beacon : Beacon.t;
+  let dummy_attribute_key = {
+    ak_id = Int32.zero;
+    ak_name = "";
+    ak_value_type = Vt_bool;
+    ak_beacon = Beacon.dummy;
   }
-  and entity_list = {
-    el_entities : entity list;
-    el_beacon : Beacon.t;
-  }
-
-  let dummy_entity = {
-    e_id = Int32.zero;
-    e_type_id = Int32.zero;
-    e_rank = 0;
-    e_viewer_id = Int32.zero;
-    e_admin_id = Int32.zero;
-    e_pred_succ = Weak.create 2;
-    e_beacon = Beacon.dummy;
-  }
-
 end
 
 let connect uri = (module struct
 
   include Base
 
-  module Entity_type_by_id = Weak.Make (struct
-    type t = entity_type
-    let equal eA eB = eA.et_id = eB.et_id
-    let hash {et_id} = Hashtbl.hash et_id
+  module Attribute_key_by_id = Weak.Make (struct
+    type t = any_attribute_key
+    let equal (Any_t akA) (Any_t akB) = akA.ak_id = akB.ak_id
+    let hash (Any_t {ak_id}) = Hashtbl.hash ak_id
   end)
-  let entity_type_by_id = Entity_type_by_id.create 23
+  let attribute_key_by_id = Attribute_key_by_id.create 23
 
-  module Entity_attr_by_id = Weak.Make (struct
-    type t = entity_attr
-    let equal eaA eaB = eaA.ea_id = eaB.ea_id
-    let hash {ea_id} = Hashtbl.hash ea_id
+  module Attribute_key_by_name = Weak.Make (struct
+    type t = any_attribute_key
+    let equal (Any_t akA) (Any_t akB) = akA.ak_name = akB.ak_name
+    let hash (Any_t {ak_name}) = Hashtbl.hash ak_name
   end)
-  let entity_attr_by_id = Entity_attr_by_id.create 23
-
-  module Entity_by_id = Weak.Make (struct
-    type t = entity
-    let equal eA eB = eA.e_id = eB.e_id
-    let hash {e_id} = Hashtbl.hash e_id
-  end)
-  let entity_by_id = Entity_by_id.create 31
+  let attribute_key_by_name = Attribute_key_by_name.create 23
 
   let inclusion_cache = Prime_cache.create ~cache_metric 61
+
+  let bool_attribute_cache :
+    (entity_id * entity_id * any_attribute_key, bool list) Prime_cache.t =
+    Prime_cache.create ~cache_metric 61
+  let int_attribute_cache :
+    (entity_id * entity_id * any_attribute_key, int list) Prime_cache.t =
+    Prime_cache.create ~cache_metric 61
+  let string_attribute_cache :
+    (entity_id * entity_id * any_attribute_key, string list) Prime_cache.t =
+    Prime_cache.create ~cache_metric 61
 
   let pool =
     let connect () = Caqti_lwt.connect uri in
@@ -239,218 +239,243 @@ let connect uri = (module struct
     let check (module C : CONNECTION) = C.check in
     Caqti_lwt.Pool.create ~validate ~check connect disconnect
 
-  let use f = Caqti_lwt.Pool.use f pool
+  let with_db f = Caqti_lwt.Pool.use f pool
+
+  module Attribute_key = struct
+    type 'a t = 'a attribute_key
+    type any_t = any_attribute_key = Any_t : 'a t -> any_t
+
+    module Comparable = struct
+      type t = any_t
+      let compare (Any_t x) (Any_t y) = compare x.ak_id y.ak_id
+    end
+    module Map = Map.Make (Comparable)
+    module Set = Set.Make (Comparable)
+
+    let name (Any_t ak) = ak.ak_name
+    let value_type (Any_t ak) = Any_value_type ak.ak_value_type
+
+    let of_id ak_id =
+      try let ak = Any_t {dummy_attribute_key with ak_id} in
+	  Lwt.return (Attribute_key_by_id.find attribute_key_by_id ak)
+      with Not_found ->
+	with_db @@ fun (module C : CONNECTION) ->
+	lwt ak_name, value_type =
+	  C.find Q.attribute_key_by_id
+		 C.Tuple.(fun tup -> text 0 tup, text 1 tup)
+		 C.Param.([|int32 ak_id|]) in
+	match any_value_type_of_string value_type with
+	| Any_value_type ak_value_type ->
+	  Lwt.return @@ Beacon.embed attribute_key_grade @@ fun ak_beacon ->
+	    (Any_t {ak_id; ak_name; ak_value_type; ak_beacon})
+
+    let of_name ak_name =
+      try let ak = Any_t {dummy_attribute_key with ak_name} in
+	  Lwt.return (Attribute_key_by_name.find attribute_key_by_name ak)
+      with Not_found ->
+	with_db @@ fun (module C : CONNECTION) ->
+	match_lwt
+	  C.find_opt Q.attribute_key_by_name
+		     C.Tuple.(fun tup -> int32 0 tup, text 1 tup)
+		     C.Param.([|text ak_name|])
+	with
+	| None -> Lwt.fail Not_found
+	| Some (ak_id, value_type) ->
+	  match any_value_type_of_string value_type with
+	  | Any_value_type ak_value_type ->
+	    Lwt.return @@ Beacon.embed attribute_key_grade @@ fun ak_beacon ->
+	      (Any_t {ak_id; ak_name; ak_value_type; ak_beacon})
+  end
 
   module Entity_type = struct
-    type id = int32
-    type t = entity_type
+    type t = int32
 
-    let fetch' et_id (module C : CONNECTION) =
-      let id_p = C.Param.([|int32 et_id|]) in
-      match_lwt C.find Q.fetch_entity_type
-		       C.Tuple.(fun tup -> text 1 tup, text 2 tup) id_p with
-      | None -> Lwt.fail Not_found
-      | Some (et_name, et_plugin_name) ->
-	lwt display_name, display_name_pl =
-	  let add tup (acc, acc_pl) =
-	    let open C.Tuple in
-	    let lang = int 0 tup in
-	    ((lang, text 1 tup) :: acc,
-	     (match option text 2 tup
-	      with None -> acc_pl | Some s -> (lang, s) :: acc_pl)) in
-	  C.fold Q.fetch_entity_type_by_lang add id_p ([], []) in
-	let et_display_name = Twine.make display_name in
-	let et_display_name_pl = Twine.make display_name_pl in
-	let decode_rel tup acc =
-	  C.Tuple.(int32 0 tup, Multiplicity.of_int (int 1 tup)) :: acc in
-	lwt et_preds = C.fold Q.fetch_entity_type_preds decode_rel id_p [] in
-	lwt et_succs = C.fold Q.fetch_entity_type_succs decode_rel id_p [] in
-	let et_plugin = lazy
-	  try
-	    let module Pf = (val Hashtbl.find entity_plugins et_plugin_name) in
-	    let module P = Pf (struct let pool = pool end) in
-	    (module P : Subsocia_intf.ENTITY_PLUGIN)
-	  with Not_found ->
-	    failwith ("Missing plugin " ^ et_plugin_name ^ ".") in
-	Lwt.return
-	  @@ Entity_type_by_id.merge entity_type_by_id
-	  @@ Beacon.embed entity_type_grade
-	  @@ fun et_beacon ->
-	  { et_id; et_plugin_name; et_plugin;
-	    et_name; et_display_name; et_display_name_pl;
-	    et_preds; et_succs; et_beacon }
+    module Set = Int32_set
+    module Map = Int32_map
 
-    let fetch et_id =
-      try
-	let et = {dummy_entity_type with et_id} in
-	Lwt.return (Entity_type_by_id.find entity_type_by_id et)
-      with Not_found ->
-	use (fetch' et_id)
+    let compare = Int32.compare
 
-    let get_id {et_id} = et_id
-    let get_name {et_name} = et_name
-    let get_display_name ~langs ?(pl = false) et =
-      if pl then begin
-	try
-	  try Twine.to_string ~langs et.et_display_name_pl
-	  with Not_found -> Twine.to_string ~langs et.et_display_name
-	with Not_found ->
-	  et.et_name ^ " entities"
-      end else begin
-	try
-	  Twine.to_string ~langs et.et_display_name
-	with Not_found ->
-	  et.et_name ^ " entity"
-      end
-    let get_preds {et_preds} = et_preds
-    let get_succs {et_succs} = et_succs
+    let of_name, of_name_cache =
+      memo_1lwt @@ fun name ->
+      with_db @@ fun (module C) ->
+      C.find_opt Q.entity_type_id_of_name
+		 C.Tuple.(int32 0) C.Param.([|text name|])
 
-    let get_plugin {et_plugin} = Lazy.force et_plugin
+    let name, name_cache =
+      memo_1lwt @@ fun et ->
+      with_db @@ fun (module C) ->
+      C.find Q.entity_type_name_of_id C.Tuple.(text 0) C.Param.([|int32 et|])
+
+    let inclusion_preds, inclusion_preds_cache =
+      memo_1lwt @@ fun et ->
+      with_db @@ fun (module C) ->
+      let mult i tup = Multiplicity.of_int (C.Tuple.int i tup) in
+      C.fold Q.inclusion_type_preds
+	     C.Tuple.(fun tup -> Map.add (int32 0 tup) (mult 1 tup, mult 2 tup))
+	     C.Param.([|int32 et|])
+	     Map.empty
+
+    let inclusion_succs, inclusion_succs_cache =
+      memo_1lwt @@ fun et ->
+      with_db @@ fun (module C) ->
+      let mult i tup = Multiplicity.of_int (C.Tuple.int i tup) in
+      C.fold Q.inclusion_type_succs
+	     C.Tuple.(fun tup -> Map.add (int32 0 tup) (mult 1 tup, mult 2 tup))
+	     C.Param.([|int32 et|])
+	     Map.empty
+
+    let attribution, attribution_cache =
+      memo_2lwt @@ fun (et, et') ->
+      with_db @@ fun (module C) ->
+      let aux tup akm =
+	lwt ak = Attribute_key.of_id (C.Tuple.int32 0 tup) in
+	let mult = Multiplicity.of_int (C.Tuple.int 1 tup) in
+	Lwt.return (Attribute_key.Map.add ak mult akm) in
+      C.fold_s Q.attribution_type aux C.Param.([|int32 et; int32 et'|])
+	       Attribute_key.Map.empty
+
+    let attribution_preds, attribution_preds_cache =
+      memo_1lwt @@ fun et ->
+      with_db @@ fun (module C) ->
+      let aux tup etm =
+	let et = C.Tuple.int32 0 tup in
+	lwt ak = Attribute_key.of_id (C.Tuple.int32 1 tup) in
+	let mult = Multiplicity.of_int (C.Tuple.int 2 tup) in
+	let akm = try Map.find et etm
+		  with Not_found -> Attribute_key.Map.empty in
+	Lwt.return (Map.add et (Attribute_key.Map.add ak mult akm) etm) in
+      C.fold_s Q.attribution_type_preds aux C.Param.([|int32 et|]) Map.empty
+
+    let attribution_succs, attribution_succs_cache =
+      memo_1lwt @@ fun et ->
+      with_db @@ fun (module C) ->
+      let aux tup etm =
+	let et = C.Tuple.int32 0 tup in
+	lwt ak = Attribute_key.of_id (C.Tuple.int32 1 tup) in
+	let mult = Multiplicity.of_int (C.Tuple.int 2 tup) in
+	let akm = try Map.find et etm
+		  with Not_found -> Attribute_key.Map.empty in
+	Lwt.return (Map.add et (Attribute_key.Map.add ak mult akm) etm) in
+      C.fold_s Q.attribution_type_succs aux C.Param.([|int32 et|]) Map.empty
+
+    let display_name ~langs ?pl = name (* FIXME *)
   end
 
   module Entity = struct
+    type t = int32
 
-    type t = entity
-    type id = entity_id
+    module Set = Int32_set
+    module Map = Int32_map
 
-    let get_id {e_id} = e_id
-    let get_type_id {e_type_id} = e_type_id
-    let get_viewer_id {e_viewer_id} = e_viewer_id
-    let get_admin_id {e_admin_id} = e_admin_id
+    let compare = Int32.compare
 
-    let decode (type tuple) (module C : CONNECTION with type Tuple.t = tuple)
-	       (tup : tuple) =
-      Entity_by_id.merge entity_by_id @@
-      Beacon.embed entity_grade @@ fun e_beacon ->
-      { e_id = C.Tuple.int32 0 tup;
-	e_type_id = C.Tuple.int32 1 tup;
-	e_rank = C.Tuple.int 2 tup;
-	e_viewer_id = C.Tuple.int32 3 tup;
-	e_admin_id = C.Tuple.int32 4 tup;
-	e_pred_succ = Weak.create 2;
-	e_beacon; }
+    let type_, type_cache = memo_1lwt @@ fun e ->
+      with_db @@ fun (module C) ->
+      C.find Q.entity_type C.Tuple.(int32 0) C.Param.([|int32 e|])
 
-    let fetch e_id =
-      try Lwt.return (Entity_by_id.find entity_by_id {dummy_entity with e_id})
-      with Not_found ->
-	use @@ fun (module C) ->
-	match_lwt C.find Q.fetch (decode (module C))
-			 C.Param.([|int32 e_id|]) with
-	| None -> Lwt.fail Not_found
-	| Some e -> Lwt.return e
+    let viewer, viewer_cache = memo_1lwt @@ fun e ->
+      with_db @@ fun (module C) ->
+      C.find Q.entity_viewer C.Tuple.(int32 0) C.Param.([|int32 e|])
 
-    let fetch_type e = Entity_type.fetch e.e_type_id
-    let fetch_viewer e = fetch e.e_viewer_id
-    let fetch_admin e = fetch e.e_admin_id
+    let admin, admin_cache = memo_1lwt @@ fun e ->
+      with_db @@ fun (module C) ->
+      C.find Q.entity_admin C.Tuple.(int32 0) C.Param.([|int32 e|])
 
-    let min_max_cache = Weak.create 2
+    let minimums, minimums_cache = memo_0lwt @@ fun () ->
+      with_db @@ fun (module C) ->
+      let add tup = Set.add (C.Tuple.int32 0 tup) in
+      C.fold Q.minimums add [||] Set.empty
 
-    let fetch_min_max i =
-      match Weak.get min_max_cache i with
-      | Some el -> Beacon.charge el.el_beacon; Lwt.return el.el_entities
-      | None ->
-	lwt el_entities = use @@ fun (module C) ->
-	  C.fold Q.select_min_max.(i)
-		 (List.push *< decode (module C)) [||] [] in
-	begin match Weak.get min_max_cache i with
-	| Some el -> Beacon.charge el.el_beacon; Lwt.return el.el_entities
-	| None ->
-	  let mk el_beacon = {el_entities; el_beacon} in
-	  let el = Beacon.embed entity_grade mk in
-	  Weak.set min_max_cache i (Some el); Lwt.return el.el_entities
-	end
+    let maximums, maximums_cache = memo_0lwt @@ fun () ->
+      with_db @@ fun (module C) ->
+      let add tup = Set.add (C.Tuple.int32 0 tup) in
+      C.fold Q.maximums add [||] Set.empty
 
-    let fetch_min () = fetch_min_max 0
-    let fetch_max () = fetch_min_max 1
+    let preds, preds_cache = memo_1lwt @@ fun e ->
+      with_db @@ fun (module C) ->
+      let add tup = Set.add (C.Tuple.int32 0 tup) in
+      C.fold Q.entity_preds add C.Param.([|int32 e|]) Set.empty
 
-    let fetch_pred_succ i e =
-      match Weak.get e.e_pred_succ i with
-      | Some el -> Beacon.charge el.el_beacon; Lwt.return el.el_entities
-      | None ->
-	lwt el_entities = use @@ fun (module C) ->
-	  C.fold Q.select_pred_succ.(i) (List.push *< decode (module C))
-		 C.Param.([|int32 e.e_id|]) [] in
-	begin match Weak.get e.e_pred_succ i with
-	| Some el -> Beacon.charge el.el_beacon; Lwt.return el.el_entities
-	| None ->
-	  let mk el_beacon = {el_entities; el_beacon} in
-	  let el = Beacon.embed entity_grade mk in
-	  Weak.set e.e_pred_succ i (Some el); Lwt.return el.el_entities
-	end
-
-    let fetch_preds = fetch_pred_succ 0
-    let fetch_succs = fetch_pred_succ 1
+    let succs, succs_cache = memo_1lwt @@ fun e ->
+      with_db @@ fun (module C) ->
+      let add tup = Set.add (C.Tuple.int32 0 tup) in
+      C.fold Q.entity_succs add C.Param.([|int32 e|]) Set.empty
 
     let create ~entity_type ~viewer ~admin () =
-      use @@ fun (module C) ->
-	lwt entity_id_opt =
-	  C.find Q.create_entity C.Tuple.(int32 0)
-	    C.Param.([|int32 entity_type.et_id;
-		       int32 viewer.e_id; int32 admin.e_id|]) in
-	fetch (Option.get entity_id_opt)
+      with_db @@ fun (module C) ->
+	C.find Q.create_entity C.Tuple.(int32 0)
+	       C.Param.([|int32 entity_type; int32 viewer; int32 admin|])
 
-    let check_preceq subentity superentity =
-      if subentity.e_id = superentity.e_id then Lwt.return_true else
-      let k = subentity.e_id, superentity.e_id in
+    let precedes subentity superentity =
+      if subentity = superentity then Lwt.return_true else
+      let k = subentity, superentity in
       try Lwt.return (Prime_cache.find inclusion_cache k)
       with Not_found ->
-	lwt c = use @@ fun (module C) ->
-	  C.find Q.select_precedes (fun _ -> ())
-		 C.Param.([|int32 subentity.e_id; int32 superentity.e_id|]) >|=
+	lwt c = with_db @@ fun (module C) ->
+	  C.find_opt Q.select_precedes (fun _ -> ())
+		     C.Param.([|int32 subentity; int32 superentity|]) >|=
 	  function None -> false | Some () -> true in
 	Prime_cache.replace inclusion_cache preceq_grade k c;
 	Lwt.return c
 
     let constrain' subentity superentity (module C : CONNECTION) =
+      (* FIXME: Invalidate cache entries. *)
       C.exec Q.insert_inclusion
-	C.Param.([|int32 subentity.e_id; int32 superentity.e_id|])
+	C.Param.([|int32 subentity; int32 superentity|])
 
     let unconstrain' subentity superentity (module C : CONNECTION) =
+      (* FIXME: Invalidate cache entries. *)
       C.exec Q.delete_inclusion
-	C.Param.([|int32 subentity.e_id; int32 superentity.e_id|])
+	C.Param.([|int32 subentity; int32 superentity|])
 
     let constrain subentity superentity =
-      lwt is_sub = check_preceq subentity superentity in
+      lwt is_sub = precedes subentity superentity in
       if is_sub then Lwt.return_unit else
-      lwt is_super = check_preceq superentity subentity in
+      lwt is_super = precedes superentity subentity in
       if is_super then Lwt.fail (Invalid_argument "cyclic constraint") else
       (* TODO: Update entity_rank. *)
-      use (constrain' subentity superentity)
+      with_db (constrain' subentity superentity)
       (* TODO: Update is_subsumed. *)
       (* FIXME: Clear or update pred and succ caches. *)
       (* FIXME: Clear or update inclusion cache. *)
 
     let unconstrain subentity superentity =
       (* TODO: Update is_subsumed. *)
-      use (unconstrain' subentity superentity)
+      with_db (unconstrain' subentity superentity)
       (* TODO: Update entity_rank. *)
       (* FIXME: Clear or update pred and succ caches. *)
       (* FIXME: Clear or update inclusion cache. *)
 
-    let fetch_plugin e = fetch_type e >|= Entity_type.get_plugin
+    type ptuple =
+      Ptuple : (module Caqti_sigs.TUPLE with type t = 't) * 't -> ptuple
 
-    let fetch_attr e =
-      try Lwt.return (Entity_attr_by_id.find entity_attr_by_id
-			{dummy_entity_attr with ea_id = e.e_id})
-      with Not_found ->
-	lwt ep = fetch_plugin e in
-	let module P = (val ep : Subsocia_intf.ENTITY_PLUGIN) in
-	lwt ea = P.fetch e.e_id in
-	let ea_fetch_attribute k = P.fetch_attribute ea k in
-	let ea_store_attribute k v = P.store_attribute ea k v in
-	let ea = Beacon.embed entity_grade @@ fun ea_beacon ->
-	  { ea_id = e.e_id;
-	    ea_fetch_display_name = P.fetch_display_name ea;
-	    ea_fetch_attribute; ea_store_attribute;
-	    ea_beacon; } in
-	Lwt.return ea
+    let fetch_attribute (type a) e e' (ak : a attribute_key) =
+      let aux cache q (detuple : _ -> a) : a list Lwt.t =
+	try Lwt.return (Prime_cache.find cache (e, e', Any_t ak))
+	with Not_found ->
+	  with_db @@ fun (module C : CONNECTION) ->
+	  let p = C.Param.([|int32 e; int32 e'; int32 ak.ak_id|]) in
+	  let push tup acc = detuple (Ptuple ((module C.Tuple), tup)) :: acc in
+	  lwt r = C.fold q push p [] in
+	  Prime_cache.replace cache attribution_grade (e, e', Any_t ak) r;
+	  Lwt.return r in
+      match ak.ak_value_type with
+      | Vt_bool ->
+	aux bool_attribute_cache Q.select_integer_attribution
+	    (fun (Ptuple ((module T), tup)) -> T.int 0 tup <> 0)
+      | Vt_int ->
+	aux int_attribute_cache Q.select_integer_attribution
+	    (fun (Ptuple ((module T), tup)) -> T.int 0 tup)
+      | Vt_string ->
+	aux string_attribute_cache Q.select_text_attribution
+	    (fun (Ptuple ((module T), tup)) -> T.text 0 tup)
+      | Vt_twine -> assert false (* FIXME *)
 
-    let fetch_display_name e ~langs =
-      fetch_attr e >>= fun ea -> ea.ea_fetch_display_name ~langs
-    let fetch_attribute e k =
-      fetch_attr e >>= fun ea -> ea.ea_fetch_attribute k
-    let store_attribute e k v =
-      fetch_attr e >>= fun ea -> ea.ea_store_attribute k v
+    let store_attribute e e' ak av = assert false (* FIXME *)
+
+    let display_name ~langs e =
+      (* FIXME *)
+      Lwt.return @@ Printf.sprintf "Entity # %ld" e
   end
 
 end : S)

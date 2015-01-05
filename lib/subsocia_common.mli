@@ -31,20 +31,19 @@ module Multiplicity : sig
   val to_char : t -> char
 end
 
-type 'a attribute_type =
-  | At_bool : bool attribute_type
-  | At_int : int attribute_type
-  | At_string : string attribute_type
-  | At_twine : Twine.t attribute_type
+type 'a value_type =
+  | Vt_bool : bool value_type
+  | Vt_int : int value_type
+  | Vt_string : string value_type
+  | Vt_twine : Twine.t value_type
 
-type 'a attribute_key = string * 'a attribute_type
+type any_value_type = Any_value_type : 'a value_type -> any_value_type
 
-type exists_attribute_key =
-  Exists_attribute_key : 'a attribute_key -> exists_attribute_key
+val string_of_value_type : 'a value_type -> string
+val any_value_type_of_string : string -> any_value_type
 
-type attribute_info = {
-  ai_key : exists_attribute_key;
-  ai_name : Twine.t;
-}
+type any_value = Any_value : 'a value_type * 'a -> any_value
 
-val string_of_attribute : langs: lang list -> 'a attribute_type -> 'a -> string
+val string_of_value : langs: lang list -> 'a value_type -> 'a -> string
+
+val value_of_string : 'a value_type -> string -> 'a

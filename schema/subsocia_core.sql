@@ -19,25 +19,30 @@ CREATE SCHEMA subsocia;
 
 CREATE TABLE subsocia.entity_type (
     entity_type_id SERIAL PRIMARY KEY,
-    entity_type_name text UNIQUE NOT NULL,
-    entity_plugin text NOT NULL
-);
-CREATE TABLE subsocia.entity_type_by_lang (
-    entity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
-    lang integer NOT NULL,
-    display_name text NOT NULL,
-    display_name_pl text,
-    PRIMARY KEY (entity_type_id, lang)
+    entity_type_name text UNIQUE NOT NULL
 );
 CREATE TABLE subsocia.inclusion_type (
     subentity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
     superentity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
     subentity_multiplicity smallint NOT NULL,
     superentity_multiplicity smallint NOT NULL,
-    UNIQUE (subentity_type_id, superentity_type_id)
+    PRIMARY KEY (subentity_type_id, superentity_type_id)
 );
 
--- Core Relations
+CREATE TABLE subsocia.attribute_key (
+    attribute_key_id SERIAL PRIMARY KEY,
+    attribute_name text UNIQUE NOT NULL,
+    value_type text NOT NULL
+);
+CREATE TABLE subsocia.attribution_type (
+    subentity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
+    superentity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
+    attribute_key_id integer NOT NULL REFERENCES subsocia.attribute_key,
+    attribute_multiplicity smallint NOT NULL,
+    PRIMARY KEY (attribute_key_id, subentity_type_id, superentity_type_id)
+);
+
+-- Objects
 
 CREATE TABLE subsocia.entity (
     entity_id SERIAL PRIMARY KEY,
@@ -50,29 +55,19 @@ CREATE TABLE subsocia.inclusion (
     subentity_id integer NOT NULL REFERENCES subsocia.entity,
     superentity_id integer NOT NULL REFERENCES subsocia.entity,
     is_subsumed boolean NOT NULL DEFAULT false,
-    UNIQUE (superentity_id, subentity_id)
+    PRIMARY KEY (superentity_id, subentity_id)
 );
-
--- Auxiliary Data
-
-CREATE TABLE subsocia.auth_identity (
-    entity_id integer PRIMARY KEY REFERENCES subsocia.entity,
-    auth_method text NOT NULL,
-    auth_identity text NOT NULL,
-    auth_attributes text,
-    first_seen timestamp NOT NULL DEFAULT current_timestamp,
-    last_seen timestamp,
-    UNIQUE (auth_method, auth_identity)
+CREATE TABLE subsocia.integer_attribution (
+    subentity_id integer NOT NULL REFERENCES subsocia.entity,
+    superentity_id integer NOT NULL REFERENCES subsocia.entity,
+    attribute_key_id integer NOT NULL REFERENCES subsocia.attribute,
+    value integer NOT NULL,
+    PRIMARY KEY (superentity_id, subentity_id, attribute_key_id)
 );
-CREATE TABLE subsocia.person (
-    entity_id integer PRIMARY KEY REFERENCES subsocia.entity,
-    first_name text NOT NULL,
-    last_name text NOT NULL,
-    email text
-);
-CREATE TABLE subsocia.group_by_lang (
-    entity_id integer NOT NULL REFERENCES subsocia.entity,
-    lang integer NOT NULL,
-    common_name text NOT NULL,
-    PRIMARY KEY (entity_id, lang)
+CREATE TABLE subsocia.text_attribution (
+    subentity_id integer NOT NULL REFERENCES subsocia.entity,
+    superentity_id integer NOT NULL REFERENCES subsocia.entity,
+    attribute_key_id integer NOT NULL REFERENCES subsocia.attribute,
+    value text NOT NULL,
+    PRIMARY KEY (superentity_id, subentity_id, attribute_key_id)
 );

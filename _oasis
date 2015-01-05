@@ -15,7 +15,6 @@ Library "subsocia"
   Modules:
     Subsocia_common,
     Subsocia_direct,
-    Subsocia_direct_plugins,
     Subsocia_intf,
     Subsocia_prereq
   BuildDepends: caqti.lwt, extunix, lwt, panograph, prime.testing

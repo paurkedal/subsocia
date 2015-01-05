@@ -17,80 +17,63 @@
 open Panograph_i18n
 open Subsocia_common
 
-module type ENTITY_PLUGIN = sig
-  val attributes : attribute_info list
+module type S = sig
 
-  type id = int32
-  type t
+  module Attribute_key : sig
+    type 'a t
+    type any_t = Any_t : 'a t -> any_t
 
-  val fetch : id -> t Lwt.t
-  val fetch_display_name : t -> langs: lang list -> string Lwt.t
-  val fetch_attribute : t -> 'a attribute_key -> 'a Lwt.t
-  val store_attribute : t -> 'a attribute_key -> 'a -> unit Lwt.t
-end
+    module Set : Set.S with type elt = any_t
+    module Map : Map.S with type key = any_t
 
-module type ENTITY_TYPE = sig
-  type id = int32
-  type t
+    val of_name : string -> any_t Lwt.t
+    val name : any_t -> string
+    val value_type : any_t -> any_value_type
+  end
 
-  val fetch : id -> t Lwt.t
-  val get_id : t -> id
-  val get_name : t -> string
-  val get_display_name : langs: lang list -> ?pl: bool -> t -> string
-  val get_preds : t -> (id * Multiplicity.t) list
-  val get_succs : t -> (id * Multiplicity.t) list
+  module Entity_type : sig
+    type t
 
-  val get_plugin : t -> (module ENTITY_PLUGIN)
-end
+    module Set : Set.S with type elt = t
+    module Map : Map.S with type key = t
 
-module type ENTITY_RO = sig
-  type entity_type_id
-  type entity_type
+    val compare : t -> t -> int
+    val of_name : string -> t option Lwt.t
+    val name : t -> string Lwt.t
+    val display_name : langs: lang list -> ?pl: bool -> t -> string Lwt.t
+    val inclusion_preds : t -> (Multiplicity.t * Multiplicity.t) Map.t Lwt.t
+    val inclusion_succs : t -> (Multiplicity.t * Multiplicity.t) Map.t Lwt.t
+    val attribution : t -> t -> Multiplicity.t Attribute_key.Map.t Lwt.t
+    val attribution_preds : t -> Multiplicity.t Attribute_key.Map.t Map.t Lwt.t
+    val attribution_succs : t -> Multiplicity.t Attribute_key.Map.t Map.t Lwt.t
+  end
 
-  type id = int32
-  type t
+  module Entity : sig
+    type t
 
-  val get_id : t -> id
-  val get_type_id : t -> entity_type_id
-  val get_viewer_id : t -> id
-  val get_admin_id : t -> id
+    module Set : Set.S with type elt = t
+    module Map : Map.S with type key = t
 
-  val fetch : id -> t Lwt.t
-  val fetch_type : t -> entity_type Lwt.t
-  val fetch_viewer : t -> t Lwt.t
-  val fetch_admin : t -> t Lwt.t
+    val create : entity_type: Entity_type.t -> viewer: t -> admin: t ->
+		 unit -> t Lwt.t
 
-  val fetch_min : unit -> t list Lwt.t
-  val fetch_max : unit -> t list Lwt.t
-  val fetch_preds : t -> t list Lwt.t
-  val fetch_succs : t -> t list Lwt.t
-  val check_preceq : t -> t -> bool Lwt.t
+    val compare : t -> t -> int
 
-  val fetch_display_name : t -> langs: lang list -> string Lwt.t
-  val fetch_attribute : t -> 'a attribute_key -> 'a Lwt.t
-end
+    val type_ : t -> Entity_type.t Lwt.t
+    val viewer : t -> t Lwt.t
+    val admin : t -> t Lwt.t
 
-module type ENTITY_RW = sig
+    val minimums : unit -> Set.t Lwt.t
+    val maximums : unit -> Set.t Lwt.t
+    val preds : t -> Set.t Lwt.t
+    val succs : t -> Set.t Lwt.t
+    val precedes : t -> t -> bool Lwt.t
 
-  include ENTITY_RO
+    val fetch_attribute : t -> t -> 'a Attribute_key.t -> 'a list Lwt.t
+    val store_attribute : t -> t -> 'a Attribute_key.t -> 'a list -> unit Lwt.t
+    val display_name : langs: lang list -> t -> string Lwt.t
 
-  val create : entity_type: entity_type -> viewer: t -> admin: t ->
-	       unit -> t Lwt.t
-
-  val constrain : t -> t -> unit Lwt.t
-  val unconstrain : t -> t -> unit Lwt.t
-
-  val store_attribute : t -> 'a attribute_key -> 'a -> unit Lwt.t
-end
-
-module type RO = sig
-  module Entity_type : ENTITY_TYPE
-  module Entity : ENTITY_RO with type entity_type_id := Entity_type.id
-			     and type entity_type := Entity_type.t
-end
-
-module type RW = sig
-  module Entity_type : ENTITY_TYPE
-  module Entity : ENTITY_RW with type entity_type_id := Entity_type.id
-			     and type entity_type := Entity_type.t
+    val constrain : t -> t -> unit Lwt.t
+    val unconstrain : t -> t -> unit Lwt.t
+  end
 end
