@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2015  Petter Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,6 +15,9 @@
  *)
 
 open Panograph_i18n
+
+val (>>=) : 'a Lwt.t -> ('a -> 'b Lwt.t) -> 'b Lwt.t
+val (>|=) : 'a Lwt.t -> ('a -> 'b) -> 'b Lwt.t
 
 module Multiplicity : sig
   type t = May1 | Must1 | May | Must
@@ -47,3 +50,6 @@ type any_value = Any_value : 'a value_type * 'a -> any_value
 val string_of_value : langs: lang list -> 'a value_type -> 'a -> string
 
 val value_of_string : 'a value_type -> string -> 'a
+
+module Int32_set : Set.S with type elt = int32
+module Int32_map : Map.S with type key = int32

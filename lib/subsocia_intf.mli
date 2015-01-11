@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2015  Petter Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -27,7 +27,9 @@ module type S = sig
     module Map : Map.S with type key = any_t
 
     val of_name : string -> any_t Lwt.t
-    val name : any_t -> string
+    val name : any_t -> string Lwt.t
+    val of_id : int32 -> any_t Lwt.t
+    val id : any_t -> int32
     val value_type : any_t -> any_value_type
   end
 
@@ -40,6 +42,8 @@ module type S = sig
     val compare : t -> t -> int
     val of_name : string -> t option Lwt.t
     val name : t -> string Lwt.t
+    val of_id : int32 -> t Lwt.t
+    val id : t -> int32
     val display_name : langs: lang list -> ?pl: bool -> t -> string Lwt.t
     val inclusion_preds : t -> (Multiplicity.t * Multiplicity.t) Map.t Lwt.t
     val inclusion_succs : t -> (Multiplicity.t * Multiplicity.t) Map.t Lwt.t
@@ -58,6 +62,9 @@ module type S = sig
 		 unit -> t Lwt.t
 
     val compare : t -> t -> int
+
+    val of_id : int32 -> t Lwt.t
+    val id : t -> int32
 
     val type_ : t -> Entity_type.t Lwt.t
     val viewer : t -> t Lwt.t

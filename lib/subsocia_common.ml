@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2015  Petter Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -20,6 +20,9 @@ open Printf
 open Unprime_char
 open Unprime_list
 open Unprime_string
+
+let (>>=) = Lwt.(>>=)
+let (>|=) = Lwt.(>|=)
 
 let invalid_arg_f fmt = ksprintf invalid_arg fmt
 
@@ -103,3 +106,6 @@ let value_of_string : type a. a value_type -> string -> a = function
   | Vt_int -> int_of_string
   | Vt_string -> fun s -> s
   | Vt_twine -> fun _ -> assert false (* FIXME *)
+
+module Int32_set = Set.Make (Int32)
+module Int32_map = Map.Make (Int32)

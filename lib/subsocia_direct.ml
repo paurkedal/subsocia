@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2015  Petter Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -161,9 +161,6 @@ module Q = struct
        WHERE subentity_id = ? AND superentity_id = ? AND attribute_key_id = ?"
 end
 
-module Int32_set = Set.Make (Int32)
-module Int32_map = Map.Make (Int32)
-
 let memo_1lwt f =
   let cache = Prime_cache.create ~cache_metric 23 in
   let g x =
@@ -252,7 +249,8 @@ let connect uri = (module struct
     module Map = Map.Make (Comparable)
     module Set = Set.Make (Comparable)
 
-    let name (Any_t ak) = ak.ak_name
+    let id (Any_t ak) = ak.ak_id
+    let name (Any_t ak) = Lwt.return ak.ak_name
     let value_type (Any_t ak) = Any_value_type ak.ak_value_type
 
     let of_id ak_id =
@@ -294,6 +292,9 @@ let connect uri = (module struct
     module Map = Int32_map
 
     let compare = Int32.compare
+
+    let of_id et = Lwt.return et
+    let id et = et
 
     let of_name, of_name_cache =
       memo_1lwt @@ fun name ->
@@ -368,6 +369,9 @@ let connect uri = (module struct
     module Map = Int32_map
 
     let compare = Int32.compare
+
+    let of_id e = Lwt.return e
+    let id e = e
 
     let type_, type_cache = memo_1lwt @@ fun e ->
       with_db @@ fun (module C) ->
