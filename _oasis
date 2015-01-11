@@ -40,6 +40,7 @@ Library "subsocia-web"
     static/css/*.css ($datadir/subsocia/static/css),
     ../_build/web/client/*.js ($datadir/subsocia/static)
   CompiledObject: native
+  Build: false
 
 Executable "subsocia_web"
   Path: web/client
@@ -47,3 +48,4 @@ Executable "subsocia_web"
   MainIs: subsocia_web.ml
   ByteOpt: -thread
   Install: false
+  Build: false
