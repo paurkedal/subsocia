@@ -183,20 +183,25 @@ module Base = struct
   module Id_set = Set.Make (Int32)
   module Id_map = Map.Make (Int32)
 
-  type 'a attribute_key = {
-    ak_id : attribute_key_id;
-    ak_name : string;
-    ak_value_type : 'a Type.t1;
-    ak_beacon : Beacon.t;
-  }
-  type any_attribute_key = Any_t : 'a attribute_key -> any_attribute_key
+  module Attribute_key_base = struct
+    type 'a t1 = {
+      ak_id : attribute_key_id;
+      ak_name : string;
+      ak_value_type : 'a Type.t1;
+      ak_beacon : Beacon.t;
+    }
+    type t0 = Ex : 'a t1 -> t0
 
-  let dummy_attribute_key = {
-    ak_id = Int32.zero;
-    ak_name = "";
-    ak_value_type = Type.Bool;
-    ak_beacon = Beacon.dummy;
-  }
+    let dummy = {
+      ak_id = Int32.zero;
+      ak_name = "";
+      ak_value_type = Type.Bool;
+      ak_beacon = Beacon.dummy;
+    }
+
+    let type0 (Ex ak) = Type.Ex ak.ak_value_type
+    let type1 ak = ak.ak_value_type
+  end
 end
 
 let connect uri = (module struct
@@ -204,29 +209,31 @@ let connect uri = (module struct
   include Base
 
   module Attribute_key_by_id = Weak.Make (struct
-    type t = any_attribute_key
-    let equal (Any_t akA) (Any_t akB) = akA.ak_id = akB.ak_id
-    let hash (Any_t {ak_id}) = Hashtbl.hash ak_id
+    open Attribute_key_base
+    type t = t0
+    let equal (Ex akA) (Ex akB) = akA.ak_id = akB.ak_id
+    let hash (Ex {ak_id}) = Hashtbl.hash ak_id
   end)
   let attribute_key_by_id = Attribute_key_by_id.create 23
 
   module Attribute_key_by_name = Weak.Make (struct
-    type t = any_attribute_key
-    let equal (Any_t akA) (Any_t akB) = akA.ak_name = akB.ak_name
-    let hash (Any_t {ak_name}) = Hashtbl.hash ak_name
+    open Attribute_key_base
+    type t = t0
+    let equal (Ex akA) (Ex akB) = akA.ak_name = akB.ak_name
+    let hash (Ex {ak_name}) = Hashtbl.hash ak_name
   end)
   let attribute_key_by_name = Attribute_key_by_name.create 23
 
   let inclusion_cache = Prime_cache.create ~cache_metric 61
 
   let bool_attribute_cache :
-    (entity_id * entity_id * any_attribute_key, bool list) Prime_cache.t =
+    (entity_id * entity_id * Attribute_key_base.t0, bool list) Prime_cache.t =
     Prime_cache.create ~cache_metric 61
   let int_attribute_cache :
-    (entity_id * entity_id * any_attribute_key, int list) Prime_cache.t =
+    (entity_id * entity_id * Attribute_key_base.t0, int list) Prime_cache.t =
     Prime_cache.create ~cache_metric 61
   let string_attribute_cache :
-    (entity_id * entity_id * any_attribute_key, string list) Prime_cache.t =
+    (entity_id * entity_id * Attribute_key_base.t0, string list) Prime_cache.t =
     Prime_cache.create ~cache_metric 61
 
   let pool =
@@ -239,22 +246,20 @@ let connect uri = (module struct
   let with_db f = Caqti_lwt.Pool.use f pool
 
   module Attribute_key = struct
-    type 'a t = 'a attribute_key
-    type any_t = any_attribute_key = Any_t : 'a t -> any_t
+    include Attribute_key_base
 
     module Comparable = struct
-      type t = any_t
-      let compare (Any_t x) (Any_t y) = compare x.ak_id y.ak_id
+      type t = t0
+      let compare (Ex x) (Ex y) = compare x.ak_id y.ak_id
     end
     module Map = Map.Make (Comparable)
     module Set = Set.Make (Comparable)
 
-    let id (Any_t ak) = ak.ak_id
-    let name (Any_t ak) = Lwt.return ak.ak_name
-    let value_type (Any_t ak) = Type.Ex ak.ak_value_type
+    let id (Ex ak) = ak.ak_id
+    let name (Ex ak) = Lwt.return ak.ak_name
 
     let of_id ak_id =
-      try let ak = Any_t {dummy_attribute_key with ak_id} in
+      try let ak = Ex {dummy with ak_id} in
 	  Lwt.return (Attribute_key_by_id.find attribute_key_by_id ak)
       with Not_found ->
 	with_db @@ fun (module C : CONNECTION) ->
@@ -265,10 +270,10 @@ let connect uri = (module struct
 	match Type.of_string value_type with
 	| Type.Ex ak_value_type ->
 	  Lwt.return @@ Beacon.embed attribute_key_grade @@ fun ak_beacon ->
-	    (Any_t {ak_id; ak_name; ak_value_type; ak_beacon})
+	    (Ex {ak_id; ak_name; ak_value_type; ak_beacon})
 
     let of_name ak_name =
-      try let ak = Any_t {dummy_attribute_key with ak_name} in
+      try let ak = Ex {dummy with ak_name} in
 	  Lwt.return (Attribute_key_by_name.find attribute_key_by_name ak)
       with Not_found ->
 	with_db @@ fun (module C : CONNECTION) ->
@@ -282,7 +287,7 @@ let connect uri = (module struct
 	  match Type.of_string value_type with
 	  | Type.Ex ak_value_type ->
 	    Lwt.return @@ Beacon.embed attribute_key_grade @@ fun ak_beacon ->
-	      (Any_t {ak_id; ak_name; ak_value_type; ak_beacon})
+	      (Ex {ak_id; ak_name; ak_value_type; ak_beacon})
   end
 
   module Entity_type = struct
@@ -453,15 +458,16 @@ let connect uri = (module struct
     type ptuple =
       Ptuple : (module Caqti_sigs.TUPLE with type t = 't) * 't -> ptuple
 
-    let fetch_attribute (type a) e e' (ak : a attribute_key) =
+    let fetch_attribute (type a) e e' (ak : a Attribute_key.t1) =
+      let open Attribute_key in
       let aux cache q (detuple : _ -> a) : a list Lwt.t =
-	try Lwt.return (Prime_cache.find cache (e, e', Any_t ak))
+	try Lwt.return (Prime_cache.find cache (e, e', Ex ak))
 	with Not_found ->
 	  with_db @@ fun (module C : CONNECTION) ->
 	  let p = C.Param.([|int32 e; int32 e'; int32 ak.ak_id|]) in
 	  let push tup acc = detuple (Ptuple ((module C.Tuple), tup)) :: acc in
 	  lwt r = C.fold q push p [] in
-	  Prime_cache.replace cache attribution_grade (e, e', Any_t ak) r;
+	  Prime_cache.replace cache attribution_grade (e, e', Ex ak) r;
 	  Lwt.return r in
       match ak.ak_value_type with
       | Type.Bool ->

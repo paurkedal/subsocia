@@ -20,17 +20,18 @@ open Subsocia_common
 module type S = sig
 
   module Attribute_key : sig
-    type 'a t
-    type any_t = Any_t : 'a t -> any_t
+    type 'a t1
+    type t0 = Ex : 'a t1 -> t0
 
-    module Set : Set.S with type elt = any_t
-    module Map : Map.S with type key = any_t
+    module Set : Set.S with type elt = t0
+    module Map : Map.S with type key = t0
 
-    val of_name : string -> any_t Lwt.t
-    val name : any_t -> string Lwt.t
-    val of_id : int32 -> any_t Lwt.t
-    val id : any_t -> int32
-    val value_type : any_t -> Type.t0
+    val of_name : string -> t0 Lwt.t
+    val name : t0 -> string Lwt.t
+    val of_id : int32 -> t0 Lwt.t
+    val id : t0 -> int32
+    val type0 : t0 -> Type.t0
+    val type1 : 'a t1 -> 'a Type.t1
   end
 
   module Entity_type : sig
@@ -76,8 +77,8 @@ module type S = sig
     val succs : t -> Set.t Lwt.t
     val precedes : t -> t -> bool Lwt.t
 
-    val fetch_attribute : t -> t -> 'a Attribute_key.t -> 'a list Lwt.t
-    val store_attribute : t -> t -> 'a Attribute_key.t -> 'a list -> unit Lwt.t
+    val fetch_attribute : t -> t -> 'a Attribute_key.t1 -> 'a list Lwt.t
+    val store_attribute : t -> t -> 'a Attribute_key.t1 -> 'a list -> unit Lwt.t
     val display_name : langs: lang list -> t -> string Lwt.t
 
     val constrain : t -> t -> unit Lwt.t
