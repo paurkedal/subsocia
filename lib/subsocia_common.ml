@@ -26,8 +26,10 @@ let (>|=) = Lwt.(>|=)
 
 let invalid_arg_f fmt = ksprintf invalid_arg fmt
 
+type twine_repr = (int * string) list with rpc
+
 module Multiplicity = struct
-  type t = May1 | Must1 | May | Must
+  type t = May1 | Must1 | May | Must with rpc
 
   let ( * ) a b =
     match a, b with
@@ -70,42 +72,60 @@ module Multiplicity = struct
   let to_string m = String.make 1 (to_char m)
 end
 
-type 'a value_type =
-  | Vt_bool : bool value_type
-  | Vt_int : int value_type
-  | Vt_string : string value_type
-  | Vt_twine : Twine.t value_type
+module Type = struct
 
-type any_value_type = Any_value_type : 'a value_type -> any_value_type
+  type 'a t1 =
+    | Bool : bool t1
+    | Int : int t1
+    | String : string t1
+    | Twine : Twine.t t1
 
-let string_of_value_type : type a. a value_type -> string = function
-  | Vt_bool -> "bool"
-  | Vt_int -> "int"
-  | Vt_string -> "string"
-  | Vt_twine -> "twine"
+  type t0 = Ex : 'a t1 -> t0
 
-let any_value_type_of_string : string -> any_value_type = function
-  | "bool" -> Any_value_type Vt_bool
-  | "int" -> Any_value_type Vt_int
-  | "string" -> Any_value_type Vt_string
-  | "twine" -> Any_value_type Vt_twine
-  | _ -> invalid_arg "any_value_type_of_string"
+  let to_string : type a. a t1 -> string = function
+    | Bool -> "bool"
+    | Int -> "int"
+    | String -> "string"
+    | Twine -> "twine"
 
-type any_value = Any_value : 'a value_type * 'a -> any_value
+  let of_string = function
+    | "bool" -> Ex Bool
+    | "int" -> Ex Int
+    | "string" -> Ex String
+    | "twine" -> Ex Twine
+    | _ -> invalid_arg "Type.of_string"
 
-let string_of_value : type a. langs: lang list -> a value_type -> a -> string
-  = fun ~langs -> function
-  | Vt_bool -> (function true -> "true" | false -> "false")
-  | Vt_int -> string_of_int
-  | Vt_string -> fun s -> s
-  | Vt_twine -> Twine.to_string ~langs
+  let rpc_of_t0 (Ex t) = Rpc.rpc_of_string (to_string t)
+  let t0_of_rpc r = of_string (Rpc.string_of_rpc r)
 
-let value_of_string : type a. a value_type -> string -> a = function
-  | Vt_bool -> (function "true" -> true | "false" -> false
-		       | _ -> invalid_arg "value_of_string")
-  | Vt_int -> int_of_string
-  | Vt_string -> fun s -> s
-  | Vt_twine -> fun _ -> assert false (* FIXME *)
+end
+
+module Value = struct
+  type t0 = Ex : 'a Type.t1 * 'a -> t0
+
+  let typed_to_string : type a. langs: lang list -> a Type.t1 -> a -> string =
+    fun ~langs -> function
+    | Type.Bool -> (function true -> "true" | false -> "false")
+    | Type.Int -> string_of_int
+    | Type.String -> fun s -> s
+    | Type.Twine -> Twine.to_string ~langs
+
+  let to_string ~langs (Ex (t, v)) = typed_to_string ~langs t v
+
+  let rpc_of_t0 = function
+    | Ex (Type.Bool, x) -> Rpc.rpc_of_bool x
+    | Ex (Type.Int, x) -> Rpc.rpc_of_int x
+    | Ex (Type.String, x) -> Rpc.rpc_of_string x
+    | Ex (Type.Twine, x) -> rpc_of_twine_repr (Lang_map.bindings x)
+
+  let t0_of_rpc rpc =
+    match Rpc.t_of_rpc rpc with
+    | Rpc.Bool x -> Ex (Type.Bool, x)
+    | Rpc.Int x -> Ex (Type.Int, Int64.to_int x)
+    | Rpc.String x -> Ex (Type.String, x)
+    | Rpc.Dict x -> Ex (Type.Twine, Twine.make (twine_repr_of_rpc rpc))
+    | _ -> failwith "Value.t0_of_rpc: Protocol error."
+end
 
 module Int32_set = Set.Make (Int32)
 module Int32_map = Map.Make (Int32)

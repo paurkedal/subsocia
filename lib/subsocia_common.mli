@@ -32,24 +32,46 @@ module Multiplicity : sig
 
   val of_char : char -> t
   val to_char : t -> char
+
+  val t_of_rpc : Rpc.t -> t
+  val rpc_of_t : t -> Rpc.t
 end
 
-type 'a value_type =
-  | Vt_bool : bool value_type
-  | Vt_int : int value_type
-  | Vt_string : string value_type
-  | Vt_twine : Twine.t value_type
+module Type : sig
 
-type any_value_type = Any_value_type : 'a value_type -> any_value_type
+  type 'a t1 =
+    | Bool : bool t1
+    | Int : int t1
+    | String : string t1
+    | Twine : Twine.t t1
 
-val string_of_value_type : 'a value_type -> string
-val any_value_type_of_string : string -> any_value_type
+  type t0 = Ex : 'a t1 -> t0
 
-type any_value = Any_value : 'a value_type * 'a -> any_value
+  val to_string : 'a t1 -> string
+  val of_string : string -> t0
 
-val string_of_value : langs: lang list -> 'a value_type -> 'a -> string
+(*
+  val string_of_value_fun : 'a t1 -> 'a -> string
+  val value_of_string_fun : 'a t1 -> string -> 'a
+*)
 
-val value_of_string : 'a value_type -> string -> 'a
+  val rpc_of_t0 : t0 -> Rpc.t
+  val t0_of_rpc : Rpc.t -> t0
+end
+
+module Value : sig
+  type t0 = Ex : 'a Type.t1 * 'a -> t0
+
+  val typed_to_string : langs: lang list -> 'a Type.t1 -> 'a -> string
+
+  val to_string : langs: lang list -> t0 -> string
+(*
+  val of_string : string -> t0
+*)
+
+  val rpc_of_t0 : t0 -> Rpc.t
+  val t0_of_rpc : Rpc.t -> t0
+end
 
 module Int32_set : Set.S with type elt = int32
 module Int32_map : Map.S with type key = int32

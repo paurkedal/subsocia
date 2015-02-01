@@ -30,7 +30,7 @@ module type S = sig
     val name : any_t -> string Lwt.t
     val of_id : int32 -> any_t Lwt.t
     val id : any_t -> int32
-    val value_type : any_t -> any_value_type
+    val value_type : any_t -> Type.t0
   end
 
   module Entity_type : sig

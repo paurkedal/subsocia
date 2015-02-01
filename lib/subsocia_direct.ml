@@ -186,7 +186,7 @@ module Base = struct
   type 'a attribute_key = {
     ak_id : attribute_key_id;
     ak_name : string;
-    ak_value_type : 'a value_type;
+    ak_value_type : 'a Type.t1;
     ak_beacon : Beacon.t;
   }
   type any_attribute_key = Any_t : 'a attribute_key -> any_attribute_key
@@ -194,7 +194,7 @@ module Base = struct
   let dummy_attribute_key = {
     ak_id = Int32.zero;
     ak_name = "";
-    ak_value_type = Vt_bool;
+    ak_value_type = Type.Bool;
     ak_beacon = Beacon.dummy;
   }
 end
@@ -251,7 +251,7 @@ let connect uri = (module struct
 
     let id (Any_t ak) = ak.ak_id
     let name (Any_t ak) = Lwt.return ak.ak_name
-    let value_type (Any_t ak) = Any_value_type ak.ak_value_type
+    let value_type (Any_t ak) = Type.Ex ak.ak_value_type
 
     let of_id ak_id =
       try let ak = Any_t {dummy_attribute_key with ak_id} in
@@ -262,8 +262,8 @@ let connect uri = (module struct
 	  C.find Q.attribute_key_by_id
 		 C.Tuple.(fun tup -> text 0 tup, text 1 tup)
 		 C.Param.([|int32 ak_id|]) in
-	match any_value_type_of_string value_type with
-	| Any_value_type ak_value_type ->
+	match Type.of_string value_type with
+	| Type.Ex ak_value_type ->
 	  Lwt.return @@ Beacon.embed attribute_key_grade @@ fun ak_beacon ->
 	    (Any_t {ak_id; ak_name; ak_value_type; ak_beacon})
 
@@ -279,8 +279,8 @@ let connect uri = (module struct
 	with
 	| None -> Lwt.fail Not_found
 	| Some (ak_id, value_type) ->
-	  match any_value_type_of_string value_type with
-	  | Any_value_type ak_value_type ->
+	  match Type.of_string value_type with
+	  | Type.Ex ak_value_type ->
 	    Lwt.return @@ Beacon.embed attribute_key_grade @@ fun ak_beacon ->
 	      (Any_t {ak_id; ak_name; ak_value_type; ak_beacon})
   end
@@ -464,16 +464,16 @@ let connect uri = (module struct
 	  Prime_cache.replace cache attribution_grade (e, e', Any_t ak) r;
 	  Lwt.return r in
       match ak.ak_value_type with
-      | Vt_bool ->
+      | Type.Bool ->
 	aux bool_attribute_cache Q.select_integer_attribution
 	    (fun (Ptuple ((module T), tup)) -> T.int 0 tup <> 0)
-      | Vt_int ->
+      | Type.Int ->
 	aux int_attribute_cache Q.select_integer_attribution
 	    (fun (Ptuple ((module T), tup)) -> T.int 0 tup)
-      | Vt_string ->
+      | Type.String ->
 	aux string_attribute_cache Q.select_text_attribution
 	    (fun (Ptuple ((module T), tup)) -> T.text 0 tup)
-      | Vt_twine -> assert false (* FIXME *)
+      | Type.Twine -> assert false (* FIXME *)
 
     let store_attribute e e' ak av = assert false (* FIXME *)
 

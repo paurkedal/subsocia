@@ -16,8 +16,9 @@ Library "subsocia"
     Subsocia_common,
     Subsocia_direct,
     Subsocia_intf,
-    Subsocia_prereq
-  BuildDepends: caqti.lwt, extunix, lwt, panograph, prime.testing
+    Subsocia_prereq,
+    Subsocia_rpc
+  BuildDepends: caqti.lwt, extunix, lwt, panograph, prime.testing, rpclib
   ByteOpt: -thread
   NativeOpt: -thread
 

@@ -1,1 +1,4 @@
 true: syntax(camlp4o), package(lwt.syntax)
+"subsocia_common.ml": package(rpclib.syntax)
+"subsocia_rpc.ml": package(rpclib.idl)
+<subsocia_rpc.*>: package(rpclib)
