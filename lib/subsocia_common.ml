@@ -112,6 +112,14 @@ module Value = struct
 
   let to_string ~langs (Ex (t, v)) = typed_to_string ~langs t v
 
+  let coerce : type a. a Type.t1 -> t0 -> a = fun t v ->
+    match t, v with
+    | Type.Bool, (Ex (Type.Bool, x)) -> x
+    | Type.Int, (Ex (Type.Int, x)) -> x
+    | Type.String, (Ex (Type.String, x)) -> x
+    | Type.Twine, (Ex (Type.Twine, x)) -> x
+    | _ -> invalid_arg "Subsocia_common.Value.coerce: Type error."
+
   let rpc_of_t0 = function
     | Ex (Type.Bool, x) -> Rpc.rpc_of_bool x
     | Ex (Type.Int, x) -> Rpc.rpc_of_int x

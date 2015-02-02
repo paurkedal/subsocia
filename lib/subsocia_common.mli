@@ -69,6 +69,8 @@ module Value : sig
   val of_string : string -> t0
 *)
 
+  val coerce : 'a Type.t1 -> t0 -> 'a
+
   val rpc_of_t0 : t0 -> Rpc.t
   val t0_of_rpc : Rpc.t -> t0
 end

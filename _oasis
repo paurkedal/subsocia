@@ -13,11 +13,13 @@ OCamlVersion: >= 4.01
 Library "subsocia"
   Path: lib
   Modules:
+    Subsocia_client,
     Subsocia_common,
     Subsocia_direct,
     Subsocia_intf,
     Subsocia_prereq,
-    Subsocia_rpc
+    Subsocia_rpc,
+    Subsocia_server
   BuildDepends: caqti.lwt, extunix, lwt, panograph, prime.testing, rpclib
   ByteOpt: -thread
   NativeOpt: -thread
