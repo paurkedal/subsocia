@@ -90,12 +90,14 @@ module Q = struct
   let attribution_type =
     q "SELECT attribution_key_id, attribute_multiplicity \
        FROM @attribution_type WHERE subentity_id = ? AND superentity_id = ?"
+(*
   let attribution_type_preds =
     q "SELECT subentity_type_id, attribution_key_id, attribute_multiplicity \
        FROM @attribution_type WHERE superentity_type_id = ?"
   let attribution_type_succs =
     q "SELECT superentity_type_id, attribution_type_id, attribute_multiplicity \
        FROM @attribution_type WHERE subentity_type_id = ?"
+*)
 
   (* Entites *)
 
@@ -340,6 +342,7 @@ let connect uri = (module struct
       C.fold_s Q.attribution_type aux C.Param.([|int32 et; int32 et'|])
 	       Attribute_key.Map.empty
 
+(*
     let attribution_preds, attribution_preds_cache =
       memo_1lwt @@ fun et ->
       with_db @@ fun (module C) ->
@@ -363,6 +366,7 @@ let connect uri = (module struct
 		  with Not_found -> Attribute_key.Map.empty in
 	Lwt.return (Map.add et (Attribute_key.Map.add ak mult akm) etm) in
       C.fold_s Q.attribution_type_succs aux C.Param.([|int32 et|]) Map.empty
+*)
 
     let display_name ~langs ?pl = name (* FIXME *)
   end
@@ -410,7 +414,7 @@ let connect uri = (module struct
       let add tup = Set.add (C.Tuple.int32 0 tup) in
       C.fold Q.entity_succs add C.Param.([|int32 e|]) Set.empty
 
-    let create ~entity_type ~viewer ~admin () =
+    let create ~viewer ~admin entity_type =
       with_db @@ fun (module C) ->
 	C.find Q.create_entity C.Tuple.(int32 0)
 	       C.Param.([|int32 entity_type; int32 viewer; int32 admin|])

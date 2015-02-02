@@ -53,8 +53,10 @@ module type S = sig
     val inclusion_preds : t -> (Multiplicity.t * Multiplicity.t) Map.t Lwt.t
     val inclusion_succs : t -> (Multiplicity.t * Multiplicity.t) Map.t Lwt.t
     val attribution : t -> t -> Multiplicity.t Attribute_key.Map.t Lwt.t
+(*
     val attribution_preds : t -> Multiplicity.t Attribute_key.Map.t Map.t Lwt.t
     val attribution_succs : t -> Multiplicity.t Attribute_key.Map.t Map.t Lwt.t
+*)
   end
 
   module Entity : sig
@@ -63,8 +65,7 @@ module type S = sig
     module Set : SET with type elt = t
     module Map : MAP with type key = t
 
-    val create : entity_type: Entity_type.t -> viewer: t -> admin: t ->
-		 unit -> t Lwt.t
+    val create : viewer: t -> admin: t -> Entity_type.t -> t Lwt.t
 
     val compare : t -> t -> int
 
