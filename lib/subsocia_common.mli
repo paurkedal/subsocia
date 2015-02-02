@@ -73,5 +73,5 @@ module Value : sig
   val t0_of_rpc : Rpc.t -> t0
 end
 
-module Int32_set : Set.S with type elt = int32
-module Int32_map : Map.S with type key = int32
+module Int32_set : Prime_enumset.S with type elt = int32
+module Int32_map : Prime_enummap.S with type key = int32

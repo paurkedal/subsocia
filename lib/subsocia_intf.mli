@@ -17,14 +17,18 @@
 open Panograph_i18n
 open Subsocia_common
 
+(* TODO: Restrict these. *)
+module type SET = Prime_enumset.S
+module type MAP = Prime_enummap.S
+
 module type S = sig
 
   module Attribute_key : sig
     type 'a t1
     type t0 = Ex : 'a t1 -> t0
 
-    module Set : Set.S with type elt = t0
-    module Map : Map.S with type key = t0
+    module Set : SET with type elt = t0
+    module Map : MAP with type key = t0
 
     val of_name : string -> t0 Lwt.t
     val name : t0 -> string Lwt.t
@@ -37,8 +41,8 @@ module type S = sig
   module Entity_type : sig
     type t
 
-    module Set : Set.S with type elt = t
-    module Map : Map.S with type key = t
+    module Set : SET with type elt = t
+    module Map : MAP with type key = t
 
     val compare : t -> t -> int
     val of_name : string -> t option Lwt.t
@@ -56,8 +60,8 @@ module type S = sig
   module Entity : sig
     type t
 
-    module Set : Set.S with type elt = t
-    module Map : Map.S with type key = t
+    module Set : SET with type elt = t
+    module Map : MAP with type key = t
 
     val create : entity_type: Entity_type.t -> viewer: t -> admin: t ->
 		 unit -> t Lwt.t

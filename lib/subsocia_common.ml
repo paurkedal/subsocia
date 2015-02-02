@@ -127,5 +127,5 @@ module Value = struct
     | _ -> failwith "Value.t0_of_rpc: Protocol error."
 end
 
-module Int32_set = Set.Make (Int32)
-module Int32_map = Map.Make (Int32)
+module Int32_set = Prime_enumset.Make (Int32)
+module Int32_map = Prime_enummap.Make (Int32)

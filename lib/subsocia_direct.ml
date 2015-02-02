@@ -180,8 +180,8 @@ module Base = struct
   type entity_type_id = int32
   type entity_id = int32
 
-  module Id_set = Set.Make (Int32)
-  module Id_map = Map.Make (Int32)
+  module Id_set = Prime_enumset.Make (Int32)
+  module Id_map = Prime_enummap.Make (Int32)
 
   module Attribute_key_base = struct
     type 'a t1 = {
@@ -252,8 +252,8 @@ let connect uri = (module struct
       type t = t0
       let compare (Ex x) (Ex y) = compare x.ak_id y.ak_id
     end
-    module Map = Map.Make (Comparable)
-    module Set = Set.Make (Comparable)
+    module Map = Prime_enummap.Make (Comparable)
+    module Set = Prime_enumset.Make (Comparable)
 
     let id (Ex ak) = ak.ak_id
     let name (Ex ak) = Lwt.return ak.ak_name
