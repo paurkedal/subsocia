@@ -47,6 +47,7 @@ module Entity = struct
   external maximums : unit -> int32 list = ""
   external preds : int32 -> int32 list = ""
   external succs : int32 -> int32 list = ""
+  external precedes : int32 -> int32 -> bool = ""
   external fetch_attribute : int32 -> int32 -> int32 -> Value.t0 list = ""
   external store_attribute : int32 -> int32 -> int32 -> Value.t0 list -> unit=""
   external constrain : int32 -> int32 -> unit = ""
