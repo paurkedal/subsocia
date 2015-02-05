@@ -65,8 +65,8 @@ module Q = struct
   (* Attribute key *)
 
   let attribute_key_by_id =
-    q "SELECT attribute_key_name, value_type FROM @attribute_key \
-       WHERE attribute_id = ?"
+    q "SELECT attribute_name, value_type FROM @attribute_key \
+       WHERE attribute_key_id = ?"
   let attribute_key_by_name =
     q "SELECT attribute_key_id, value_type FROM @attribute_key \
        WHERE attribute_name = ?"
@@ -88,8 +88,9 @@ module Q = struct
        FROM @inclusion_type WHERE subentity_type_id = ?"
 
   let attribution_type =
-    q "SELECT attribution_key_id, attribute_multiplicity \
-       FROM @attribution_type WHERE subentity_id = ? AND superentity_id = ?"
+    q "SELECT attribute_key_id, attribute_multiplicity \
+       FROM @attribution_type \
+       WHERE subentity_type_id = ? AND superentity_type_id = ?"
 (*
   let attribution_type_preds =
     q "SELECT subentity_type_id, attribution_key_id, attribute_multiplicity \
