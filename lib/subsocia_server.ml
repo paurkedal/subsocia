@@ -28,16 +28,16 @@ module Server_impl = struct
   let fail = Lwt.fail
   let handle_failure = Lwt.catch
 
-  module Attribute_key = struct
+  module Attribute_type = struct
 
     let of_name (module C : Subsocia_intf.S) name =
-      C.Attribute_key.of_name name >|= fun ak ->
-      C.Attribute_key.id ak, C.Attribute_key.type0 ak
+      C.Attribute_type.of_name name >|= fun ak ->
+      C.Attribute_type.id ak, C.Attribute_type.type0 ak
 
     let of_id (module C : Subsocia_intf.S) id =
-      lwt ak = C.Attribute_key.of_id id in
-      lwt name = C.Attribute_key.name ak in
-      Lwt.return (name, C.Attribute_key.type0 ak)
+      lwt ak = C.Attribute_type.of_id id in
+      lwt name = C.Attribute_type.name ak in
+      Lwt.return (name, C.Attribute_type.type0 ak)
 
   end
 
@@ -65,8 +65,8 @@ module Server_impl = struct
       lwt lb = C.Entity_type.of_id lb_id in
       lwt ub = C.Entity_type.of_id ub_id in
       C.Entity_type.attribution lb ub >|=
-      C.Attribute_key.Map.bindings *>
-      List.map (fun (ak, mu) -> C.Attribute_key.id ak, mu)
+      C.Attribute_type.Map.bindings *>
+      List.map (fun (ak, mu) -> C.Attribute_type.id ak, mu)
   end
 
   module Entity = struct
@@ -103,15 +103,15 @@ module Server_impl = struct
     let fetch_attribute (module C : Subsocia_intf.S) lb_id ub_id ak_id =
       lwt lb = C.Entity.of_id lb_id in
       lwt ub = C.Entity.of_id ub_id in
-      lwt C.Attribute_key.Ex ak = C.Attribute_key.of_id ak_id in
+      lwt C.Attribute_type.Ex ak = C.Attribute_type.of_id ak_id in
       C.Entity.fetch_attribute lb ub ak >|=
-      List.map (fun v -> Value.Ex (C.Attribute_key.type1 ak, v))
+      List.map (fun v -> Value.Ex (C.Attribute_type.type1 ak, v))
 
     let store_attribute (module C : Subsocia_intf.S) lb_id ub_id ak_id vs =
       lwt lb = C.Entity.of_id lb_id in
       lwt ub = C.Entity.of_id ub_id in
-      lwt C.Attribute_key.Ex ak = C.Attribute_key.of_id ak_id in
-      let vs1 = List.map (Value.coerce (C.Attribute_key.type1 ak)) vs in
+      lwt C.Attribute_type.Ex ak = C.Attribute_type.of_id ak_id in
+      let vs1 = List.map (Value.coerce (C.Attribute_type.type1 ak)) vs in
       C.Entity.store_attribute lb ub ak vs1
 
     let constrain (module C : Subsocia_intf.S) lb_id ub_id =

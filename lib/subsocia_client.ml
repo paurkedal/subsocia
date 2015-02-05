@@ -21,7 +21,7 @@ module type RPCM = Subsocia_rpc.RPCM with type 'a t = 'a Lwt.t
 
 module Int32_map = Prime_enummap.Make (Int32)
 module Int32_set = Prime_enumset.Make (Int32)
-module Attribute_key_base = struct
+module Attribute_type_base = struct
   type 'a t1 = {ak_id : int32; ak_name : string; ak_type : 'a Type.t1}
   type t0 = Ex : 'a t1 -> t0
 end
@@ -29,10 +29,10 @@ end
 module Make (RPCM : RPCM) = struct
   module Raw = Subsocia_rpc.ClientM (RPCM)
 
-  module Attribute_key = struct
-    module Raw = Raw.Attribute_key
+  module Attribute_type = struct
+    module Raw = Raw.Attribute_type
 
-    include Attribute_key_base
+    include Attribute_type_base
 
     module Comparable = struct
       type t = t0
@@ -81,9 +81,9 @@ module Make (RPCM : RPCM) = struct
       List.map (fun (et, muA, muB) -> et, (muA, muB)) *> Map.of_ordered_bindings
 
     let attribution lbt ubt =
-      let aux (ak_id, mu) = Attribute_key.of_id ak_id >|= fun ak -> ak, mu in
+      let aux (ak_id, mu) = Attribute_type.of_id ak_id >|= fun ak -> ak, mu in
       Raw.attribution lbt ubt >>= Lwt_list.map_s aux >|=
-      Attribute_key.Map.of_ordered_bindings
+      Attribute_type.Map.of_ordered_bindings
   end
 
   module Entity = struct
@@ -108,12 +108,12 @@ module Make (RPCM : RPCM) = struct
     let succs e = Raw.succs e >|= Set.of_ordered_elements
 
     let fetch_attribute lb ub ak =
-      Raw.fetch_attribute lb ub (Attribute_key.(id (Ex ak))) >|=
-      List.map (Value.coerce (Attribute_key.type1 ak))
+      Raw.fetch_attribute lb ub (Attribute_type.(id (Ex ak))) >|=
+      List.map (Value.coerce (Attribute_type.type1 ak))
 
     let store_attribute lb ub ak vs =
-      let t = Attribute_key.type1 ak in
-      Raw.store_attribute lb ub (Attribute_key.(id (Ex ak)))
+      let t = Attribute_type.type1 ak in
+      Raw.store_attribute lb ub (Attribute_type.(id (Ex ak)))
 			  (List.map (fun v -> Value.Ex (t, v)) vs)
 
     let precedes = Raw.precedes

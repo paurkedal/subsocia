@@ -29,17 +29,17 @@ CREATE TABLE subsocia.inclusion_type (
     PRIMARY KEY (subentity_type_id, superentity_type_id)
 );
 
-CREATE TABLE subsocia.attribute_key (
-    attribute_key_id SERIAL PRIMARY KEY,
+CREATE TABLE subsocia.attribute_type (
+    attribute_type_id SERIAL PRIMARY KEY,
     attribute_name text UNIQUE NOT NULL,
     value_type text NOT NULL
 );
 CREATE TABLE subsocia.attribution_type (
     subentity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
     superentity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
-    attribute_key_id integer NOT NULL REFERENCES subsocia.attribute_key,
+    attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
     attribute_multiplicity smallint NOT NULL,
-    PRIMARY KEY (attribute_key_id, subentity_type_id, superentity_type_id)
+    PRIMARY KEY (attribute_type_id, subentity_type_id, superentity_type_id)
 );
 
 -- Objects
@@ -60,14 +60,14 @@ CREATE TABLE subsocia.inclusion (
 CREATE TABLE subsocia.integer_attribution (
     subentity_id integer NOT NULL REFERENCES subsocia.entity,
     superentity_id integer NOT NULL REFERENCES subsocia.entity,
-    attribute_key_id integer NOT NULL REFERENCES subsocia.attribute,
+    attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
     value integer NOT NULL,
-    PRIMARY KEY (superentity_id, subentity_id, attribute_key_id)
+    PRIMARY KEY (superentity_id, subentity_id, attribute_type_id)
 );
 CREATE TABLE subsocia.text_attribution (
     subentity_id integer NOT NULL REFERENCES subsocia.entity,
     superentity_id integer NOT NULL REFERENCES subsocia.entity,
-    attribute_key_id integer NOT NULL REFERENCES subsocia.attribute,
+    attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
     value text NOT NULL,
-    PRIMARY KEY (superentity_id, subentity_id, attribute_key_id)
+    PRIMARY KEY (superentity_id, subentity_id, attribute_type_id)
 );

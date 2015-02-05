@@ -23,7 +23,7 @@ module type MAP = Prime_enummap.S
 
 module type S = sig
 
-  module Attribute_key : sig
+  module Attribute_type : sig
     type 'a t1
     type t0 = Ex : 'a t1 -> t0
 
@@ -52,10 +52,10 @@ module type S = sig
     val display_name : langs: lang list -> ?pl: bool -> t -> string Lwt.t
     val inclusion_preds : t -> (Multiplicity.t * Multiplicity.t) Map.t Lwt.t
     val inclusion_succs : t -> (Multiplicity.t * Multiplicity.t) Map.t Lwt.t
-    val attribution : t -> t -> Multiplicity.t Attribute_key.Map.t Lwt.t
+    val attribution : t -> t -> Multiplicity.t Attribute_type.Map.t Lwt.t
 (*
-    val attribution_preds : t -> Multiplicity.t Attribute_key.Map.t Map.t Lwt.t
-    val attribution_succs : t -> Multiplicity.t Attribute_key.Map.t Map.t Lwt.t
+    val attribution_preds : t -> Multiplicity.t Attribute_type.Map.t Map.t Lwt.t
+    val attribution_succs : t -> Multiplicity.t Attribute_type.Map.t Map.t Lwt.t
 *)
   end
 
@@ -82,8 +82,8 @@ module type S = sig
     val succs : t -> Set.t Lwt.t
     val precedes : t -> t -> bool Lwt.t
 
-    val fetch_attribute : t -> t -> 'a Attribute_key.t1 -> 'a list Lwt.t
-    val store_attribute : t -> t -> 'a Attribute_key.t1 -> 'a list -> unit Lwt.t
+    val fetch_attribute : t -> t -> 'a Attribute_type.t1 -> 'a list Lwt.t
+    val store_attribute : t -> t -> 'a Attribute_type.t1 -> 'a list -> unit Lwt.t
     val display_name : langs: lang list -> t -> string Lwt.t
 
     val constrain : t -> t -> unit Lwt.t

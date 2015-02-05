@@ -23,7 +23,7 @@ open Unprime_list
 open Unprime_option
 
 let fetch_grade = 1e-3 *. cache_second
-let attribute_key_grade = fetch_grade
+let attribute_type_grade = fetch_grade
 let entity_type_grade = fetch_grade
 let entity_grade = fetch_grade
 let preceq_grade = 1e-2 *. cache_second (* TODO: Highly non-constant. *)
@@ -64,11 +64,11 @@ module Q = struct
 
   (* Attribute key *)
 
-  let attribute_key_by_id =
-    q "SELECT attribute_name, value_type FROM @attribute_key \
-       WHERE attribute_key_id = ?"
-  let attribute_key_by_name =
-    q "SELECT attribute_key_id, value_type FROM @attribute_key \
+  let attribute_type_by_id =
+    q "SELECT attribute_name, value_type FROM @attribute_type \
+       WHERE attribute_type_id = ?"
+  let attribute_type_by_name =
+    q "SELECT attribute_type_id, value_type FROM @attribute_type \
        WHERE attribute_name = ?"
 
   (* Entity types *)
@@ -88,7 +88,7 @@ module Q = struct
        FROM @inclusion_type WHERE subentity_type_id = ?"
 
   let attribution_type =
-    q "SELECT attribute_key_id, attribute_multiplicity \
+    q "SELECT attribute_type_id, attribute_multiplicity \
        FROM @attribution_type \
        WHERE subentity_type_id = ? AND superentity_type_id = ?"
 (*
@@ -158,10 +158,10 @@ module Q = struct
 
   let select_text_attribution =
     q "SELECT value FROM @text_attribution \
-       WHERE subentity_id = ? AND superentity_id = ? AND attribute_key_id = ?"
+       WHERE subentity_id = ? AND superentity_id = ? AND attribute_type_id = ?"
   let select_integer_attribution =
     q "SELECT value FROM @integer_attribution \
-       WHERE subentity_id = ? AND superentity_id = ? AND attribute_key_id = ?"
+       WHERE subentity_id = ? AND superentity_id = ? AND attribute_type_id = ?"
 end
 
 let memo_1lwt f =
@@ -179,16 +179,16 @@ let memo_2lwt f = let g, c = memo_1lwt f in (fun x0 x1 -> g (x0, x1)), c
 let memo_3lwt f = let g, c = memo_1lwt f in (fun x0 x1 x2 -> g (x0, x1, x2)), c
 
 module Base = struct
-  type attribute_key_id = int32
+  type attribute_type_id = int32
   type entity_type_id = int32
   type entity_id = int32
 
   module Id_set = Prime_enumset.Make (Int32)
   module Id_map = Prime_enummap.Make (Int32)
 
-  module Attribute_key_base = struct
+  module Attribute_type_base = struct
     type 'a t1 = {
-      ak_id : attribute_key_id;
+      ak_id : attribute_type_id;
       ak_name : string;
       ak_value_type : 'a Type.t1;
       ak_beacon : Beacon.t;
@@ -211,32 +211,32 @@ let connect uri = (module struct
 
   include Base
 
-  module Attribute_key_by_id = Weak.Make (struct
-    open Attribute_key_base
+  module Attribute_type_by_id = Weak.Make (struct
+    open Attribute_type_base
     type t = t0
     let equal (Ex akA) (Ex akB) = akA.ak_id = akB.ak_id
     let hash (Ex {ak_id}) = Hashtbl.hash ak_id
   end)
-  let attribute_key_by_id = Attribute_key_by_id.create 23
+  let attribute_type_by_id = Attribute_type_by_id.create 23
 
-  module Attribute_key_by_name = Weak.Make (struct
-    open Attribute_key_base
+  module Attribute_type_by_name = Weak.Make (struct
+    open Attribute_type_base
     type t = t0
     let equal (Ex akA) (Ex akB) = akA.ak_name = akB.ak_name
     let hash (Ex {ak_name}) = Hashtbl.hash ak_name
   end)
-  let attribute_key_by_name = Attribute_key_by_name.create 23
+  let attribute_type_by_name = Attribute_type_by_name.create 23
 
   let inclusion_cache = Prime_cache.create ~cache_metric 61
 
   let bool_attribute_cache :
-    (entity_id * entity_id * Attribute_key_base.t0, bool list) Prime_cache.t =
+    (entity_id * entity_id * Attribute_type_base.t0, bool list) Prime_cache.t =
     Prime_cache.create ~cache_metric 61
   let int_attribute_cache :
-    (entity_id * entity_id * Attribute_key_base.t0, int list) Prime_cache.t =
+    (entity_id * entity_id * Attribute_type_base.t0, int list) Prime_cache.t =
     Prime_cache.create ~cache_metric 61
   let string_attribute_cache :
-    (entity_id * entity_id * Attribute_key_base.t0, string list) Prime_cache.t =
+    (entity_id * entity_id * Attribute_type_base.t0, string list) Prime_cache.t =
     Prime_cache.create ~cache_metric 61
 
   let pool =
@@ -248,8 +248,8 @@ let connect uri = (module struct
 
   let with_db f = Caqti_lwt.Pool.use f pool
 
-  module Attribute_key = struct
-    include Attribute_key_base
+  module Attribute_type = struct
+    include Attribute_type_base
 
     module Comparable = struct
       type t = t0
@@ -263,25 +263,25 @@ let connect uri = (module struct
 
     let of_id ak_id =
       try let ak = Ex {dummy with ak_id} in
-	  Lwt.return (Attribute_key_by_id.find attribute_key_by_id ak)
+	  Lwt.return (Attribute_type_by_id.find attribute_type_by_id ak)
       with Not_found ->
 	with_db @@ fun (module C : CONNECTION) ->
 	lwt ak_name, value_type =
-	  C.find Q.attribute_key_by_id
+	  C.find Q.attribute_type_by_id
 		 C.Tuple.(fun tup -> text 0 tup, text 1 tup)
 		 C.Param.([|int32 ak_id|]) in
 	match Type.of_string value_type with
 	| Type.Ex ak_value_type ->
-	  Lwt.return @@ Beacon.embed attribute_key_grade @@ fun ak_beacon ->
+	  Lwt.return @@ Beacon.embed attribute_type_grade @@ fun ak_beacon ->
 	    (Ex {ak_id; ak_name; ak_value_type; ak_beacon})
 
     let of_name ak_name =
       try let ak = Ex {dummy with ak_name} in
-	  Lwt.return (Attribute_key_by_name.find attribute_key_by_name ak)
+	  Lwt.return (Attribute_type_by_name.find attribute_type_by_name ak)
       with Not_found ->
 	with_db @@ fun (module C : CONNECTION) ->
 	match_lwt
-	  C.find_opt Q.attribute_key_by_name
+	  C.find_opt Q.attribute_type_by_name
 		     C.Tuple.(fun tup -> int32 0 tup, text 1 tup)
 		     C.Param.([|text ak_name|])
 	with
@@ -289,7 +289,7 @@ let connect uri = (module struct
 	| Some (ak_id, value_type) ->
 	  match Type.of_string value_type with
 	  | Type.Ex ak_value_type ->
-	    Lwt.return @@ Beacon.embed attribute_key_grade @@ fun ak_beacon ->
+	    Lwt.return @@ Beacon.embed attribute_type_grade @@ fun ak_beacon ->
 	      (Ex {ak_id; ak_name; ak_value_type; ak_beacon})
   end
 
@@ -337,11 +337,11 @@ let connect uri = (module struct
       memo_2lwt @@ fun (et, et') ->
       with_db @@ fun (module C) ->
       let aux tup akm =
-	lwt ak = Attribute_key.of_id (C.Tuple.int32 0 tup) in
+	lwt ak = Attribute_type.of_id (C.Tuple.int32 0 tup) in
 	let mult = Multiplicity.of_int (C.Tuple.int 1 tup) in
-	Lwt.return (Attribute_key.Map.add ak mult akm) in
+	Lwt.return (Attribute_type.Map.add ak mult akm) in
       C.fold_s Q.attribution_type aux C.Param.([|int32 et; int32 et'|])
-	       Attribute_key.Map.empty
+	       Attribute_type.Map.empty
 
 (*
     let attribution_preds, attribution_preds_cache =
@@ -349,11 +349,11 @@ let connect uri = (module struct
       with_db @@ fun (module C) ->
       let aux tup etm =
 	let et = C.Tuple.int32 0 tup in
-	lwt ak = Attribute_key.of_id (C.Tuple.int32 1 tup) in
+	lwt ak = Attribute_type.of_id (C.Tuple.int32 1 tup) in
 	let mult = Multiplicity.of_int (C.Tuple.int 2 tup) in
 	let akm = try Map.find et etm
-		  with Not_found -> Attribute_key.Map.empty in
-	Lwt.return (Map.add et (Attribute_key.Map.add ak mult akm) etm) in
+		  with Not_found -> Attribute_type.Map.empty in
+	Lwt.return (Map.add et (Attribute_type.Map.add ak mult akm) etm) in
       C.fold_s Q.attribution_type_preds aux C.Param.([|int32 et|]) Map.empty
 
     let attribution_succs, attribution_succs_cache =
@@ -361,11 +361,11 @@ let connect uri = (module struct
       with_db @@ fun (module C) ->
       let aux tup etm =
 	let et = C.Tuple.int32 0 tup in
-	lwt ak = Attribute_key.of_id (C.Tuple.int32 1 tup) in
+	lwt ak = Attribute_type.of_id (C.Tuple.int32 1 tup) in
 	let mult = Multiplicity.of_int (C.Tuple.int 2 tup) in
 	let akm = try Map.find et etm
-		  with Not_found -> Attribute_key.Map.empty in
-	Lwt.return (Map.add et (Attribute_key.Map.add ak mult akm) etm) in
+		  with Not_found -> Attribute_type.Map.empty in
+	Lwt.return (Map.add et (Attribute_type.Map.add ak mult akm) etm) in
       C.fold_s Q.attribution_type_succs aux C.Param.([|int32 et|]) Map.empty
 *)
 
@@ -463,8 +463,8 @@ let connect uri = (module struct
     type ptuple =
       Ptuple : (module Caqti_sigs.TUPLE with type t = 't) * 't -> ptuple
 
-    let fetch_attribute (type a) e e' (ak : a Attribute_key.t1) =
-      let open Attribute_key in
+    let fetch_attribute (type a) e e' (ak : a Attribute_type.t1) =
+      let open Attribute_type in
       let aux cache q (detuple : _ -> a) : a list Lwt.t =
 	try Lwt.return (Prime_cache.find cache (e, e', Ex ak))
 	with Not_found ->
