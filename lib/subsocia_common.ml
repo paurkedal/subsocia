@@ -78,7 +78,6 @@ module Type = struct
     | Bool : bool t1
     | Int : int t1
     | String : string t1
-    | Twine : Twine.t t1
 
   type t0 = Ex : 'a t1 -> t0
 
@@ -86,13 +85,11 @@ module Type = struct
     | Bool -> "bool"
     | Int -> "int"
     | String -> "string"
-    | Twine -> "twine"
 
   let of_string = function
     | "bool" -> Ex Bool
     | "int" -> Ex Int
     | "string" -> Ex String
-    | "twine" -> Ex Twine
     | _ -> invalid_arg "Type.of_string"
 
   let rpc_of_t0 (Ex t) = Rpc.rpc_of_string (to_string t)
@@ -108,7 +105,6 @@ module Value = struct
     | Type.Bool -> (function true -> "true" | false -> "false")
     | Type.Int -> string_of_int
     | Type.String -> fun s -> s
-    | Type.Twine -> Twine.to_string ~langs
 
   let to_string ~langs (Ex (t, v)) = typed_to_string ~langs t v
 
@@ -117,21 +113,18 @@ module Value = struct
     | Type.Bool, (Ex (Type.Bool, x)) -> x
     | Type.Int, (Ex (Type.Int, x)) -> x
     | Type.String, (Ex (Type.String, x)) -> x
-    | Type.Twine, (Ex (Type.Twine, x)) -> x
     | _ -> invalid_arg "Subsocia_common.Value.coerce: Type error."
 
   let rpc_of_t0 = function
     | Ex (Type.Bool, x) -> Rpc.rpc_of_bool x
     | Ex (Type.Int, x) -> Rpc.rpc_of_int x
     | Ex (Type.String, x) -> Rpc.rpc_of_string x
-    | Ex (Type.Twine, x) -> rpc_of_twine_repr (Lang_map.bindings x)
 
   let t0_of_rpc rpc =
     match Rpc.t_of_rpc rpc with
     | Rpc.Bool x -> Ex (Type.Bool, x)
     | Rpc.Int x -> Ex (Type.Int, Int64.to_int x)
     | Rpc.String x -> Ex (Type.String, x)
-    | Rpc.Dict x -> Ex (Type.Twine, Twine.make (twine_repr_of_rpc rpc))
     | _ -> failwith "Value.t0_of_rpc: Protocol error."
 end
 

@@ -43,7 +43,6 @@ module Type : sig
     | Bool : bool t1
     | Int : int t1
     | String : string t1
-    | Twine : Twine.t t1
 
   type t0 = Ex : 'a t1 -> t0
 

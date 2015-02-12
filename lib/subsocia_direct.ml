@@ -484,7 +484,6 @@ let connect uri = (module struct
       | Type.String ->
 	aux string_attribute_cache Q.select_text_attribution
 	    (fun (Ptuple ((module T), tup)) -> T.text 0 tup)
-      | Type.Twine -> assert false (* FIXME *)
 
     let store_attribute e e' ak av = assert false (* FIXME *)
 
