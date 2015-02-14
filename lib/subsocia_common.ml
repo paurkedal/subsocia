@@ -100,13 +100,13 @@ end
 module Value = struct
   type t0 = Ex : 'a Type.t1 * 'a -> t0
 
-  let typed_to_string : type a. langs: lang list -> a Type.t1 -> a -> string =
-    fun ~langs -> function
+  let typed_to_string : type a. a Type.t1 -> a -> string =
+    function
     | Type.Bool -> (function true -> "true" | false -> "false")
     | Type.Int -> string_of_int
     | Type.String -> fun s -> s
 
-  let to_string ~langs (Ex (t, v)) = typed_to_string ~langs t v
+  let to_string (Ex (t, v)) = typed_to_string t v
 
   let coerce : type a. a Type.t1 -> t0 -> a = fun t v ->
     match t, v with

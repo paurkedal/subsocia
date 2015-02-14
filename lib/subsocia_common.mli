@@ -61,9 +61,9 @@ end
 module Value : sig
   type t0 = Ex : 'a Type.t1 * 'a -> t0
 
-  val typed_to_string : langs: lang list -> 'a Type.t1 -> 'a -> string
+  val typed_to_string : 'a Type.t1 -> 'a -> string
 
-  val to_string : langs: lang list -> t0 -> string
+  val to_string : t0 -> string
 (*
   val of_string : string -> t0
 *)
