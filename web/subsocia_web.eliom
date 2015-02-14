@@ -34,6 +34,7 @@
 }}
 
 {server{
+(*
   let client_node_lwt (m : [`Div] Html5.elt Lwt.t client_value) =
     let ph_el = Html5.D.div [] in
     ignore {unit{
@@ -44,6 +45,7 @@
       Js.Opt.iter (ph_node##parentNode) (fun p -> Dom.replaceChild p n ph_node)
     }};
     ph_el
+*)
 
   open Subsocia_common
   let langs = [Lang.of_string "en"]
@@ -54,9 +56,16 @@
   let call = server_function Json.t<string> @@ fun s ->
     Lwt_log.debug_f "RPC request: %s" s >>
     process (Jsonrpc.call_of_string s) >|= Jsonrpc.string_of_response
+
+  module SC = Socia
+  module Config = struct
+    let display_name_attributes = Subsocia_config.display_name#get
+  end
+  module SU = Subsocia_derived.Make (Config) (SC)
 }}
 
-{client{
+(*
+{client{ (* Needed if next is client|shared. *)
   module SC = Subsocia_rpc_client.Make
     (struct
       type 'a t = 'a Lwt.t
@@ -70,6 +79,10 @@
     let display_name_attributes = %(Subsocia_config.display_name#get)
   end
   module SU = Subsocia_derived.Make (Config) (SC)
+}}
+*)
+
+{server{ (* client|server|shared *)
 
   let multicol ?(m = 4) ?(cls = []) items =
     let open Html5.F in
@@ -150,16 +163,20 @@
 let entity_handler entity_id () =
   let open Html5.D in
   let langs = [Lang.of_string "en"] in
+  lwt browser =
+    lwt e = SC.Entity.of_id entity_id in
+    render_browser ~langs e in
+(*
+  let browser = client_node_lwt {{
+    lwt ei = SC.Entity.of_id %entity_id in
+    render_browser ~langs:%langs ei
+  }} in
+*)
   Lwt.return @@
     Eliom_tools.D.html
       ~title:"Entity Browser"
       ~css:[["css"; "subsocia.css"]]
-      (body [
-	client_node_lwt {{
-	  lwt ei = SC.Entity.of_id %entity_id in
-	  render_browser ~langs:%langs ei
-	}};
-      ])
+      (body [browser])
 
 let main_handler () () =
   let open Html5.D in
