@@ -19,6 +19,10 @@ open Panograph_i18n
 val (>>=) : 'a Lwt.t -> ('a -> 'b Lwt.t) -> 'b Lwt.t
 val (>|=) : 'a Lwt.t -> ('a -> 'b) -> 'b Lwt.t
 
+module Lwtx_list : sig
+  val search_s : ('a -> 'b option Lwt.t) -> 'a list -> 'b option Lwt.t
+end
+
 module Multiplicity : sig
   type t = May1 | Must1 | May | Must
 

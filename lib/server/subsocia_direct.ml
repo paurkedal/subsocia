@@ -233,22 +233,6 @@ let connect uri = (module struct
 
   include Base
 
-  module Attribute_type_by_id = Weak.Make (struct
-    open Attribute_type_base
-    type t = t0
-    let equal (Ex akA) (Ex akB) = akA.ak_id = akB.ak_id
-    let hash (Ex {ak_id}) = Hashtbl.hash ak_id
-  end)
-  let attribute_type_by_id = Attribute_type_by_id.create 23
-
-  module Attribute_type_by_name = Weak.Make (struct
-    open Attribute_type_base
-    type t = t0
-    let equal (Ex akA) (Ex akB) = akA.ak_name = akB.ak_name
-    let hash (Ex {ak_name}) = Hashtbl.hash ak_name
-  end)
-  let attribute_type_by_name = Attribute_type_by_name.create 23
-
   let inclusion_cache = Prime_cache.create ~cache_metric 61
 
   let bool_attribute_cache :
@@ -283,34 +267,25 @@ let connect uri = (module struct
     let id (Ex ak) = ak.ak_id
     let name (Ex ak) = Lwt.return ak.ak_name
 
-    let of_id ak_id =
-      try let ak = Ex {dummy with ak_id} in
-	  Lwt.return (Attribute_type_by_id.find attribute_type_by_id ak)
-      with Not_found ->
-	with_db @@ fun (module C : CONNECTION) ->
-	lwt ak_name, value_type =
-	  C.find Q.attribute_type_by_id
-		 C.Tuple.(fun tup -> text 0 tup, text 1 tup)
-		 C.Param.([|int32 ak_id|]) in
-	match Type.of_string value_type with
-	| Type.Ex ak_value_type ->
-	  Lwt.return @@ Beacon.embed attribute_type_grade @@ fun ak_beacon ->
-	    (Ex {ak_id; ak_name; ak_value_type; ak_beacon})
+    let of_id, of_id_cache = memo_1lwt @@ fun ak_id ->
+      with_db @@ fun (module C : CONNECTION) ->
+      C.find Q.attribute_type_by_id
+	     C.Tuple.(fun tup -> text 0 tup, text 1 tup)
+	     C.Param.([|int32 ak_id|]) >|= fun (ak_name, value_type) ->
+      let Type.Ex ak_value_type = Type.of_string value_type in
+      Beacon.embed attribute_type_grade @@ fun ak_beacon ->
+      Ex {ak_id; ak_name; ak_value_type; ak_beacon}
 
-    let of_name ak_name =
-      try
-	let ak = Ex {dummy with ak_name} in
-	Lwt.return (Some(Attribute_type_by_name.find attribute_type_by_name ak))
-      with Not_found ->
-	with_db @@ fun (module C : CONNECTION) ->
-	C.find_opt Q.attribute_type_by_name
-		   C.Tuple.(fun tup -> int32 0 tup, text 1 tup)
-		   C.Param.([|text ak_name|]) >|=
-	Option.map begin fun (ak_id, value_type) ->
-	  let Type.Ex ak_value_type = Type.of_string value_type in
-	  Beacon.embed attribute_type_grade @@ fun ak_beacon ->
-	    (Ex {ak_id; ak_name; ak_value_type; ak_beacon})
-	end
+    let of_name, of_name_cache = memo_1lwt @@ fun ak_name ->
+      with_db @@ fun (module C : CONNECTION) ->
+      C.find_opt Q.attribute_type_by_name
+		 C.Tuple.(fun tup -> int32 0 tup, text 1 tup)
+		 C.Param.([|text ak_name|]) >|=
+      Option.map begin fun (ak_id, value_type) ->
+	let Type.Ex ak_value_type = Type.of_string value_type in
+	Beacon.embed attribute_type_grade @@ fun ak_beacon ->
+	  (Ex {ak_id; ak_name; ak_value_type; ak_beacon})
+      end
   end
 
   module Entity_type = struct

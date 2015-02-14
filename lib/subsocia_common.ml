@@ -24,9 +24,15 @@ open Unprime_string
 let (>>=) = Lwt.(>>=)
 let (>|=) = Lwt.(>|=)
 
-let invalid_arg_f fmt = ksprintf invalid_arg fmt
+module Lwtx_list = struct
+  let rec search_s f = function
+    | [] -> Lwt.return_none
+    | x :: xs ->
+      f x >>= function None -> search_s f xs
+		     | Some _ as r -> Lwt.return r
+end
 
-type twine_repr = (int * string) list with rpc
+let invalid_arg_f fmt = ksprintf invalid_arg fmt
 
 module Multiplicity = struct
   type t = May1 | Must1 | May | Must with rpc
