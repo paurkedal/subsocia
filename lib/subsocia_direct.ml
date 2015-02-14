@@ -91,6 +91,10 @@ module Q = struct
     q "SELECT attribute_type_id, attribute_multiplicity \
        FROM @attribution_type \
        WHERE subentity_type_id = ? AND superentity_type_id = ?"
+  let attribution_mult =
+    q "SELECT attribute_multiplicity FROM @attribution_type \
+       WHERE subentity_type_id = ? AND superentity_type_id = ? \
+	 AND attribute_type_id = ?"
 (*
   let attribution_type_preds =
     q "SELECT subentity_type_id, attribution_key_id, attribute_multiplicity \
@@ -162,6 +166,24 @@ module Q = struct
   let select_integer_attribution =
     q "SELECT value FROM @integer_attribution \
        WHERE subentity_id = ? AND superentity_id = ? AND attribute_type_id = ?"
+
+  let insert_text_attribution =
+    q "INSERT INTO @text_attribution \
+	(subentity_id, superentity_id, attribute_type_id, value) \
+       VALUES (?, ?, ?, ?)"
+  let insert_integer_attribution =
+    q "INSERT INTO @integer_attribution \
+	(subentity_id, superentity_id, attribute_type_id, value) \
+       VALUES (?, ?, ?, ?)"
+
+  let delete_text_attribution =
+    q "DELETE FROM @text_attribution \
+       WHERE subentity_id = ? AND superentity_id = ? \
+	 AND attribute_type_id = ? AND value = ?"
+  let delete_integer_attribution =
+    q "DELETE FROM @text_attribution \
+       WHERE subentity_id = ? AND superentity_id = ? \
+	 AND attribute_type_id = ? AND value = ?"
 end
 
 let memo_1lwt f =
@@ -343,31 +365,18 @@ let connect uri = (module struct
       C.fold_s Q.attribution_type aux C.Param.([|int32 et; int32 et'|])
 	       Attribute_type.Map.empty
 
-(*
-    let attribution_preds, attribution_preds_cache =
-      memo_1lwt @@ fun et ->
+    let attribution_mult', attribution_mult_cache =
+      memo_3lwt @@ fun (et, et', ak) ->
       with_db @@ fun (module C) ->
-      let aux tup etm =
-	let et = C.Tuple.int32 0 tup in
-	lwt ak = Attribute_type.of_id (C.Tuple.int32 1 tup) in
-	let mult = Multiplicity.of_int (C.Tuple.int 2 tup) in
-	let akm = try Map.find et etm
-		  with Not_found -> Attribute_type.Map.empty in
-	Lwt.return (Map.add et (Attribute_type.Map.add ak mult akm) etm) in
-      C.fold_s Q.attribution_type_preds aux C.Param.([|int32 et|]) Map.empty
+      let aux tup = Multiplicity.of_int (C.Tuple.int 0 tup) in
+      C.find_opt Q.attribution_mult aux
+		 C.Param.([|int32 et; int32 et'; int32 ak|])
 
-    let attribution_succs, attribution_succs_cache =
-      memo_1lwt @@ fun et ->
-      with_db @@ fun (module C) ->
-      let aux tup etm =
-	let et = C.Tuple.int32 0 tup in
-	lwt ak = Attribute_type.of_id (C.Tuple.int32 1 tup) in
-	let mult = Multiplicity.of_int (C.Tuple.int 2 tup) in
-	let akm = try Map.find et etm
-		  with Not_found -> Attribute_type.Map.empty in
-	Lwt.return (Map.add et (Attribute_type.Map.add ak mult akm) etm) in
-      C.fold_s Q.attribution_type_succs aux C.Param.([|int32 et|]) Map.empty
-*)
+    let attribution_mult0 et et' (Attribute_type.Ex ak) =
+      attribution_mult' et et' ak.Attribute_type.ak_id
+
+    let attribution_mult1 et et' ak =
+      attribution_mult' et et' ak.Attribute_type.ak_id
 
     let display_name ~langs ?pl = name (* FIXME *)
   end
@@ -463,7 +472,7 @@ let connect uri = (module struct
     type ptuple =
       Ptuple : (module Caqti_sigs.TUPLE with type t = 't) * 't -> ptuple
 
-    let fetch_attribute (type a) e e' (ak : a Attribute_type.t1) =
+    let getattr (type a) e e' (ak : a Attribute_type.t1) =
       let open Attribute_type in
       let aux cache q (detuple : _ -> a) : a list Lwt.t =
 	try Lwt.return (Prime_cache.find cache (e, e', Ex ak))
@@ -485,11 +494,82 @@ let connect uri = (module struct
 	aux string_attribute_cache Q.select_text_attribution
 	    (fun (Ptuple ((module T), tup)) -> T.text 0 tup)
 
-    let store_attribute e e' ak av = assert false (* FIXME *)
+    let addattr' (type a) e e' (ak : a Attribute_type.t1) (xs : a list) =
+      with_db @@ fun (module C : CONNECTION) ->
+      let aux q conv =
+	Lwt_list.iter_s
+	  (fun x ->
+	    let p = C.Param.([|int32 e; int32 e';
+			       int32 ak.Attribute_type.ak_id; conv x|]) in
+	    C.exec q p)
+	  xs in
+      match ak.Attribute_type.ak_value_type with
+      | Type.Bool -> aux Q.insert_integer_attribution
+		     (fun x -> C.Param.int (if x then 1 else 0))
+      | Type.Int -> aux Q.insert_integer_attribution C.Param.int
+      | Type.String -> aux Q.insert_text_attribution C.Param.text
 
-    let display_name ~langs e =
-      (* FIXME *)
-      Lwt.return @@ Printf.sprintf "Entity # %ld" e
+    let addattr (type a) e e' (ak : a Attribute_type.t1) (xs : a list) =
+      lwt mu = Entity_type.attribution_mult1 e e' ak in
+      lwt xs_pres = getattr e e' ak in
+      let xs =
+	match mu with
+	| None -> failwith "addattr: Not allowed between these elements."
+	| Some Multiplicity.May1 | Some Multiplicity.Must1 ->
+	  if xs_pres <> [] then invalid_arg "addattr: Attribute already set.";
+	  xs
+	| Some Multiplicity.May | Some Multiplicity.Must ->
+	  let ht = Hashtbl.create 7 in
+	  List.iter (fun x -> Hashtbl.add ht x ()) xs_pres;
+	  List.filter
+	    (fun x -> if Hashtbl.mem ht x then false else
+		      (Hashtbl.add ht x (); true)) xs in
+      if xs = [] then Lwt.return_unit else
+      addattr' e e' ak xs
+
+    let delattr' (type a) e e' (ak : a Attribute_type.t1) (xs : a list) =
+      with_db @@ fun (module C : CONNECTION) ->
+      let aux q conv =
+	Lwt_list.iter_s
+	  (fun x ->
+	    let p = C.Param.([|int32 e; int32 e';
+			       int32 ak.Attribute_type.ak_id; conv x|]) in
+	    C.exec q p)
+	  xs in
+      match ak.Attribute_type.ak_value_type with
+      | Type.Bool -> aux Q.delete_integer_attribution
+		     (fun x -> C.Param.int (if x then 1 else 0))
+      | Type.Int -> aux Q.delete_integer_attribution C.Param.int
+      | Type.String -> aux Q.delete_text_attribution C.Param.text
+
+    let delattr (type a) e e' (ak : a Attribute_type.t1) (xs : a list) =
+      lwt xs_pres = getattr e e' ak in
+      let xs =
+	let ht = Hashtbl.create 7 in
+	List.iter (fun x -> Hashtbl.add ht x ()) xs_pres;
+	List.filter
+	  (fun x -> if not (Hashtbl.mem ht x) then false else
+		    (Hashtbl.remove ht x; true)) xs in
+      if xs = [] then Lwt.return_unit else
+      delattr' e e' ak xs
+
+    let setattr (type a) e e' (ak : a Attribute_type.t1) (xs : a list) =
+      lwt xs_pres = getattr e e' ak in
+      let ht = Hashtbl.create 7 in
+      List.iter (fun x -> Hashtbl.add ht x false) xs_pres;
+      let xs_ins =
+	List.filter
+	  (fun x ->
+	    try
+	      if Hashtbl.find ht x then false else
+	      (Hashtbl.replace ht x true; true)
+	    with Not_found ->
+	      (Hashtbl.add ht x true; true))
+	  xs in
+      let xs_del =
+	Hashtbl.fold (fun x ins acc -> if ins then acc else x :: acc) ht [] in
+      (if xs_del = [] then Lwt.return_unit else delattr' e e' ak xs_del) >>
+      (if xs_ins = [] then Lwt.return_unit else addattr' e e' ak xs_ins)
   end
 
 end : S)

@@ -52,11 +52,11 @@ module type S = sig
     val display_name : langs: lang list -> ?pl: bool -> t -> string Lwt.t
     val inclusion_preds : t -> (Multiplicity.t * Multiplicity.t) Map.t Lwt.t
     val inclusion_succs : t -> (Multiplicity.t * Multiplicity.t) Map.t Lwt.t
+    val attribution_mult0 : t -> t -> Attribute_type.t0 ->
+			    Multiplicity.t option Lwt.t
+    val attribution_mult1 : t -> t -> 'a Attribute_type.t1 ->
+			    Multiplicity.t option Lwt.t
     val attribution : t -> t -> Multiplicity.t Attribute_type.Map.t Lwt.t
-(*
-    val attribution_preds : t -> Multiplicity.t Attribute_type.Map.t Map.t Lwt.t
-    val attribution_succs : t -> Multiplicity.t Attribute_type.Map.t Map.t Lwt.t
-*)
   end
 
   module Entity : sig
@@ -82,9 +82,10 @@ module type S = sig
     val succs : t -> Set.t Lwt.t
     val precedes : t -> t -> bool Lwt.t
 
-    val fetch_attribute : t -> t -> 'a Attribute_type.t1 -> 'a list Lwt.t
-    val store_attribute : t -> t -> 'a Attribute_type.t1 -> 'a list -> unit Lwt.t
-    val display_name : langs: lang list -> t -> string Lwt.t
+    val getattr : t -> t -> 'a Attribute_type.t1 -> 'a list Lwt.t
+    val setattr : t -> t -> 'a Attribute_type.t1 -> 'a list -> unit Lwt.t
+    val addattr : t -> t -> 'a Attribute_type.t1 -> 'a list -> unit Lwt.t
+    val delattr : t -> t -> 'a Attribute_type.t1 -> 'a list -> unit Lwt.t
 
     val constrain : t -> t -> unit Lwt.t
     val unconstrain : t -> t -> unit Lwt.t

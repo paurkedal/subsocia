@@ -28,14 +28,10 @@ module Entity_type = struct
     int32 -> (int32 * Multiplicity.t * Multiplicity.t) list = ""
   external inclusion_succs :
     int32 -> (int32 * Multiplicity.t * Multiplicity.t) list = ""
+  external attribution_mult :
+    int32 -> int32 -> int32 -> Multiplicity.t option = ""
   external attribution :
     int32 -> int32 -> (int32 * Multiplicity.t) list = ""
-(*
-  external attribution_preds :
-    int32 -> (int32 * (int32 * Multiplicity.t) list) list = ""
-  external attribution_succs :
-    int32 -> (int32 * (int32 * Multiplicity.t) list) list = ""
-*)
 end
 
 module Entity = struct
@@ -48,8 +44,10 @@ module Entity = struct
   external preds : int32 -> int32 list = ""
   external succs : int32 -> int32 list = ""
   external precedes : int32 -> int32 -> bool = ""
-  external fetch_attribute : int32 -> int32 -> int32 -> Value.t0 list = ""
-  external store_attribute : int32 -> int32 -> int32 -> Value.t0 list -> unit=""
+  external getattr : int32 -> int32 -> int32 -> Value.t0 list = ""
+  external setattr : int32 -> int32 -> int32 -> Value.t0 list -> unit=""
+  external addattr : int32 -> int32 -> int32 -> Value.t0 list -> unit=""
+  external delattr : int32 -> int32 -> int32 -> Value.t0 list -> unit=""
   external constrain : int32 -> int32 -> unit = ""
   external unconstrain : int32 -> int32 -> unit = ""
 end

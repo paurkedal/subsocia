@@ -80,6 +80,12 @@ module Make (RPCM : RPCM) = struct
       Raw.inclusion_succs et >|=
       List.map (fun (et, muA, muB) -> et, (muA, muB)) *> Map.of_ordered_bindings
 
+    let attribution_mult0 lbt ubt ak =
+      Raw.attribution_mult lbt ubt (Attribute_type.id ak)
+
+    let attribution_mult1 lbt ubt ak =
+      Raw.attribution_mult lbt ubt (Attribute_type.id (Attribute_type.Ex ak))
+
     let attribution lbt ubt =
       let aux (ak_id, mu) = Attribute_type.of_id ak_id >|= fun ak -> ak, mu in
       Raw.attribution lbt ubt >>= Lwt_list.map_s aux >|=
@@ -107,14 +113,24 @@ module Make (RPCM : RPCM) = struct
     let preds e = Raw.preds e >|= Set.of_ordered_elements
     let succs e = Raw.succs e >|= Set.of_ordered_elements
 
-    let fetch_attribute lb ub ak =
-      Raw.fetch_attribute lb ub (Attribute_type.(id (Ex ak))) >|=
+    let getattr lb ub ak =
+      Raw.getattr lb ub (Attribute_type.(id (Ex ak))) >|=
       List.map (Value.coerce (Attribute_type.type1 ak))
 
-    let store_attribute lb ub ak vs =
+    let setattr lb ub ak vs =
       let t = Attribute_type.type1 ak in
-      Raw.store_attribute lb ub (Attribute_type.(id (Ex ak)))
-			  (List.map (fun v -> Value.Ex (t, v)) vs)
+      Raw.setattr lb ub (Attribute_type.(id (Ex ak)))
+		  (List.map (fun v -> Value.Ex (t, v)) vs)
+
+    let addattr lb ub ak vs =
+      let t = Attribute_type.type1 ak in
+      Raw.addattr lb ub (Attribute_type.(id (Ex ak)))
+		  (List.map (fun v -> Value.Ex (t, v)) vs)
+
+    let delattr lb ub ak vs =
+      let t = Attribute_type.type1 ak in
+      Raw.delattr lb ub (Attribute_type.(id (Ex ak)))
+		  (List.map (fun v -> Value.Ex (t, v)) vs)
 
     let precedes = Raw.precedes
     let constrain = Raw.constrain
