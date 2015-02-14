@@ -252,13 +252,13 @@ let connect uri = (module struct
   let inclusion_cache = Prime_cache.create ~cache_metric 61
 
   let bool_attribute_cache :
-    (entity_id * entity_id * Attribute_type_base.t0, bool list) Prime_cache.t =
+    (entity_id * entity_id * attribute_type_id, bool list) Prime_cache.t =
     Prime_cache.create ~cache_metric 61
   let int_attribute_cache :
-    (entity_id * entity_id * Attribute_type_base.t0, int list) Prime_cache.t =
+    (entity_id * entity_id * attribute_type_id, int list) Prime_cache.t =
     Prime_cache.create ~cache_metric 61
   let string_attribute_cache :
-    (entity_id * entity_id * Attribute_type_base.t0, string list) Prime_cache.t =
+    (entity_id * entity_id * attribute_type_id, string list) Prime_cache.t =
     Prime_cache.create ~cache_metric 61
 
   let pool =
@@ -473,13 +473,13 @@ let connect uri = (module struct
     let getattr (type a) e e' (ak : a Attribute_type.t1) =
       let open Attribute_type in
       let aux cache q (detuple : _ -> a) : a list Lwt.t =
-	try Lwt.return (Prime_cache.find cache (e, e', Ex ak))
+	try Lwt.return (Prime_cache.find cache (e, e', ak.ak_id))
 	with Not_found ->
 	  with_db @@ fun (module C : CONNECTION) ->
 	  let p = C.Param.([|int32 e; int32 e'; int32 ak.ak_id|]) in
 	  let push tup acc = detuple (Ptuple ((module C.Tuple), tup)) :: acc in
 	  lwt r = C.fold q push p [] in
-	  Prime_cache.replace cache attribution_grade (e, e', Ex ak) r;
+	  Prime_cache.replace cache attribution_grade (e, e', ak.ak_id) r;
 	  Lwt.return r in
       match ak.ak_value_type with
       | Type.Bool ->
