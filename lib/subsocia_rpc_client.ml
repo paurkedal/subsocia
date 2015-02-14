@@ -17,7 +17,7 @@
 open Subsocia_common
 open Unprime
 
-module type RPCM = Subsocia_rpc.RPCM with type 'a t = 'a Lwt.t
+module type RPCM = Subsocia_rpc_primitives.RPCM with type 'a t = 'a Lwt.t
 
 module Int32_map = Prime_enummap.Make (Int32)
 module Int32_set = Prime_enumset.Make (Int32)
@@ -27,7 +27,7 @@ module Attribute_type_base = struct
 end
 
 module Make (RPCM : RPCM) = struct
-  module Raw = Subsocia_rpc.ClientM (RPCM)
+  module Raw = Subsocia_rpc_primitives.ClientM (RPCM)
 
   module Attribute_type = struct
     module Raw = Raw.Attribute_type

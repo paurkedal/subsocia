@@ -147,4 +147,4 @@ module Server_impl = struct
   end
 end
 
-include Subsocia_rpc.ServerM (Server_impl)
+include Subsocia_rpc_primitives.ServerM (Server_impl)

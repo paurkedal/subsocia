@@ -14,5 +14,5 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-module type RPCM = Subsocia_rpc.RPCM with type 'a t = 'a Lwt.t
+module type RPCM = Subsocia_rpc_primitives.RPCM with type 'a t = 'a Lwt.t
 module Make (RPCM : RPCM) : Subsocia_intf.S
