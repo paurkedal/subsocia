@@ -17,7 +17,7 @@
 open Subsocia_common
 
 module Attribute_type = struct
-  external of_name : string -> int32 * Type.t0 = ""
+  external of_name : string -> (int32 * Type.t0) option = ""
   external of_id : int32 -> string * Type.t0 = ""
 end
 

@@ -16,6 +16,7 @@
 
 open Subsocia_common
 open Unprime
+open Unprime_option
 
 module type RPCM = Subsocia_rpc_primitives.RPCM with type 'a t = 'a Lwt.t
 
@@ -42,8 +43,8 @@ module Make (RPCM : RPCM) = struct
     module Map = Prime_enummap.Make (Comparable)
 
     let of_name ak_name =
-      lwt ak_id, Type.Ex ak_type = Raw.of_name ak_name in
-      Lwt.return (Ex {ak_id; ak_name; ak_type})
+      Raw.of_name ak_name >|=
+      Option.map @@ fun (ak_id, Type.Ex ak_type) -> Ex {ak_id; ak_name; ak_type}
 
     let of_id ak_id =
       lwt ak_name, Type.Ex ak_type = Raw.of_id ak_id in

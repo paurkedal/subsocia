@@ -30,7 +30,7 @@ module type S = sig
     module Set : SET with type elt = t0
     module Map : MAP with type key = t0
 
-    val of_name : string -> t0 Lwt.t
+    val of_name : string -> t0 option Lwt.t
     val name : t0 -> string Lwt.t
     val of_id : int32 -> t0 Lwt.t
     val id : t0 -> int32

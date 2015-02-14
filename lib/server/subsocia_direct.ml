@@ -298,21 +298,19 @@ let connect uri = (module struct
 	    (Ex {ak_id; ak_name; ak_value_type; ak_beacon})
 
     let of_name ak_name =
-      try let ak = Ex {dummy with ak_name} in
-	  Lwt.return (Attribute_type_by_name.find attribute_type_by_name ak)
+      try
+	let ak = Ex {dummy with ak_name} in
+	Lwt.return (Some(Attribute_type_by_name.find attribute_type_by_name ak))
       with Not_found ->
 	with_db @@ fun (module C : CONNECTION) ->
-	match_lwt
-	  C.find_opt Q.attribute_type_by_name
-		     C.Tuple.(fun tup -> int32 0 tup, text 1 tup)
-		     C.Param.([|text ak_name|])
-	with
-	| None -> Lwt.fail Not_found
-	| Some (ak_id, value_type) ->
-	  match Type.of_string value_type with
-	  | Type.Ex ak_value_type ->
-	    Lwt.return @@ Beacon.embed attribute_type_grade @@ fun ak_beacon ->
-	      (Ex {ak_id; ak_name; ak_value_type; ak_beacon})
+	C.find_opt Q.attribute_type_by_name
+		   C.Tuple.(fun tup -> int32 0 tup, text 1 tup)
+		   C.Param.([|text ak_name|]) >|=
+	Option.map begin fun (ak_id, value_type) ->
+	  let Type.Ex ak_value_type = Type.of_string value_type in
+	  Beacon.embed attribute_type_grade @@ fun ak_beacon ->
+	    (Ex {ak_id; ak_name; ak_value_type; ak_beacon})
+	end
   end
 
   module Entity_type = struct

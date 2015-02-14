@@ -31,7 +31,7 @@ module Server_impl = struct
   module Attribute_type = struct
 
     let of_name (module C : Subsocia_intf.S) name =
-      C.Attribute_type.of_name name >|= fun ak ->
+      C.Attribute_type.of_name name >|= Option.map @@ fun ak ->
       C.Attribute_type.id ak, C.Attribute_type.type0 ak
 
     let of_id (module C : Subsocia_intf.S) id =
