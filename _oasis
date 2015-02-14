@@ -15,18 +15,26 @@ Library "subsocia"
   Modules:
     Subsocia_client,
     Subsocia_common,
-    Subsocia_direct,
     Subsocia_intf,
     Subsocia_prereq,
     Subsocia_rpc,
     Subsocia_server
   BuildDepends:
-    caqti.lwt,
     extunix,
     lwt,
     panograph,
     prime.testing,
     rpclib
+  ByteOpt: -thread
+  NativeOpt: -thread
+
+Library "subsocia-server"
+  Path: lib/server
+  BuildDepends:
+    caqti.lwt,
+    subsocia
+  Modules:
+    Subsocia_direct
   ByteOpt: -thread
   NativeOpt: -thread
 
@@ -41,8 +49,9 @@ Document api
 
 Library "subsocia-web"
   Path: web
-  Modules: server/Subsocia_web
-  BuildDepends: eliom.server, prime, subsocia
+  Modules:
+    server/Subsocia_web
+  BuildDepends: eliom.server, prime, subsocia-server
   ByteOpt: -thread
   NativeOpt: -thread
   DataFiles:
