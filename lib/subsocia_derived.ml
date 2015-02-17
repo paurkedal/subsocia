@@ -57,9 +57,9 @@ module Make (Config : CONFIG) (Sc : Subsocia_intf.S) = struct
 	| None -> Lwt.return_none
 	| Some at0 ->
 	  lwt at = coerce_to_string_at an at0 in
-	  match_lwt Entity.getattr entity unit_entity at with
-	  | [] -> Lwt.return_none
-	  | x :: _ -> Lwt.return (Some x) in
+	  lwt vs = Entity.getattr entity unit_entity at in
+	  if Values.is_empty vs then Lwt.return_none
+				else Lwt.return (Some (Values.min_elt vs)) in
 
       let aux_i18n an =
 	Lwtx_list.search_s

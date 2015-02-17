@@ -115,8 +115,9 @@ module Make (RPCM : RPCM) = struct
     let succs e = Raw.succs e >|= Set.of_ordered_elements
 
     let getattr lb ub ak =
+      let t1 = Attribute_type.type1 ak in
       Raw.getattr lb ub (Attribute_type.(id (Ex ak))) >|=
-      List.map (Value.coerce (Attribute_type.type1 ak))
+      List.map (Value.coerce t1) *> Values.of_ordered_elements t1
 
     let setattr lb ub ak vs =
       let t = Attribute_type.type1 ak in

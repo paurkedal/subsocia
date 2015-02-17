@@ -78,5 +78,29 @@ module Value : sig
   val t0_of_rpc : Rpc.t -> t0
 end
 
+module Values : sig
+  type 'a t
+
+  val empty : 'a Type.t1 -> 'a t
+  val is_empty : 'a t -> bool
+  val add : 'a -> 'a t -> 'a t
+  val remove : 'a -> 'a t -> 'a t
+  val contains : 'a -> 'a t -> bool
+  val locate : 'a -> 'a t -> bool * int
+  val min_elt : 'a t -> 'a
+  val max_elt : 'a t -> 'a
+  val iter : ('a -> unit) -> 'a t -> unit
+  val fold : ('a -> 'b -> 'b) -> 'a t -> 'b -> 'b
+  val for_all : ('a -> bool) -> 'a t -> bool
+  val exists : ('a -> bool) -> 'a t -> bool
+  val filter : ('a -> bool) -> 'a t -> 'a t
+  val union : 'a t -> 'a t -> 'a t
+  val inter : 'a t -> 'a t -> 'a t
+  val elements : 'a t -> 'a list
+  val of_ordered_elements : 'a Type.t1 -> 'a list -> 'a t
+end
+
+module Int_set : Prime_enumset.S with type elt = int
 module Int32_set : Prime_enumset.S with type elt = int32
 module Int32_map : Prime_enummap.S with type key = int32
+module String_set : Prime_enumset.S with type elt = string

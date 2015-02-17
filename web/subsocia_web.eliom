@@ -122,7 +122,7 @@
 	let SC.Attribute_type.Ex at1 = at in
 	let t1 = SC.Attribute_type.type1 at1 in
 	SC.Entity.getattr lb ub at1 >|= fun vs ->
-	match List.map (Value.typed_to_string t1) vs with
+	match List.map (Value.typed_to_string t1) (Values.elements vs) with
 	| [] -> [F.span ~a:[F.a_class ["none"]] [F.pcdata "-"]]
 	| strs -> [F.pcdata (String.concat ", " strs)] in
       Lwt.return @@ F.tr [

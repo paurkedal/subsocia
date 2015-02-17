@@ -236,13 +236,13 @@ let connect uri = (module struct
   let inclusion_cache = Prime_cache.create ~cache_metric 61
 
   let bool_attribute_cache :
-    (entity_id * entity_id * attribute_type_id, bool list) Prime_cache.t =
+    (entity_id * entity_id * attribute_type_id, bool Values.t) Prime_cache.t =
     Prime_cache.create ~cache_metric 61
   let int_attribute_cache :
-    (entity_id * entity_id * attribute_type_id, int list) Prime_cache.t =
+    (entity_id * entity_id * attribute_type_id, int Values.t) Prime_cache.t =
     Prime_cache.create ~cache_metric 61
   let string_attribute_cache :
-    (entity_id * entity_id * attribute_type_id, string list) Prime_cache.t =
+    (entity_id * entity_id * attribute_type_id, string Values.t) Prime_cache.t =
     Prime_cache.create ~cache_metric 61
 
   let pool =
@@ -447,13 +447,14 @@ let connect uri = (module struct
 
     let getattr (type a) e e' (ak : a Attribute_type.t1) =
       let open Attribute_type in
-      let aux cache q (detuple : _ -> a) : a list Lwt.t =
+      let aux cache q (detuple : _ -> a) : a Values.t Lwt.t =
 	try Lwt.return (Prime_cache.find cache (e, e', ak.ak_id))
 	with Not_found ->
 	  with_db @@ fun (module C : CONNECTION) ->
 	  let p = C.Param.([|int32 e; int32 e'; int32 ak.ak_id|]) in
-	  let push tup acc = detuple (Ptuple ((module C.Tuple), tup)) :: acc in
-	  lwt r = C.fold q push p [] in
+	  let push tup acc =
+	    Values.add (detuple (Ptuple ((module C.Tuple), tup))) acc in
+	  lwt r = C.fold q push p (Values.empty ak.ak_value_type) in
 	  Prime_cache.replace cache attribution_grade (e, e', ak.ak_id) r;
 	  Lwt.return r in
       match ak.ak_value_type with
@@ -489,11 +490,12 @@ let connect uri = (module struct
 	match mu with
 	| None -> failwith "addattr: Not allowed between these elements."
 	| Some Multiplicity.May1 | Some Multiplicity.Must1 ->
-	  if xs_pres <> [] then invalid_arg "addattr: Attribute already set.";
+	  if not (Values.is_empty xs_pres) then
+	    invalid_arg "addattr: Attribute already set.";
 	  xs
 	| Some Multiplicity.May | Some Multiplicity.Must ->
 	  let ht = Hashtbl.create 7 in
-	  List.iter (fun x -> Hashtbl.add ht x ()) xs_pres;
+	  Values.iter (fun x -> Hashtbl.add ht x ()) xs_pres;
 	  List.filter
 	    (fun x -> if Hashtbl.mem ht x then false else
 		      (Hashtbl.add ht x (); true)) xs in
@@ -519,7 +521,7 @@ let connect uri = (module struct
       lwt xs_pres = getattr e e' ak in
       let xs =
 	let ht = Hashtbl.create 7 in
-	List.iter (fun x -> Hashtbl.add ht x ()) xs_pres;
+	Values.iter (fun x -> Hashtbl.add ht x ()) xs_pres;
 	List.filter
 	  (fun x -> if not (Hashtbl.mem ht x) then false else
 		    (Hashtbl.remove ht x; true)) xs in
@@ -529,7 +531,7 @@ let connect uri = (module struct
     let setattr (type a) e e' (ak : a Attribute_type.t1) (xs : a list) =
       lwt xs_pres = getattr e e' ak in
       let ht = Hashtbl.create 7 in
-      List.iter (fun x -> Hashtbl.add ht x false) xs_pres;
+      Values.iter (fun x -> Hashtbl.add ht x false) xs_pres;
       let xs_ins =
 	List.filter
 	  (fun x ->

@@ -134,5 +134,49 @@ module Value = struct
     | _ -> failwith "Value.t0_of_rpc: Protocol error."
 end
 
+module Bool_compare = struct type t = bool let compare = compare end
+module Bool_set = Prime_enumset.Make (Bool_compare) (* TODO: Optimise *)
+module Int_compare = struct type t = int let compare = compare end
+module Int_set = Prime_enumset.Make (Int_compare)
+module String_set = Prime_enumset.Make (String)
+
+module Values = struct
+
+  type 'a t =
+    T : (module Prime_enumset.S with type elt = 'a and type t = 'b) * 'b -> 'a t
+
+  let impl : type a. a Type.t1 -> (module Prime_enumset.S with type elt = a) =
+    function
+    | Type.Bool ->   (module Bool_set)
+    | Type.Int ->    (module Int_set)
+    | Type.String -> (module String_set)
+
+  let empty : type a. a Type.t1 -> a t = fun t ->
+    let module S = (val impl t) in
+    T ((module S), S.empty)
+
+  let is_empty (type a) (T ((module S), s) : a t) = S.is_empty s
+  let contains (type a) (x : a) (T ((module S), s) : a t) = S.contains x s
+  let locate (type a) (x : a) (T ((module S), s) : a t) = S.locate x s
+  let min_elt (type a) (T ((module S), s) : a t) = S.min_elt s
+  let max_elt (type a) (T ((module S), s) : a t) = S.max_elt s
+  let add (type a) (x : a) (T ((module S), s) : a t) = T ((module S), S.add x s)
+  let remove (type a) x (T ((module S), s) : a t) = T ((module S), S.remove x s)
+  let iter (type a) f (T ((module S), s) : a t) = S.iter f s
+  let fold (type a) f (T ((module S), s) : a t) acc = S.fold f s acc
+  let for_all (type a) f (T ((module S), s) : a t) = S.for_all f s
+  let exists (type a) f (T ((module S), s) : a t) = S.exists f s
+  let filter (type a) f (T ((module S), s) : a t) = T ((module S), S.filter f s)
+  let union (type a) (T ((module SA), sA) : a t) (T ((module SB), sB) : a t) =
+    T ((module SB), SA.fold SB.add sA sB)
+  let inter (type a) (T ((module SA), sA) : a t) (T ((module SB), sB) : a t) =
+    T ((module SB), SB.filter (fun x -> SA.contains x sA) sB)
+  let elements (type a) (T ((module S), s) : a t) = S.elements s
+
+  let of_ordered_elements : type a. a Type.t1 -> a list -> a t = fun t s ->
+    let module S = (val impl t) in
+    T ((module S), S.of_ordered_elements s)
+end
+
 module Int32_set = Prime_enumset.Make (Int32)
 module Int32_map = Prime_enummap.Make (Int32)

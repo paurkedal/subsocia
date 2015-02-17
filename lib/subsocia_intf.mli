@@ -82,7 +82,7 @@ module type S = sig
     val succs : t -> Set.t Lwt.t
     val precedes : t -> t -> bool Lwt.t
 
-    val getattr : t -> t -> 'a Attribute_type.t1 -> 'a list Lwt.t
+    val getattr : t -> t -> 'a Attribute_type.t1 -> 'a Values.t Lwt.t
     val setattr : t -> t -> 'a Attribute_type.t1 -> 'a list -> unit Lwt.t
     val addattr : t -> t -> 'a Attribute_type.t1 -> 'a list -> unit Lwt.t
     val delattr : t -> t -> 'a Attribute_type.t1 -> 'a list -> unit Lwt.t

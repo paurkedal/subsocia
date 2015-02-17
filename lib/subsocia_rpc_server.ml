@@ -111,6 +111,7 @@ module Server_impl = struct
       lwt ub = C.Entity.of_id ub_id in
       lwt C.Attribute_type.Ex ak = C.Attribute_type.of_id ak_id in
       C.Entity.getattr lb ub ak >|=
+      Values.elements *>
       List.map (fun v -> Value.Ex (C.Attribute_type.type1 ak, v))
 
     let setattr (module C : Subsocia_intf.S) lb_id ub_id ak_id vs =
