@@ -18,6 +18,7 @@
   open Eliom_content
   open Panograph_i18n
   open Printf
+  open Sociaweb_content
   open Subsocia_common
   open Unprime
   open Unprime_list
@@ -34,18 +35,6 @@
 }}
 
 {server{
-(*
-  let client_node_lwt (m : [`Div] Html5.elt Lwt.t client_value) =
-    let ph_el = Html5.D.div [] in
-    ignore {unit{
-      let ph_node = Html5.To_dom.of_div %ph_el in
-      Lwt.async @@ fun () ->
-      %m >|= fun el ->
-      let n = Html5.To_dom.of_div el in
-      Js.Opt.iter (ph_node##parentNode) (fun p -> Dom.replaceChild p n ph_node)
-    }};
-    ph_el
-*)
 
   open Subsocia_common
   let langs = [Lang.of_string "en"]
@@ -83,18 +72,6 @@
 *)
 
 {server{ (* client|server|shared *)
-
-  let multicol ?(m = 4) ?(cls = []) items =
-    let open Html5.F in
-    let items = Array.of_list items in
-    let l = Array.length items in
-    let n = (l + m - 1) / m in
-    let mktr i =
-      let mktd j = td (if i + j * n < l then items.(i + j * n) else []) in
-      tr (List.sample mktd m) in
-    match List.sample mktr n with
-    | [] -> div ~a:[a_class ("multicol" :: "empty" :: cls)] []
-    | trs -> table ~a:[a_class ("multicol" :: cls)] trs
 
   let render_neigh ~langs ent =
     let open Html5 in

@@ -54,7 +54,8 @@ Document api
 Library "subsocia-web"
   Path: web
   Modules:
-    server/Subsocia_web
+    server/Sociaweb_content,
+    server/Sociaweb_main
   BuildDepends: eliom.server, prime, subsocia-server
   ByteOpt: -thread
   NativeOpt: -thread
@@ -66,6 +67,6 @@ Library "subsocia-web"
 Executable "subsocia_web"
   Path: web/client
   BuildDepends: eliom.client, prime, subsocia
-  MainIs: subsocia_web.ml
+  MainIs: sociaweb_main.ml
   ByteOpt: -thread
   Install: false
