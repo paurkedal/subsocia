@@ -27,6 +27,17 @@ let display_name =
     "Attributes considered as display names. \
      Suffix stranslated attributes with []"
 
+module Web = struct
+  let auth_http_header =
+    new Config_file.string_cp ~group ["web"; "auth_http_header"]
+      "HTTP_X_PROXY_REMOTE_USER"
+      "HTTP header used to identify a logged-in user."
+  let auth_group =
+    new Config_file.string_cp ~group ["web"; "auth_group"]
+      "Authenticated Users"
+      "Authorization group to use for the web interface."
+end
+
 let () =
   try group#read (Sys.getenv "SUBSOCIA_CONFIG")
   with Not_found ->

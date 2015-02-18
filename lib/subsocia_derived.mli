@@ -40,6 +40,7 @@ module Make (Config : CONFIG) (Base : Subsocia_intf.S) : sig
   end
 
   module Entity : sig
+    val of_unique_name : ?super: Base.Entity.t -> string -> Base.Entity.t Lwt.t
     val display_name : langs: lang list -> Base.Entity.t -> string Lwt.t
   end
 

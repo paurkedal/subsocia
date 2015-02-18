@@ -85,8 +85,8 @@ module Make (Config : CONFIG) (Base : Subsocia_intf.S) = struct
       | _ -> _fail "Cannot find a unit entity as there are multiple maximal \
 		    elements."
 
-    let _e_un en =
-      lwt e_unit = e_unit in
+    let _e_un ?super en =
+      lwt e_unit = match super with Some e -> Lwt.return e | None -> e_unit in
       lwt at_unique_name = at_unique_name in
       lwt es = Entity.apreds e_unit at_unique_name en in
       match Entity.Set.cardinal es with
@@ -98,6 +98,8 @@ module Make (Config : CONFIG) (Base : Subsocia_intf.S) = struct
   end
 
   module Entity = struct
+
+    let of_unique_name = Const._e_un
 
     let display_name_ats_cache :
 	  (lang, string Base.Attribute_type.t1 list) Hashtbl.t =

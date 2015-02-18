@@ -35,43 +35,7 @@
 }}
 
 {server{
-
-  open Subsocia_common
-  let langs = [Lang.of_string "en"]
-  let subsocia_uri = Uri.of_string "postgresql:/"
-  module Socia = (val Subsocia_direct.connect subsocia_uri)
-  let process = Subsocia_rpc_server.process (module Socia)
-
-  let call = server_function Json.t<string> @@ fun s ->
-    Lwt_log.debug_f "RPC request: %s" s >>
-    process (Jsonrpc.call_of_string s) >|= Jsonrpc.string_of_response
-
-  module SC = Socia
-  module Config = struct
-    let display_name_attributes = Subsocia_config.display_name#get
-  end
-  module SU = Subsocia_derived.Make (Config) (SC)
-}}
-
-(*
-{client{ (* Needed if next is client|shared. *)
-  module SC = Subsocia_rpc_client.Make
-    (struct
-      type 'a t = 'a Lwt.t
-      let bind = Lwt.bind
-      let return = Lwt.return
-      let fail = Lwt.fail
-      let rpc c =
-	%call (Jsonrpc.string_of_call c) >|= Jsonrpc.response_of_string
-    end)
-  module Config = struct
-    let display_name_attributes = %(Subsocia_config.display_name#get)
-  end
-  module SU = Subsocia_derived.Make (Config) (SC)
-}}
-*)
-
-{server{ (* client|server|shared *)
+  open Sociaweb_server
 
   let render_neigh ~langs ent =
     let open Html5 in
@@ -143,12 +107,6 @@ let entity_handler entity_id () =
   lwt browser =
     lwt e = SC.Entity.of_id entity_id in
     render_browser ~langs e in
-(*
-  let browser = client_node_lwt {{
-    lwt ei = SC.Entity.of_id %entity_id in
-    render_browser ~langs:%langs ei
-  }} in
-*)
   Lwt.return @@
     Eliom_tools.D.html
       ~title:"Entity Browser"

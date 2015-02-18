@@ -52,14 +52,16 @@ VALUES
   (1, 0, 3, 2), -- 1 All : unit
   (2, 0, 3, 2), -- 2 Forbidden : access_group
   (2, 0, 3, 4), -- 3 Default Viewers : access_group
-  (2, 0, 3, 4); -- 4 Default Admins : access_group
+  (2, 0, 3, 4), -- 4 Default Admins : access_group
+  (3, 0, 3, 4); -- 5 Authenticated Users : auth_group
 
 INSERT INTO subsocia.inclusion
   (subentity_id, superentity_id)
 VALUES
   (2, 1), -- Forbidden -- All
   (3, 1), -- Default Viewers -- All
-  (4, 3); -- Default Admins -- Default Viewers
+  (4, 3), -- Default Admins -- Default Viewers
+  (5, 1); -- Authenticated Users -- All
 
 INSERT INTO subsocia.text_attribution
   (subentity_id, superentity_id, attribute_type_id, value)
