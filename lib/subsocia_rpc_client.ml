@@ -134,6 +134,16 @@ module Make (RPCM : RPCM) = struct
       Raw.delattr lb ub (Attribute_type.(id (Ex ak)))
 		  (List.map (fun v -> Value.Ex (t, v)) vs)
 
+    let apreds e ak av =
+      let t = Attribute_type.type1 ak in
+      Raw.apreds e (Attribute_type.(id (Ex ak))) (Value.Ex (t, av))
+	>|= Set.of_ordered_elements
+
+    let asuccs e ak av =
+      let t = Attribute_type.type1 ak in
+      Raw.asuccs e (Attribute_type.(id (Ex ak))) (Value.Ex (t, av))
+	>|= Set.of_ordered_elements
+
     let precedes = Raw.precedes
     let constrain = Raw.constrain
     let unconstrain = Raw.unconstrain

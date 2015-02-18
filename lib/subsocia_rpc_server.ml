@@ -135,6 +135,20 @@ module Server_impl = struct
       let vs1 = List.map (Value.coerce (C.Attribute_type.type1 ak)) vs in
       C.Entity.delattr lb ub ak vs1
 
+    let apreds (module C : Subsocia_intf.S) e_id ak_id v =
+      lwt e = C.Entity.of_id e_id in
+      lwt C.Attribute_type.Ex ak = C.Attribute_type.of_id ak_id in
+      let t = C.Attribute_type.type1 ak in
+      C.Entity.apreds e ak (Value.coerce t v) >|=
+      C.Entity.Set.elements *> List.map C.Entity.id
+
+    let asuccs (module C : Subsocia_intf.S) e_id ak_id v =
+      lwt e = C.Entity.of_id e_id in
+      lwt C.Attribute_type.Ex ak = C.Attribute_type.of_id ak_id in
+      let t = C.Attribute_type.type1 ak in
+      C.Entity.asuccs e ak (Value.coerce t v) >|=
+      C.Entity.Set.elements *> List.map C.Entity.id
+
     let constrain (module C : Subsocia_intf.S) lb_id ub_id =
       lwt lb = C.Entity.of_id lb_id in
       lwt ub = C.Entity.of_id ub_id in

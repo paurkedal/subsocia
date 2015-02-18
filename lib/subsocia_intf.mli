@@ -87,6 +87,9 @@ module type S = sig
     val addattr : t -> t -> 'a Attribute_type.t1 -> 'a list -> unit Lwt.t
     val delattr : t -> t -> 'a Attribute_type.t1 -> 'a list -> unit Lwt.t
 
+    val apreds : t -> 'a Attribute_type.t1 -> 'a -> Set.t Lwt.t
+    val asuccs : t -> 'a Attribute_type.t1 -> 'a -> Set.t Lwt.t
+
     val constrain : t -> t -> unit Lwt.t
     val unconstrain : t -> t -> unit Lwt.t
   end

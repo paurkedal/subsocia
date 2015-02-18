@@ -184,6 +184,20 @@ module Q = struct
     q "DELETE FROM @text_attribution \
        WHERE subentity_id = ? AND superentity_id = ? \
 	 AND attribute_type_id = ? AND value = ?"
+
+  let apreds_text =
+    q "SELECT subentity_id FROM @text_attribution \
+       WHERE superentity_id = ? AND value = ?"
+  let apreds_integer =
+    q "SELECT subentity_id FROM @integer_attribution \
+       WHERE superentity_id = ? AND value = ?"
+
+  let asuccs_text =
+    q "SELECT superentity_id FROM @text_attribution \
+       WHERE subentity_id = ? AND value = ?"
+  let asuccs_integer =
+    q "SELECT superentity_id FROM @integer_attribution \
+       WHERE subentity_id = ? AND value = ?"
 end
 
 let memo_1lwt f =
@@ -545,6 +559,49 @@ let connect uri = (module struct
 	Hashtbl.fold (fun x ins acc -> if ins then acc else x :: acc) ht [] in
       (if xs_del = [] then Lwt.return_unit else delattr' e e' ak xs_del) >>
       (if xs_ins = [] then Lwt.return_unit else addattr' e e' ak xs_ins)
+
+    let apreds_integer, apreds_integer_cache =
+      memo_3lwt @@ fun (e, ak_id, x) ->
+      with_db @@ fun (module C : CONNECTION) ->
+      let f tup = Set.add (C.Tuple.int32 0 tup) in
+      C.fold Q.apreds_integer f C.Param.([|int32 e; int32 ak_id; int x|])
+	     Set.empty
+
+    let apreds_text, apreds_text_cache =
+      memo_3lwt @@ fun (e, ak_id, x) ->
+      with_db @@ fun (module C : CONNECTION) ->
+      let f tup = Set.add (C.Tuple.int32 0 tup) in
+      C.fold Q.apreds_text f C.Param.([|int32 e; int32 ak_id; text x|])
+	     Set.empty
+
+    let apreds (type a) e (ak : a Attribute_type.t1) : a -> Set.t Lwt.t =
+      let open Attribute_type in
+      match type1 ak with
+      | Type.Bool -> fun x -> apreds_integer e ak.ak_id (if x then 1 else 0)
+      | Type.Int -> apreds_integer e ak.ak_id
+      | Type.String -> apreds_text e ak.ak_id
+
+    let asuccs_integer, asuccs_integer_cache =
+      memo_3lwt @@ fun (e, ak_id, x) ->
+      with_db @@ fun (module C : CONNECTION) ->
+      let f tup = Set.add (C.Tuple.int32 0 tup) in
+      C.fold Q.asuccs_integer f C.Param.([|int32 e; int32 ak_id; int x|])
+	     Set.empty
+
+    let asuccs_text, asuccs_text_cache =
+      memo_3lwt @@ fun (e, ak_id, x) ->
+      with_db @@ fun (module C : CONNECTION) ->
+      let f tup = Set.add (C.Tuple.int32 0 tup) in
+      C.fold Q.asuccs_text f C.Param.([|int32 e; int32 ak_id; text x|])
+	     Set.empty
+
+    let asuccs (type a) e (ak : a Attribute_type.t1) : a -> Set.t Lwt.t =
+      let open Attribute_type in
+      match type1 ak with
+      | Type.Bool -> fun x -> asuccs_integer e ak.ak_id (if x then 1 else 0)
+      | Type.Int -> asuccs_integer e ak.ak_id
+      | Type.String -> asuccs_text e ak.ak_id
+
   end
 
 end : S)
