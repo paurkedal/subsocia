@@ -87,10 +87,12 @@ module Type = struct
 
   type t0 = Ex : 'a t1 -> t0
 
-  let to_string : type a. a t1 -> string = function
+  let string_of_t1 : type a. a t1 -> string = function
     | Bool -> "bool"
     | Int -> "int"
     | String -> "string"
+
+  let string_of_t0 (Ex t) = string_of_t1 t
 
   let of_string = function
     | "bool" -> Ex Bool
@@ -98,7 +100,7 @@ module Type = struct
     | "string" -> Ex String
     | _ -> invalid_arg "Type.of_string"
 
-  let rpc_of_t0 (Ex t) = Rpc.rpc_of_string (to_string t)
+  let rpc_of_t0 t = Rpc.rpc_of_string (string_of_t0 t)
   let t0_of_rpc r = of_string (Rpc.string_of_rpc r)
 
 end

@@ -50,7 +50,8 @@ module Type : sig
 
   type t0 = Ex : 'a t1 -> t0
 
-  val to_string : 'a t1 -> string
+  val string_of_t0 : t0 -> string
+  val string_of_t1 : 'a t1 -> string
   val of_string : string -> t0
 
 (*
