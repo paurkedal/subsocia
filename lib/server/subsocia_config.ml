@@ -22,7 +22,8 @@ let display_name =
     [ "display_name[]"; "display_name";
       "proper_name[]"; "proper_name";
       "common_name[]"; "common_name";
-      "name[]"; "name" ]
+      "name[]"; "name";
+      "unique_name" ]
     "Attributes considered as display names. \
      Suffix stranslated attributes with []"
 

@@ -22,42 +22,96 @@ module type CONFIG = sig
   val display_name_attributes : string list
 end
 
-module Make (Config : CONFIG) (Sc : Subsocia_intf.S) = struct
-  open Sc
+let _fail fmt = ksprintf (fun s -> Lwt.fail (Failure s)) fmt
+
+module Make (Config : CONFIG) (Base : Subsocia_intf.S) = struct
+  open Base
+
+  module Attribute_type = struct
+
+    let coerce (type a) (t : a Type.t1) at0 : a Attribute_type.t1 option =
+      let Attribute_type.Ex at1 = at0 in
+      match t, Attribute_type.type1 at1, at1 with
+      | Type.Bool, Type.Bool, at -> Some at
+      | Type.Bool, _, _ -> None
+      | Type.Int, Type.Int, at -> Some at
+      | Type.Int, _, _ -> None
+      | Type.String, Type.String, at -> Some at
+      | Type.String, _, _ -> None
+
+    let coerce_lwt (type a) (t : a Type.t1) at0 : a Attribute_type.t1 Lwt.t =
+      match coerce t at0 with
+      | Some at -> Lwt.return at
+      | None ->
+	lwt an = Attribute_type.name at0 in
+	let tn = Type.string_of_t0 (Attribute_type.type0 at0) in
+	let tn' = Type.string_of_t1 t in
+	_fail "Wrong type for %s : %s, expected %s." an tn tn'
+  end
+
+  module Const = struct
+
+    let _et etn =
+      match_lwt Entity_type.of_name etn with
+      | Some et -> Lwt.return et
+      | None -> _fail "Missing required entity type %s" etn
+
+    let _at atn =
+      match_lwt Base.Attribute_type.of_name atn with
+      | Some at -> Lwt.return at
+      | None -> _fail "Missing required attribute type %s" atn
+
+    let _at_string atn =
+      lwt at0 = _at atn in
+      match Attribute_type.coerce Type.String at0 with
+      | None -> _fail "%s must be a string attribute type" atn
+      | Some at -> Lwt.return at
+
+    (* Predefined attribute types. *)
+    let at_unique_name = _at_string "unique_name"
+    let at_proper_name = _at_string "proper_name"
+
+    (* Predefined entity types. *)
+    let et_unit = _et "unit"
+    let et_access_group = _et "access_group"
+    let et_auth_group = _et "auth_group"
+    let et_person = _et "person"
+
+    (* Predefined entities. *)
+    let e_unit =
+      match_lwt Entity.maximums () >|= Entity.Set.elements with
+      | [ent] -> Lwt.return ent
+      | [] -> _fail "The database is empty, there should be some initial data."
+      | _ -> _fail "Cannot find a unit entity as there are multiple maximal \
+		    elements."
+
+    let _e_un en =
+      lwt e_unit = e_unit in
+      lwt at_unique_name = at_unique_name in
+      lwt es = Entity.apreds e_unit at_unique_name en in
+      match Entity.Set.cardinal es with
+      | 1 -> Lwt.return (Entity.Set.min_elt es)
+      | 0 -> _fail "Missing initial entity %s" en
+      | _ -> _fail "Multiple matches for unique name %s" en
+
+    let e_forbidden = _e_un "Forbidden"
+  end
 
   module Entity = struct
 
-    let unit_entity () =
-      match_lwt Entity.maximums () >|= Entity.Set.elements with
-      | [ent] -> Lwt.return ent
-      | [] ->
-	Lwt.fail (Failure "The database is empty, \
-			   there should be some initial data.")
-      | _ ->
-	Lwt.fail (Failure "Cannot find a unique unit entity as there \
-			   are multiple maximal elements.")
-
     let display_name_ats_cache :
-	  (lang, string Attribute_type.t1 list) Hashtbl.t = Hashtbl.create 5
-
-    let coerce_to_string_at an at0 =
-      let Attribute_type.Ex at1 = at0 in
-      let coerce : type a. a Type.t1 * a Attribute_type.t1 ->
-			   string Attribute_type.t1 =
-	function
-	| Type.String, at -> at
-	| _ -> failwith (an ^ " is not a string attribute type.") in
-      Lwt.wrap1 coerce (Attribute_type.type1 at1, at1)
+	  (lang, string Base.Attribute_type.t1 list) Hashtbl.t =
+      Hashtbl.create 5
 
     let display_name ~langs entity =
-      lwt unit_entity = unit_entity () in
+      lwt e_unit = Const.e_unit in
 
       let aux_plain an =
-	match_lwt Attribute_type.of_name an with
+	match_lwt Base.Attribute_type.of_name an with
 	| None -> Lwt.return_none
 	| Some at0 ->
-	  lwt at = coerce_to_string_at an at0 in
-	  lwt vs = Entity.getattr entity unit_entity at in
+	  lwt at = Attribute_type.coerce_lwt Type.String at0 in
+	  lwt vs = Entity.getattr entity e_unit at in
 	  if Values.is_empty vs then Lwt.return_none
 				else Lwt.return (Some (Values.min_elt vs)) in
 

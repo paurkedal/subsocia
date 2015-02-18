@@ -15,13 +15,32 @@
  *)
 
 open Panograph_i18n
+open Subsocia_common
 
 module type CONFIG = sig
   val display_name_attributes : string list
 end
 
-module Make (Config : CONFIG) (Sc : Subsocia_intf.S) : sig
-  module Entity : sig
-    val display_name : langs: lang list -> Sc.Entity.t -> string Lwt.t
+module Make (Config : CONFIG) (Base : Subsocia_intf.S) : sig
+  open Base
+
+  module Attribute_type : sig
+    val coerce : 'a Type.t1 ->
+		 Base.Attribute_type.t0 -> 'a Base.Attribute_type.t1 option
   end
+
+  module Const : sig
+    val at_unique_name : string Base.Attribute_type.t1 Lwt.t
+    val at_proper_name : string Base.Attribute_type.t1 Lwt.t
+
+    val et_unit : Base.Entity_type.t Lwt.t
+    val et_access_group : Base.Entity_type.t Lwt.t
+    val et_auth_group : Base.Entity_type.t Lwt.t
+    val et_person : Base.Entity_type.t Lwt.t
+  end
+
+  module Entity : sig
+    val display_name : langs: lang list -> Base.Entity.t -> string Lwt.t
+  end
+
 end
