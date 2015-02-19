@@ -38,11 +38,11 @@ INSERT INTO subsocia.attribution_type
   (subentity_type_id, superentity_type_id,
    attribute_type_id, attribute_multiplicity)
 VALUES
-  (2, 1, 1, 1), -- access_group [1:unique_name] unit
-  (2, 1, 2, 1), -- access_group [1:proper_name] unit
-  (3, 1, 1, 1), -- auth_group [1:unique_name] unit
+  (2, 1, 1, 3), -- access_group [+:unique_name] unit
+  (2, 1, 2, 3), -- access_group [+:proper_name] unit
+  (3, 1, 1, 3), -- auth_group [+:unique_name] unit
   (4, 1, 2, 3), -- person [+:proper_name] unit
-  (4, 2, 1, 0); -- person [1:unique_name] auth_group
+  (4, 2, 1, 3); -- person [+:unique_name] auth_group
 
 -- Initial Data: Objects
 
@@ -69,4 +69,5 @@ VALUES
   (1, 1, 1, 'All'),
   (2, 1, 1, 'Forbidden'),
   (3, 1, 2, 'Default Viewers'),
-  (4, 1, 2, 'Default Admins');
+  (4, 1, 2, 'Default Admins'),
+  (5, 1, 1, 'Authenticated Users');

@@ -187,17 +187,17 @@ module Q = struct
 
   let apreds_text =
     q "SELECT subentity_id FROM @text_attribution \
-       WHERE superentity_id = ? AND value = ?"
+       WHERE superentity_id = ? AND attribute_type_id = ? AND value = ?"
   let apreds_integer =
     q "SELECT subentity_id FROM @integer_attribution \
-       WHERE superentity_id = ? AND value = ?"
+       WHERE superentity_id = ? AND attribute_type_id = ? AND value = ?"
 
   let asuccs_text =
     q "SELECT superentity_id FROM @text_attribution \
-       WHERE subentity_id = ? AND value = ?"
+       WHERE subentity_id = ? AND attribute_type_id = ? AND value = ?"
   let asuccs_integer =
     q "SELECT superentity_id FROM @integer_attribution \
-       WHERE subentity_id = ? AND value = ?"
+       WHERE subentity_id = ? AND attribute_type_id = ? AND value = ?"
 end
 
 let memo_1lwt f =

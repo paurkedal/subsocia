@@ -34,10 +34,16 @@ let get_auth_http_header () =
 
 let e_auth_group = SU.Entity.of_unique_name Subsocia_config.Web.auth_group#get
 
-let auth_user_id () =
+module Log_auth = struct
+  let section = Lwt_log.Section.make "subsocia.auth"
+  let debug_f fmt = Lwt_log.debug_f ~section fmt
+end
+
+let auth_entity () =
   lwt user =
     try Lwt.return (get_auth_http_header ())
     with Not_found -> http_error 401 "Not authenticated." in
+  Log_auth.debug_f "HTTP authenticated user is %s." user >>
   lwt e_auth_group = e_auth_group in
   lwt at_unique_name = SU.Const.at_unique_name in
   lwt s = SC.Entity.apreds e_auth_group at_unique_name user in

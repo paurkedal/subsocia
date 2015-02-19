@@ -30,7 +30,7 @@ let display_name =
 module Web = struct
   let auth_http_header =
     new Config_file.string_cp ~group ["web"; "auth_http_header"]
-      "HTTP_X_PROXY_REMOTE_USER"
+      "X-Proxy-REMOTE-USER"
       "HTTP header used to identify a logged-in user."
   let auth_group =
     new Config_file.string_cp ~group ["web"; "auth_group"]
