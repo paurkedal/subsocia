@@ -24,4 +24,12 @@ let main_service =
 let entity_service =
   App.service ~path:["entities"] ~get_params:(suffix (int32 "entity_id")) ()
 
+let registration_form_service =
+  Http.service ~path:["registration"] ~get_params:unit ()
+
+let registration_post_service =
+  Http.post_service ~fallback:registration_form_service
+    ~post_params:(string "first_name" **
+		  string "last_name" **
+		  string "email") ()
 }}

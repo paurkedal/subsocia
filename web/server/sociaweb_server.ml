@@ -39,10 +39,12 @@ module Log_auth = struct
   let debug_f fmt = Lwt_log.debug_f ~section fmt
 end
 
+let auth_identity () =
+  try Lwt.return (get_auth_http_header ())
+  with Not_found -> http_error 401 "Not authenticated."
+
 let auth_entity () =
-  lwt user =
-    try Lwt.return (get_auth_http_header ())
-    with Not_found -> http_error 401 "Not authenticated." in
+  lwt user = auth_identity () in
   Log_auth.debug_f "HTTP authenticated user is %s." user >>
   lwt e_auth_group = e_auth_group in
   lwt at_unique_name = Scd.Const.at_unique_name in

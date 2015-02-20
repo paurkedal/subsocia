@@ -32,11 +32,20 @@ module Make (Config : CONFIG) (Base : Subsocia_intf.S) : sig
   module Const : sig
     val at_unique_name : string Base.Attribute_type.t1 Lwt.t
     val at_proper_name : string Base.Attribute_type.t1 Lwt.t
+    val at_first_name : string Base.Attribute_type.t1 Lwt.t
+    val at_last_name : string Base.Attribute_type.t1 Lwt.t
+    val at_email : string Base.Attribute_type.t1 Lwt.t
 
     val et_unit : Base.Entity_type.t Lwt.t
     val et_access_group : Base.Entity_type.t Lwt.t
     val et_auth_group : Base.Entity_type.t Lwt.t
     val et_person : Base.Entity_type.t Lwt.t
+
+    val e_unit : Base.Entity.t Lwt.t
+    val e_forbidden : Base.Entity.t Lwt.t
+    val e_default_viewers : Base.Entity.t Lwt.t
+    val e_default_admins : Base.Entity.t Lwt.t
+    val e_new_users : Base.Entity.t Lwt.t
   end
 
   module Entity : sig

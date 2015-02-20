@@ -23,7 +23,10 @@ INSERT INTO subsocia.entity_type (entity_type_name) VALUES
 
 INSERT INTO subsocia.attribute_type (attribute_name, value_type) VALUES
   ('unique_name', 'string'),	-- 1
-  ('proper_name', 'string');	-- 2
+  ('proper_name', 'string'),	-- 2
+  ('first_name', 'string'),	-- 3
+  ('last_name', 'string'),	-- 4
+  ('email', 'string');		-- 5
 
 INSERT INTO subsocia.inclusion_type
   (subentity_type_id, superentity_type_id,
@@ -41,7 +44,10 @@ VALUES
   (2, 1, 1, 3), -- access_group [+:unique_name] unit
   (2, 1, 2, 3), -- access_group [+:proper_name] unit
   (3, 1, 1, 3), -- auth_group [+:unique_name] unit
-  (4, 1, 2, 3), -- person [+:proper_name] unit
+  (4, 1, 2, 2), -- person [*:proper_name] unit
+  (4, 1, 3, 1), -- person [1:first_name] unit
+  (4, 1, 4, 1), -- person [1:last_name] unit
+  (4, 1, 5, 2), -- person [*:email] unit
   (4, 2, 1, 3); -- person [+:unique_name] auth_group
 
 -- Initial Data: Objects
@@ -53,7 +59,8 @@ VALUES
   (2, 0, 3, 2), -- 2 Forbidden : access_group
   (2, 0, 3, 4), -- 3 Default Viewers : access_group
   (2, 0, 3, 4), -- 4 Default Admins : access_group
-  (3, 0, 3, 4); -- 5 Authenticated Users : auth_group
+  (3, 0, 3, 4), -- 5 Authenticated Users : auth_group
+  (2, 0, 3, 4); -- 6 New Users : access_group
 
 INSERT INTO subsocia.inclusion
   (subentity_id, superentity_id)
@@ -61,13 +68,15 @@ VALUES
   (2, 1), -- Forbidden -- All
   (3, 1), -- Default Viewers -- All
   (4, 3), -- Default Admins -- Default Viewers
-  (5, 1); -- Authenticated Users -- All
+  (5, 1), -- Authenticated Users -- All
+  (6, 1); -- New Users -- All
 
 INSERT INTO subsocia.text_attribution
   (subentity_id, superentity_id, attribute_type_id, value)
 VALUES
   (1, 1, 1, 'All'),
   (2, 1, 1, 'Forbidden'),
-  (3, 1, 2, 'Default Viewers'),
-  (4, 1, 2, 'Default Admins'),
-  (5, 1, 1, 'Authenticated Users');
+  (3, 1, 1, 'Default Viewers'),
+  (4, 1, 1, 'Default Admins'),
+  (5, 1, 1, 'Authenticated Users'),
+  (6, 1, 1, 'New Users');

@@ -70,6 +70,9 @@ module Make (Config : CONFIG) (Base : Subsocia_intf.S) = struct
     (* Predefined attribute types. *)
     let at_unique_name = _at_string "unique_name"
     let at_proper_name = _at_string "proper_name"
+    let at_first_name = _at_string "first_name"
+    let at_last_name = _at_string "last_name"
+    let at_email = _at_string "email"
 
     (* Predefined entity types. *)
     let et_unit = _et "unit"
@@ -95,6 +98,9 @@ module Make (Config : CONFIG) (Base : Subsocia_intf.S) = struct
       | _ -> _fail "Multiple matches for unique name %s" en
 
     let e_forbidden = _e_un "Forbidden"
+    let e_default_viewers = _e_un "Default Viewers"
+    let e_default_admins = _e_un "Default Admins"
+    let e_new_users = _e_un "New Users"
   end
 
   module Entity = struct
