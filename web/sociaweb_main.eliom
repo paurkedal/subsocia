@@ -19,19 +19,13 @@
   open Panograph_i18n
   open Printf
   open Sociaweb_content
+  open Sociaweb_services
   open Subsocia_common
   open Unprime
   open Unprime_list
+
   let (>>=) = Lwt.(>>=)
   let (>|=) = Lwt.(>|=)
-
-  module Services = struct
-    open Eliom_service
-    open Eliom_parameter
-    let main = App.service ~path:[] ~get_params:unit ()
-    let entity =
-      App.service ~path:["entities"] ~get_params:(suffix (int32 "entity_id")) ()
-  end
 }}
 
 {server{
@@ -41,7 +35,7 @@
     let open Html5 in
     let id = SC.Entity.id ent in
     lwt name = SU.Entity.display_name ~langs ent in
-    Lwt.return [F.a ~service:Services.entity [F.pcdata name] id]
+    Lwt.return [F.a ~service:entity_service [F.pcdata name] id]
 
   let rec fold_s_closure_from f succs x acc =
     lwt xs = succs x in
@@ -103,6 +97,7 @@
 
 let entity_handler entity_id () =
   let open Html5.D in
+  lwt auth_entity = auth_entity () in
   let langs = [Lang.of_string "en"] in
   lwt browser =
     lwt e = SC.Entity.of_id entity_id in
@@ -114,17 +109,12 @@ let entity_handler entity_id () =
       (body [browser])
 
 let main_handler () () =
-  let open Html5.D in
-  Lwt.return @@
-    Eliom_tools.D.html
-      ~title:"TODO: Write the Application"
-      ~css:[["css"; "subsocia.css"]]
-      (body [
-	h1 [pcdata "TODO: Write the Application"];
-      ])
+  lwt auth_entity = auth_entity () in
+  let auth_entity_id = SC.Entity.id auth_entity in
+  Lwt.return (Eliom_service.preapply entity_service auth_entity_id)
 
 module Main_app =
   Eliom_registration.App (struct let application_name = "subsocia_web" end)
 let () =
-  Main_app.register ~service:Services.main main_handler;
-  Main_app.register ~service:Services.entity entity_handler
+  Eliom_registration.Redirection.register ~service:main_service main_handler;
+  Main_app.register ~service:entity_service entity_handler

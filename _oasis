@@ -56,7 +56,8 @@ Library "subsocia-web"
   Modules:
     server/Sociaweb_content,
     server/Sociaweb_main,
-    server/Sociaweb_server
+    server/Sociaweb_server,
+    server/Sociaweb_services
   BuildDepends: eliom.server, prime, subsocia-server
   ByteOpt: -thread
   NativeOpt: -thread
