@@ -17,11 +17,11 @@
 open Eliom_pervasives
 
 let subsocia_uri = Uri.of_string "postgresql:/"
-module SC = (val Subsocia_direct.connect subsocia_uri)
+module Sc = (val Subsocia_direct.connect subsocia_uri)
 module Config = struct
   let display_name_attributes = Subsocia_config.display_name#get
 end
-module SU = Subsocia_derived.Make (Config) (SC)
+module Scd = Subsocia_derived.Make (Config) (Sc)
 
 let http_error code msg =
   Lwt.fail (Ocsigen_http_frame.Http_error.Http_exception (code, Some msg, None))
@@ -32,7 +32,7 @@ let get_auth_http_header () =
   let frame = Ocsigen_extensions.Ocsigen_request_info.http_frame ri in
   Ocsigen_headers.find h frame
 
-let e_auth_group = SU.Entity.of_unique_name Subsocia_config.Web.auth_group#get
+let e_auth_group = Scd.Entity.of_unique_name Subsocia_config.Web.auth_group#get
 
 module Log_auth = struct
   let section = Lwt_log.Section.make "subsocia.auth"
@@ -45,9 +45,9 @@ let auth_entity () =
     with Not_found -> http_error 401 "Not authenticated." in
   Log_auth.debug_f "HTTP authenticated user is %s." user >>
   lwt e_auth_group = e_auth_group in
-  lwt at_unique_name = SU.Const.at_unique_name in
-  lwt s = SC.Entity.apreds e_auth_group at_unique_name user in
-  match SC.Entity.Set.cardinal s with
-  | 1 -> Lwt.return (SC.Entity.Set.min_elt s)
+  lwt at_unique_name = Scd.Const.at_unique_name in
+  lwt s = Sc.Entity.apreds e_auth_group at_unique_name user in
+  match Sc.Entity.Set.cardinal s with
+  | 1 -> Lwt.return (Sc.Entity.Set.min_elt s)
   | 0 -> http_error 403 "Not registered."
   | _ -> http_error 500 "Duplicate registration."

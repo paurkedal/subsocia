@@ -33,8 +33,8 @@
 
   let render_neigh ~langs ent =
     let open Html5 in
-    let id = SC.Entity.id ent in
-    lwt name = SU.Entity.display_name ~langs ent in
+    let id = Sc.Entity.id ent in
+    lwt name = Scd.Entity.display_name ~langs ent in
     Lwt.return [F.a ~service:entity_service [F.pcdata name] id]
 
   let rec fold_s_closure_from f succs x acc =
@@ -47,16 +47,16 @@
 
   let render_attribution ~langs lb ub =
     let open Html5 in
-    lwt lbt = SC.Entity.type_ lb in
-    lwt ubt = SC.Entity.type_ ub in
-    lwt attrs = SC.Entity_type.attribution lbt ubt in
-    let attrs' = SC.Attribute_type.Map.bindings attrs in
+    lwt lbt = Sc.Entity.type_ lb in
+    lwt ubt = Sc.Entity.type_ ub in
+    lwt attrs = Sc.Entity_type.attribution lbt ubt in
+    let attrs' = Sc.Attribute_type.Map.bindings attrs in
     let render_tr (at, mu) =
-      lwt an = SC.Attribute_type.name at in
+      lwt an = Sc.Attribute_type.name at in
       lwt value_frag =
-	let SC.Attribute_type.Ex at1 = at in
-	let t1 = SC.Attribute_type.type1 at1 in
-	SC.Entity.getattr lb ub at1 >|= fun vs ->
+	let Sc.Attribute_type.Ex at1 = at in
+	let t1 = Sc.Attribute_type.type1 at1 in
+	Sc.Entity.getattr lb ub at1 >|= fun vs ->
 	match List.map (Value.typed_to_string t1) (Values.elements vs) with
 	| [] -> [F.span ~a:[F.a_class ["none"]] [F.pcdata "-"]]
 	| strs -> [F.pcdata (String.concat ", " strs)] in
@@ -66,7 +66,7 @@
 	F.td value_frag;
       ] in
     lwt attr_trs = Lwt_list.map_s render_tr attrs' in
-    lwt ub_name = SU.Entity.display_name ~langs ub in
+    lwt ub_name = Scd.Entity.display_name ~langs ub in
     Lwt.return
       (if attr_trs = []
        then None
@@ -74,15 +74,15 @@
 
   let render_browser ~langs ent =
     let open Html5 in
-    lwt succs = SC.Entity.succs ent in
-    lwt preds = SC.Entity.preds ent in
-    let succs', preds' = SC.Entity.Set.(elements succs, elements preds) in
+    lwt succs = Sc.Entity.succs ent in
+    lwt preds = Sc.Entity.preds ent in
+    let succs', preds' = Sc.Entity.Set.(elements succs, elements preds) in
     lwt succ_frags = Lwt_list.map_s (render_neigh ~langs) succs' in
     lwt pred_frags = Lwt_list.map_s (render_neigh ~langs) preds' in
-    lwt name = SU.Entity.display_name ~langs ent in
+    lwt name = Scd.Entity.display_name ~langs ent in
     lwt attr_trss =
       map_s_closure_from (render_attribution ~langs ent)
-	  (fun ent -> SC.Entity.succs ent >|= SC.Entity.Set.elements) ent in
+	  (fun ent -> Sc.Entity.succs ent >|= Sc.Entity.Set.elements) ent in
     let attr_table = F.table ~a:[F.a_class ["assoc"]]
 			     (List.flatten (List.fmap ident attr_trss)) in
     Lwt.return @@ F.div ~a:[F.a_class ["entity-browser"]] [
@@ -100,7 +100,7 @@ let entity_handler entity_id () =
   lwt auth_entity = auth_entity () in
   let langs = [Lang.of_string "en"] in
   lwt browser =
-    lwt e = SC.Entity.of_id entity_id in
+    lwt e = Sc.Entity.of_id entity_id in
     render_browser ~langs e in
   Lwt.return @@
     Eliom_tools.D.html
@@ -110,7 +110,7 @@ let entity_handler entity_id () =
 
 let main_handler () () =
   lwt auth_entity = auth_entity () in
-  let auth_entity_id = SC.Entity.id auth_entity in
+  let auth_entity_id = Sc.Entity.id auth_entity in
   Lwt.return (Eliom_service.preapply entity_service auth_entity_id)
 
 module Main_app =
