@@ -43,13 +43,18 @@ let auth_identity () =
   try Lwt.return (get_auth_http_header ())
   with Not_found -> http_error 401 "Not authenticated."
 
-let auth_entity () =
+let auth_entity_opt () =
   lwt user = auth_identity () in
   Log_auth.debug_f "HTTP authenticated user is %s." user >>
   lwt e_auth_group = e_auth_group in
   lwt at_unique_name = Scd.Const.at_unique_name in
   lwt s = Sc.Entity.apreds e_auth_group at_unique_name user in
   match Sc.Entity.Set.cardinal s with
-  | 1 -> Lwt.return (Sc.Entity.Set.min_elt s)
-  | 0 -> http_error 403 "Not registered."
+  | 1 -> Lwt.return (Some (Sc.Entity.Set.min_elt s))
+  | 0 -> Lwt.return_none
   | _ -> http_error 500 "Duplicate registration."
+
+let auth_entity () =
+  match_lwt auth_entity_opt () with
+  | Some e -> Lwt.return e
+  | None -> http_error 403 "Not registered."
