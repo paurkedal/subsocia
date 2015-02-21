@@ -58,3 +58,9 @@ let auth_entity () =
   match_lwt auth_entity_opt () with
   | Some e -> Lwt.return e
   | None -> http_error 403 "Not registered."
+
+let auth_sf json f =
+  let f' tup =
+    lwt user = auth_entity () in
+    f ~user tup in
+  server_function json f'

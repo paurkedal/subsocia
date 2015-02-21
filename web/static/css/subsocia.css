@@ -34,3 +34,15 @@ table.pred1 td	{ color: #fff; background-color: #666; border-color: #666; }
 .pred1 a	{ color: #fff; }
 table.pred2 td	{ color: #fff; background-color: #888; border-color: #888; }
 .pred2 a	{ color: #fff; }
+
+table.succ1.candidate td { background-color: #bbb; border: dashed thin #000; }
+table.succ1.candidate td a { color: #000; }
+
+table.succ1 button {
+	padding: 0.3mm;
+	margin: 0;
+	border-radius: 1mm;
+	color: #fff;
+	border: solid thin #fff;
+	background-color: #07f;
+}

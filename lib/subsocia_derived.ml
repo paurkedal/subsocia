@@ -131,5 +131,16 @@ module Make (Config : CONFIG) (Base : Subsocia_intf.S) = struct
       match_lwt Lwtx_list.search_s aux Config.display_name_attributes with
       | Some s -> Lwt.return s
       | None -> Lwt.return @@ sprintf "# %ld" (Entity.id entity)
+
+    let candidate_succs e =
+      lwt et = Entity.type_ e in
+      lwt ets' = Entity_type.inclusion_succs et in
+      Entity_type.Map.fold
+	(fun et' _ m_es ->
+	  lwt es = m_es in
+	  lwt s = Entity.type_members et' in
+	  Lwt.return (Entity.Set.union s es))
+	ets'
+	(Lwt.return Entity.Set.empty)
   end
 end

@@ -51,6 +51,7 @@ module Make (Config : CONFIG) (Base : Subsocia_intf.S) : sig
   module Entity : sig
     val of_unique_name : ?super: Base.Entity.t -> string -> Base.Entity.t Lwt.t
     val display_name : langs: lang list -> Base.Entity.t -> string Lwt.t
+    val candidate_succs : Base.Entity.t -> Base.Entity.Set.t Lwt.t
   end
 
 end

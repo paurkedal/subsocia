@@ -76,6 +76,7 @@ module type S = sig
     val viewer : t -> t Lwt.t
     val admin : t -> t Lwt.t
 
+    val type_members : Entity_type.t -> Set.t Lwt.t
     val minimums : unit -> Set.t Lwt.t
     val maximums : unit -> Set.t Lwt.t
     val preds : t -> Set.t Lwt.t

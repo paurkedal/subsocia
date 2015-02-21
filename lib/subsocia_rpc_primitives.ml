@@ -39,6 +39,7 @@ module Entity = struct
   external type_ : int32 -> int32 = ""
   external viewer : int32 -> int32 = ""
   external admin : int32 -> int32 = ""
+  external type_members : int32 -> int32 list = ""
   external minimums : unit -> int32 list = ""
   external maximums : unit -> int32 list = ""
   external preds : int32 -> int32 list = ""

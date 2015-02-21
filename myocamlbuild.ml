@@ -8,7 +8,7 @@ module M = Ocamlbuild_eliom.Make (struct
 end)
 
 let oasis_executables = [
-  "web/client/subsocia_web.byte";
+  "web/client/sociaweb_main.byte";
 ]
 
 let () = Ocamlbuild_plugin.dispatch @@ fun hook ->

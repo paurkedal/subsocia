@@ -115,14 +115,17 @@ module Q = struct
   let entity_viewer = q "SELECT viewer_id FROM @entity WHERE entity_id = ?"
   let entity_admin = q "SELECT admin_id FROM @entity WHERE entity_id = ?"
 
+  let type_members =
+    q "SELECT entity_id FROM @entity WHERE entity_type_id = ?"
+
   let minimums =
     q "SELECT entity_id FROM @entity \
-       WHERE not EXISTS \
+       WHERE NOT EXISTS \
 	(SELECT 0 FROM @inclusion WHERE superentity_id = entity_id)"
 
   let maximums =
     q "SELECT entity_id FROM @entity \
-       WHERE not EXISTS \
+       WHERE NOT EXISTS \
 	(SELECT 0 FROM @inclusion WHERE subentity_id = entity_id)"
 
   let entity_preds =
@@ -390,6 +393,11 @@ let connect uri = (module struct
     let admin, admin_cache = memo_1lwt @@ fun e ->
       with_db @@ fun (module C) ->
       C.find Q.entity_admin C.Tuple.(int32 0) C.Param.([|int32 e|])
+
+    let type_members, type_members_cache = memo_1lwt @@ fun entity_type_id ->
+      with_db @@ fun (module C) ->
+      let add tup = Set.add (C.Tuple.int32 0 tup) in
+      C.fold Q.type_members add C.Param.([|int32 entity_type_id|]) Set.empty
 
     let minimums, minimums_cache = memo_0lwt @@ fun () ->
       with_db @@ fun (module C) ->
