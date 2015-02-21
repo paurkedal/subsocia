@@ -436,15 +436,23 @@ let connect uri = (module struct
 	Prime_cache.replace inclusion_cache preceq_grade k c;
 	Lwt.return c
 
+    let clear_inclusion_caches () =
+      let open Prime_cache in
+      clear minimums_cache;
+      clear maximums_cache;
+      clear preds_cache;
+      clear succs_cache;
+      clear inclusion_cache
+
     let constrain' subentity superentity (module C : CONNECTION) =
-      (* FIXME: Invalidate cache entries. *)
       C.exec Q.insert_inclusion
-	C.Param.([|int32 subentity; int32 superentity|])
+	C.Param.([|int32 subentity; int32 superentity|]) >|=
+      clear_inclusion_caches
 
     let unconstrain' subentity superentity (module C : CONNECTION) =
-      (* FIXME: Invalidate cache entries. *)
       C.exec Q.delete_inclusion
-	C.Param.([|int32 subentity; int32 superentity|])
+	C.Param.([|int32 subentity; int32 superentity|]) >|=
+      clear_inclusion_caches
 
     let constrain subentity superentity =
       lwt is_sub = precedes subentity superentity in
