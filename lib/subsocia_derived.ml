@@ -81,12 +81,7 @@ module Make (Config : CONFIG) (Base : Subsocia_intf.S) = struct
     let et_person = _et "person"
 
     (* Predefined entities. *)
-    let e_unit =
-      match_lwt Entity.maximums () >|= Entity.Set.elements with
-      | [ent] -> Lwt.return ent
-      | [] -> _fail "The database is empty, there should be some initial data."
-      | _ -> _fail "Cannot find a unit entity as there are multiple maximal \
-		    elements."
+    let e_unit = Entity.of_id 1l
 
     let _e_un ?super en =
       lwt e_unit = match super with Some e -> Lwt.return e | None -> e_unit in
