@@ -32,44 +32,44 @@
 {server{
   open Sociaweb_server
 
-  let can_edit_entity ~user entity =
+  let can_edit_entity ~operator entity =
     lwt admin = Sc.Entity.admin entity in
-    Sc.Entity.precedes user admin
+    Sc.Entity.precedes operator admin
 
-  let entity_for_view ~user entity_id =
+  let entity_for_view ~operator entity_id =
     Sc.Entity.of_id entity_id (* TODO: View permissions. *)
 
-  let entity_for_edit ~user entity_id =
+  let entity_for_edit ~operator entity_id =
     lwt entity = Sc.Entity.of_id entity_id in
-    lwt can_edit = can_edit_entity ~user entity in
+    lwt can_edit = can_edit_entity ~operator entity in
     if can_edit then Lwt.return entity
 		else http_error 403 "Unauthorized edit."
 
-  let constrain ~user (lb_id, ub_id) =
-    lwt ub = entity_for_edit ~user ub_id in
-    lwt lb = entity_for_view ~user lb_id in
-    lwt user_name = Scd.Entity.display_name ~langs:[] user in
+  let constrain ~operator (lb_id, ub_id) =
+    lwt ub = entity_for_edit ~operator ub_id in
+    lwt lb = entity_for_view ~operator lb_id in
+    lwt user_name = Scd.Entity.display_name ~langs:[] operator in
     Lwt_log.info_f "%s adds inclusion #%ld ⊆ #%ld" user_name lb_id ub_id >>
     Sc.Entity.constrain lb ub
   let constrain_c = auth_sf Json.t<int32 * int32> constrain
 
-  let unconstrain ~user (lb_id, ub_id) =
-    lwt ub = entity_for_edit ~user ub_id in
-    lwt lb = entity_for_view ~user lb_id in
-    lwt user_name = Scd.Entity.display_name ~langs:[] user in
+  let unconstrain ~operator (lb_id, ub_id) =
+    lwt ub = entity_for_edit ~operator ub_id in
+    lwt lb = entity_for_view ~operator lb_id in
+    lwt user_name = Scd.Entity.display_name ~langs:[] operator in
     Lwt_log.info_f "%s removes inclusion #%ld ⊆ #%ld" user_name lb_id ub_id >>
     Sc.Entity.unconstrain lb ub
   let unconstrain_c = auth_sf Json.t<int32 * int32> unconstrain
 
-  let render_neigh ~langs ent =
+  let render_neigh ~cri ent =
     let id = Sc.Entity.id ent in
-    lwt name = Scd.Entity.display_name ~langs ent in
+    lwt name = Scd.Entity.display_name ~langs:cri.cri_langs ent in
     Lwt.return [F.a ~service:entity_service [F.pcdata name] id]
 
-  let render_neigh_remove ~langs focus succ =
+  let render_neigh_remove ~cri focus succ =
     let focus_id = Sc.Entity.id focus in
     let succ_id = Sc.Entity.id succ in
-    lwt name = Scd.Entity.display_name ~langs succ in
+    lwt name = Scd.Entity.display_name ~langs:cri.cri_langs succ in
     let on_remove = {{fun _ ->
       Eliom_lib.debug "Removing.";
       Lwt.async @@ fun () ->
@@ -81,10 +81,10 @@
       F.button ~button_type:`Button ~a:[F.a_onclick on_remove] [F.pcdata "−"];
     ]
 
-  let render_neigh_add ~langs focus succ =
+  let render_neigh_add ~cri focus succ =
     let focus_id = Sc.Entity.id focus in
     let succ_id = Sc.Entity.id succ in
-    lwt name = Scd.Entity.display_name ~langs succ in
+    lwt name = Scd.Entity.display_name ~langs:cri.cri_langs succ in
     let on_add = {{fun _ ->
       Eliom_lib.debug "Adding.";
       Lwt.async @@ fun () ->
@@ -104,7 +104,7 @@
   let map_s_closure_from f succs x =
     fold_s_closure_from (fun x acc -> f x >|= fun x -> x :: acc) succs x []
 
-  let render_attribution ~langs lb ub =
+  let render_attribution ~cri lb ub =
     let open Html5 in
     lwt lbt = Sc.Entity.type_ lb in
     lwt ubt = Sc.Entity.type_ ub in
@@ -125,39 +125,47 @@
 	F.td value_frag;
       ] in
     lwt attr_trs = Lwt_list.map_s render_tr attrs' in
-    lwt ub_name = Scd.Entity.display_name ~langs ub in
+    lwt ub_name = Scd.Entity.display_name ~langs:cri.cri_langs ub in
     Lwt.return
       (if attr_trs = []
        then None
        else Some (F.tr [F.td []; F.th [F.pcdata ub_name]] :: attr_trs))
 
-  let render_browser ~langs ?(enable_edit = true) ent =
-    let open Html5 in
-    lwt succs = Sc.Entity.succs ent in
-    lwt preds = Sc.Entity.preds ent in
-    let succs', preds' = Sc.Entity.Set.(elements succs, elements preds) in
+  let render_succs ~cri ~enable_edit ent =
     let render_succ =
       if enable_edit then render_neigh_remove ent
 		     else render_neigh in
-    lwt succ_frags = Lwt_list.map_s (render_succ ~langs) succs' in
-    lwt pred_frags = Lwt_list.map_s (render_neigh ~langs) preds' in
-    lwt edit_succs =
+    lwt succs = Sc.Entity.succs ent in
+    let succs' = Sc.Entity.Set.elements succs in
+    lwt succ_frags = Lwt_list.map_s (render_succ ~cri) succs' in
+    let succs_view = multicol ~cls:["succ1"] succ_frags in
+    lwt succs_add =
       if not enable_edit then Lwt.return (F.pcdata "") else
       lwt candidate_succs = Scd.Entity.candidate_succs ent in
       let candidate_succs = Sc.Entity.Set.compl succs candidate_succs in
       let candidate_succs' = Sc.Entity.Set.elements candidate_succs in
-      lwt candidate_succ_frags = Lwt_list.map_s (render_neigh_add ent ~langs)
+      lwt candidate_succ_frags = Lwt_list.map_s (render_neigh_add ~cri ent)
 				 candidate_succs' in
       Lwt.return (multicol ~cls:["candidate"; "succ1"] candidate_succ_frags) in
-    lwt name = Scd.Entity.display_name ~langs ent in
+    Lwt.return @@
+      F.table ~a:[F.a_class ["layout"]]
+	[F.tr [F.th [F.pcdata "Member of"]; F.th [F.pcdata "Not member of"]];
+	 F.tr [F.td [succs_view]; F.td [succs_add]]]
+
+  let render_browser ~cri ?(enable_edit = true) ent =
+    let open Html5 in
+    lwt preds = Sc.Entity.preds ent in
+    let preds' = Sc.Entity.Set.elements preds in
+    lwt pred_frags = Lwt_list.map_s (render_neigh ~cri) preds' in
+    lwt name = Scd.Entity.display_name ~langs:cri.cri_langs ent in
     lwt attr_trss =
-      map_s_closure_from (render_attribution ~langs ent)
+      map_s_closure_from (render_attribution ~cri ent)
 	  (fun ent -> Sc.Entity.succs ent >|= Sc.Entity.Set.elements) ent in
     let attr_table = F.table ~a:[F.a_class ["assoc"]]
 			     (List.flatten (List.fmap ident attr_trss)) in
+    lwt succs_frag = render_succs ~cri ~enable_edit ent in
     Lwt.return @@ F.div ~a:[F.a_class ["entity-browser"]] [
-      edit_succs;
-      multicol ~cls:["succ1"] succ_frags;
+      succs_frag;
       F.div ~a:[F.a_class ["focus"; "box-top"]] [F.pcdata name];
       F.div ~a:[F.a_class ["focus"; "box-middle"; "content"]] [attr_table];
       F.div ~a:[F.a_class ["focus"; "box-bottom"; "content"]] [
@@ -170,11 +178,10 @@
 
 let entity_handler entity_id () =
   let open Html5.D in
-  lwt auth_entity = auth_entity () in
-  let langs = [Lang.of_string "en"] in
+  lwt cri = get_custom_request_info () in
   lwt browser =
     lwt e = Sc.Entity.of_id entity_id in
-    render_browser ~langs e in
+    render_browser ~cri e in
   Lwt.return @@
     Eliom_tools.D.html
       ~title:"Entity Browser"
@@ -182,9 +189,9 @@ let entity_handler entity_id () =
       (body [browser])
 
 let main_handler () () =
-  lwt auth_entity = auth_entity () in
-  let auth_entity_id = Sc.Entity.id auth_entity in
-  Lwt.return (Eliom_service.preapply entity_service auth_entity_id)
+  lwt operator = get_operator () in
+  let operator_id = Sc.Entity.id operator in
+  Lwt.return (Eliom_service.preapply entity_service operator_id)
 
 module Main_app =
   Eliom_registration.App (struct let application_name = "sociaweb_main" end)

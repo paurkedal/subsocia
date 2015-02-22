@@ -4,6 +4,10 @@ body {
 	margin: 8mm 6mm;
 }
 
+table.layout { border-collapse: collapse; margin: 0; }
+table.layout > tr > td:first-child { padding-left: 0; }
+table.layout > tr > th { text-align: left; }
+
 .box-middle, .box-top, .box-bottom { border: solid thin; }
 .box-top, .box-bottom { border-radius: 2mm; min-height: 2mm; }
 .box-middle, .box-top { border-bottom: none; }

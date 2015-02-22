@@ -15,6 +15,9 @@
  *)
 
 open Eliom_pervasives
+open Panograph_i18n
+open Unprime_list
+open Unprime_option
 
 let subsocia_uri = Uri.of_string "postgresql:/"
 module Sc = (val Subsocia_direct.connect subsocia_uri)
@@ -43,7 +46,7 @@ let auth_identity () =
   try Lwt.return (get_auth_http_header ())
   with Not_found -> http_error 401 "Not authenticated."
 
-let auth_entity_opt () =
+let get_operator_opt () =
   lwt user = auth_identity () in
   Log_auth.debug_f "HTTP authenticated user is %s." user >>
   lwt e_auth_group = e_auth_group in
@@ -54,13 +57,34 @@ let auth_entity_opt () =
   | 0 -> Lwt.return_none
   | _ -> http_error 500 "Duplicate registration."
 
-let auth_entity () =
-  match_lwt auth_entity_opt () with
+let get_operator () =
+  match_lwt get_operator_opt () with
   | Some e -> Lwt.return e
   | None -> http_error 403 "Not registered."
 
+let request_info_langs () =
+  let compare_al (_, qA) (_, qB) =
+    compare (Option.get_or 1.0 qB) (Option.get_or 1.0 qA) in
+  let decode_al (s, _) =
+    try Some (Lang.of_string s)
+    with Invalid_argument _ -> None in
+  let als = List.sort compare_al (Eliom_request_info.get_accept_language ()) in
+  List.fmap decode_al als
+
+type custom_request_info = {
+  cri_operator : Sc.Entity.t;
+  cri_langs : lang list;
+}
+
+let get_custom_request_info () =
+  lwt cri_operator = get_operator () in
+  let cri_langs = match request_info_langs () with
+		  | [] -> [Lang.of_string "en"]
+		  | langs -> langs in
+  Lwt.return {cri_operator; cri_langs}
+
 let auth_sf json f =
   let f' tup =
-    lwt user = auth_entity () in
-    f ~user tup in
+    lwt operator = get_operator () in
+    f ~operator tup in
   server_function json f'

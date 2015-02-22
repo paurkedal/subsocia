@@ -54,7 +54,7 @@ let () =
 let () =
   Eliom_registration.Html5.register ~service:registration_post_service
     @@ fun () (first_name, (last_name, email)) ->
-  begin match_lwt auth_entity_opt () with
+  begin match_lwt get_operator_opt () with
   | None -> Lwt.return_unit
   | Some _ -> http_error 400 "Already registered."
   end >>
