@@ -135,10 +135,15 @@ module Make (Config : CONFIG) (Base : Subsocia_intf.S) = struct
     let candidate_succs e =
       lwt et = Entity.type_ e in
       lwt ets' = Entity_type.inclusion_succs et in
+      let not_related e' =
+	match_lwt Entity.precedes e e' with
+	| true -> Lwt.return false
+	| false -> Lwt.map not (Entity.precedes e' e) in
       Entity_type.Map.fold
 	(fun et' _ m_es ->
 	  lwt es = m_es in
 	  lwt s = Entity.type_members et' in
+	  lwt s = Entity.Set.filter_s not_related s in
 	  Lwt.return (Entity.Set.union s es))
 	ets'
 	(Lwt.return Entity.Set.empty)
