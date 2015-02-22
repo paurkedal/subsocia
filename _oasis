@@ -38,7 +38,8 @@ Library "subsocia-server"
     subsocia
   Modules:
     Subsocia_config,
-    Subsocia_direct
+    Subsocia_direct,
+    Subsocia_plugin
   ByteOpt: -thread
   NativeOpt: -thread
 

@@ -195,6 +195,8 @@ let main_handler () () =
 
 module Main_app =
   Eliom_registration.App (struct let application_name = "sociaweb_main" end)
+
 let () =
+  Subsocia_plugin.load_web_plugins ();
   Eliom_registration.Redirection.register ~service:main_service main_handler;
   Main_app.register ~service:entity_service entity_handler
