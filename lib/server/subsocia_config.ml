@@ -16,6 +16,10 @@
 
 let group = new Config_file.group
 
+let database_uri =
+  new Config_file.string_cp ~group ["database_uri"] "postgresql:/"
+    "Caqti URI for connecting to the database."
+
 let display_name =
   new Config_file.list_cp Config_file.string_wrappers ~group
     ["interpretation"; "display_name"]

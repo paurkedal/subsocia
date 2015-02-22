@@ -19,7 +19,7 @@ open Panograph_i18n
 open Unprime_list
 open Unprime_option
 
-let subsocia_uri = Uri.of_string "postgresql:/"
+let subsocia_uri = Uri.of_string Subsocia_config.database_uri#get
 module Sc = (val Subsocia_direct.connect subsocia_uri)
 module Config = struct
   let display_name_attributes = Subsocia_config.display_name#get
