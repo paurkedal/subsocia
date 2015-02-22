@@ -20,8 +20,6 @@ open Unprime_option
 
 module type RPCM = Subsocia_rpc_primitives.RPCM with type 'a t = 'a Lwt.t
 
-module Int32_map = Prime_enummap.Make (Int32)
-module Int32_set = Prime_enumset.Make (Int32)
 module Attribute_type_base = struct
   type 'a t1 = {ak_id : int32; ak_name : string; ak_type : 'a Type.t1}
   type t0 = Ex : 'a t1 -> t0
@@ -39,8 +37,8 @@ module Make (RPCM : RPCM) = struct
       type t = t0
       let compare (Ex a) (Ex b) = compare a.ak_id b.ak_id
     end
-    module Set = Prime_enumset.Make (Comparable)
-    module Map = Prime_enummap.Make (Comparable)
+    module Set = Prime_enumset.Make_monadic (Comparable) (Lwt)
+    module Map = Prime_enummap.Make_monadic (Comparable) (Lwt)
 
     let of_name ak_name =
       Raw.of_name ak_name >|=

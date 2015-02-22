@@ -16,6 +16,9 @@
 
 open Panograph_i18n
 
+module type SET = Prime_enumset.S_with_monadic with type 'a monad = 'a Lwt.t
+module type MAP = Prime_enummap.S_with_monadic with type 'a monad = 'a Lwt.t
+
 val (>>=) : 'a Lwt.t -> ('a -> 'b Lwt.t) -> 'b Lwt.t
 val (>|=) : 'a Lwt.t -> ('a -> 'b) -> 'b Lwt.t
 
@@ -101,7 +104,7 @@ module Values : sig
   val of_ordered_elements : 'a Type.t1 -> 'a list -> 'a t
 end
 
-module Int_set : Prime_enumset.S with type elt = int
-module Int32_set : Prime_enumset.S with type elt = int32
-module Int32_map : Prime_enummap.S with type key = int32
-module String_set : Prime_enumset.S with type elt = string
+module Int_set : SET with type elt = int
+module Int32_set : SET with type elt = int32
+module Int32_map : MAP with type key = int32
+module String_set : SET with type elt = string

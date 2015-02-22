@@ -17,10 +17,6 @@
 open Panograph_i18n
 open Subsocia_common
 
-(* TODO: Restrict these. *)
-module type SET = Prime_enumset.S
-module type MAP = Prime_enummap.S
-
 module type S = sig
 
   module Attribute_type : sig

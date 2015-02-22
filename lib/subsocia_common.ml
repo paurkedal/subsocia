@@ -21,6 +21,9 @@ open Unprime_char
 open Unprime_list
 open Unprime_string
 
+module type SET = Prime_enumset.S_with_monadic with type 'a monad = 'a Lwt.t
+module type MAP = Prime_enummap.S_with_monadic with type 'a monad = 'a Lwt.t
+
 let (>>=) = Lwt.(>>=)
 let (>|=) = Lwt.(>|=)
 
@@ -137,10 +140,10 @@ module Value = struct
 end
 
 module Bool_compare = struct type t = bool let compare = compare end
-module Bool_set = Prime_enumset.Make (Bool_compare) (* TODO: Optimise *)
+module Bool_set = Prime_enumset.Make_monadic (Bool_compare) (Lwt) (* TODO:opt *)
 module Int_compare = struct type t = int let compare = compare end
-module Int_set = Prime_enumset.Make (Int_compare)
-module String_set = Prime_enumset.Make (String)
+module Int_set = Prime_enumset.Make_monadic (Int_compare) (Lwt)
+module String_set = Prime_enumset.Make_monadic (String) (Lwt)
 
 module Values = struct
 
@@ -180,5 +183,5 @@ module Values = struct
     T ((module S), S.of_ordered_elements s)
 end
 
-module Int32_set = Prime_enumset.Make (Int32)
-module Int32_map = Prime_enummap.Make (Int32)
+module Int32_set = Prime_enumset.Make_monadic (Int32) (Lwt)
+module Int32_map = Prime_enummap.Make_monadic (Int32) (Lwt)
