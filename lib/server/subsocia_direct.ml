@@ -96,11 +96,11 @@ module Q = struct
   let inclusion_type_allow =
     q "INSERT INTO @inclusion_type \
 	(subentity_multiplicity, superentity_multiplicity, \
-	 subentity_id, superentity_id) \
+	 subentity_type_id, superentity_type_id) \
        VALUES (?, ?, ?, ?)"
   let inclusion_type_disallow =
     q "DELETE FROM @inclusion_type \
-       WHERE subentity_id = ? AND superentity_id = ?"
+       WHERE subentity_type_id = ? AND superentity_type_id = ?"
 
   let attribution_type =
     q "SELECT attribute_type_id, attribute_multiplicity \
