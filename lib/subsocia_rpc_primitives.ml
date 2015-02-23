@@ -19,6 +19,8 @@ open Subsocia_common
 module Attribute_type = struct
   external of_name : string -> (int32 * Type.t0) option = ""
   external of_id : int32 -> string * Type.t0 = ""
+  external create : Type.t0 -> string -> int32 = ""
+  external delete : int32 -> unit = ""
 end
 
 module Entity_type = struct
@@ -40,6 +42,10 @@ module Entity_type = struct
     int32 -> int32 -> int32 -> Multiplicity.t option = ""
   external attribution :
     int32 -> int32 -> (int32 * Multiplicity.t) list = ""
+  external attribution_allow :
+    int32 -> int32 -> int32 -> Multiplicity.t -> unit = ""
+  external attribution_disallow :
+    int32 -> int32 -> int32 -> unit = ""
 end
 
 module Entity = struct

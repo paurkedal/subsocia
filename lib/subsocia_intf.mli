@@ -32,6 +32,8 @@ module type S = sig
     val id : t0 -> int32
     val type0 : t0 -> Type.t0
     val type1 : 'a t1 -> 'a Type.t1
+    val create : Type.t0 -> string -> t0 Lwt.t
+    val delete : t0 -> unit Lwt.t
   end
 
   module Entity_type : sig
@@ -62,6 +64,9 @@ module type S = sig
     val attribution_mult1 : t -> t -> 'a Attribute_type.t1 ->
 			    Multiplicity.t option Lwt.t
     val attribution : t -> t -> Multiplicity.t Attribute_type.Map.t Lwt.t
+    val attribution_allow : t -> t -> Attribute_type.t0 -> Multiplicity.t ->
+			    unit Lwt.t
+    val attribution_disallow : t -> t -> Attribute_type.t0 -> unit Lwt.t
   end
 
   module Entity : sig

@@ -70,6 +70,11 @@ module Q = struct
   let attribute_type_by_name =
     q "SELECT attribute_type_id, value_type FROM @attribute_type \
        WHERE attribute_name = ?"
+  let attribute_type_create =
+    q "INSERT INTO @attribute_type (attribute_name, value_type) \
+       VALUES (?, ?) RETURNING attribute_type_id"
+  let attribute_type_delete =
+    q "DELETE FROM @attribute_type WHERE attribute_type_id = ?"
 
   (* Entity types *)
 
@@ -122,6 +127,15 @@ module Q = struct
     q "SELECT superentity_type_id, attribution_type_id, attribute_multiplicity \
        FROM @attribution_type WHERE subentity_type_id = ?"
 *)
+  let attribution_allow =
+    q "INSERT INTO @attribution_type \
+	(subentity_type_id, superentity_type_id, \
+	 attribute_type_id, attribute_multiplicity) \
+       VALUES (?, ?, ?, ?)"
+  let attribution_disallow =
+    q "DELETE FROM @attribution_type \
+       WHERE subentity_type_id = ? AND superentity_type_id = ? \
+	 AND attribute_type_id = ?"
 
   (* Entites *)
 
@@ -322,6 +336,15 @@ let connect uri = (module struct
 	Beacon.embed attribute_type_grade @@ fun ak_beacon ->
 	  (Ex {ak_id; ak_name; ak_value_type; ak_beacon})
       end
+
+    let create vt ak_name =
+      with_db @@ fun (module C : CONNECTION) ->
+      C.find Q.attribute_type_create C.Tuple.(int32 0)
+	     C.Param.([|text ak_name; text (Type.string_of_t0 vt)|]) >>= of_id
+
+    let delete (Ex ak) =
+      with_db @@ fun (module C : CONNECTION) ->
+      C.exec Q.attribute_type_delete C.Param.([|int32 ak.ak_id|])
   end
 
   module Entity_type = struct
@@ -416,6 +439,18 @@ let connect uri = (module struct
 
     let attribution_mult1 et et' ak =
       attribution_mult' et et' ak.Attribute_type.ak_id
+
+    let attribution_allow et et' (Attribute_type.Ex ak) mu =
+      with_db @@ fun (module C) ->
+      let mu = Multiplicity.to_int mu in
+      C.exec Q.attribution_allow
+	     C.Param.([|int32 et; int32 et'; int32 ak.Attribute_type.ak_id;
+			int mu|])
+
+    let attribution_disallow et et' (Attribute_type.Ex ak) =
+      with_db @@ fun (module C) ->
+      C.exec Q.attribution_disallow
+	     C.Param.([|int32 et; int32 et'; int32 ak.Attribute_type.ak_id|])
 
     let display_name ~langs ?pl = name (* FIXME *)
   end

@@ -39,6 +39,12 @@ module Server_impl = struct
       lwt name = C.Attribute_type.name ak in
       Lwt.return (name, C.Attribute_type.type0 ak)
 
+    let create (module C : Subsocia_intf.S) vt name =
+      C.Attribute_type.create vt name >|= C.Attribute_type.id
+
+    let delete (module C : Subsocia_intf.S) id =
+      lwt ak = C.Attribute_type.of_id id in
+      C.Attribute_type.delete ak
   end
 
   module Entity_type = struct
@@ -98,6 +104,18 @@ module Server_impl = struct
       C.Entity_type.attribution lb ub >|=
       C.Attribute_type.Map.bindings *>
       List.map (fun (ak, mu) -> C.Attribute_type.id ak, mu)
+
+    let attribution_allow (module C : Subsocia_intf.S) et0 et1 ak mu =
+      lwt et0 = C.Entity_type.of_id et0 in
+      lwt et1 = C.Entity_type.of_id et1 in
+      lwt ak = C.Attribute_type.of_id ak in
+      C.Entity_type.attribution_allow et0 et1 ak mu
+
+    let attribution_disallow (module C : Subsocia_intf.S) et0 et1 ak =
+      lwt et0 = C.Entity_type.of_id et0 in
+      lwt et1 = C.Entity_type.of_id et1 in
+      lwt ak = C.Attribute_type.of_id ak in
+      C.Entity_type.attribution_disallow et0 et1 ak
   end
 
   module Entity = struct

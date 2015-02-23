@@ -52,6 +52,11 @@ module Make (RPCM : RPCM) = struct
     let name (Ex ak) = Lwt.return ak.ak_name
     let type0 (Ex ak) = Type.Ex ak.ak_type
     let type1 ak = ak.ak_type
+    let create vt ak_name =
+      Raw.create vt ak_name >|= fun ak_id ->
+      let Type.Ex ak_type = vt in
+      Ex {ak_id; ak_name; ak_type}
+    let delete (Ex ak) = Raw.delete ak.ak_id
   end
 
   module Entity_type = struct
@@ -102,6 +107,12 @@ module Make (RPCM : RPCM) = struct
       let aux (ak_id, mu) = Attribute_type.of_id ak_id >|= fun ak -> ak, mu in
       Raw.attribution lbt ubt >>= Lwt_list.map_s aux >|=
       Attribute_type.Map.of_ordered_bindings
+
+    let attribution_allow et0 et1 (Attribute_type.Ex ak) mu =
+      Raw.attribution_allow et0 et1 ak.Attribute_type.ak_id mu
+
+    let attribution_disallow et0 et1 (Attribute_type.Ex ak) =
+      Raw.attribution_disallow et0 et1 ak.Attribute_type.ak_id
   end
 
   module Entity = struct
