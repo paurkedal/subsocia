@@ -30,6 +30,16 @@ Library "subsocia"
   ByteOpt: -thread
   NativeOpt: -thread
 
+Executable "subsocia"
+  Path: bin
+  MainIs: subsocia_main.ml
+  BuildDepends:
+    cmdliner,
+    subsocia-server
+  ByteOpt: -thread
+  NativeOpt: -thread
+  CompiledObject: native
+
 Library "subsocia-server"
   Path: lib/server
   BuildDepends:
