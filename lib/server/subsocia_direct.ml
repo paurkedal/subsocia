@@ -85,6 +85,10 @@ module Q = struct
   let entity_type_all =
     q "SELECT entity_type_id FROM @entity_type"
 
+  let inclusion_type =
+    q "SELECT subentity_multiplicity, superentity_multiplicity \
+       FROM @inclusion_type \
+       WHERE subentity_type_id = ? AND superentity_type_id = ?"
   let inclusion_type_preds =
     q "SELECT subentity_type_id, \
 	      subentity_multiplicity, superentity_multiplicity \
@@ -354,6 +358,13 @@ let connect uri = (module struct
       with_db @@ fun (module C) ->
       C.fold Q.entity_type_all (fun tup -> Set.add (C.Tuple.int32 0 tup)) [||]
 	     Set.empty
+
+    let inclusion, inclusion_cache =
+      memo_2lwt @@ fun (et0, et1) ->
+      with_db @@ fun (module C) ->
+      let mult i tup = Multiplicity.of_int (C.Tuple.int i tup) in
+      C.find_opt Q.inclusion_type C.Tuple.(fun tup -> mult 0 tup, mult 1 tup)
+		 C.Param.([|int32 et0; int32 et1|])
 
     let inclusion_preds, inclusion_preds_cache =
       memo_1lwt @@ fun et ->

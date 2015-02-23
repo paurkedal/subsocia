@@ -59,6 +59,11 @@ module Server_impl = struct
       C.Entity_type.all () >|=
       C.Entity_type.Set.elements *> List.map C.Entity_type.id
 
+    let inclusion (module C : Subsocia_intf.S) et0 et1 =
+      lwt et0 = C.Entity_type.of_id et0 in
+      lwt et1 = C.Entity_type.of_id et1 in
+      C.Entity_type.inclusion et0 et1
+
     let inclusion_preds (module C : Subsocia_intf.S) entity_id =
       C.Entity_type.of_id entity_id >>=
       C.Entity_type.inclusion_preds >|=

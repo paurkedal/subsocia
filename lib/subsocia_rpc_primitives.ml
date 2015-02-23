@@ -27,6 +27,8 @@ module Entity_type = struct
   external create : string -> int32 = ""
   external delete : int32 -> unit = ""
   external all : unit -> int32 list = ""
+  external inclusion :
+    int32 -> int32 -> (Multiplicity.t * Multiplicity.t) option = ""
   external inclusion_preds :
     int32 -> (int32 * Multiplicity.t * Multiplicity.t) list = ""
   external inclusion_succs :

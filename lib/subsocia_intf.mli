@@ -50,6 +50,7 @@ module type S = sig
     val delete : t -> unit Lwt.t
     val all : unit -> Set.t Lwt.t
 
+    val inclusion : t -> t -> (Multiplicity.t * Multiplicity.t) option Lwt.t
     val inclusion_preds : t -> (Multiplicity.t * Multiplicity.t) Map.t Lwt.t
     val inclusion_succs : t -> (Multiplicity.t * Multiplicity.t) Map.t Lwt.t
     val inclusion_allow : Multiplicity.t -> Multiplicity.t -> t -> t ->

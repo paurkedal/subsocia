@@ -75,6 +75,9 @@ module Make (RPCM : RPCM) = struct
     let delete = Raw.delete
     let all () = Raw.all () >|= Set.of_ordered_elements
 
+    let inclusion et0 et1 =
+      Raw.inclusion et0 et1
+
     let inclusion_preds et =
       Raw.inclusion_preds et >|=
       List.map (fun (et, muA, muB) -> et, (muA, muB)) *> Map.of_ordered_bindings
