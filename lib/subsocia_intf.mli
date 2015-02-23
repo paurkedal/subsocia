@@ -56,6 +56,9 @@ module type S = sig
     val create : string -> t Lwt.t
     val delete : t -> unit Lwt.t
     val all : unit -> Set.t Lwt.t
+    val inclusion_allow : Multiplicity.t -> Multiplicity.t -> t -> t ->
+			  unit Lwt.t
+    val inclusion_disallow : t -> t -> unit Lwt.t
   end
 
   module Entity : sig

@@ -71,6 +71,16 @@ module Server_impl = struct
       C.Entity_type.Map.bindings *>
       List.map (fun (et, (muA, muB)) -> C.Entity_type.id et, muA, muB)
 
+    let inclusion_allow (module C : Subsocia_intf.S) mu0 mu1 et0 et1 =
+      lwt et0 = C.Entity_type.of_id et0 in
+      lwt et1 = C.Entity_type.of_id et1 in
+      C.Entity_type.inclusion_allow mu0 mu1 et0 et1
+
+    let inclusion_disallow (module C : Subsocia_intf.S) et0 et1 =
+      lwt et0 = C.Entity_type.of_id et0 in
+      lwt et1 = C.Entity_type.of_id et1 in
+      C.Entity_type.inclusion_disallow et0 et1
+
     let attribution_mult (module C : Subsocia_intf.S) lb_id ub_id ak_id =
       lwt lb = C.Entity_type.of_id lb_id in
       lwt ub = C.Entity_type.of_id ub_id in

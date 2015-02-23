@@ -31,6 +31,9 @@ module Entity_type = struct
     int32 -> (int32 * Multiplicity.t * Multiplicity.t) list = ""
   external inclusion_succs :
     int32 -> (int32 * Multiplicity.t * Multiplicity.t) list = ""
+  external inclusion_allow :
+    Multiplicity.t -> Multiplicity.t -> int32 -> int32 -> unit = ""
+  external inclusion_disallow : int32 -> int32 -> unit = ""
   external attribution_mult :
     int32 -> int32 -> int32 -> Multiplicity.t option = ""
   external attribution :

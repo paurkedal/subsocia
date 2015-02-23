@@ -93,6 +93,14 @@ module Q = struct
     q "SELECT superentity_type_id, \
 	      subentity_multiplicity, superentity_multiplicity \
        FROM @inclusion_type WHERE subentity_type_id = ?"
+  let inclusion_type_allow =
+    q "INSERT INTO @inclusion_type \
+	(subentity_multiplicity, superentity_multiplicity, \
+	 subentity_id, superentity_id) \
+       VALUES (?, ?, ?, ?)"
+  let inclusion_type_disallow =
+    q "DELETE FROM @inclusion_type \
+       WHERE subentity_id = ? AND superentity_id = ?"
 
   let attribution_type =
     q "SELECT attribute_type_id, attribute_multiplicity \
@@ -364,6 +372,16 @@ let connect uri = (module struct
 	     C.Tuple.(fun tup -> Map.add (int32 0 tup) (mult 1 tup, mult 2 tup))
 	     C.Param.([|int32 et|])
 	     Map.empty
+
+    let inclusion_allow mu0 mu1 et0 et1 =
+      with_db @@ fun (module C) ->
+      let mu0, mu1 = Multiplicity.(to_int mu0, to_int mu1) in
+      C.exec Q.inclusion_type_allow
+	     C.Param.([|int mu0; int mu1; int32 et0; int32 et1|])
+
+    let inclusion_disallow et0 et1 =
+      with_db @@ fun (module C) ->
+      C.exec Q.inclusion_type_disallow C.Param.([|int32 et0; int32 et1|])
 
     let attribution, attribution_cache =
       memo_2lwt @@ fun (et, et') ->
