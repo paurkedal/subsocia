@@ -25,17 +25,17 @@ let connect () =
 
 let run f = Lwt_main.run (f (connect ()))
 
-let type_create etn = run @@ fun (module C) ->
+let et_create etn = run @@ fun (module C) ->
   lwt et = C.Entity_type.create etn in
   Lwt_log.info_f "Created type #%ld = %s." (C.Entity_type.id et) etn
 
-let type_create_t =
-  let type_name_t =
+let et_create_t =
+  let et_name_t =
     Arg.(required & pos 0 (some string) None &
 	 info [] ~docv:"TYPE-NAME" ~doc:"Name of type to create.") in
-  Term.(pure type_create $ type_name_t)
+  Term.(pure et_create $ et_name_t)
 
-let type_delete etn = run @@ fun (module C) ->
+let et_delete etn = run @@ fun (module C) ->
   match_lwt C.Entity_type.of_name etn with
   | None ->
     Lwt.return (`Error (false, sprintf "No type is named %s." etn))
@@ -45,22 +45,22 @@ let type_delete etn = run @@ fun (module C) ->
     Lwt_log.info_f "Deleted type #%ld = %s." et_id etn >>
     Lwt.return (`Ok ())
 
-let type_delete_t =
-  let type_name_t =
+let et_delete_t =
+  let et_name_t =
     Arg.(required & pos 0 (some string) None & info ~docv:"TYPE-NAME" []) in
-  Term.(ret (pure type_delete $ type_name_t))
+  Term.(ret (pure et_delete $ et_name_t))
 
-let type_list () = run @@ fun (module C) ->
+let et_list () = run @@ fun (module C) ->
   C.Entity_type.all () >>=
   C.Entity_type.Set.iter_s
     (fun et -> C.Entity_type.name et >>= Lwt_io.printf "%s\n")
 
-let type_list_t = Term.(pure type_list $ pure ())
+let et_list_t = Term.(pure et_list $ pure ())
 
 let subcommands = [
-  type_list_t, Term.info ~doc:"List entity types." "et-list";
-  type_create_t, Term.info ~doc:"Create an entity type." "et-create";
-  type_delete_t, Term.info ~doc:"Delete an entity type." "et-delete";
+  et_list_t, Term.info ~doc:"List entity types." "et-list";
+  et_create_t, Term.info ~doc:"Create an entity type." "et-create";
+  et_delete_t, Term.info ~doc:"Delete an entity type." "et-delete";
 ]
 
 let main_t = Term.(ret @@ pure (`Error (true, "Missing subcommand.")))

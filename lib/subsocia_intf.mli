@@ -46,19 +46,21 @@ module type S = sig
     val of_id : int32 -> t Lwt.t
     val id : t -> int32
     val display_name : langs: lang list -> ?pl: bool -> t -> string Lwt.t
+    val create : string -> t Lwt.t
+    val delete : t -> unit Lwt.t
+    val all : unit -> Set.t Lwt.t
+
     val inclusion_preds : t -> (Multiplicity.t * Multiplicity.t) Map.t Lwt.t
     val inclusion_succs : t -> (Multiplicity.t * Multiplicity.t) Map.t Lwt.t
+    val inclusion_allow : Multiplicity.t -> Multiplicity.t -> t -> t ->
+			  unit Lwt.t
+    val inclusion_disallow : t -> t -> unit Lwt.t
+
     val attribution_mult0 : t -> t -> Attribute_type.t0 ->
 			    Multiplicity.t option Lwt.t
     val attribution_mult1 : t -> t -> 'a Attribute_type.t1 ->
 			    Multiplicity.t option Lwt.t
     val attribution : t -> t -> Multiplicity.t Attribute_type.Map.t Lwt.t
-    val create : string -> t Lwt.t
-    val delete : t -> unit Lwt.t
-    val all : unit -> Set.t Lwt.t
-    val inclusion_allow : Multiplicity.t -> Multiplicity.t -> t -> t ->
-			  unit Lwt.t
-    val inclusion_disallow : t -> t -> unit Lwt.t
   end
 
   module Entity : sig
