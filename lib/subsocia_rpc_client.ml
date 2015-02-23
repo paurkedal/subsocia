@@ -71,6 +71,10 @@ module Make (RPCM : RPCM) = struct
     let name = Raw.name
     let display_name ~langs ?pl et = name et (* TODO *)
 
+    let create = Raw.create
+    let delete = Raw.delete
+    let all () = Raw.all () >|= Set.of_ordered_elements
+
     let inclusion_preds et =
       Raw.inclusion_preds et >|=
       List.map (fun (et, muA, muB) -> et, (muA, muB)) *> Map.of_ordered_bindings

@@ -77,6 +77,13 @@ module Q = struct
     q "SELECT entity_type_id FROM @entity_type WHERE entity_type_name = ?"
   let entity_type_name_of_id =
     q "SELECT entity_type_name FROM @entity_type WHERE entity_type_id = ?"
+  let entity_type_create =
+    q "INSERT INTO @entity_type (entity_type_name) VALUES (?) \
+       RETURNING entity_type_id"
+  let entity_type_delete =
+    q "DELETE FROM @entity_type WHERE entity_type_id = ?"
+  let entity_type_all =
+    q "SELECT entity_type_id FROM @entity_type"
 
   let inclusion_type_preds =
     q "SELECT subentity_type_id, \
@@ -326,6 +333,19 @@ let connect uri = (module struct
       memo_1lwt @@ fun et ->
       with_db @@ fun (module C) ->
       C.find Q.entity_type_name_of_id C.Tuple.(text 0) C.Param.([|int32 et|])
+
+    let create etn =
+      with_db @@ fun (module C) ->
+      C.find Q.entity_type_create C.Tuple.(int32 0) C.Param.([|text etn|])
+
+    let delete et =
+      with_db @@ fun (module C) ->
+      C.exec Q.entity_type_delete C.Param.([|int32 et|])
+
+    let all () =
+      with_db @@ fun (module C) ->
+      C.fold Q.entity_type_all (fun tup -> Set.add (C.Tuple.int32 0 tup)) [||]
+	     Set.empty
 
     let inclusion_preds, inclusion_preds_cache =
       memo_1lwt @@ fun et ->

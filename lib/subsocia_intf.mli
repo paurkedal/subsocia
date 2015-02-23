@@ -53,6 +53,9 @@ module type S = sig
     val attribution_mult1 : t -> t -> 'a Attribute_type.t1 ->
 			    Multiplicity.t option Lwt.t
     val attribution : t -> t -> Multiplicity.t Attribute_type.Map.t Lwt.t
+    val create : string -> t Lwt.t
+    val delete : t -> unit Lwt.t
+    val all : unit -> Set.t Lwt.t
   end
 
   module Entity : sig

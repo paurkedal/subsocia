@@ -49,6 +49,16 @@ module Server_impl = struct
     let name (module C : Subsocia_intf.S) id =
       C.Entity_type.of_id id >>= C.Entity_type.name
 
+    let create (module C : Subsocia_intf.S) name =
+      C.Entity_type.create name >|= C.Entity_type.id
+
+    let delete (module C : Subsocia_intf.S) id =
+      C.Entity_type.of_id id >>= C.Entity_type.delete
+
+    let all (module C : Subsocia_intf.S) () =
+      C.Entity_type.all () >|=
+      C.Entity_type.Set.elements *> List.map C.Entity_type.id
+
     let inclusion_preds (module C : Subsocia_intf.S) entity_id =
       C.Entity_type.of_id entity_id >>=
       C.Entity_type.inclusion_preds >|=
