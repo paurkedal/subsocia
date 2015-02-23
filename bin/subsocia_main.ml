@@ -25,6 +25,8 @@ let connect () =
 
 let run f = Lwt_main.run (f (connect ()))
 
+(* Entity Types *)
+
 let et_create etn = run @@ fun (module C) ->
   lwt et = C.Entity_type.create etn in
   Lwt_log.info_f "Created type #%ld = %s." (C.Entity_type.id et) etn
@@ -57,10 +59,56 @@ let et_list () = run @@ fun (module C) ->
 
 let et_list_t = Term.(pure et_list $ pure ())
 
+(* Inclusion Types *)
+
+let it_allow etn0 etn1 = run @@ fun (module C) ->
+  lwt et0 = C.Entity_type.of_name etn0 in
+  lwt et1 = C.Entity_type.of_name etn1 in
+  let report_missing etns =
+    Lwt.return (`Error (false, "Missing types " ^ etns ^ ".")) in
+  match et0, et1 with
+  | Some et0, Some et1 ->
+    let mu0, mu1 = Multiplicity.(May, May) in (* TODO *)
+    C.Entity_type.inclusion_allow mu0 mu1 et0 et1 >>
+    Lwt.return (`Ok ())
+  | None, Some _ -> report_missing etn0
+  | Some _, None -> report_missing etn1
+  | None, None -> report_missing (etn0 ^ " and " ^ etn1)
+
+let it_disallow etn0 etn1 = run @@ fun (module C) ->
+  lwt et0 = C.Entity_type.of_name etn0 in
+  lwt et1 = C.Entity_type.of_name etn1 in
+  let report_missing etns =
+    Lwt.return (`Error (false, "Missing types " ^ etns ^ ".")) in
+  match et0, et1 with
+  | Some et0, Some et1 -> C.Entity_type.inclusion_disallow et0 et1 >>
+			  Lwt.return (`Ok ())
+  | None, Some _ -> report_missing etn0
+  | Some _, None -> report_missing etn1
+  | None, None -> report_missing (etn0 ^ " and " ^ etn1)
+
+let it_allow_t =
+  let etn0_t = Arg.(required & pos 0 (some string) None &
+		    info ~docv:"SUB-TYPE" []) in
+  let etn1_t = Arg.(required & pos 1 (some string) None &
+		    info ~docv:"SUPER-TYPE" []) in
+  Term.(ret (pure it_allow $ etn0_t $ etn1_t))
+
+let it_disallow_t =
+  let etn0_t = Arg.(required & pos 0 (some string) None &
+		    info ~docv:"SUB-TYPE" []) in
+  let etn1_t = Arg.(required & pos 1 (some string) None &
+		    info ~docv:"SUPER-TYPE" []) in
+  Term.(ret (pure it_disallow $ etn0_t $ etn1_t))
+
 let subcommands = [
   et_list_t, Term.info ~doc:"List entity types." "et-list";
   et_create_t, Term.info ~doc:"Create an entity type." "et-create";
   et_delete_t, Term.info ~doc:"Delete an entity type." "et-delete";
+  it_allow_t, Term.info ~doc:"Allow inclusion between entities of a type."
+			"it-allow";
+  it_disallow_t, Term.info ~doc:"Disallow inclusion between entities of a type."
+			   "it-disallow";
 ]
 
 let main_t = Term.(ret @@ pure (`Error (true, "Missing subcommand.")))
