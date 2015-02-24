@@ -91,6 +91,9 @@ module Make (RPCM : RPCM) = struct
       Raw.inclusion_succs et >|=
       List.map (fun (et, muA, muB) -> et, (muA, muB)) *> Map.of_ordered_bindings
 
+    let inclusion_dump () =
+      Raw.inclusion_dump ()
+
     let inclusion_allow mu0 mu1 et0 et1 =
       Raw.inclusion_allow mu0 mu1 et0 et1
 
@@ -107,6 +110,11 @@ module Make (RPCM : RPCM) = struct
       let aux (ak_id, mu) = Attribute_type.of_id ak_id >|= fun ak -> ak, mu in
       Raw.attribution lbt ubt >>= Lwt_list.map_s aux >|=
       Attribute_type.Map.of_ordered_bindings
+
+    let attribution_dump () =
+      let aux (et0, et1, ak_id, mu) =
+	Attribute_type.of_id ak_id >|= fun ak -> (et0, et1, ak, mu) in
+      Raw.attribution_dump () >>= Lwt_list.map_s aux
 
     let attribution_allow et0 et1 (Attribute_type.Ex ak) mu =
       Raw.attribution_allow et0 et1 ak.Attribute_type.ak_id mu

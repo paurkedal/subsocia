@@ -55,6 +55,8 @@ module type S = sig
     val inclusion : t -> t -> (Multiplicity.t * Multiplicity.t) option Lwt.t
     val inclusion_preds : t -> (Multiplicity.t * Multiplicity.t) Map.t Lwt.t
     val inclusion_succs : t -> (Multiplicity.t * Multiplicity.t) Map.t Lwt.t
+    val inclusion_dump :
+      unit -> (t * t * Multiplicity.t * Multiplicity.t) list Lwt.t
     val inclusion_allow : Multiplicity.t -> Multiplicity.t -> t -> t ->
 			  unit Lwt.t
     val inclusion_disallow : t -> t -> unit Lwt.t
@@ -64,6 +66,8 @@ module type S = sig
     val attribution_mult1 : t -> t -> 'a Attribute_type.t1 ->
 			    Multiplicity.t option Lwt.t
     val attribution : t -> t -> Multiplicity.t Attribute_type.Map.t Lwt.t
+    val attribution_dump :
+      unit -> (t * t * Attribute_type.t0 * Multiplicity.t) list Lwt.t
     val attribution_allow : t -> t -> Attribute_type.t0 -> Multiplicity.t ->
 			    unit Lwt.t
     val attribution_disallow : t -> t -> Attribute_type.t0 -> unit Lwt.t

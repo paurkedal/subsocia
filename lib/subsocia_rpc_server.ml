@@ -82,6 +82,11 @@ module Server_impl = struct
       C.Entity_type.Map.bindings *>
       List.map (fun (et, (muA, muB)) -> C.Entity_type.id et, muA, muB)
 
+    let inclusion_dump (module C : Subsocia_intf.S) () =
+      C.Entity_type.inclusion_dump () >|=
+      List.map (fun (et0, et1, mu0, mu1) ->
+		  C.Entity_type.(id et0, id et1, mu0, mu1))
+
     let inclusion_allow (module C : Subsocia_intf.S) mu0 mu1 et0 et1 =
       lwt et0 = C.Entity_type.of_id et0 in
       lwt et1 = C.Entity_type.of_id et1 in
@@ -104,6 +109,12 @@ module Server_impl = struct
       C.Entity_type.attribution lb ub >|=
       C.Attribute_type.Map.bindings *>
       List.map (fun (ak, mu) -> C.Attribute_type.id ak, mu)
+
+    let attribution_dump (module C : Subsocia_intf.S) () =
+      C.Entity_type.attribution_dump () >|=
+      List.map (fun (et0, et1, ak, mu) ->
+		  (C.Entity_type.id et0, C.Entity_type.id et1,
+		   C.Attribute_type.id ak, mu))
 
     let attribution_allow (module C : Subsocia_intf.S) et0 et1 ak mu =
       lwt et0 = C.Entity_type.of_id et0 in

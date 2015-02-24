@@ -102,6 +102,10 @@ module Q = struct
     q "SELECT superentity_type_id, \
 	      subentity_multiplicity, superentity_multiplicity \
        FROM @inclusion_type WHERE subentity_type_id = ?"
+  let inclusion_type_dump =
+    q "SELECT subentity_type_id, superentity_type_id, \
+	      subentity_multiplicity, superentity_multiplicity \
+       FROM @inclusion_type"
   let inclusion_type_allow =
     q "INSERT INTO @inclusion_type \
 	(subentity_multiplicity, superentity_multiplicity, \
@@ -127,6 +131,10 @@ module Q = struct
     q "SELECT superentity_type_id, attribution_type_id, attribute_multiplicity \
        FROM @attribution_type WHERE subentity_type_id = ?"
 *)
+  let attribution_type_dump =
+    q "SELECT subentity_type_id, superentity_type_id, \
+	      attribute_type_id, attribute_multiplicity \
+       FROM @attribution_type"
   let attribution_allow =
     q "INSERT INTO @attribution_type \
 	(subentity_type_id, superentity_type_id, \
@@ -407,6 +415,14 @@ let connect uri = (module struct
 	     C.Param.([|int32 et|])
 	     Map.empty
 
+    let inclusion_dump () =
+      with_db @@ fun (module C) ->
+      let mult i tup = Multiplicity.of_int (C.Tuple.int i tup) in
+      C.fold Q.inclusion_type_dump
+	     C.Tuple.(fun tup acc -> (int32 0 tup, int32 1 tup,
+				      mult 2 tup, mult 3 tup) :: acc)
+	     [||] []
+
     let inclusion_allow mu0 mu1 et0 et1 =
       with_db @@ fun (module C) ->
       let mu0, mu1 = Multiplicity.(to_int mu0, to_int mu1) in
@@ -439,6 +455,15 @@ let connect uri = (module struct
 
     let attribution_mult1 et et' ak =
       attribution_mult' et et' ak.Attribute_type.ak_id
+
+    let attribution_dump () =
+      with_db @@ fun (module C) ->
+      let aux tup acc =
+	let et0, et1 = C.Tuple.(int32 0 tup, int32 1 tup) in
+	let mu = Multiplicity.of_int C.Tuple.(int 3 tup) in
+	Attribute_type.of_id C.Tuple.(int32 2 tup) >|= fun ak ->
+	(et0, et1, ak, mu) :: acc in
+      C.fold_s Q.attribution_type_dump aux [||] []
 
     let attribution_allow et et' (Attribute_type.Ex ak) mu =
       with_db @@ fun (module C) ->
