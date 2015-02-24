@@ -18,9 +18,13 @@ Library "subsocia"
     Subsocia_intf,
     Subsocia_prereq,
     Subsocia_rpc_client,
-    Subsocia_rpc_server
+    Subsocia_rpc_server,
+    Subsocia_selector,
+    Subsocia_selector_types
   InternalModules:
-    Subsocia_rpc_primitives
+    Subsocia_rpc_primitives,
+    Subsocia_selector_lexer,
+    Subsocia_selector_parser
   BuildDepends:
     extunix,
     lwt,
