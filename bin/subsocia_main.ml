@@ -75,7 +75,7 @@ let et_list_t = Term.(pure et_list $ pure ())
 
 (* Inclusion Types *)
 
-let it_allow etn0 etn1 = run @@ fun (module C) ->
+let in_allow etn0 etn1 = run @@ fun (module C) ->
   lwt et0 = C.Entity_type.of_name etn0 in
   lwt et1 = C.Entity_type.of_name etn1 in
   let report_missing etns =
@@ -89,7 +89,7 @@ let it_allow etn0 etn1 = run @@ fun (module C) ->
   | Some _, None -> report_missing etn1
   | None, None -> report_missing (etn0 ^ " and " ^ etn1)
 
-let it_disallow etn0 etn1 = run @@ fun (module C) ->
+let in_disallow etn0 etn1 = run @@ fun (module C) ->
   lwt et0 = C.Entity_type.of_name etn0 in
   lwt et1 = C.Entity_type.of_name etn1 in
   let report_missing etns =
@@ -101,21 +101,21 @@ let it_disallow etn0 etn1 = run @@ fun (module C) ->
   | Some _, None -> report_missing etn1
   | None, None -> report_missing (etn0 ^ " and " ^ etn1)
 
-let it_allow_t =
+let in_allow_t =
   let etn0_t = Arg.(required & pos 0 (some string) None &
 		    info ~docv:"SUB-TYPE" []) in
   let etn1_t = Arg.(required & pos 1 (some string) None &
 		    info ~docv:"SUPER-TYPE" []) in
-  Term.(ret (pure it_allow $ etn0_t $ etn1_t))
+  Term.(ret (pure in_allow $ etn0_t $ etn1_t))
 
-let it_disallow_t =
+let in_disallow_t =
   let etn0_t = Arg.(required & pos 0 (some string) None &
 		    info ~docv:"SUB-TYPE" []) in
   let etn1_t = Arg.(required & pos 1 (some string) None &
 		    info ~docv:"SUPER-TYPE" []) in
-  Term.(ret (pure it_disallow $ etn0_t $ etn1_t))
+  Term.(ret (pure in_disallow $ etn0_t $ etn1_t))
 
-let it_list etn0_opt etn1_opt = run @@ fun (module C) ->
+let in_list etn0_opt etn1_opt = run @@ fun (module C) ->
   let get_et = function
     | None | Some "_" -> Lwt.return_none
     | Some etn ->
@@ -146,12 +146,12 @@ let it_list etn0_opt etn1_opt = run @@ fun (module C) ->
       Lwt.return 1
     end
 
-let it_list_t =
+let in_list_t =
   let etn0_t = Arg.(value & pos 0 (some string) None &
 		    info ~docv:"SUB-TYPE" []) in
   let etn1_t = Arg.(value & pos 1 (some string) None &
 		    info ~docv:"SUPER-TYPE" []) in
-  Term.(pure it_list $ etn0_t $ etn1_t)
+  Term.(pure in_list $ etn0_t $ etn1_t)
 
 (* Attributes *)
 
@@ -186,13 +186,13 @@ let req what name = function
   | None -> Lwt.fail (Failure ("There is no " ^ what ^ " named " ^ name ^ "."))
   | Some x -> Lwt.return x
 
-let at_allow atn etn0 etn1 mu = run0 @@ fun (module C) ->
+let an_allow atn etn0 etn1 mu = run0 @@ fun (module C) ->
   lwt at = C.Attribute_type.of_name atn >>= req "attribute type" atn in
   lwt et0 = C.Entity_type.of_name etn0 >>= req "entity type" etn0 in
   lwt et1 = C.Entity_type.of_name etn1 >>= req "entity type" etn1 in
   C.Entity_type.attribution_allow et0 et1 at mu
 
-let at_allow_t =
+let an_allow_t =
   let atn_t = Arg.(required & pos 0 (some string) None &
 		   info ~docv:"NAME" []) in
   let etn0_t = Arg.(required & pos 1 (some string) None &
@@ -201,22 +201,22 @@ let at_allow_t =
 		    info ~docv:"SUPER-TYPE" []) in
   let mu = Arg.(value & pos 3 multiplicity_conv Multiplicity.May1 &
 		info ~docv:"MULTIPLICITY" []) in
-  Term.(pure at_allow $ atn_t $ etn0_t $ etn1_t $ mu)
+  Term.(pure an_allow $ atn_t $ etn0_t $ etn1_t $ mu)
 
-let at_disallow atn etn0 etn1 = run0 @@ fun (module C) ->
+let an_disallow atn etn0 etn1 = run0 @@ fun (module C) ->
   lwt at = C.Attribute_type.of_name atn >>= req "attribute type" atn in
   lwt et0 = C.Entity_type.of_name etn0 >>= req "entity type" etn0 in
   lwt et1 = C.Entity_type.of_name etn1 >>= req "entity type" etn1 in
   C.Entity_type.attribution_disallow et0 et1 at
 
-let at_disallow_t =
+let an_disallow_t =
   let atn_t = Arg.(required & pos 0 (some string) None &
 		   info ~docv:"NAME" []) in
   let etn0_t = Arg.(required & pos 1 (some string) None &
 		    info ~docv:"SUB-TYPE" []) in
   let etn1_t = Arg.(required & pos 2 (some string) None &
 		    info ~docv:"SUPER-TYPE" []) in
-  Term.(pure at_disallow $ atn_t $ etn0_t $ etn1_t)
+  Term.(pure an_disallow $ atn_t $ etn0_t $ etn1_t)
 
 (* Main *)
 
@@ -224,15 +224,15 @@ let subcommands = [
   et_list_t, Term.info ~doc:"List entity types." "et-list";
   et_create_t, Term.info ~doc:"Create an entity type." "et-create";
   et_delete_t, Term.info ~doc:"Delete an entity type." "et-delete";
-  it_allow_t, Term.info ~doc:"Allow inclusion between entities of a type."
+  in_allow_t, Term.info ~doc:"Allow inclusion between entities of a type."
 			"it-allow";
-  it_disallow_t, Term.info ~doc:"Disallow inclusion between entities of a type."
+  in_disallow_t, Term.info ~doc:"Disallow inclusion between entities of a type."
 			   "it-disallow";
-  it_list_t, Term.info ~doc:"Show inclusion policy between types." "it-list";
+  in_list_t, Term.info ~doc:"Show inclusion policy between types." "it-list";
   at_create_t, Term.info ~doc:"Create an attribute type." "at-create";
   at_delete_t, Term.info ~doc:"Delete an attribute type." "at-delete";
-  at_allow_t, Term.info ~doc:"Allow an attribution." "at-allow";
-  at_disallow_t, Term.info ~doc:"Disallow an attribution." "at-disallow";
+  an_allow_t, Term.info ~doc:"Allow an attribution." "an-allow";
+  an_disallow_t, Term.info ~doc:"Disallow an attribution." "an-disallow";
 ]
 
 let main_t = Term.(ret @@ pure (`Error (true, "Missing subcommand.")))
