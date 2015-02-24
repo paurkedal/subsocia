@@ -125,17 +125,24 @@ let in_list etn0_opt etn1_opt = run @@ fun (module C) ->
       end in
   lwt et0 = get_et etn0_opt in
   lwt et1 = get_et etn1_opt in
-  let show_map = C.Entity_type.Map.iter_s @@ fun et (mu0, mu1) ->
-    lwt etn = C.Entity_type.name et in
-    Lwt_io.printlf "%s%s %s" (Multiplicity.to_string mu0)
-			     (Multiplicity.to_string mu1) etn in
+  let pp mu0 mu1 et0 et1 =
+    lwt etn0 = C.Entity_type.name et0 in
+    lwt etn1 = C.Entity_type.name et1 in
+    Lwt_io.printlf "%30s %s%s %-30s"
+      etn0 (Multiplicity.to_string mu0) (Multiplicity.to_string mu1) etn1 in
   match et0, et1 with
   | None, None ->
-    Lwt.fail (Failure ("At least one entity type must be provided."))
+    C.Entity_type.inclusion_dump () >>=
+      Lwt_list.iter_s (fun (et0, et1, mu0, mu1) -> pp mu0 mu1 et0 et1) >>
+    Lwt.return 0
   | Some et0, None ->
-    C.Entity_type.inclusion_succs et0 >>= show_map >> Lwt.return 0
+    C.Entity_type.inclusion_succs et0 >>=
+      C.Entity_type.Map.iter_s (fun et1 (mu0, mu1) -> pp mu0 mu1 et0 et1) >>
+    Lwt.return 0
   | None, Some et1 ->
-    C.Entity_type.inclusion_preds et1 >>= show_map >> Lwt.return 0
+    C.Entity_type.inclusion_preds et1 >>=
+      C.Entity_type.Map.iter_s (fun et0 (mu0, mu1) -> pp mu0 mu1 et0 et1) >>
+    Lwt.return 0
   | Some et0, Some et1 ->
     begin match_lwt C.Entity_type.inclusion et0 et1 with
     | Some (mu0, mu1) ->
