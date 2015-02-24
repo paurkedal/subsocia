@@ -218,6 +218,16 @@ let an_disallow_t =
 		    info ~docv:"SUPER-TYPE" []) in
   Term.(pure an_disallow $ atn_t $ etn0_t $ etn1_t)
 
+let an_list () = run0 @@ fun (module C) ->
+  C.Entity_type.attribution_dump () >>=
+  Lwt_list.map_s @@ fun (et0, et1, at, mu) ->
+  lwt atn = C.Attribute_type.name at in
+  lwt etn0 = C.Entity_type.name et0 in
+  lwt etn1 = C.Entity_type.name et1 in
+  Lwt_io.printlf "%s %s %s %s" (Multiplicity.to_string mu) atn etn0 etn1
+
+let an_list_t = Term.(pure an_list $ pure ())
+
 (* Main *)
 
 let subcommands = [
@@ -225,14 +235,15 @@ let subcommands = [
   et_create_t, Term.info ~doc:"Create an entity type." "et-create";
   et_delete_t, Term.info ~doc:"Delete an entity type." "et-delete";
   in_allow_t, Term.info ~doc:"Allow inclusion between entities of a type."
-			"it-allow";
+			"in-allow";
   in_disallow_t, Term.info ~doc:"Disallow inclusion between entities of a type."
-			   "it-disallow";
-  in_list_t, Term.info ~doc:"Show inclusion policy between types." "it-list";
+			   "in-disallow";
+  in_list_t, Term.info ~doc:"Show inclusion policy between types." "in-list";
   at_create_t, Term.info ~doc:"Create an attribute type." "at-create";
   at_delete_t, Term.info ~doc:"Delete an attribute type." "at-delete";
   an_allow_t, Term.info ~doc:"Allow an attribution." "an-allow";
   an_disallow_t, Term.info ~doc:"Disallow an attribution." "an-disallow";
+  an_list_t, Term.info ~doc:"List allowed attribution." "an-list";
 ]
 
 let main_t = Term.(ret @@ pure (`Error (true, "Missing subcommand.")))
