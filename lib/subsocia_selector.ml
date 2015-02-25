@@ -14,6 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Subsocia_common
 open Unprime_string
 
 include Subsocia_selector_types
@@ -56,3 +57,26 @@ let string_of_selector s =
   let buf = Buffer.create 80 in
   bprint_selector buf 0 s;
   Buffer.contents buf
+
+module Selector_utils (C : Subsocia_intf.S) = struct
+  let rec denote_selector = function
+    | Select_sub (selA, selB) -> fun es ->
+      denote_selector selA es >>= denote_selector selB
+    | Select_union (selA, selB) -> fun es ->
+      lwt esA = denote_selector selA es in
+      lwt esB = denote_selector selB es in
+      Lwt.return (C.Entity.Set.union esA esB)
+    | Select_inter (selA, selB) -> fun es ->
+      lwt esA = denote_selector selA es in
+      lwt esB = denote_selector selB es in
+      Lwt.return (C.Entity.Set.inter esA esB)
+    | Select_attr (k, v) -> fun es ->
+      match_lwt C.Attribute_type.of_name k with
+      | None -> Lwt.fail (Failure ("Invalid attribute type " ^ k))
+      | Some (C.Attribute_type.Ex at) ->
+	let t = C.Attribute_type.type1 at in
+	let x = Value.typed_of_string t v in
+	C.Entity.Set.fold_s
+	  (fun e1 acc -> C.Entity.apreds e1 at x >|= C.Entity.Set.union acc)
+	  es C.Entity.Set.empty
+end
