@@ -33,6 +33,7 @@ attribution:
     disjunction { $1 }
   | STR EQ STR { Select_attr ($1, $3) }
   | STR EQ_VERB { Select_attr ($1, $2) }
+  | STR { Select_attr ("unique_name", $1) }
   | PLUS { Select_pred }
   ;
 disjunction:
