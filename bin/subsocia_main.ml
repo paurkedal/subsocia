@@ -15,8 +15,10 @@
  *)
 
 open Cmdliner
+open Panograph_i18n
 open Printf
 open Subsocia_common
+open Subsocia_selector
 open Unprime
 
 let connect () =
@@ -38,6 +40,13 @@ let multiplicity_parser s =
 let multiplicity_printer ftr mu =
   Format.pp_print_string ftr (Multiplicity.to_string mu)
 let multiplicity_conv = multiplicity_parser, multiplicity_printer
+
+let selector_parser s =
+  try `Ok (selector_of_string s)
+  with Invalid_argument msg -> `Error msg
+let selector_printer ftr sel =
+  Format.pp_print_string ftr (string_of_selector sel)
+let selector_conv = selector_parser, selector_printer
 
 (* Entity Types *)
 
@@ -235,6 +244,24 @@ let an_list () = run0 @@ fun (module C) ->
 
 let an_list_t = Term.(pure an_list $ pure ())
 
+let search sel = run @@ fun (module C) ->
+  let module C_sel = Selector_utils (C) in
+  let module Config = struct
+    let display_name_attributes = Subsocia_config.display_name#get
+  end in
+  let module C_der = Subsocia_derived.Make (Config) (C) in
+  lwt e_unit = C_der.Const.e_unit in
+  lwt es = C_sel.denote_selector sel (C.Entity.Set.singleton e_unit) in
+  let langs = [Lang.of_string "en"] in
+  let show e = C_der.Entity.display_name ~langs e >>= Lwt_io.printl in
+  C.Entity.Set.iter_s show es >>
+  Lwt.return (if C.Entity.Set.is_empty es then 1 else 0)
+
+let search_t =
+  let sel_t = Arg.(required & pos 0 (some selector_conv) None &
+		   info ~docv:"PATH" []) in
+  Term.(pure search $ sel_t)
+
 (* Main *)
 
 let subcommands = [
@@ -251,6 +278,7 @@ let subcommands = [
   an_allow_t, Term.info ~doc:"Allow an attribution." "an-allow";
   an_disallow_t, Term.info ~doc:"Disallow an attribution." "an-disallow";
   an_list_t, Term.info ~doc:"List allowed attribution." "an-list";
+  search_t, Term.info ~doc:"List entities below a path." "search";
 ]
 
 let main_t = Term.(ret @@ pure (`Error (true, "Missing subcommand.")))
