@@ -19,3 +19,4 @@ type selector =
   | Select_union of selector * selector
   | Select_inter of selector * selector
   | Select_attr of string * string
+  | Select_pred

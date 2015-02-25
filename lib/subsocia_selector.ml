@@ -43,6 +43,10 @@ let rec bprint_selector buf p = function
     end else
       Buffer.add_string buf v;
     if p > 1 then Buffer.add_char buf '}'
+  | Select_pred ->
+    if p > 1 then Buffer.add_char buf '{';
+    Buffer.add_char buf '+';
+    if p > 1 then Buffer.add_char buf '}'
   | Select_union (s0, s1) ->
     if p > 2 then Buffer.add_char buf '{';
     bprint_selector buf 2 s0;
@@ -70,13 +74,18 @@ module Selector_utils (C : Subsocia_intf.S) = struct
       lwt esA = denote_selector selA es in
       lwt esB = denote_selector selB es in
       Lwt.return (C.Entity.Set.inter esA esB)
-    | Select_attr (k, v) -> fun es ->
-      match_lwt C.Attribute_type.of_name k with
-      | None -> Lwt.fail (Failure ("Invalid attribute type " ^ k))
+    | Select_attr (an, v) -> fun es ->
+      begin match_lwt C.Attribute_type.of_name an with
+      | None -> Lwt.fail (Failure ("No attribute type is named " ^ an))
       | Some (C.Attribute_type.Ex at) ->
 	let t = C.Attribute_type.type1 at in
 	let x = Value.typed_of_string t v in
 	C.Entity.Set.fold_s
 	  (fun e1 acc -> C.Entity.apreds e1 at x >|= C.Entity.Set.union acc)
 	  es C.Entity.Set.empty
+      end
+    | Select_pred -> fun es ->
+      C.Entity.Set.fold_s
+	(fun e1 acc -> C.Entity.preds e1 >|= C.Entity.Set.union acc)
+	es C.Entity.Set.empty
 end
