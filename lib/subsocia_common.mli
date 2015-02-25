@@ -57,11 +57,6 @@ module Type : sig
   val string_of_t1 : 'a t1 -> string
   val of_string : string -> t0
 
-(*
-  val string_of_value_fun : 'a t1 -> 'a -> string
-  val value_of_string_fun : 'a t1 -> string -> 'a
-*)
-
   val rpc_of_t0 : t0 -> Rpc.t
   val t0_of_rpc : Rpc.t -> t0
 end
@@ -70,6 +65,7 @@ module Value : sig
   type t0 = Ex : 'a Type.t1 * 'a -> t0
 
   val typed_to_string : 'a Type.t1 -> 'a -> string
+  val typed_of_string : 'a Type.t1 -> string -> 'a
 
   val to_string : t0 -> string
 (*

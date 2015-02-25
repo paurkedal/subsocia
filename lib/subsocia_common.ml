@@ -117,6 +117,13 @@ module Value = struct
     | Type.Int -> string_of_int
     | Type.String -> fun s -> s
 
+  let typed_of_string : type a. a Type.t1 -> string -> a =
+    function
+    | Type.Bool -> (function "true" -> true | "false" -> false
+			   | _ -> invalid_arg "Value.Typed_of_string")
+    | Type.Int -> int_of_string
+    | Type.String -> fun s -> s
+
   let to_string (Ex (t, v)) = typed_to_string t v
 
   let coerce : type a. a Type.t1 -> t0 -> a = fun t v ->
