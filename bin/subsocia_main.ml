@@ -398,24 +398,58 @@ let modify_t =
 
 (* Main *)
 
+let et_scn = "ENTITY TYPE COMMANDS"
+let in_scn = "INCLUSION COMMANDS"
+let at_scn = "ATTRIBUTE TYPE COMMANDS"
+let an_scn = "ATTRIBUTION COMMANDS"
+let e_scn = "ENTITY COMMANDS"
+
 let subcommands = [
-  et_list_t, Term.info ~doc:"List entity types." "et-list";
-  et_create_t, Term.info ~doc:"Create an entity type." "et-create";
-  et_delete_t, Term.info ~doc:"Delete an entity type." "et-delete";
-  in_allow_t, Term.info ~doc:"Allow inclusion between entities of a type."
-			"in-allow";
-  in_disallow_t, Term.info ~doc:"Disallow inclusion between entities of a type."
-			   "in-disallow";
-  in_list_t, Term.info ~doc:"Show inclusion policy between types." "in-list";
-  at_create_t, Term.info ~doc:"Create an attribute type." "at-create";
-  at_delete_t, Term.info ~doc:"Delete an attribute type." "at-delete";
-  an_allow_t, Term.info ~doc:"Allow an attribution." "an-allow";
-  an_disallow_t, Term.info ~doc:"Disallow an attribution." "an-disallow";
-  an_list_t, Term.info ~doc:"List allowed attribution." "an-list";
-  search_t, Term.info ~doc:"List entities below a path." "search";
-  create_t, Term.info ~doc:"Create an entity." "create";
-  delete_t, Term.info ~doc:"Delete an entity." "delete";
-  modify_t, Term.info ~doc:"Modify an entity." "modify";
+  et_list_t, Term.info ~docs:et_scn
+    ~doc:"List entity types."
+    "et-list";
+  et_create_t, Term.info ~docs:et_scn
+    ~doc:"Create an entity type."
+    "et-create";
+  et_delete_t, Term.info ~docs:et_scn
+    ~doc:"Delete an entity type."
+    "et-delete";
+  in_allow_t, Term.info ~docs:in_scn
+    ~doc:"Allow inclusion between entities of a type."
+    "in-allow";
+  in_disallow_t, Term.info ~docs:in_scn
+    ~doc:"Disallow inclusion between entities of a type."
+    "in-disallow";
+  in_list_t, Term.info ~docs:in_scn
+    ~doc:"Show inclusion policy between types."
+    "in-list";
+  at_create_t, Term.info ~docs:at_scn
+    ~doc:"Create an attribute type."
+    "at-create";
+  at_delete_t, Term.info ~docs:at_scn
+    ~doc:"Delete an attribute type."
+    "at-delete";
+  an_allow_t, Term.info ~docs:an_scn
+    ~doc:"Allow an attribution."
+    "an-allow";
+  an_disallow_t, Term.info ~docs:an_scn
+    ~doc:"Disallow an attribution."
+    "an-disallow";
+  an_list_t, Term.info ~docs:an_scn
+    ~doc:"List allowed attribution."
+    "an-list";
+  search_t, Term.info ~docs:e_scn
+    ~doc:"List entities below a path."
+    "search";
+  create_t, Term.info ~docs:e_scn
+    ~doc:"Create an entity."
+    "create";
+  delete_t, Term.info ~docs:e_scn
+    ~doc:"Delete an entity."
+    "delete";
+  modify_t, Term.info ~docs:e_scn
+    ~doc:"Modify an entity."
+    "modify";
 ]
 
 let main_t = Term.(ret @@ pure (`Error (true, "Missing subcommand.")))
