@@ -347,6 +347,16 @@ let create_t =
 		    info ~docv:"NEW-PATH" ["a"]) in
   Term.(pure create $ etn_t $ succs_t $ attrs_t)
 
+let delete sel = run0 @@ fun (module C) ->
+  let module U = Entity_utils (C) in
+  lwt e = U.select_entity sel in
+  C.Entity.delete e
+
+let delete_t =
+  let sel_t = Arg.(required & pos 0 (some selector_conv) None &
+		   info ~docv:"PATH" []) in
+  Term.(pure delete $ sel_t)
+
 (* Main *)
 
 let subcommands = [
@@ -365,6 +375,7 @@ let subcommands = [
   an_list_t, Term.info ~doc:"List allowed attribution." "an-list";
   search_t, Term.info ~doc:"List entities below a path." "search";
   create_t, Term.info ~doc:"Create an entity." "create";
+  delete_t, Term.info ~doc:"Delete an entity." "delete";
 ]
 
 let main_t = Term.(ret @@ pure (`Error (true, "Missing subcommand.")))

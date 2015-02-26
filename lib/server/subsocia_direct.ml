@@ -193,6 +193,9 @@ module Q = struct
     q "INSERT INTO @entity (entity_type_id, viewer_id, admin_id) \
        VALUES (?, ?, ?) RETURNING entity_id"
 
+  let delete_entity =
+    q "DELETE FROM @entity WHERE entity_id = ?"
+
   let insert_inclusion =
     q "INSERT INTO @inclusion (subentity_id, superentity_id) VALUES (?, ?)"
 
@@ -524,6 +527,10 @@ let connect uri = (module struct
       with_db @@ fun (module C) ->
 	C.find Q.create_entity C.Tuple.(int32 0)
 	       C.Param.([|int32 entity_type; int32 viewer; int32 admin|])
+
+    let delete e =
+      with_db @@ fun (module C) -> C.exec Q.delete_entity C.Param.([|int32 e|])
+      (* TODO: Cascading? *)
 
     let precedes subentity superentity =
       if subentity = superentity then Lwt.return_true else

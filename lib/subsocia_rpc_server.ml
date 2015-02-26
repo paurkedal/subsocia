@@ -137,6 +137,10 @@ module Server_impl = struct
       C.Entity.create ~viewer ~admin entity_type >|=
       C.Entity.id
 
+    let delete (module C : Subsocia_intf.S) entity =
+      lwt entity = C.Entity.of_id entity in
+      C.Entity.delete entity
+
     let type_ (module C : Subsocia_intf.S) e_id =
       C.Entity.of_id e_id >>= C.Entity.type_ >|= C.Entity_type.id
 

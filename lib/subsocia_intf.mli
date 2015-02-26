@@ -80,6 +80,7 @@ module type S = sig
     module Map : MAP with type key = t
 
     val create : viewer: t -> admin: t -> Entity_type.t -> t Lwt.t
+    val delete : t -> unit Lwt.t
 
     val compare : t -> t -> int
 
