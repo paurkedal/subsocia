@@ -80,13 +80,11 @@ module Make (Config : CONFIG) (Base : Subsocia_intf.S) = struct
     let et_auth_group = _et "auth_group"
     let et_person = _et "person"
 
-    (* Predefined entities. *)
-    let e_unit = Entity.of_id 1l
-
     let _e_un ?super en =
-      lwt e_unit = match super with Some e -> Lwt.return e | None -> e_unit in
+      lwt super = match super with Some e -> Lwt.return e
+				 | None -> Entity.top in
       lwt at_unique_name = at_unique_name in
-      lwt es = Entity.apreds e_unit at_unique_name en in
+      lwt es = Entity.apreds super at_unique_name en in
       match Entity.Set.cardinal es with
       | 1 -> Lwt.return (Entity.Set.min_elt es)
       | 0 -> _fail "Missing initial entity %s" en
@@ -107,14 +105,14 @@ module Make (Config : CONFIG) (Base : Subsocia_intf.S) = struct
       Hashtbl.create 5
 
     let display_name ~langs entity =
-      lwt e_unit = Const.e_unit in
+      lwt e_top = Entity.top in
 
       let aux_plain an =
 	match_lwt Base.Attribute_type.of_name an with
 	| None -> Lwt.return_none
 	| Some at0 ->
 	  lwt at = Attribute_type.coerce_lwt Type.String at0 in
-	  lwt vs = Entity.getattr entity e_unit at in
+	  lwt vs = Entity.getattr entity e_top at in
 	  if Values.is_empty vs then Lwt.return_none
 				else Lwt.return (Some (Values.min_elt vs)) in
 

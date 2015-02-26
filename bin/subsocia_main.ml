@@ -250,8 +250,8 @@ let search sel = run @@ fun (module C) ->
     let display_name_attributes = Subsocia_config.display_name#get
   end in
   let module C_der = Subsocia_derived.Make (Config) (C) in
-  lwt e_unit = C_der.Const.e_unit in
-  lwt es = C_sel.denote_selector sel (C.Entity.Set.singleton e_unit) in
+  lwt e_top = C.Entity.top in
+  lwt es = C_sel.denote_selector sel (C.Entity.Set.singleton e_top) in
   let langs = [Lang.of_string "en"] in
   let show e = C_der.Entity.display_name ~langs e >>= Lwt_io.printl in
   C.Entity.Set.iter_s show es >>

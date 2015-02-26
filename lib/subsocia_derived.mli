@@ -41,7 +41,6 @@ module Make (Config : CONFIG) (Base : Subsocia_intf.S) : sig
     val et_auth_group : Base.Entity_type.t Lwt.t
     val et_person : Base.Entity_type.t Lwt.t
 
-    val e_unit : Base.Entity.t Lwt.t
     val e_forbidden : Base.Entity.t Lwt.t
     val e_default_viewers : Base.Entity.t Lwt.t
     val e_default_admins : Base.Entity.t Lwt.t
