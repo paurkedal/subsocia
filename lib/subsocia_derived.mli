@@ -25,6 +25,9 @@ module Make (Config : CONFIG) (Base : Subsocia_intf.S) : sig
   open Base
 
   module Attribute_type : sig
+
+    type attribute = Ex : 'a Base.Attribute_type.t1 * 'a -> attribute
+
     val coerce : 'a Type.t1 ->
 		 Base.Attribute_type.t0 -> 'a Base.Attribute_type.t1 option
   end

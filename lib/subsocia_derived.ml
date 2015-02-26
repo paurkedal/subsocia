@@ -29,6 +29,8 @@ module Make (Config : CONFIG) (Base : Subsocia_intf.S) = struct
 
   module Attribute_type = struct
 
+    type attribute = Ex : 'a Base.Attribute_type.t1 * 'a -> attribute
+
     let coerce (type a) (t : a Type.t1) at0 : a Attribute_type.t1 option =
       let Attribute_type.Ex at1 = at0 in
       match t, Attribute_type.type1 at1, at1 with

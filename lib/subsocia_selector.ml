@@ -14,6 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Subsocia_prereq
 open Subsocia_common
 open Unprime_string
 
@@ -88,4 +89,17 @@ module Selector_utils (C : Subsocia_intf.S) = struct
       C.Entity.Set.fold_s
 	(fun e1 acc -> C.Entity.preds e1 >|= C.Entity.Set.union acc)
 	es C.Entity.Set.empty
+
+  let select_entities sel =
+    lwt e_top = C.Entity.top in
+    denote_selector sel (C.Entity.Set.singleton e_top)
+
+  let select_entity sel =
+    lwt e_top = C.Entity.top in
+    lwt es = denote_selector sel (C.Entity.Set.singleton e_top) in
+    match C.Entity.Set.cardinal es with
+    | 1 -> Lwt.return (C.Entity.Set.min_elt es)
+    | 0 -> lwt_failure_f "No entity matches %s." (string_of_selector sel)
+    | n -> lwt_failure_f "%d entities matches %s, need one."
+			 n (string_of_selector sel)
 end

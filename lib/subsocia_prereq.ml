@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2015  Petter Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,10 +14,14 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Printf
+
 module Int_map = Map.Make (struct type t = int let compare = compare end)
 
 let (>>=) = Lwt.(>>=)
 let (>|=) = Lwt.(>|=)
+
+let lwt_failure_f fmt = ksprintf (fun s -> Lwt.fail (Failure s)) fmt
 
 let cache_hertz = Int64.to_float ExtUnixSpecific.(sysconf CLK_TCK)
 let cache_second = 1.0 /. cache_hertz
