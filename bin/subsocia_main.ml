@@ -329,14 +329,14 @@ let create etn succs aselectors = run0 @@ fun (module C) ->
   lwt aselectors = Lwt_list.map_p U.lookup_aselector aselectors in
   lwt succs = Lwt_list.map_p U.select_entity succs in
   lwt e = C.Entity.create ~viewer ~admin et in
+  Lwt_list.iter_s (fun (e_sub) -> C.Entity.constrain e e_sub) succs >>
   Lwt_list.iter_s
     (fun (e_ctx, attrs) ->
       Lwt_list.iter_s
 	(fun (U.Attribute_type.Ex (at, av)) ->
 	  C.Entity.setattr e e_ctx at [av])
       attrs)
-    aselectors >>
-  Lwt_list.iter_s (fun (e_sub) -> C.Entity.constrain e e_sub) succs
+    aselectors
 
 let create_t =
   let etn_t = Arg.(required & pos 0 (some string) None &
@@ -357,6 +357,45 @@ let delete_t =
 		   info ~docv:"PATH" []) in
   Term.(pure delete $ sel_t)
 
+let modify sel add_succs del_succs add_asels del_asels =
+  run0 @@ fun (module C) ->
+  let module U = Entity_utils (C) in
+  lwt add_succs = Lwt_list.map_p U.select_entity add_succs in
+  lwt del_succs = Lwt_list.map_p U.select_entity del_succs in
+  lwt add_asels = Lwt_list.map_p U.lookup_aselector add_asels in
+  lwt del_asels = Lwt_list.map_p U.lookup_aselector del_asels in
+  lwt e = U.select_entity sel in
+  Lwt_list.iter_s (fun (e_sub) -> C.Entity.constrain e e_sub) add_succs >>
+  Lwt_list.iter_s
+    (fun (e_ctx, attrs) ->
+      Lwt_list.iter_s
+	(fun (U.Attribute_type.Ex (at, av)) ->
+	  C.Entity.setattr e e_ctx at [av])
+      attrs)
+    add_asels >>
+  Lwt_list.iter_s
+    (fun (e_ctx, attrs) ->
+      Lwt_list.iter_s
+	(fun (U.Attribute_type.Ex (at, av)) ->
+	  C.Entity.delattr e e_ctx at [av])
+      attrs)
+    del_asels >>
+  Lwt_list.iter_s (fun (e_sub) -> C.Entity.unconstrain e e_sub) del_succs
+
+let modify_t =
+  let sel_t = Arg.(required & pos 0 (some selector_conv) None &
+		   info ~docv:"PATH" []) in
+  let add_succs_t = Arg.(value & opt_all selector_conv [] &
+			 info ~docv:"PATH" ["s"]) in
+  let del_succs_t = Arg.(value & opt_all selector_conv [] &
+			 info ~docv:"PATH" ["r"]) in
+  let add_attrs_t = Arg.(value & opt_all aselector_conv [] &
+			 info ~docv:"APATH" ["a"]) in
+  let del_attrs_t = Arg.(value & opt_all aselector_conv [] &
+			 info ~docv:"APATH" ["d"]) in
+  Term.(pure modify $ sel_t $ add_succs_t $ del_succs_t
+			    $ add_attrs_t $ del_attrs_t)
+
 (* Main *)
 
 let subcommands = [
@@ -376,6 +415,7 @@ let subcommands = [
   search_t, Term.info ~doc:"List entities below a path." "search";
   create_t, Term.info ~doc:"Create an entity." "create";
   delete_t, Term.info ~doc:"Delete an entity." "delete";
+  modify_t, Term.info ~doc:"Modify an entity." "modify";
 ]
 
 let main_t = Term.(ret @@ pure (`Error (true, "Missing subcommand.")))
