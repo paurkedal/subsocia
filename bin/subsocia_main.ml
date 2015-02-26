@@ -27,26 +27,56 @@ let connect () =
 
 let run f = Lwt_main.run (f (connect ()))
 let run0 f = Lwt_main.run (f (connect ())); 0
+let fail_f fmt = ksprintf (fun s -> Lwt.fail (Failure s)) fmt
 
 let value_type_parser s =
   try `Ok (Type.of_string s) with Invalid_argument msg -> `Error msg
-let value_type_printer ftr vt =
-  Format.pp_print_string ftr (Type.string_of_t0 vt)
+let value_type_printer fmtr vt =
+  Format.pp_print_string fmtr (Type.string_of_t0 vt)
 let value_type_conv = value_type_parser, value_type_printer
 
 let multiplicity_parser s =
   try `Ok (Multiplicity.of_string s)
   with Invalid_argument msg -> `Error msg
-let multiplicity_printer ftr mu =
-  Format.pp_print_string ftr (Multiplicity.to_string mu)
+let multiplicity_printer fmtr mu =
+  Format.pp_print_string fmtr (Multiplicity.to_string mu)
 let multiplicity_conv = multiplicity_parser, multiplicity_printer
 
 let selector_parser s =
   try `Ok (selector_of_string s)
   with Invalid_argument msg -> `Error msg
-let selector_printer ftr sel =
-  Format.pp_print_string ftr (string_of_selector sel)
+let selector_printer fmtr sel =
+  Format.pp_print_string fmtr (string_of_selector sel)
 let selector_conv = selector_parser, selector_printer
+
+let aselector_parser s =
+  let rec aux acc = function
+    | Select_sub _ | Select_union _ | Select_pred ->
+      invalid_arg "Invalid path for attribute assignement."
+    | Select_inter (selA, selB) -> aux (aux acc selB) selA
+    | Select_attr (an, av) -> (an, av) :: acc in
+  try
+    `Ok
+      begin match selector_of_string s with
+      | Select_sub (sel_ctx, sel_att) -> Some sel_ctx, aux [] sel_att
+      | sel_att -> None, aux [] sel_att
+      end
+  with Invalid_argument msg -> `Error msg
+
+let aselector_printer fmtr (ctx, asgn) =
+  let sel_attr =
+    match asgn with
+    | [] -> assert false
+    | (an, av) :: xs ->
+      List.fold_left
+	(fun acc (an, av) -> Select_sub (acc, Select_attr (an, av)))
+	(Select_attr (an, av)) xs in
+  Format.pp_print_string fmtr @@
+    string_of_selector
+      (match ctx with None -> sel_attr
+		    | Some sel_ctx -> Select_sub (sel_ctx, sel_attr))
+
+let aselector_conv = aselector_parser, aselector_printer
 
 (* Entity Types *)
 
@@ -244,16 +274,42 @@ let an_list () = run0 @@ fun (module C) ->
 
 let an_list_t = Term.(pure an_list $ pure ())
 
+(* Entities *)
+
+module Config = struct
+  let display_name_attributes = Subsocia_config.display_name#get
+end
+
+module Entity_utils (C : Subsocia_intf.S) = struct
+  include Selector_utils (C)
+  include Subsocia_derived.Make (Config) (C)
+
+  let lookup_assignment (an, vs) =
+    lwt C.Attribute_type.Ex at =
+      match_lwt C.Attribute_type.of_name an with
+      | None -> Lwt.fail (Failure ("No attribute type has name " ^ an))
+      | Some at -> Lwt.return at in
+    let t = C.Attribute_type.type1 at in
+    let v = Value.typed_of_string t vs in
+    Lwt.return (Attribute_type.Ex (at, v))
+
+  let lookup_aselector (sel_opt, asgn) =
+    lwt asgn = Lwt_list.map_p lookup_assignment asgn in
+    lwt e_top = C.Entity.top in
+    match sel_opt with
+    | None ->
+      Lwt.return (e_top, asgn)
+    | Some sel ->
+      lwt e_ctx = select_entity sel in
+      Lwt.return (e_ctx, asgn)
+end
+
 let search sel = run @@ fun (module C) ->
-  let module C_sel = Selector_utils (C) in
-  let module Config = struct
-    let display_name_attributes = Subsocia_config.display_name#get
-  end in
-  let module C_der = Subsocia_derived.Make (Config) (C) in
+  let module U = Entity_utils (C) in
   lwt e_top = C.Entity.top in
-  lwt es = C_sel.denote_selector sel (C.Entity.Set.singleton e_top) in
+  lwt es = U.denote_selector sel (C.Entity.Set.singleton e_top) in
   let langs = [Lang.of_string "en"] in
-  let show e = C_der.Entity.display_name ~langs e >>= Lwt_io.printl in
+  let show e = U.Entity.display_name ~langs e >>= Lwt_io.printl in
   C.Entity.Set.iter_s show es >>
   Lwt.return (if C.Entity.Set.is_empty es then 1 else 0)
 
@@ -261,6 +317,35 @@ let search_t =
   let sel_t = Arg.(required & pos 0 (some selector_conv) None &
 		   info ~docv:"PATH" []) in
   Term.(pure search $ sel_t)
+
+let create etn succs aselectors = run0 @@ fun (module C) ->
+  let module U = Entity_utils (C) in
+  lwt et =
+    match_lwt C.Entity_type.of_name etn with
+    | None -> Lwt.fail (Failure ("No entity type has name " ^ etn))
+    | Some et -> Lwt.return et in
+  lwt viewer = U.Const.e_default_viewers in
+  lwt admin = U.Const.e_default_admins in
+  lwt aselectors = Lwt_list.map_p U.lookup_aselector aselectors in
+  lwt succs = Lwt_list.map_p U.select_entity succs in
+  lwt e = C.Entity.create ~viewer ~admin et in
+  Lwt_list.iter_s
+    (fun (e_ctx, attrs) ->
+      Lwt_list.iter_s
+	(fun (U.Attribute_type.Ex (at, av)) ->
+	  C.Entity.setattr e e_ctx at [av])
+      attrs)
+    aselectors >>
+  Lwt_list.iter_s (fun (e_sub) -> C.Entity.constrain e e_sub) succs
+
+let create_t =
+  let etn_t = Arg.(required & pos 0 (some string) None &
+		   info ~docv:"TYPE" []) in
+  let succs_t = Arg.(value & opt_all selector_conv [] &
+		    info ~docv:"SUCC" ["s"]) in
+  let attrs_t = Arg.(value & opt_all aselector_conv [] &
+		    info ~docv:"NEW-PATH" ["a"]) in
+  Term.(pure create $ etn_t $ succs_t $ attrs_t)
 
 (* Main *)
 
@@ -279,6 +364,7 @@ let subcommands = [
   an_disallow_t, Term.info ~doc:"Disallow an attribution." "an-disallow";
   an_list_t, Term.info ~doc:"List allowed attribution." "an-list";
   search_t, Term.info ~doc:"List entities below a path." "search";
+  create_t, Term.info ~doc:"Create an entity." "create";
 ]
 
 let main_t = Term.(ret @@ pure (`Error (true, "Missing subcommand.")))
