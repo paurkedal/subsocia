@@ -91,8 +91,8 @@ module type S = sig
     val admin : t -> t Lwt.t
 
     val type_members : Entity_type.t -> Set.t Lwt.t
+    val top : t Lwt.t
     val minimums : unit -> Set.t Lwt.t
-    val maximums : unit -> Set.t Lwt.t
     val preds : t -> Set.t Lwt.t
     val succs : t -> Set.t Lwt.t
     val precedes : t -> t -> bool Lwt.t

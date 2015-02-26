@@ -148,10 +148,9 @@ module Server_impl = struct
     let type_members (module C : Subsocia_intf.S) et_id =
       lwt et = C.Entity_type.of_id et_id in
       C.Entity.type_members et >|= C.Entity.Set.elements *> List.map C.Entity.id
+    let top (module C : Subsocia_intf.S) () = C.Entity.top >|= C.Entity.id
     let minimums (module C : Subsocia_intf.S) () =
       C.Entity.minimums () >|= C.Entity.Set.elements *> List.map C.Entity.id
-    let maximums (module C : Subsocia_intf.S) () =
-      C.Entity.maximums () >|= C.Entity.Set.elements *> List.map C.Entity.id
     let preds (module C : Subsocia_intf.S) e_id =
       C.Entity.of_id e_id >>= C.Entity.preds >|=
       C.Entity.Set.elements *> List.map C.Entity.id

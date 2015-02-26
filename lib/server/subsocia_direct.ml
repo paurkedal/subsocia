@@ -164,11 +164,6 @@ module Q = struct
        WHERE NOT EXISTS \
 	(SELECT 0 FROM @inclusion WHERE superentity_id = entity_id)"
 
-  let maximums =
-    q "SELECT entity_id FROM @entity \
-       WHERE NOT EXISTS \
-	(SELECT 0 FROM @inclusion WHERE subentity_id = entity_id)"
-
   let entity_preds =
     q "SELECT entity_id FROM @entity JOIN @inclusion \
 			  ON entity_id = subentity_id \
@@ -508,15 +503,12 @@ let connect uri = (module struct
       let add tup = Set.add (C.Tuple.int32 0 tup) in
       C.fold Q.type_members add C.Param.([|int32 entity_type_id|]) Set.empty
 
+    let top = of_id 1l
+
     let minimums, minimums_cache = memo_0lwt @@ fun () ->
       with_db @@ fun (module C) ->
       let add tup = Set.add (C.Tuple.int32 0 tup) in
       C.fold Q.minimums add [||] Set.empty
-
-    let maximums, maximums_cache = memo_0lwt @@ fun () ->
-      with_db @@ fun (module C) ->
-      let add tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.maximums add [||] Set.empty
 
     let preds, preds_cache = memo_1lwt @@ fun e ->
       with_db @@ fun (module C) ->
@@ -548,7 +540,6 @@ let connect uri = (module struct
     let clear_inclusion_caches () =
       let open Prime_cache in
       clear minimums_cache;
-      clear maximums_cache;
       clear preds_cache;
       clear succs_cache;
       clear inclusion_cache

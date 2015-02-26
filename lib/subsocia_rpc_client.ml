@@ -140,8 +140,8 @@ module Make (RPCM : RPCM) = struct
     let viewer = Raw.viewer
     let admin = Raw.admin
     let type_members et = Raw.type_members et >|= Set.of_ordered_elements
+    let top = Raw.top ()
     let minimums () = Raw.minimums () >|= Set.of_ordered_elements
-    let maximums () = Raw.maximums () >|= Set.of_ordered_elements
     let preds e = Raw.preds e >|= Set.of_ordered_elements
     let succs e = Raw.succs e >|= Set.of_ordered_elements
 
