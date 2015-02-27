@@ -25,6 +25,8 @@ let connect () =
   let uri = Uri.of_string Subsocia_config.database_uri#get in
   Subsocia_direct.connect uri
 
+let langs = [Lang.of_string "en"] (* TODO: Use $LANG *)
+
 let run f = Lwt_main.run (f (connect ()))
 let run0 f = Lwt_main.run (f (connect ())); 0
 let fail_f fmt = ksprintf (fun s -> Lwt.fail (Failure s)) fmt
@@ -302,13 +304,30 @@ module Entity_utils (C : Subsocia_intf.S) = struct
     | Some sel ->
       lwt e_ctx = select_entity sel in
       Lwt.return (e_ctx, asgn)
+
+  let add_attributes e (e_ctx, attrs) =
+    Lwt_list.iter_s
+      (fun (Attribute_type.Ex (at, av)) ->
+	C.Entity.precedes e e_ctx >>=
+	  (function
+	    | true -> Lwt.return_unit
+	    | false ->
+	      lwt ctx_name = Entity.display_name ~langs e_ctx in
+	      Lwt_log.info_f "Adding required inclusion under %s." ctx_name >>
+	      C.Entity.constrain e e_ctx) >>
+	C.Entity.setattr e e_ctx at [av])
+      attrs
+
+  let delete_attributes e (e_ctx, attrs) =
+    Lwt_list.iter_s
+      (fun (Attribute_type.Ex (at, av)) -> C.Entity.delattr e e_ctx at [av])
+      attrs
 end
 
 let search sel = run @@ fun (module C) ->
   let module U = Entity_utils (C) in
   lwt e_top = C.Entity.top in
   lwt es = U.denote_selector sel (C.Entity.Set.singleton e_top) in
-  let langs = [Lang.of_string "en"] in
   let show e = U.Entity.display_name ~langs e >>= Lwt_io.printl in
   C.Entity.Set.iter_s show es >>
   Lwt.return (if C.Entity.Set.is_empty es then 1 else 0)
@@ -330,21 +349,15 @@ let create etn succs aselectors = run0 @@ fun (module C) ->
   lwt succs = Lwt_list.map_p U.select_entity succs in
   lwt e = C.Entity.create ~viewer ~admin et in
   Lwt_list.iter_s (fun (e_sub) -> C.Entity.constrain e e_sub) succs >>
-  Lwt_list.iter_s
-    (fun (e_ctx, attrs) ->
-      Lwt_list.iter_s
-	(fun (U.Attribute_type.Ex (at, av)) ->
-	  C.Entity.setattr e e_ctx at [av])
-      attrs)
-    aselectors
+  Lwt_list.iter_s (U.add_attributes e) aselectors
 
 let create_t =
   let etn_t = Arg.(required & pos 0 (some string) None &
 		   info ~docv:"TYPE" []) in
   let succs_t = Arg.(value & opt_all selector_conv [] &
-		    info ~docv:"SUCC" ["s"]) in
-  let attrs_t = Arg.(value & opt_all aselector_conv [] &
-		    info ~docv:"NEW-PATH" ["a"]) in
+		    info ~docv:"PATH" ["s"]) in
+  let attrs_t = Arg.(non_empty & opt_all aselector_conv [] &
+		    info ~docv:"APATH" ["a"]) in
   Term.(pure create $ etn_t $ succs_t $ attrs_t)
 
 let delete sel = run0 @@ fun (module C) ->
@@ -366,20 +379,8 @@ let modify sel add_succs del_succs add_asels del_asels =
   lwt del_asels = Lwt_list.map_p U.lookup_aselector del_asels in
   lwt e = U.select_entity sel in
   Lwt_list.iter_s (fun (e_sub) -> C.Entity.constrain e e_sub) add_succs >>
-  Lwt_list.iter_s
-    (fun (e_ctx, attrs) ->
-      Lwt_list.iter_s
-	(fun (U.Attribute_type.Ex (at, av)) ->
-	  C.Entity.setattr e e_ctx at [av])
-      attrs)
-    add_asels >>
-  Lwt_list.iter_s
-    (fun (e_ctx, attrs) ->
-      Lwt_list.iter_s
-	(fun (U.Attribute_type.Ex (at, av)) ->
-	  C.Entity.delattr e e_ctx at [av])
-      attrs)
-    del_asels >>
+  Lwt_list.iter_s (U.add_attributes e) add_asels >>
+  Lwt_list.iter_s (U.delete_attributes e) del_asels >>
   Lwt_list.iter_s (fun (e_sub) -> C.Entity.unconstrain e e_sub) del_succs
 
 let modify_t =
