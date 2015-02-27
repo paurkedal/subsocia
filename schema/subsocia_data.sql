@@ -55,28 +55,28 @@ VALUES
 INSERT INTO subsocia.entity
   (entity_type_id, entity_rank, viewer_id, admin_id)
 VALUES
-  (1, 0, 3, 2), -- 1 All : unit
-  (2, 0, 3, 2), -- 2 Forbidden : access_group
-  (2, 0, 3, 4), -- 3 Default Viewers : access_group
-  (2, 0, 3, 4), -- 4 Default Admins : access_group
-  (3, 0, 3, 4), -- 5 Authenticated Users : auth_group
-  (2, 0, 3, 4); -- 6 New Users : access_group
+  (1, 0, 3, 2), -- 1 top : unit; NB! Must have entity_id = 1
+  (2, 0, 3, 2), -- 2 forbidden : access_group
+  (2, 0, 3, 4), -- 3 default_viewers : access_group
+  (2, 0, 3, 4), -- 4 default_admins : access_group
+  (3, 0, 3, 4), -- 5 authenticators : auth_group
+  (2, 0, 3, 4); -- 6 registrations : access_group
 
 INSERT INTO subsocia.inclusion
   (subentity_id, superentity_id)
 VALUES
-  (2, 1), -- Forbidden -- All
-  (3, 1), -- Default Viewers -- All
-  (4, 3), -- Default Admins -- Default Viewers
-  (5, 1), -- Authenticated Users -- All
-  (6, 1); -- New Users -- All
+  (2, 1), -- forbidden -- top
+  (3, 1), -- default_viewers -- top
+  (4, 3), -- default_admins -- default_viewers
+  (5, 1), -- auth_groups -- top
+  (6, 1); -- registrations -- top
 
 INSERT INTO subsocia.text_attribution
   (subentity_id, superentity_id, attribute_type_id, value)
 VALUES
-  (1, 1, 1, 'All'),
-  (2, 1, 1, 'Forbidden'),
-  (3, 1, 1, 'Default Viewers'),
-  (4, 1, 1, 'Default Admins'),
-  (5, 1, 1, 'Authenticated Users'),
-  (6, 1, 1, 'New Users');
+  (1, 1, 1, 'top'),
+  (2, 1, 1, 'forbidden'),
+  (3, 1, 1, 'default_viewers'),
+  (4, 1, 1, 'default_admins'),
+  (5, 1, 1, 'default_auth_group'),
+  (6, 1, 1, 'registrations');

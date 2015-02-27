@@ -92,10 +92,10 @@ module Make (Config : CONFIG) (Base : Subsocia_intf.S) = struct
       | 0 -> _fail "Missing initial entity %s" en
       | _ -> _fail "Multiple matches for unique name %s" en
 
-    let e_forbidden = _e_un "Forbidden"
-    let e_default_viewers = _e_un "Default Viewers"
-    let e_default_admins = _e_un "Default Admins"
-    let e_new_users = _e_un "New Users"
+    let e_forbidden = _e_un "forbidden"
+    let e_default_viewers = _e_un "default_viewers"
+    let e_default_admins = _e_un "default_admins"
+    let e_new_users = _e_un "registrations"
   end
 
   module Entity = struct

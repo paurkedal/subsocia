@@ -54,7 +54,7 @@ module Web = struct
       "HTTP header used to identify a logged-in user."
   let auth_group =
     new Config_file.string_cp ~group ["web"; "auth_group"]
-      "Authenticated Users"
+      "default_auth_group"
       "Authorization group to use for the web interface."
 end
 
