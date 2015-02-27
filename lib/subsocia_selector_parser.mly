@@ -18,8 +18,9 @@
 open Subsocia_selector_types
 %}
 
-%token EOF EQ SLASH PLUS LBRACE RBRACE
+%token EOF EQ SLASH TOP PLUS LBRACE RBRACE
 %token<string> EQ_VERB STR
+%token<int32> ID
 
 %type<Subsocia_selector_types.selector> start
 %start start
@@ -33,6 +34,8 @@ attribution:
     disjunction { $1 }
   | STR EQ STR { Select_attr ($1, $3) }
   | STR EQ_VERB { Select_attr ($1, $2) }
+  | TOP { Select_top }
+  | ID { Select_id $1 }
   | STR { Select_attr ("unique_name", $1) }
   | PLUS { Select_pred }
   ;

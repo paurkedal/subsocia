@@ -32,6 +32,8 @@ and lex = parse
   | '+' { PLUS }
   | '=' { EQ }
   | "={" { EQ_VERB (lex_literal (Buffer.create 80) 0 lexbuf) }
+  | '#' { TOP }
+  | '#' (['0'-'9']+ as s) { ID (Int32.of_string s) }
   | [^ '{' '}' '/' '+' '=' '\n']+ as s { STR s }
   | eof { EOF }
 

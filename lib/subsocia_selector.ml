@@ -14,6 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Printf
 open Subsocia_prereq
 open Subsocia_common
 open Unprime_string
@@ -44,6 +45,8 @@ let rec bprint_selector buf p = function
     end else
       Buffer.add_string buf v;
     if p > 1 then Buffer.add_char buf '}'
+  | Select_top -> Buffer.add_char buf '#'
+  | Select_id id -> bprintf buf "#%ld" id
   | Select_pred ->
     if p > 1 then Buffer.add_char buf '{';
     Buffer.add_char buf '+';
@@ -85,6 +88,12 @@ module Selector_utils (C : Subsocia_intf.S) = struct
 	  (fun e1 acc -> C.Entity.apreds e1 at x >|= C.Entity.Set.union acc)
 	  es C.Entity.Set.empty
       end
+    | Select_top -> fun es ->
+      if C.Entity.Set.is_empty es then Lwt.return C.Entity.Set.empty else
+      C.Entity.top >|= C.Entity.Set.singleton
+    | Select_id id -> fun es ->
+      if C.Entity.Set.is_empty es then Lwt.return C.Entity.Set.empty else
+      C.Entity.of_id id >|= C.Entity.Set.singleton
     | Select_pred -> fun es ->
       C.Entity.Set.fold_s
 	(fun e1 acc -> C.Entity.preds e1 >|= C.Entity.Set.union acc)

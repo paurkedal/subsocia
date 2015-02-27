@@ -53,7 +53,7 @@ let selector_conv = selector_parser, selector_printer
 
 let aselector_parser s =
   let rec aux acc = function
-    | Select_sub _ | Select_union _ | Select_pred ->
+    | Select_sub _ | Select_union _ | Select_pred | Select_top | Select_id _ ->
       invalid_arg "Invalid path for attribute assignement."
     | Select_inter (selA, selB) -> aux (aux acc selB) selA
     | Select_attr (an, av) -> (an, av) :: acc in
