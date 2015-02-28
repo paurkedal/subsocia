@@ -302,13 +302,9 @@ let an_list_t = Term.(pure an_list $ pure ())
 
 (* Entities *)
 
-module Config = struct
-  let display_name_attributes = Subsocia_config.display_name#get
-end
-
 module Entity_utils (C : Subsocia_intf.S) = struct
   include Selector_utils (C)
-  include Subsocia_derived.Make (Config) (C)
+  include Subsocia_derived.Make (C)
 
   let lookup_assignment (an, vs) =
     lwt C.Attribute_type.Ex at =

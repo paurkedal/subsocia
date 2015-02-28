@@ -151,6 +151,7 @@ module Bool_set = Prime_enumset.Make_monadic (Bool_compare) (Lwt) (* TODO:opt *)
 module Int_compare = struct type t = int let compare = compare end
 module Int_set = Prime_enumset.Make_monadic (Int_compare) (Lwt)
 module String_set = Prime_enumset.Make_monadic (String) (Lwt)
+module String_map = Prime_enummap.Make_monadic (String) (Lwt)
 
 module Values = struct
 

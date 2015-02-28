@@ -18,13 +18,9 @@ open Panograph_i18n
 open Printf
 open Subsocia_common
 
-module type CONFIG = sig
-  val display_name_attributes : string list
-end
-
 let _fail fmt = ksprintf (fun s -> Lwt.fail (Failure s)) fmt
 
-module Make (Config : CONFIG) (Base : Subsocia_intf.S) = struct
+module Make (Base : Subsocia_intf.S) = struct
   open Base
 
   module Attribute_type = struct
@@ -106,7 +102,7 @@ module Make (Config : CONFIG) (Base : Subsocia_intf.S) = struct
 	  (lang, string Base.Attribute_type.t1 list) Hashtbl.t =
       Hashtbl.create 5
 
-    let display_name ~langs entity =
+    let resolve_attr ~langs e spec =
       lwt e_top = Entity.top in
 
       let aux_plain an =
@@ -114,7 +110,7 @@ module Make (Config : CONFIG) (Base : Subsocia_intf.S) = struct
 	| None -> Lwt.return_none
 	| Some at0 ->
 	  lwt at = Attribute_type.coerce_lwt Type.String at0 in
-	  lwt vs = Entity.getattr entity e_top at in
+	  lwt vs = Entity.getattr e e_top at in
 	  if Values.is_empty vs then Lwt.return_none
 				else Lwt.return (Some (Values.min_elt vs)) in
 
@@ -128,9 +124,28 @@ module Make (Config : CONFIG) (Base : Subsocia_intf.S) = struct
 	then aux_i18n (Prime_string.slice 0 (String.length an - 2) an)
 	else aux_plain an in
 
-      match_lwt Lwtx_list.search_s aux Config.display_name_attributes with
+      let comps = Prime_string.chop_affix "|" spec in
+      match_lwt Lwtx_list.search_s aux comps with
+      | None -> raise_lwt Not_found
       | Some s -> Lwt.return s
-      | None -> Lwt.return @@ sprintf "# %ld" (Entity.id entity)
+
+    let display_name ~langs e =
+      let aux tmpl =
+	try_lwt
+	  let buf = Buffer.create 80 in
+	  let m = ref String_map.empty in
+	  Buffer.add_substitute buf (fun v -> m := String_map.add v () !m; "")
+				tmpl;
+	  Buffer.clear buf;
+	  lwt m = String_map.mapi_s (fun v _ -> resolve_attr ~langs e v) !m in
+	  Buffer.add_substitute buf (fun v -> String_map.find v m) tmpl;
+	  Lwt.return (Some (Buffer.contents buf))
+	with Not_found -> Lwt.return None in
+      lwt et = Base.Entity.type_ e in
+      lwt tmpl = Base.Entity_type.entity_name_tmpl et in
+      match_lwt Lwtx_list.search_s aux (Prime_string.chop_affix "|" tmpl) with
+      | Some s -> Lwt.return s
+      | None -> Lwt.return @@ sprintf "# %ld" (Entity.id e)
 
     let candidate_succs e =
       lwt et = Entity.type_ e in

@@ -104,3 +104,4 @@ module Int_set : SET with type elt = int
 module Int32_set : SET with type elt = int32
 module Int32_map : MAP with type key = int32
 module String_set : SET with type elt = string
+module String_map : MAP with type key = string

@@ -25,17 +25,6 @@ let database_uri =
   new Config_file.string_cp ~group ["database_uri"] "postgresql:/"
     "Caqti URI for connecting to the database."
 
-let display_name =
-  new Config_file.list_cp Config_file.string_wrappers ~group
-    ["interpretation"; "display_name"]
-    [ "display_name[]"; "display_name";
-      "proper_name[]"; "proper_name";
-      "common_name[]"; "common_name";
-      "name[]"; "name";
-      "unique_name" ]
-    "Attributes considered as display names. \
-     Suffix stranslated attributes with []"
-
 module Cmd = struct
   let plugins =
     new Config_file.list_cp Config_file.string_wrappers ~group

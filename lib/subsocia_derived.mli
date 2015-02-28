@@ -17,11 +17,7 @@
 open Panograph_i18n
 open Subsocia_common
 
-module type CONFIG = sig
-  val display_name_attributes : string list
-end
-
-module Make (Config : CONFIG) (Base : Subsocia_intf.S) : sig
+module Make (Base : Subsocia_intf.S) : sig
   open Base
 
   module Attribute_type : sig
