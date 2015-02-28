@@ -79,6 +79,8 @@ module Make (RPCM : RPCM) = struct
     let create = Raw.create
     let delete = Raw.delete
     let all () = Raw.all () >|= Set.of_ordered_elements
+    let entity_name_tmpl = Raw.entity_name_tmpl
+    let set_entity_name_tmpl = Raw.set_entity_name_tmpl
 
     let inclusion et0 et1 =
       Raw.inclusion et0 et1

@@ -15,11 +15,11 @@
 
 -- Initial Data: Types
 
-INSERT INTO subsocia.entity_type (entity_type_name) VALUES
-  ('unit'),		-- 1
-  ('access_group'),	-- 2
-  ('auth_group'),	-- 3
-  ('person');		-- 4
+INSERT INTO subsocia.entity_type (entity_type_name, entity_name_tmpl) VALUES
+  ('unit', DEFAULT),				-- 1
+  ('access_group', DEFAULT),			-- 2
+  ('auth_group', DEFAULT),			-- 3
+  ('person', '${first_name} ${last_name}');	-- 4
 
 INSERT INTO subsocia.attribute_type (attribute_name, value_type) VALUES
   ('unique_name', 'string'),	-- 1

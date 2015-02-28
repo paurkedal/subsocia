@@ -89,6 +89,10 @@ module Q = struct
     q "DELETE FROM @entity_type WHERE entity_type_id = ?"
   let entity_type_all =
     q "SELECT entity_type_id FROM @entity_type"
+  let entity_name_tmpl =
+    q "SELECT entity_name_tmpl FROM @entity_type WHERE entity_type_id = ?"
+  let set_entity_name_tmpl =
+    q "UPDATE @entity_type SET entity_name_tmpl = ? WHERE entity_type_id = ?"
 
   let inclusion_type =
     q "SELECT subentity_multiplicity, superentity_multiplicity \
@@ -387,6 +391,14 @@ let connect uri = (module struct
       with_db @@ fun (module C) ->
       C.fold Q.entity_type_all (fun tup -> Set.add (C.Tuple.int32 0 tup)) [||]
 	     Set.empty
+
+    let entity_name_tmpl, entity_name_tmpl_cache = memo_1lwt @@ fun et ->
+      with_db @@ fun (module C) ->
+      C.find Q.entity_name_tmpl C.Tuple.(text 0) C.Param.([|int32 et|])
+
+    let set_entity_name_tmpl et name =
+      with_db @@ fun (module C) ->
+      C.exec Q.set_entity_name_tmpl C.Param.([|text name; int32 et|])
 
     let inclusion, inclusion_cache =
       memo_2lwt @@ fun (et0, et1) ->

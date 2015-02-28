@@ -51,6 +51,8 @@ module type S = sig
     val create : string -> t Lwt.t
     val delete : t -> unit Lwt.t
     val all : unit -> Set.t Lwt.t
+    val entity_name_tmpl : t -> string Lwt.t
+    val set_entity_name_tmpl : t -> string -> unit Lwt.t
 
     val inclusion : t -> t -> (Multiplicity.t * Multiplicity.t) option Lwt.t
     val inclusion_preds : t -> (Multiplicity.t * Multiplicity.t) Map.t Lwt.t

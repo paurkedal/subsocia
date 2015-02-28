@@ -19,7 +19,8 @@ CREATE SCHEMA subsocia;
 
 CREATE TABLE subsocia.entity_type (
     entity_type_id SERIAL PRIMARY KEY,
-    entity_type_name text UNIQUE NOT NULL
+    entity_type_name text UNIQUE NOT NULL,
+    entity_name_tmpl text NOT NULL DEFAULT ('${unique_name}')
 );
 CREATE TABLE subsocia.inclusion_type (
     subentity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
