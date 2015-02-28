@@ -20,6 +20,7 @@ open Printf
 open Subsocia_common
 open Subsocia_selector
 open Unprime
+open Unprime_option
 
 let connect () =
   let uri = Uri.of_string Subsocia_config.database_uri#get in
@@ -89,8 +90,30 @@ let et_create etn = run0 @@ fun (module C) ->
 let et_create_t =
   let et_name_t =
     Arg.(required & pos 0 (some string) None &
-	 info [] ~docv:"TYPE-NAME" ~doc:"Name of type to create.") in
+	 info [] ~docv:"ET-NAME" ~doc:"Name of type to create.") in
   Term.(pure et_create $ et_name_t)
+
+let et_modify etn ent_opt = run @@ fun (module C) ->
+  match_lwt C.Entity_type.of_name etn with
+  | None ->
+    Lwt.return (`Error (false, sprintf "No type is named %s." etn))
+  | Some et ->
+    begin match ent_opt with
+    | None -> Lwt.return_unit
+    | Some ent -> C.Entity_type.set_entity_name_tmpl et ent
+    end >>
+    Lwt.return (`Ok 0)
+
+let et_modify_t =
+  let etn_t =
+    Arg.(required & pos 0 (some string) None &
+	 info ~docv:"ET-NAME" ~doc:"Name of the entity type to modify" []) in
+  let ent_t =
+    Arg.(value & opt (some string) None &
+	 info ~docv:"TEMPLATE"
+	      ~doc:"Template for the display name of entities of this type."
+	      ["name-template"]) in
+  Term.(ret (pure et_modify $ etn_t $ ent_t))
 
 let et_delete etn = run @@ fun (module C) ->
   match_lwt C.Entity_type.of_name etn with
@@ -104,7 +127,8 @@ let et_delete etn = run @@ fun (module C) ->
 
 let et_delete_t =
   let et_name_t =
-    Arg.(required & pos 0 (some string) None & info ~docv:"TYPE-NAME" []) in
+    Arg.(required & pos 0 (some string) None &
+	 info ~docv:"ET-NAME" ~doc:"Name of the entity to delete" []) in
   Term.(ret (pure et_delete $ et_name_t))
 
 let et_list () = run0 @@ fun (module C) ->
@@ -412,6 +436,9 @@ let subcommands = [
   et_create_t, Term.info ~docs:et_scn
     ~doc:"Create an entity type."
     "et-create";
+  et_modify_t, Term.info ~docs:et_scn
+    ~doc:"Modify an entity type."
+    "et-modify";
   et_delete_t, Term.info ~docs:et_scn
     ~doc:"Delete an entity type."
     "et-delete";
