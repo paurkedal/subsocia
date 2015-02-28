@@ -203,16 +203,16 @@ let in_list_t =
 
 (* Attributes *)
 
-let at_create atn vt = run0 @@ fun (module C) ->
+let at_create vt atn = run0 @@ fun (module C) ->
   C.Attribute_type.create vt atn >>= fun at ->
   Lwt_log.info_f "Created attribute type #%ld %s." (C.Attribute_type.id at) atn
 
 let at_create_t =
-  let atn_t = Arg.(required & pos 0 (some string) None &
-		   info ~docv:"NAME" []) in
   let vt_t = Arg.(required & pos 1 (some value_type_conv) None &
 		  info ~docv:"TYPE" []) in
-  Term.(pure at_create $ atn_t $ vt_t)
+  let atn_t = Arg.(required & pos 0 (some string) None &
+		   info ~docv:"NAME" []) in
+  Term.(pure at_create $ vt_t $ atn_t)
 
 let at_delete atn = run @@ fun (module C) ->
   match_lwt C.Attribute_type.of_name atn with
