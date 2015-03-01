@@ -32,7 +32,11 @@ let get_auth_http_header () =
   let frame = Ocsigen_extensions.Ocsigen_request_info.http_frame ri in
   Ocsigen_headers.find h frame
 
-let e_auth_group = Scd.Entity.of_unique_name Subsocia_config.Web.auth_group#get
+let e_auth_group =
+  let en = Subsocia_config.Web.auth_group#get in
+  match_lwt Scd.Entity.of_unique_name en with
+  | None -> Lwt.fail (Failure ("Missing configured auth group "^en^"."))
+  | Some e -> Lwt.return e
 
 module Log_auth = struct
   let section = Lwt_log.Section.make "subsocia.auth"
@@ -43,9 +47,7 @@ let auth_identity () =
   try Lwt.return (get_auth_http_header ())
   with Not_found -> http_error 401 "Not authenticated."
 
-let get_operator_opt () =
-  lwt user = auth_identity () in
-  Log_auth.debug_f "HTTP authenticated user is %s." user >>
+let entity_of_authcid user =
   lwt e_auth_group = e_auth_group in
   lwt at_unique_name = Scd.Const.at_unique_name in
   lwt s = Sc.Entity.apreds e_auth_group at_unique_name user in
@@ -53,6 +55,11 @@ let get_operator_opt () =
   | 1 -> Lwt.return (Some (Sc.Entity.Set.min_elt s))
   | 0 -> Lwt.return_none
   | _ -> http_error 500 "Duplicate registration."
+
+let get_operator_opt () =
+  lwt user = auth_identity () in
+  Log_auth.debug_f "HTTP authenticated user is %s." user >>
+  entity_of_authcid user
 
 let get_operator () =
   match_lwt get_operator_opt () with

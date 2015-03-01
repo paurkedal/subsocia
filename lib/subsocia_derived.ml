@@ -78,11 +78,10 @@ module Make (Base : Subsocia_intf.S) = struct
     let et_auth_group = _et "auth_group"
     let et_person = _et "person"
 
-    let _e_un ?super en =
-      lwt super = match super with Some e -> Lwt.return e
-				 | None -> Entity.top in
+    let _e_un en =
+      lwt top = Entity.top in
       lwt at_unique_name = at_unique_name in
-      lwt es = Entity.apreds super at_unique_name en in
+      lwt es = Entity.apreds top at_unique_name en in
       match Entity.Set.cardinal es with
       | 1 -> Lwt.return (Entity.Set.min_elt es)
       | 0 -> _fail "Missing initial entity %s" en
@@ -96,7 +95,15 @@ module Make (Base : Subsocia_intf.S) = struct
 
   module Entity = struct
 
-    let of_unique_name = Const._e_un
+    let of_unique_name ?super en =
+      lwt super = match super with Some e -> Lwt.return e
+				 | None -> Entity.top in
+      lwt at_unique_name = Const.at_unique_name in
+      lwt es = Entity.apreds super at_unique_name en in
+      match Entity.Set.cardinal es with
+      | 1 -> Lwt.return (Some (Entity.Set.min_elt es))
+      | 0 -> Lwt.return_none
+      | _ -> _fail "Multiple matches for unique name %s" en
 
     let display_name_ats_cache :
 	  (lang, string Base.Attribute_type.t1 list) Hashtbl.t =
