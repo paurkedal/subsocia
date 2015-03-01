@@ -56,6 +56,7 @@ end
 
 module Entity = struct
   external create : viewer: int32 -> admin: int32 -> int32 -> int32 = ""
+  external modify : ?viewer: int32 -> ?admin: int32 -> int32 -> unit = ""
   external delete : int32 -> unit = ""
   external type_ : int32 -> int32 = ""
   external viewer : int32 -> int32 = ""

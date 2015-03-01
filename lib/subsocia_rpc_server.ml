@@ -145,6 +145,12 @@ module Server_impl = struct
       C.Entity.create ~viewer ~admin entity_type >|=
       C.Entity.id
 
+    let modify (module C : Subsocia_intf.S) ?viewer ?admin entity =
+      lwt viewer = Pwt_option.map_s C.Entity.of_id viewer in
+      lwt admin = Pwt_option.map_s C.Entity.of_id admin in
+      lwt entity = C.Entity.of_id entity in
+      C.Entity.modify ?viewer ?admin entity
+
     let delete (module C : Subsocia_intf.S) entity =
       lwt entity = C.Entity.of_id entity in
       C.Entity.delete entity

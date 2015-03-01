@@ -197,6 +197,11 @@ module Q = struct
     q "INSERT INTO @entity (entity_type_id, viewer_id, admin_id) \
        VALUES (?, ?, ?) RETURNING entity_id"
 
+  let set_entity_admin =
+    q "UPDATE @entity SET admin_id = ? WHERE entity_id = ?"
+  let set_entity_viewer =
+    q "UPDATE @entity SET viewer_id = ? WHERE entity_id = ?"
+
   let delete_entity =
     q "DELETE FROM @entity WHERE entity_id = ?"
 
@@ -539,6 +544,19 @@ let connect uri = (module struct
       with_db @@ fun (module C) ->
 	C.find Q.create_entity C.Tuple.(int32 0)
 	       C.Param.([|int32 entity_type; int32 viewer; int32 admin|])
+
+    let modify ?viewer ?admin e =
+      with_db @@ fun (module C) ->
+      Pwt_option.iter_s
+	(fun viewer ->
+	  C.exec Q.set_entity_viewer C.Param.([|int32 viewer; int32 e|]) >>
+	  Lwt.return (Prime_cache.remove viewer_cache e))
+	viewer >>
+      Pwt_option.iter_s
+	(fun admin ->
+	  C.exec Q.set_entity_admin C.Param.([|int32 admin; int32 e|]) >>
+	  Lwt.return (Prime_cache.remove admin_cache e))
+	admin
 
     let delete e =
       with_db @@ fun (module C) ->

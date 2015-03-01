@@ -138,6 +138,7 @@ module Make (RPCM : RPCM) = struct
     let compare = compare
 
     let create = Raw.create
+    let modify = Raw.modify
     let delete = Raw.delete
     let type_ = Raw.type_
     let viewer = Raw.viewer

@@ -390,18 +390,24 @@ let delete_t =
 		   info ~docv:"PATH" []) in
   Term.(pure delete $ sel_t)
 
-let modify sel add_succs del_succs add_asels del_asels =
+let modify sel add_succs del_succs add_asels del_asels admin viewer =
   run0 @@ fun (module C) ->
   let module U = Entity_utils (C) in
   lwt add_succs = Lwt_list.map_p U.select_entity add_succs in
   lwt del_succs = Lwt_list.map_p U.select_entity del_succs in
   lwt add_asels = Lwt_list.map_p U.lookup_aselector add_asels in
   lwt del_asels = Lwt_list.map_p U.lookup_aselector del_asels in
+  lwt admin = Pwt_option.map_s U.select_entity admin in
+  lwt viewer = Pwt_option.map_s U.select_entity viewer in
   lwt e = U.select_entity sel in
-  Lwt_list.iter_s (fun (e_sub) -> C.Entity.constrain e e_sub) add_succs >>
+  Lwt_list.iter_s (fun e_sub -> C.Entity.constrain e e_sub) add_succs >>
   Lwt_list.iter_s (U.add_attributes e) add_asels >>
   Lwt_list.iter_s (U.delete_attributes e) del_asels >>
-  Lwt_list.iter_s (fun (e_sub) -> C.Entity.unconstrain e e_sub) del_succs
+  Lwt_list.iter_s (fun e_sub -> C.Entity.unconstrain e e_sub) del_succs >>
+  if admin <> None || viewer <> None then
+    C.Entity.modify ?admin ?viewer e
+  else
+    Lwt.return_unit
 
 let modify_t =
   let sel_t = Arg.(required & pos 0 (some selector_conv) None &
@@ -414,8 +420,15 @@ let modify_t =
 			 info ~docv:"APATH" ["a"]) in
   let del_attrs_t = Arg.(value & opt_all aselector_conv [] &
 			 info ~docv:"APATH" ["d"]) in
+  let admin_t = Arg.(value & opt (some selector_conv) None &
+		     info ~docv:"PATH" ~doc:"Set administrator group."
+			  ["admin"]) in
+  let viewer_t = Arg.(value & opt (some selector_conv) None &
+		      info ~docv:"PATH" ~doc:"Set viewer group."
+			   ["viewer"]) in
   Term.(pure modify $ sel_t $ add_succs_t $ del_succs_t
-			    $ add_attrs_t $ del_attrs_t)
+			    $ add_attrs_t $ del_attrs_t
+			    $ admin_t $ viewer_t)
 
 (* Main *)
 
