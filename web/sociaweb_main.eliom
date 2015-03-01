@@ -67,34 +67,44 @@
     Lwt.return [F.a ~service:entity_service [F.pcdata name] id]
 
   let render_neigh_remove ~cri focus succ =
+    lwt succ_admin = Sc.Entity.admin succ in
+    lwt can_edit = Sc.Entity.precedes cri.cri_operator succ_admin in
     let focus_id = Sc.Entity.id focus in
     let succ_id = Sc.Entity.id succ in
     lwt name = Scd.Entity.display_name ~langs:cri.cri_langs succ in
-    let on_remove = {{fun _ ->
-      Eliom_lib.debug "Removing.";
-      Lwt.async @@ fun () ->
-      %unconstrain_c (%focus_id, %succ_id)
-    }} in
-    Lwt.return [
-      F.a ~service:entity_service [F.pcdata name] succ_id;
-      F.pcdata " ";
-      F.button ~button_type:`Button ~a:[F.a_onclick on_remove] [F.pcdata "−"];
-    ]
+    let link = F.a ~service:entity_service [F.pcdata name] succ_id in
+    if can_edit then begin
+      let on_remove = {{fun _ ->
+	Eliom_lib.debug "Removing.";
+	Lwt.async @@ fun () ->
+	%unconstrain_c (%focus_id, %succ_id)
+      }} in
+      Lwt.return [
+	link; F.pcdata " ";
+	F.button ~button_type:`Button ~a:[F.a_onclick on_remove] [F.pcdata "−"];
+      ]
+    end else
+      Lwt.return [link]
 
   let render_neigh_add ~cri focus succ =
+    lwt succ_admin = Sc.Entity.admin succ in
+    lwt can_edit = Sc.Entity.precedes cri.cri_operator succ_admin in
     let focus_id = Sc.Entity.id focus in
     let succ_id = Sc.Entity.id succ in
     lwt name = Scd.Entity.display_name ~langs:cri.cri_langs succ in
-    let on_add = {{fun _ ->
-      Eliom_lib.debug "Adding.";
-      Lwt.async @@ fun () ->
-      %constrain_c (%focus_id, %succ_id)
-    }} in
-    Lwt.return [
-      F.a ~service:entity_service [F.pcdata name] succ_id;
-      F.pcdata " ";
-      F.button ~button_type:`Button ~a:[F.a_onclick on_add] [F.pcdata "+"];
-    ]
+    let link = F.a ~service:entity_service [F.pcdata name] succ_id in
+    if can_edit then begin
+      let on_add = {{fun _ ->
+	Eliom_lib.debug "Adding.";
+	Lwt.async @@ fun () ->
+	%constrain_c (%focus_id, %succ_id)
+      }} in
+      Lwt.return [
+	link; F.pcdata " ";
+	F.button ~button_type:`Button ~a:[F.a_onclick on_add] [F.pcdata "+"];
+      ]
+    end else
+      Lwt.return [link]
 
   let rec fold_closure_from f succs x acc =
     lwt xs = succs x in
@@ -140,17 +150,27 @@
     lwt succ_frags = Lwt_list.map_s (render_succ ~cri) succs' in
     let succs_view = multicol ~cls:["succ1"] succ_frags in
     lwt succs_add =
-      if not enable_edit then Lwt.return (F.pcdata "") else
-      lwt candidate_succs = Scd.Entity.candidate_succs ent in
-      let candidate_succs = Sc.Entity.Set.compl succs candidate_succs in
-      let candidate_succs' = Sc.Entity.Set.elements candidate_succs in
-      lwt candidate_succ_frags = Lwt_list.map_s (render_neigh_add ~cri ent)
-				 candidate_succs' in
-      Lwt.return (multicol ~cls:["candidate"; "succ1"] candidate_succ_frags) in
+      if not enable_edit then Lwt.return_none else
+      let operator = cri.cri_operator in
+      lwt csuccs = Scd.Entity.candidate_succs ent in
+      let csuccs = Sc.Entity.Set.compl succs csuccs in
+      lwt csuccs = Sc.Entity.Set.filter_s (can_edit_entity ~operator) csuccs in
+      if Sc.Entity.Set.is_empty csuccs then
+	Lwt.return_none
+      else
+	let csuccs = Sc.Entity.Set.elements csuccs in
+	lwt csuccs = Lwt_list.map_s (render_neigh_add ~cri ent) csuccs in
+	Lwt.return (Some (multicol ~cls:["candidate"; "succ1"] csuccs)) in
     Lwt.return @@
-      F.table ~a:[F.a_class ["layout"]]
-	[F.tr [F.th [F.pcdata "Member of"]; F.th [F.pcdata "Not member of"]];
-	 F.tr [F.td [succs_view]; F.td [succs_add]]]
+      match succs_add with
+      | None ->
+	F.table ~a:[F.a_class ["layout"]]
+	  [F.tr [F.th [F.pcdata "Member of"]];
+	   F.tr [F.td [succs_view]]]
+      | Some succs_add ->
+	F.table ~a:[F.a_class ["layout"]]
+	  [F.tr [F.th [F.pcdata "Member of"]; F.th [F.pcdata "Not member of"]];
+	   F.tr [F.td [succs_view]; F.td [succs_add]]]
 
   let render_browser ~cri ?(enable_edit = true) ent =
     let open Html5 in

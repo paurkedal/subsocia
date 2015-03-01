@@ -348,7 +348,11 @@ let search sel = run @@ fun (module C) ->
   let module U = Entity_utils (C) in
   lwt e_top = C.Entity.top in
   lwt es = U.denote_selector sel (C.Entity.Set.singleton e_top) in
-  let show e = U.Entity.display_name ~langs e >>= Lwt_io.printl in
+  let show e =
+    lwt name = U.Entity.display_name ~langs e in
+    lwt et = C.Entity.type_ e in
+    lwt etn = C.Entity_type.name et in
+    Lwt_io.printlf "%s : %s" name etn in
   C.Entity.Set.iter_s show es >>
   Lwt.return (if C.Entity.Set.is_empty es then 1 else 0)
 
