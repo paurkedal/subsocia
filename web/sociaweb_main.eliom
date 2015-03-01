@@ -96,13 +96,13 @@
       F.button ~button_type:`Button ~a:[F.a_onclick on_add] [F.pcdata "+"];
     ]
 
-  let rec fold_s_closure_from f succs x acc =
+  let rec fold_closure_from f succs x acc =
     lwt xs = succs x in
-    lwt acc = Lwt_list.fold_right_s (fold_s_closure_from f succs) xs acc in
-    f x acc
+    lwt acc = Sc.Entity.Set.fold_s (fold_closure_from f succs) xs acc in
+    Lwt.return (f x acc)
 
-  let map_s_closure_from f succs x =
-    fold_s_closure_from (fun x acc -> f x >|= fun x -> x :: acc) succs x []
+  let upwards_closure e =
+    fold_closure_from Sc.Entity.Set.add Sc.Entity.succs e Sc.Entity.Set.empty
 
   let render_attribution ~cri lb ub =
     let open Html5 in
@@ -158,11 +158,13 @@
     let preds' = Sc.Entity.Set.elements preds in
     lwt pred_frags = Lwt_list.map_s (render_neigh ~cri) preds' in
     lwt name = Scd.Entity.display_name ~langs:cri.cri_langs ent in
-    lwt attr_trss =
-      map_s_closure_from (render_attribution ~cri ent)
-	  (fun ent -> Sc.Entity.succs ent >|= Sc.Entity.Set.elements) ent in
+    lwt ubs = upwards_closure ent in
+    let attr_aux ub acc =
+      render_attribution ~cri ent ub
+	>|= function None -> acc | Some trs -> trs :: acc in
+    lwt attr_trss = Sc.Entity.Set.fold_s attr_aux ubs [] in
     let attr_table = F.table ~a:[F.a_class ["assoc"]]
-			     (List.flatten (List.fmap ident attr_trss)) in
+			     (List.flatten attr_trss) in
     lwt succs_frag = render_succs ~cri ~enable_edit ent in
     Lwt.return @@ F.div ~a:[F.a_class ["entity-browser"]] [
       succs_frag;
