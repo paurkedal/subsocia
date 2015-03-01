@@ -73,6 +73,7 @@ Library "subsocia-web"
     server/Sociaweb_content,
     server/Sociaweb_main,
     server/Sociaweb_registration,
+    server/Sociaweb_restapi,
     server/Sociaweb_server,
     server/Sociaweb_services
   BuildDepends: eliom.server, prime, subsocia-server
