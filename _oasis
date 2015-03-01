@@ -39,6 +39,7 @@ Executable "subsocia"
   MainIs: subsocia_main.ml
   BuildDepends:
     cmdliner,
+    subsocia,
     subsocia-server
   ByteOpt: -thread
   NativeOpt: -thread
