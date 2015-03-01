@@ -541,8 +541,10 @@ let connect uri = (module struct
 	       C.Param.([|int32 entity_type; int32 viewer; int32 admin|])
 
     let delete e =
-      with_db @@ fun (module C) -> C.exec Q.delete_entity C.Param.([|int32 e|])
-      (* TODO: Cascading? *)
+      with_db @@ fun (module C) ->
+      C.exec Q.delete_entity C.Param.([|int32 e|]) >|= fun () ->
+      Prime_cache.clear minimums_cache;
+      Prime_cache.clear preds_cache
 
     let precedes subentity superentity =
       if subentity = superentity then Lwt.return_true else
