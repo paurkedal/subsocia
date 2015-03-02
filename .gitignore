@@ -5,6 +5,7 @@
 /_build
 /_var
 /configure
+/lib/subsocia_version.ml
 /setup.data
 /setup.log
 /setup.ml

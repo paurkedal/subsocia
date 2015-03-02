@@ -81,6 +81,48 @@ let aselector_printer fmtr (ctx, asgn) =
 
 let aselector_conv = aselector_parser, aselector_printer
 
+(* Database Commands *)
+
+let schemas = ["subsocia_core.sql"; "subsocia_data.sql"]
+
+let db_schema do_dir =
+  Lwt_main.run begin
+    if do_dir then
+      Lwt_io.printl Subsocia_version.schema_dir
+    else
+      Lwt_list.iter_s
+	(fun schema ->
+	  Lwt_io.printl (Filename.concat Subsocia_version.schema_dir schema))
+	schemas
+  end; 0
+
+let db_schema_t =
+  let do_dir_t =
+    Arg.(value & flag &
+	 info ~doc:"Print the path to the top-level directory \
+		    instead of to the individual schema files." ["dir"]) in
+  Term.(pure db_schema $ do_dir_t)
+
+let db_init () =
+  (* TODO: Check presence of psql. Or better, use Caqti. Though this may
+   * require splitting up the schema files into individual statements. *)
+  Lwt_main.run begin
+    let uri = Subsocia_config.database_uri#get in
+    Pwt_list.search_s
+      (fun schema ->
+	let p = Filename.concat Subsocia_version.schema_dir schema in
+	Lwt_log.info_f "Loading %s" p >>
+	let cmd = "psql", [|"psql"; "-d"; uri; "-f"; p|] in
+	match_lwt Lwt_process.exec cmd with
+	| Unix.WEXITED 0 -> Lwt.return None
+	| Unix.WEXITED rc -> Lwt.return (Some rc)
+	| Unix.WSIGNALED sg | Unix.WSTOPPED sg ->
+	  fail_f "psql received signal %d." sg)
+      schemas >|= Option.get_or 0
+  end
+
+let db_init_t = Term.(pure db_init $ pure ())
+
 (* Entity Types *)
 
 let et_create etn = run0 @@ fun (module C) ->
@@ -436,6 +478,7 @@ let modify_t =
 
 (* Main *)
 
+let db_scn = "DATABASE COMMANDS"
 let et_scn = "ENTITY TYPE COMMANDS"
 let in_scn = "INCLUSION COMMANDS"
 let at_scn = "ATTRIBUTE TYPE COMMANDS"
@@ -443,6 +486,12 @@ let an_scn = "ATTRIBUTION COMMANDS"
 let e_scn = "ENTITY COMMANDS"
 
 let subcommands = [
+  db_schema_t, Term.info ~docs:db_scn
+    ~doc:"Print the directory or paths of database schema files."
+    "db-schema";
+  db_init_t, Term.info ~docs:db_scn
+    ~doc:"Initialize the database."
+    "db-init";
   et_list_t, Term.info ~docs:et_scn
     ~doc:"List entity types."
     "et-list";

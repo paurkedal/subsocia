@@ -10,6 +10,8 @@ BuildTools: ocamlbuild
 XOCamlbuildPluginTags: package(eliom.ocamlbuild)
 OCamlVersion: >= 4.01
 
+FilesAB: lib/subsocia_version.ml.ab
+
 Library "subsocia"
   Path: lib
   Modules:
@@ -20,7 +22,8 @@ Library "subsocia"
     Subsocia_rpc_client,
     Subsocia_rpc_server,
     Subsocia_selector,
-    Subsocia_selector_types
+    Subsocia_selector_types,
+    Subsocia_version
   InternalModules:
     Subsocia_rpc_primitives,
     Subsocia_selector_lexer,
@@ -57,6 +60,9 @@ Library "subsocia-server"
     Subsocia_plugin
   ByteOpt: -thread
   NativeOpt: -thread
+  DataFiles:
+    ../../schema/subsocia_core.sql ($datadir/subsocia/schema),
+    ../../schema/subsocia_data.sql ($datadir/subsocia/schema)
 
 Document api
   Title: Subsocia API Reference

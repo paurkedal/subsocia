@@ -22,7 +22,7 @@ let plugins =
     "List of dynamic findlib libraries to load at startup."
 
 let database_uri =
-  new Config_file.string_cp ~group ["database_uri"] "postgresql:/"
+  new Config_file.string_cp ~group ["database_uri"] "postgresql://"
     "Caqti URI for connecting to the database."
 
 module Cmd = struct
