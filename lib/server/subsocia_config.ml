@@ -45,6 +45,11 @@ module Web = struct
     new Config_file.string_cp ~group ["web"; "auth_group"]
       "default_auth_group"
       "Authorization group to use for the web interface."
+  let restapi_allowed_attributes =
+    new Config_file.list_cp Config_file.string_wrappers ~group
+      ["web"; "restapi_allowed_attributes"] []
+      "Attributes which are exposed by the REST API. This must be \
+       valid JSON identifiers due to the way they are returned."
 end
 
 let () =

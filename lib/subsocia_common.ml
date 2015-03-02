@@ -133,6 +133,13 @@ module Value = struct
     | Type.String, (Ex (Type.String, x)) -> x
     | _ -> invalid_arg "Subsocia_common.Value.coerce: Type error."
 
+  let typed_to_poly : type a. a Type.t1 -> a ->
+		      [> `Bool of bool | `Int of int | `String of string] =
+    function
+    | Type.Bool -> fun x -> `Bool x
+    | Type.Int -> fun x -> `Int x
+    | Type.String -> fun x -> `String x
+
   let rpc_of_t0 = function
     | Ex (Type.Bool, x) -> Rpc.rpc_of_bool x
     | Ex (Type.Int, x) -> Rpc.rpc_of_int x
