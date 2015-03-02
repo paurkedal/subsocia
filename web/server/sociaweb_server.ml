@@ -21,7 +21,10 @@ open Unprime_option
 
 let subsocia_uri = Uri.of_string Subsocia_config.database_uri#get
 module Sc = (val Subsocia_direct.connect subsocia_uri)
-module Scd = Subsocia_derived.Make (Sc)
+module Scd = struct
+  include Subsocia_derived.Make (Sc)
+  include Subsocia_selector.Selector_utils (Sc)
+end
 
 let http_error code msg =
   Lwt.fail (Ocsigen_http_frame.Http_error.Http_exception (code, Some msg, None))

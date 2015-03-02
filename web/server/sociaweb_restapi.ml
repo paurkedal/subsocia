@@ -20,17 +20,33 @@ open Printf
 let _ =
   Eliom_registration.Any.register_service
     ~path:["restapi"; "authorize"]
-    ~get_params:Eliom_parameter.(string "authzgroup" **
-				 string "authcid")
-    @@ fun (authzgroup, authcid) () ->
-  Lwt_log.debug_f "Checking authcid %s against %s" authcid authzgroup >>
-  lwt status =
+    ~get_params:Eliom_parameter.(
+	suffix_prod (string "authcid") (set string "must" ** set string "may"))
+    @@ fun (authcid, (must, may)) () ->
+  Lwt_log.debug_f "Checking authcid %s against [%s] and optional [%s] groups"
+		  authcid (String.concat ", " must) (String.concat ", " may) >>
+  lwt must_ok, may_ok =
     match_lwt entity_of_authcid authcid with
-    | None -> Lwt.return 2
+    | None -> Lwt.return (false, [])
     | Some user ->
-      match_lwt Scd.Entity.of_unique_name authzgroup with
-      | None -> Lwt.return 3
-      | Some group ->
-	lwt ok = Sc.Entity.precedes user group in
-	Lwt.return (if ok then 0 else 1) in
-  Eliom_registration.String.send (sprintf "%d\n" status, "text/plain")
+      let is_member_of group =
+	match_lwt Scd.Entity.of_unique_name group with
+	| None -> Lwt.return false
+	| Some group -> Sc.Entity.precedes user group in
+      lwt must_ok = Lwt_list.for_all_p is_member_of must in
+      if must_ok then
+	lwt may_res = Lwt_list.filter_p is_member_of may in
+	Lwt.return (true, may_res)
+      else
+	Lwt.return (false, []) in
+  let buf = Buffer.create 80 in
+  bprintf buf "{must_ok: %b, may_ok: [" must_ok;
+  List.iteri
+    (fun i group ->
+      if i > 0 then Buffer.add_string buf ", ";
+      Buffer.add_char buf '"';
+      Buffer.add_string buf (String.escaped group);
+      Buffer.add_char buf '"')
+    may_ok;
+  bprintf buf "]}\n";
+  Eliom_registration.String.send (Buffer.contents buf, "application/json")
