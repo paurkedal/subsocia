@@ -82,7 +82,7 @@ Library "subsocia-web"
     server/Sociaweb_restapi,
     server/Sociaweb_server,
     server/Sociaweb_services
-  BuildDepends: eliom.server, prime, subsocia-server
+  BuildDepends: eliom.server, prime, subsocia, subsocia-server
   ByteOpt: -thread
   NativeOpt: -thread
   DataFiles:
