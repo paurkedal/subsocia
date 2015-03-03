@@ -21,7 +21,9 @@ open Unprime_string
 
 include Subsocia_selector_types
 
-let selector_of_string = Subsocia_selector_lexer.parse_string
+let selector_of_string s =
+  try Subsocia_selector_lexer.parse_string s
+  with Parsing.Parse_error -> raise (Invalid_argument "Parse error")
 
 let is_reserved = function
   | '{' | '}' | '/' | '+' | '=' -> true
@@ -109,6 +111,15 @@ module Selector_utils (C : Subsocia_intf.S) = struct
     match C.Entity.Set.cardinal es with
     | 1 -> Lwt.return (C.Entity.Set.min_elt es)
     | 0 -> lwt_failure_f "No entity matches %s." (string_of_selector sel)
+    | n -> lwt_failure_f "%d entities matches %s, need one."
+			 n (string_of_selector sel)
+
+  let select_entity_opt sel =
+    lwt e_top = C.Entity.top in
+    lwt es = denote_selector sel (C.Entity.Set.singleton e_top) in
+    match C.Entity.Set.cardinal es with
+    | 0 -> Lwt.return_none
+    | 1 -> Lwt.return (Some (C.Entity.Set.min_elt es))
     | n -> lwt_failure_f "%d entities matches %s, need one."
 			 n (string_of_selector sel)
 end
