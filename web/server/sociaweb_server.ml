@@ -46,9 +46,18 @@ module Log_auth = struct
   let debug_f fmt = Lwt_log.debug_f ~section fmt
 end
 
-let auth_identity () =
-  try Lwt.return (get_auth_http_header ())
-  with Not_found -> http_error 401 "Not authenticated."
+let authentication_hook = ref []
+
+let get_authcid_opt () =
+  match_lwt Pwt_list.search_s (fun p -> p ()) !authentication_hook with
+  | Some _ as r -> Lwt.return r
+  | None -> try Lwt.return (Some (get_auth_http_header ()))
+	    with Not_found -> Lwt.return_none
+
+let get_authcid () =
+  match_lwt get_authcid_opt () with
+  | Some r -> Lwt.return r
+  | None -> http_error 401 "Not authenticated."
 
 let entity_of_authcid user =
   lwt e_auth_group = e_auth_group in
@@ -59,13 +68,29 @@ let entity_of_authcid user =
   | 0 -> Lwt.return_none
   | _ -> http_error 500 "Duplicate registration."
 
+let updating_autoreg_hook = ref []
+let oneshot_autoreg_hook = ref []
+
+let autoreg_entity_of_authcid user =
+  match_lwt Pwt_list.search_s (fun p -> p ()) !updating_autoreg_hook with
+  | Some _ as r -> Lwt.return r
+  | None ->
+    match_lwt entity_of_authcid user with
+    | Some _ as r -> Lwt.return r
+    | None -> Pwt_list.search_s (fun p -> p ()) !oneshot_autoreg_hook
+
 let get_operator_opt () =
-  lwt user = auth_identity () in
-  Log_auth.debug_f "HTTP authenticated user is %s." user >>
-  entity_of_authcid user
+  match_lwt get_authcid_opt () with
+  | None ->
+    Log_auth.debug_f "Not authenticated." >>
+    Lwt.return_none
+  | Some user ->
+    Log_auth.debug_f "Authenicated with authcid %s." user >>
+    autoreg_entity_of_authcid user
 
 let get_operator () =
-  match_lwt get_operator_opt () with
+  lwt user = get_authcid () in
+  match_lwt autoreg_entity_of_authcid user with
   | Some e -> Lwt.return e
   | None -> http_error 403 "Not registered."
 

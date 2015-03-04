@@ -58,7 +58,7 @@ let () =
   | None -> Lwt.return_unit
   | Some _ -> http_error 400 "Already registered."
   end >>
-  lwt identity = auth_identity () in
+  lwt identity = get_authcid () in
   lwt e_auth_group = Sociaweb_server.e_auth_group in
   lwt at_unique_name = Scd.Const.at_unique_name in
   lwt at_first_name = Scd.Const.at_first_name in
