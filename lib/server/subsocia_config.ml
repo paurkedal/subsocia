@@ -41,10 +41,10 @@ module Web = struct
     new Config_file.string_cp ~group ["web"; "auth_http_header"]
       "X-Proxy-REMOTE-USER"
       "HTTP header used to identify a logged-in user."
-  let auth_group =
+  let authentication_group =
     new Config_file.string_cp ~group ["web"; "auth_group"]
-      "default_auth_group"
-      "Authorization group to use for the web interface."
+      "authentication_group"
+      "Group under which authentication methods are placed."
   let restapi_allowed_attributes =
     new Config_file.list_cp Config_file.string_wrappers ~group
       ["web"; "restapi_allowed_attributes"] []

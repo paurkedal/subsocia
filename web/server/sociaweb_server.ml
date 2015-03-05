@@ -16,6 +16,7 @@
 
 open Eliom_pervasives
 open Panograph_i18n
+open Subsocia_selector
 open Unprime_list
 open Unprime_option
 
@@ -30,6 +31,11 @@ let http_error code msg =
   Lwt.fail (Ocsigen_http_frame.Http_error.Http_exception (code, Some msg, None))
 
 (* Authentication *)
+
+type authenticalia = {
+  auth_method : string;
+  auth_identity : string;
+}
 
 let authentication_hook = ref []
 let updating_autoreg_hook = ref []
@@ -46,52 +52,73 @@ let get_auth_http_header () =
   let frame = Ocsigen_extensions.Ocsigen_request_info.http_frame ri in
   Ocsigen_headers.find h frame
 
-let e_auth_group =
-  let en = Subsocia_config.Web.auth_group#get in
-  match_lwt Scd.Entity.of_unique_name en with
-  | None -> Lwt.fail (Failure ("Missing configured auth group "^en^"."))
-  | Some e -> Lwt.return e
-
-let get_authcid_opt () =
+let get_authenticalia_opt () =
   match_lwt Pwt_list.search_s (fun p -> p ()) !authentication_hook with
   | Some _ as r -> Lwt.return r
-  | None -> try Lwt.return (Some (get_auth_http_header ()))
-	    with Not_found -> Lwt.return_none
+  | None ->
+    try
+      let auth = {
+	auth_method = "http_header";
+	auth_identity = get_auth_http_header ();
+      } in
+      Lwt.return (Some auth)
+    with Not_found -> Lwt.return_none
 
-let get_authcid () =
-  match_lwt get_authcid_opt () with
+let get_authenticalia () =
+  match_lwt get_authenticalia_opt () with
   | Some r -> Lwt.return r
   | None -> http_error 401 "Not authenticated."
 
-let entity_of_authcid user =
-  lwt e_auth_group = e_auth_group in
-  lwt at_unique_name = Scd.Const.at_unique_name in
-  lwt s = Sc.Entity.apreds e_auth_group at_unique_name user in
-  match Sc.Entity.Set.cardinal s with
-  | 1 -> Lwt.return (Some (Sc.Entity.Set.min_elt s))
-  | 0 -> Lwt.return_none
-  | _ -> http_error 500 "Duplicate registration."
+let authentication_group =
+  let en = Subsocia_config.Web.authentication_group#get in
+  match_lwt Scd.select_entity_opt (selector_of_string en) with
+  | None -> Lwt.fail (Failure ("Missing configured auth group "^en^"."))
+  | Some e -> Lwt.return e
 
-let autoreg_entity_of_authcid user =
-  match_lwt Pwt_list.search_s (fun p -> p ()) !updating_autoreg_hook with
+let auth_method_group name =
+  lwt ag = authentication_group in
+  Scd.Entity.of_unique_name ~super:ag name
+
+let entity_of_authenticalia auth =
+  match_lwt auth_method_group auth.auth_method with
+  | None -> Lwt.return_none
+  | Some amg ->
+    lwt at_unique_name = Scd.Const.at_unique_name in
+    lwt s = Sc.Entity.apreds amg at_unique_name auth.auth_identity in
+    match Sc.Entity.Set.cardinal s with
+    | 1 -> Lwt.return (Some (Sc.Entity.Set.min_elt s))
+    | 0 -> Lwt.return_none
+    | _ -> http_error 500 "Duplicate registration."
+
+let set_authenticalia subject auth =
+  match_lwt auth_method_group auth.auth_method with
+  | None -> http_error 500 "Missing group for authentication method."
+  | Some amg ->
+    lwt at_unique_name = Scd.Const.at_unique_name in
+    lwt auth_group = auth_method_group auth.auth_method in
+    Sc.Entity.setattr subject amg at_unique_name [auth.auth_identity]
+
+let autoreg_entity_of_authenticalia auth =
+  match_lwt Pwt_list.search_s (fun p -> p auth) !updating_autoreg_hook with
   | Some _ as r -> Lwt.return r
   | None ->
-    match_lwt entity_of_authcid user with
+    match_lwt entity_of_authenticalia auth with
     | Some _ as r -> Lwt.return r
-    | None -> Pwt_list.search_s (fun p -> p ()) !oneshot_autoreg_hook
+    | None -> Pwt_list.search_s (fun p -> p auth) !oneshot_autoreg_hook
 
 let get_operator_opt () =
-  match_lwt get_authcid_opt () with
+  match_lwt get_authenticalia_opt () with
   | None ->
     Log_auth.debug_f "Not authenticated." >>
     Lwt.return_none
-  | Some user ->
-    Log_auth.debug_f "Authenicated with authcid %s." user >>
-    autoreg_entity_of_authcid user
+  | Some auth ->
+    Log_auth.debug_f "Authenicated %s with %s."
+		     auth.auth_identity auth.auth_method >>
+    autoreg_entity_of_authenticalia auth
 
 let get_operator () =
-  lwt user = get_authcid () in
-  match_lwt autoreg_entity_of_authcid user with
+  lwt auth = get_authenticalia () in
+  match_lwt autoreg_entity_of_authenticalia auth with
   | Some e -> Lwt.return e
   | None -> http_error 403 "Not registered."
 

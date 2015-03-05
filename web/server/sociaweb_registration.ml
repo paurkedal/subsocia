@@ -58,8 +58,7 @@ let () =
   | None -> Lwt.return_unit
   | Some _ -> http_error 400 "Already registered."
   end >>
-  lwt identity = get_authcid () in
-  lwt e_auth_group = Sociaweb_server.e_auth_group in
+  lwt auth = get_authenticalia () in
   lwt at_unique_name = Scd.Const.at_unique_name in
   lwt at_first_name = Scd.Const.at_first_name in
   lwt at_last_name = Scd.Const.at_last_name in
@@ -71,10 +70,10 @@ let () =
   lwt e_new_user = Sc.Entity.create ~viewer:e_viewer ~admin:e_admin et_person in
   lwt e_new_users = Scd.Const.e_new_users in
   Sc.Entity.constrain e_new_user e_new_users >>
-  Sc.Entity.setattr e_new_user e_auth_group at_unique_name [identity] >>
   Sc.Entity.setattr e_new_user e_top at_first_name [first_name] >>
   Sc.Entity.setattr e_new_user e_top at_last_name [last_name] >>
   Sc.Entity.setattr e_new_user e_top at_email [email] >>
+  set_authenticalia e_new_user auth >>
   Lwt.return @@
     Eliom_tools.F.html
       ~title:"Welcome"
