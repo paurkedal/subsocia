@@ -29,6 +29,17 @@ end
 let http_error code msg =
   Lwt.fail (Ocsigen_http_frame.Http_error.Http_exception (code, Some msg, None))
 
+(* Authentication *)
+
+let authentication_hook = ref []
+let updating_autoreg_hook = ref []
+let oneshot_autoreg_hook = ref []
+
+module Log_auth = struct
+  let section = Lwt_log.Section.make "subsocia.auth"
+  let debug_f fmt = Lwt_log.debug_f ~section fmt
+end
+
 let get_auth_http_header () =
   let h = Subsocia_config.Web.auth_http_header#get in
   let ri = Eliom_request_info.get_ri () in
@@ -40,13 +51,6 @@ let e_auth_group =
   match_lwt Scd.Entity.of_unique_name en with
   | None -> Lwt.fail (Failure ("Missing configured auth group "^en^"."))
   | Some e -> Lwt.return e
-
-module Log_auth = struct
-  let section = Lwt_log.Section.make "subsocia.auth"
-  let debug_f fmt = Lwt_log.debug_f ~section fmt
-end
-
-let authentication_hook = ref []
 
 let get_authcid_opt () =
   match_lwt Pwt_list.search_s (fun p -> p ()) !authentication_hook with
@@ -67,9 +71,6 @@ let entity_of_authcid user =
   | 1 -> Lwt.return (Some (Sc.Entity.Set.min_elt s))
   | 0 -> Lwt.return_none
   | _ -> http_error 500 "Duplicate registration."
-
-let updating_autoreg_hook = ref []
-let oneshot_autoreg_hook = ref []
 
 let autoreg_entity_of_authcid user =
   match_lwt Pwt_list.search_s (fun p -> p ()) !updating_autoreg_hook with
@@ -94,6 +95,8 @@ let get_operator () =
   | Some e -> Lwt.return e
   | None -> http_error 403 "Not registered."
 
+(* Request Info *)
+
 let request_info_langs () =
   let compare_al (_, qA) (_, qB) =
     compare (Option.get_or 1.0 qB) (Option.get_or 1.0 qA) in
@@ -114,6 +117,8 @@ let get_custom_request_info () =
 		  | [] -> [Lang.of_string "en"]
 		  | langs -> langs in
   Lwt.return {cri_operator; cri_langs}
+
+(* Utility Functions *)
 
 let auth_sf json f =
   let f' tup =
