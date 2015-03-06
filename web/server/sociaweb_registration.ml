@@ -18,6 +18,7 @@ open Eliom_content
 open Eliom_content.Html5
 open Sociaweb_auth
 open Sociaweb_connection
+open Sociaweb_request
 open Sociaweb_services
 
 let registration_form (first_name, (last_name, email)) =
