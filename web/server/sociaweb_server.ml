@@ -46,37 +46,43 @@ module Log_auth = struct
   let debug_f fmt = Lwt_log.debug_f ~section fmt
 end
 
-let get_auth_http_header () =
-  let h = Subsocia_config.Web.auth_http_header#get in
-  let ri = Eliom_request_info.get_ri () in
-  let frame = Ocsigen_extensions.Ocsigen_request_info.http_frame ri in
-  Ocsigen_headers.find h frame
-
 let get_authenticalia_opt () =
   match_lwt Pwt_list.search_s (fun p -> p ()) !authentication_hook with
   | Some _ as r -> Lwt.return r
   | None ->
-    try
-      let auth = {
-	auth_method = "http_header";
-	auth_identity = get_auth_http_header ();
-      } in
-      Lwt.return (Some auth)
-    with Not_found -> Lwt.return_none
+    let ri = Eliom_request_info.get_ri () in
+    let frame = Ocsigen_extensions.Ocsigen_request_info.http_frame ri in
+    let auth_method =
+      match Subsocia_config.Web.hba_method_header#get with
+      | None -> None
+      | Some hn -> Option.found (fun () -> Ocsigen_headers.find hn frame) in
+    let auth_method =
+      match auth_method with
+      | None -> Subsocia_config.Web.hba_method#get
+      | Some _ as r -> r in
+    let auth_identity =
+      match Subsocia_config.Web.hba_identity_header#get with
+      | None -> None
+      | Some hn -> Option.found (fun () -> Ocsigen_headers.find hn frame) in
+    match auth_method, auth_identity with
+    | Some auth_method, Some auth_identity ->
+      Lwt.return (Some {auth_method; auth_identity})
+    | None, _ | _, None ->
+      Lwt.return_none
 
 let get_authenticalia () =
   match_lwt get_authenticalia_opt () with
   | Some r -> Lwt.return r
   | None -> http_error 401 "Not authenticated."
 
-let authentication_group =
-  let en = Subsocia_config.Web.authentication_group#get in
+let auth_top =
+  let en = Subsocia_config.Web.auth_top#get in
   match_lwt Scd.select_entity_opt (selector_of_string en) with
   | None -> Lwt.fail (Failure ("Missing configured auth group "^en^"."))
   | Some e -> Lwt.return e
 
 let auth_method_group name =
-  lwt ag = authentication_group in
+  lwt ag = auth_top in
   Scd.Entity.of_unique_name ~super:ag name
 
 let entity_of_authenticalia auth =
@@ -95,7 +101,7 @@ let set_authenticalia subject auth =
   | None -> http_error 500 "Missing group for authentication method."
   | Some amg ->
     lwt at_unique_name = Scd.Const.at_unique_name in
-    lwt auth_group = auth_method_group auth.auth_method in
+    lwt auth_top = auth_method_group auth.auth_method in
     Sc.Entity.setattr subject amg at_unique_name [auth.auth_identity]
 
 let autoreg_entity_of_authenticalia auth =

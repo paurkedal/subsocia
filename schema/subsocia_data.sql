@@ -78,5 +78,5 @@ VALUES
   (2, 1, 1, 'forbidden'),
   (3, 1, 1, 'default_viewers'),
   (4, 1, 1, 'default_admins'),
-  (5, 1, 1, 'authentication'),
+  (5, 1, 1, 'auth'),
   (6, 1, 1, 'registrations');
