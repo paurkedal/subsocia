@@ -61,16 +61,16 @@ let () =
   | Some _ -> http_error 400 "Already registered."
   end >>
   lwt auth = get_authenticalia () in
-  lwt at_unique_name = Scd.Const.at_unique_name in
-  lwt at_first_name = Scd.Const.at_first_name in
-  lwt at_last_name = Scd.Const.at_last_name in
-  lwt at_email = Scd.Const.at_email in
+  lwt at_unique_name = Sc.Const.at_unique_name in
+  lwt at_first_name = Sc.Const.at_first_name in
+  lwt at_last_name = Sc.Const.at_last_name in
+  lwt at_email = Sc.Const.at_email in
   lwt e_top = Sc.Entity.top in
-  lwt e_viewer = Scd.Const.e_default_viewers in
-  lwt e_admin = Scd.Const.e_default_admins in
-  lwt et_person = Scd.Const.et_person in
+  lwt e_viewer = Sc.Const.e_default_viewers in
+  lwt e_admin = Sc.Const.e_default_admins in
+  lwt et_person = Sc.Const.et_person in
   lwt e_new_user = Sc.Entity.create ~viewer:e_viewer ~admin:e_admin et_person in
-  lwt e_new_users = Scd.Const.e_new_users in
+  lwt e_new_users = Sc.Const.e_new_users in
   Sc.Entity.constrain e_new_user e_new_users >>
   Sc.Entity.setattr e_new_user e_top at_first_name [first_name] >>
   Sc.Entity.setattr e_new_user e_top at_last_name [last_name] >>

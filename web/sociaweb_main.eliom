@@ -50,7 +50,7 @@
   let constrain ~operator (lb_id, ub_id) =
     lwt ub = entity_for_edit ~operator ub_id in
     lwt lb = entity_for_view ~operator lb_id in
-    lwt user_name = Scd.Entity.display_name ~langs:[] operator in
+    lwt user_name = Sc.Entity.display_name ~langs:[] operator in
     Lwt_log.info_f "%s adds inclusion #%ld ⊆ #%ld" user_name lb_id ub_id >>
     Sc.Entity.constrain lb ub
   let constrain_c = auth_sf Json.t<int32 * int32> constrain
@@ -58,14 +58,14 @@
   let unconstrain ~operator (lb_id, ub_id) =
     lwt ub = entity_for_edit ~operator ub_id in
     lwt lb = entity_for_view ~operator lb_id in
-    lwt user_name = Scd.Entity.display_name ~langs:[] operator in
+    lwt user_name = Sc.Entity.display_name ~langs:[] operator in
     Lwt_log.info_f "%s removes inclusion #%ld ⊆ #%ld" user_name lb_id ub_id >>
     Sc.Entity.unconstrain lb ub
   let unconstrain_c = auth_sf Json.t<int32 * int32> unconstrain
 
   let render_neigh ~cri ent =
     let id = Sc.Entity.id ent in
-    lwt name = Scd.Entity.display_name ~langs:cri.cri_langs ent in
+    lwt name = Sc.Entity.display_name ~langs:cri.cri_langs ent in
     Lwt.return [F.a ~service:entity_service [F.pcdata name] id]
 
   let render_neigh_remove ~cri focus succ =
@@ -73,7 +73,7 @@
     lwt can_edit = Sc.Entity.precedes cri.cri_operator succ_admin in
     let focus_id = Sc.Entity.id focus in
     let succ_id = Sc.Entity.id succ in
-    lwt name = Scd.Entity.display_name ~langs:cri.cri_langs succ in
+    lwt name = Sc.Entity.display_name ~langs:cri.cri_langs succ in
     let link = F.a ~service:entity_service [F.pcdata name] succ_id in
     if can_edit then begin
       let on_remove = {{fun _ ->
@@ -93,7 +93,7 @@
     lwt can_edit = Sc.Entity.precedes cri.cri_operator succ_admin in
     let focus_id = Sc.Entity.id focus in
     let succ_id = Sc.Entity.id succ in
-    lwt name = Scd.Entity.display_name ~langs:cri.cri_langs succ in
+    lwt name = Sc.Entity.display_name ~langs:cri.cri_langs succ in
     let link = F.a ~service:entity_service [F.pcdata name] succ_id in
     if can_edit then begin
       let on_add = {{fun _ ->
@@ -137,7 +137,7 @@
 	F.td value_frag;
       ] in
     lwt attr_trs = Lwt_list.map_s render_tr attrs' in
-    lwt ub_name = Scd.Entity.display_name ~langs:cri.cri_langs ub in
+    lwt ub_name = Sc.Entity.display_name ~langs:cri.cri_langs ub in
     Lwt.return
       (if attr_trs = []
        then None
@@ -154,7 +154,7 @@
     lwt succs_add =
       if not enable_edit then Lwt.return_none else
       let operator = cri.cri_operator in
-      lwt csuccs = Scd.Entity.candidate_succs ent in
+      lwt csuccs = Sc.Entity.candidate_succs ent in
       let csuccs = Sc.Entity.Set.compl succs csuccs in
       lwt csuccs = Sc.Entity.Set.filter_s (can_edit_entity ~operator) csuccs in
       if Sc.Entity.Set.is_empty csuccs then
@@ -179,7 +179,7 @@
     lwt preds = Sc.Entity.preds ent in
     let preds' = Sc.Entity.Set.elements preds in
     lwt pred_frags = Lwt_list.map_s (render_neigh ~cri) preds' in
-    lwt name = Scd.Entity.display_name ~langs:cri.cri_langs ent in
+    lwt name = Sc.Entity.display_name ~langs:cri.cri_langs ent in
     lwt ubs = upwards_closure ent in
     let attr_aux ub acc =
       render_attribution ~cri ent ub

@@ -24,8 +24,7 @@ module Make (Base : Subsocia_intf.S) = struct
   open Base
 
   module Attribute_type = struct
-
-    type attribute = Ex : 'a Base.Attribute_type.t1 * 'a -> attribute
+    include Base.Attribute_type
 
     let coerce (type a) (t : a Type.t1) at0 : a Attribute_type.t1 option =
       let Attribute_type.Ex at1 = at0 in
@@ -46,6 +45,12 @@ module Make (Base : Subsocia_intf.S) = struct
 	let tn' = Type.string_of_t1 t in
 	_fail "Wrong type for %s : %s, expected %s." an tn tn'
   end
+
+  module Attribute = struct
+    type t0 = Ex : 'a Attribute_type.t1 * 'a -> t0
+  end
+
+  module Entity_type = Base.Entity_type
 
   module Const = struct
 
@@ -94,6 +99,7 @@ module Make (Base : Subsocia_intf.S) = struct
   end
 
   module Entity = struct
+    include Base.Entity
 
     let of_unique_name ?super en =
       lwt super = match super with Some e -> Lwt.return e

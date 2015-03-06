@@ -66,19 +66,19 @@ let get_authenticalia () =
 
 let auth_top =
   let en = Subsocia_config.Web.auth_top#get in
-  match_lwt Scd.select_entity_opt (selector_of_string en) with
+  match_lwt Sc.select_entity_opt (selector_of_string en) with
   | None -> Lwt.fail (Failure ("Missing configured auth group "^en^"."))
   | Some e -> Lwt.return e
 
 let auth_method_group name =
   lwt ag = auth_top in
-  Scd.Entity.of_unique_name ~super:ag name
+  Sc.Entity.of_unique_name ~super:ag name
 
 let entity_of_authenticalia auth =
   match_lwt auth_method_group auth.auth_method with
   | None -> Lwt.return_none
   | Some amg ->
-    lwt at_unique_name = Scd.Const.at_unique_name in
+    lwt at_unique_name = Sc.Const.at_unique_name in
     lwt s = Sc.Entity.apreds amg at_unique_name auth.auth_identity in
     match Sc.Entity.Set.cardinal s with
     | 1 -> Lwt.return (Some (Sc.Entity.Set.min_elt s))
@@ -89,7 +89,7 @@ let set_authenticalia subject auth =
   match_lwt auth_method_group auth.auth_method with
   | None -> http_error 500 "Missing group for authentication method."
   | Some amg ->
-    lwt at_unique_name = Scd.Const.at_unique_name in
+    lwt at_unique_name = Sc.Const.at_unique_name in
     lwt auth_top = auth_method_group auth.auth_method in
     Sc.Entity.setattr subject amg at_unique_name [auth.auth_identity]
 

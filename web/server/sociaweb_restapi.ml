@@ -60,7 +60,7 @@ let make_authorize_response must_ok may_ok query_res =
   Buffer.contents buf, "application/json"
 
 let selected_entity s =
-  try_lwt Scd.select_entity_opt (selector_of_string s)
+  try_lwt Sc.select_entity_opt (selector_of_string s)
   with Failure msg | Invalid_argument msg -> http_error 400 msg
 
 let _ =
