@@ -66,7 +66,7 @@ let get_authenticalia () =
 
 let auth_top =
   let en = Subsocia_config.Web.auth_top#get in
-  match_lwt Sc.select_entity_opt (selector_of_string en) with
+  match_lwt Sc.Entity.select_opt (selector_of_string en) with
   | None -> Lwt.fail (Failure ("Missing configured auth group "^en^"."))
   | Some e -> Lwt.return e
 

@@ -364,7 +364,7 @@ module Entity_utils (C : Subsocia_intf.S) = struct
     | None ->
       Lwt.return (e_top, asgn)
     | Some sel ->
-      lwt e_ctx = select_entity sel in
+      lwt e_ctx = Entity.select_one sel in
       Lwt.return (e_ctx, asgn)
 
   let add_attributes e (e_ctx, attrs) =
@@ -389,7 +389,7 @@ end
 let search sel = run @@ fun (module C) ->
   let module U = Entity_utils (C) in
   lwt e_top = C.Entity.top in
-  lwt es = U.denote_selector sel (C.Entity.Set.singleton e_top) in
+  lwt es = U.Entity.select_from sel (C.Entity.Set.singleton e_top) in
   let show e =
     lwt name = U.Entity.display_name ~langs e in
     lwt et = C.Entity.type_ e in
@@ -412,7 +412,7 @@ let create etn succs aselectors = run0 @@ fun (module C) ->
   lwt viewer = U.Const.e_default_viewers in
   lwt admin = U.Const.e_default_admins in
   lwt aselectors = Lwt_list.map_p U.lookup_aselector aselectors in
-  lwt succs = Lwt_list.map_p U.select_entity succs in
+  lwt succs = Lwt_list.map_p U.Entity.select_one succs in
   lwt e = C.Entity.create ~viewer ~admin et in
   Lwt_list.iter_s (fun (e_sub) -> C.Entity.constrain e e_sub) succs >>
   Lwt_list.iter_s (U.add_attributes e) aselectors
@@ -428,7 +428,7 @@ let create_t =
 
 let delete sel = run0 @@ fun (module C) ->
   let module U = Entity_utils (C) in
-  lwt e = U.select_entity sel in
+  lwt e = U.Entity.select_one sel in
   C.Entity.delete e
 
 let delete_t =
@@ -439,13 +439,13 @@ let delete_t =
 let modify sel add_succs del_succs add_asels del_asels admin viewer =
   run0 @@ fun (module C) ->
   let module U = Entity_utils (C) in
-  lwt add_succs = Lwt_list.map_p U.select_entity add_succs in
-  lwt del_succs = Lwt_list.map_p U.select_entity del_succs in
+  lwt add_succs = Lwt_list.map_p U.Entity.select_one add_succs in
+  lwt del_succs = Lwt_list.map_p U.Entity.select_one del_succs in
   lwt add_asels = Lwt_list.map_p U.lookup_aselector add_asels in
   lwt del_asels = Lwt_list.map_p U.lookup_aselector del_asels in
-  lwt admin = Pwt_option.map_s U.select_entity admin in
-  lwt viewer = Pwt_option.map_s U.select_entity viewer in
-  lwt e = U.select_entity sel in
+  lwt admin = Pwt_option.map_s U.Entity.select_one admin in
+  lwt viewer = Pwt_option.map_s U.Entity.select_one viewer in
+  lwt e = U.Entity.select_one sel in
   Lwt_list.iter_s (fun e_sub -> C.Entity.constrain e e_sub) add_succs >>
   Lwt_list.iter_s (U.add_attributes e) add_asels >>
   Lwt_list.iter_s (U.delete_attributes e) del_asels >>

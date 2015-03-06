@@ -15,13 +15,14 @@
  *)
 
 include module type of Subsocia_selector_types
+   with type selector = Subsocia_selector_types.selector
 
 val selector_of_string : string -> selector
 val string_of_selector : selector -> string
 
 module Selector_utils (C : Subsocia_intf.S) : sig
-  val denote_selector : selector -> C.Entity.Set.t -> C.Entity.Set.t Lwt.t
-  val select_entities : selector -> C.Entity.Set.t Lwt.t
-  val select_entity : selector -> C.Entity.t Lwt.t
-  val select_entity_opt : selector -> C.Entity.t option Lwt.t
+  val select_from : selector -> C.Entity.Set.t -> C.Entity.Set.t Lwt.t
+  val select : selector -> C.Entity.Set.t Lwt.t
+  val select_one : selector -> C.Entity.t Lwt.t
+  val select_opt : selector -> C.Entity.t option Lwt.t
 end

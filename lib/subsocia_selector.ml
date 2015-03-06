@@ -69,16 +69,17 @@ let string_of_selector s =
   Buffer.contents buf
 
 module Selector_utils (C : Subsocia_intf.S) = struct
-  let rec denote_selector = function
+
+  let rec select_from = function
     | Select_sub (selA, selB) -> fun es ->
-      denote_selector selA es >>= denote_selector selB
+      select_from selA es >>= select_from selB
     | Select_union (selA, selB) -> fun es ->
-      lwt esA = denote_selector selA es in
-      lwt esB = denote_selector selB es in
+      lwt esA = select_from selA es in
+      lwt esB = select_from selB es in
       Lwt.return (C.Entity.Set.union esA esB)
     | Select_inter (selA, selB) -> fun es ->
-      lwt esA = denote_selector selA es in
-      lwt esB = denote_selector selB es in
+      lwt esA = select_from selA es in
+      lwt esB = select_from selB es in
       Lwt.return (C.Entity.Set.inter esA esB)
     | Select_attr (an, v) -> fun es ->
       begin match_lwt C.Attribute_type.of_name an with
@@ -101,22 +102,22 @@ module Selector_utils (C : Subsocia_intf.S) = struct
 	(fun e1 acc -> C.Entity.preds e1 >|= C.Entity.Set.union acc)
 	es C.Entity.Set.empty
 
-  let select_entities sel =
+  let select sel =
     lwt e_top = C.Entity.top in
-    denote_selector sel (C.Entity.Set.singleton e_top)
+    select_from sel (C.Entity.Set.singleton e_top)
 
-  let select_entity sel =
+  let select_one sel =
     lwt e_top = C.Entity.top in
-    lwt es = denote_selector sel (C.Entity.Set.singleton e_top) in
+    lwt es = select_from sel (C.Entity.Set.singleton e_top) in
     match C.Entity.Set.cardinal es with
     | 1 -> Lwt.return (C.Entity.Set.min_elt es)
     | 0 -> lwt_failure_f "No entity matches %s." (string_of_selector sel)
     | n -> lwt_failure_f "%d entities matches %s, need one."
 			 n (string_of_selector sel)
 
-  let select_entity_opt sel =
+  let select_opt sel =
     lwt e_top = C.Entity.top in
-    lwt es = denote_selector sel (C.Entity.Set.singleton e_top) in
+    lwt es = select_from sel (C.Entity.Set.singleton e_top) in
     match C.Entity.Set.cardinal es with
     | 0 -> Lwt.return_none
     | 1 -> Lwt.return (Some (C.Entity.Set.min_elt es))

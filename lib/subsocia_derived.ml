@@ -100,6 +100,7 @@ module Make (Base : Subsocia_intf.S) = struct
 
   module Entity = struct
     include Base.Entity
+    include Subsocia_selector.Selector_utils (Base)
 
     let of_unique_name ?super en =
       lwt super = match super with Some e -> Lwt.return e

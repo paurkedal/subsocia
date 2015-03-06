@@ -17,6 +17,7 @@
 open Panograph_i18n
 open Subsocia_common
 open Subsocia_intf
+open Subsocia_selector_types
 
 module Make (Base : Subsocia_intf.S) : sig
   open Base
@@ -47,6 +48,11 @@ module Make (Base : Subsocia_intf.S) : sig
 		    and type t = Base.Entity.t
 		    and module Set = Base.Entity.Set
 		    and module Map = Base.Entity.Map
+
+    val select_from : selector -> Set.t -> Set.t Lwt.t
+    val select : selector -> Set.t Lwt.t
+    val select_opt : selector -> t option Lwt.t
+    val select_one : selector -> t Lwt.t
 
     val of_unique_name : ?super: t -> string -> t option Lwt.t
     val display_name : langs: lang list -> t -> string Lwt.t
