@@ -17,9 +17,9 @@
 open Eliom_content
 open Eliom_content.Html5
 open Sociaweb_auth
-open Sociaweb_connection
 open Sociaweb_request
 open Sociaweb_services
+open Subsocia_connection
 
 let registration_form (first_name, (last_name, email)) =
   [F.table ~a:[F.a_class ["assoc"]] [
@@ -61,20 +61,20 @@ let () =
   | Some _ -> http_error 400 "Already registered."
   end >>
   lwt auth = get_authenticalia () in
-  lwt at_unique_name = Sc.Const.at_unique_name in
-  lwt at_first_name = Sc.Const.at_first_name in
-  lwt at_last_name = Sc.Const.at_last_name in
-  lwt at_email = Sc.Const.at_email in
-  lwt e_top = Sc.Entity.top in
-  lwt e_viewer = Sc.Const.e_default_viewers in
-  lwt e_admin = Sc.Const.e_default_admins in
-  lwt et_person = Sc.Const.et_person in
-  lwt e_new_user = Sc.Entity.create ~viewer:e_viewer ~admin:e_admin et_person in
-  lwt e_new_users = Sc.Const.e_new_users in
-  Sc.Entity.constrain e_new_user e_new_users >>
-  Sc.Entity.setattr e_new_user e_top at_first_name [first_name] >>
-  Sc.Entity.setattr e_new_user e_top at_last_name [last_name] >>
-  Sc.Entity.setattr e_new_user e_top at_email [email] >>
+  lwt at_unique_name = Const.at_unique_name in
+  lwt at_first_name = Const.at_first_name in
+  lwt at_last_name = Const.at_last_name in
+  lwt at_email = Const.at_email in
+  lwt e_top = Entity.top in
+  lwt e_viewer = Const.e_default_viewers in
+  lwt e_admin = Const.e_default_admins in
+  lwt et_person = Const.et_person in
+  lwt e_new_user = Entity.create ~viewer:e_viewer ~admin:e_admin et_person in
+  lwt e_new_users = Const.e_new_users in
+  Entity.constrain e_new_user e_new_users >>
+  Entity.setattr e_new_user e_top at_first_name [first_name] >>
+  Entity.setattr e_new_user e_top at_last_name [last_name] >>
+  Entity.setattr e_new_user e_top at_email [email] >>
   set_authenticalia e_new_user auth >>
   Lwt.return @@
     Eliom_tools.F.html
@@ -85,6 +85,6 @@ let () =
 	F.p [
 	  F.a ~service:entity_service
 	    [F.pcdata "Your registration is complete."]
-	    (Sc.Entity.id e_new_user);
+	    (Entity.id e_new_user);
 	];
       ])

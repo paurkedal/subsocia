@@ -17,7 +17,7 @@
 open Eliom_pervasives
 open Panograph_i18n
 open Sociaweb_auth
-open Sociaweb_connection
+open Subsocia_connection
 open Unprime_list
 open Unprime_option
 
@@ -36,7 +36,7 @@ let request_info_langs () =
   List.fmap decode_al als
 
 type custom_request_info = {
-  cri_operator : Sc.Entity.t;
+  cri_operator : Entity.t;
   cri_langs : lang list;
 }
 

@@ -14,9 +14,9 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Sociaweb_connection
 open Sociaweb_request
 open Subsocia_common
+open Subsocia_connection
 open Subsocia_selector
 open Printf
 open Unprime_list
@@ -60,7 +60,7 @@ let make_authorize_response must_ok may_ok query_res =
   Buffer.contents buf, "application/json"
 
 let selected_entity s =
-  try_lwt Sc.Entity.select_opt (selector_of_string s)
+  try_lwt Entity.select_opt (selector_of_string s)
   with Failure msg | Invalid_argument msg -> http_error 400 msg
 
 let _ =
@@ -72,7 +72,7 @@ let _ =
     @@ fun (subject, (must, (may, query))) () ->
   Lwt_log.debug_f "Checking %s against [%s] and optional [%s] groups"
 		  subject (String.concat ", " must) (String.concat ", " may) >>
-  lwt top = Sc.Entity.top in
+  lwt top = Entity.top in
   let allowed_ans = Lazy.force allowed_attributes in
   lwt must_ok, may_ok, query_res =
     match_lwt selected_entity subject with
@@ -81,14 +81,14 @@ let _ =
       let is_member_of group =
 	match_lwt selected_entity group with
 	| None -> Lwt.return false
-	| Some group -> Sc.Entity.precedes user group in
+	| Some group -> Entity.precedes user group in
       let get_attribute an =
 	if not (String_set.contains an allowed_ans) then Lwt.return_none else
-	match_lwt Sc.Attribute_type.of_name an with
+	match_lwt Attribute_type.of_name an with
 	| None -> Lwt.return_none
-	| Some (Sc.Attribute_type.Ex at) ->
-	  let vt = Sc.Attribute_type.type1 at in
-	  lwt vs = Sc.Entity.getattr user top at in
+	| Some (Attribute_type.Ex at) ->
+	  let vt = Attribute_type.type1 at in
+	  lwt vs = Entity.getattr user top at in
 	  let vs = Values.elements vs in
 	  Lwt.return (Some (an, List.map (Value.typed_to_poly vt) vs)) in
       lwt must_ok = Lwt_list.for_all_p is_member_of must in

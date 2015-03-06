@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Sociaweb_connection
+open Subsocia_connection
 
 type authenticalia = {
   auth_method : string;
@@ -22,19 +22,19 @@ type authenticalia = {
 }
 
 val authentication_hook : (unit -> authenticalia option Lwt.t) list ref
-val updating_autoreg_hook : (authenticalia -> Sc.Entity.t option Lwt.t) list ref
-val oneshot_autoreg_hook : (authenticalia -> Sc.Entity.t option Lwt.t) list ref
+val updating_autoreg_hook : (authenticalia -> Entity.t option Lwt.t) list ref
+val oneshot_autoreg_hook : (authenticalia -> Entity.t option Lwt.t) list ref
 
 val get_authenticalia_opt : unit -> authenticalia option Lwt.t
 
 val get_authenticalia : unit -> authenticalia Lwt.t
 
-val entity_of_authenticalia : authenticalia -> Sc.Entity.t option Lwt.t
+val entity_of_authenticalia : authenticalia -> Entity.t option Lwt.t
 
-val set_authenticalia : Sc.Entity.t -> authenticalia -> unit Lwt.t
+val set_authenticalia : Entity.t -> authenticalia -> unit Lwt.t
 
-val autoreg_entity_of_authenticalia : authenticalia -> Sc.Entity.t option Lwt.t
+val autoreg_entity_of_authenticalia : authenticalia -> Entity.t option Lwt.t
 
-val get_operator_opt : unit -> Sc.Entity.t option Lwt.t
+val get_operator_opt : unit -> Entity.t option Lwt.t
 
-val get_operator : unit -> Sc.Entity.t Lwt.t
+val get_operator : unit -> Entity.t Lwt.t

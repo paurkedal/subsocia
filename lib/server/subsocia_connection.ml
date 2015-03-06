@@ -17,7 +17,6 @@
 let subsocia_uri = Uri.of_string Subsocia_config.database_uri#get
 
 module Sc_base = (val Subsocia_direct.connect subsocia_uri)
-module Sc = struct
-  include Subsocia_derived.Make (Sc_base)
-  include Subsocia_selector.Selector_utils (Sc_base)
-end
+
+include Subsocia_derived.Make (Sc_base)
+include Subsocia_selector.Selector_utils (Sc_base)

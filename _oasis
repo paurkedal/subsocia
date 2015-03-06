@@ -56,6 +56,7 @@ Library "subsocia-server"
     subsocia
   Modules:
     Subsocia_config,
+    Subsocia_connection,
     Subsocia_direct,
     Subsocia_plugin
   ByteOpt: -thread
@@ -77,7 +78,6 @@ Library "subsocia-web"
   Path: web
   Modules:
     server/Sociaweb_auth,
-    server/Sociaweb_connection,
     server/Sociaweb_content,
     server/Sociaweb_main,
     server/Sociaweb_registration,
