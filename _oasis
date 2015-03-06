@@ -17,6 +17,7 @@ Library "subsocia"
   Modules:
     Subsocia_common,
     Subsocia_derived,
+    Subsocia_derived_intf,
     Subsocia_intf,
     Subsocia_prereq,
     Subsocia_rpc_client,
