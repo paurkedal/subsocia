@@ -41,24 +41,6 @@ module Make (Base : Subsocia_intf.S) : sig
 		 and module Set = Base.Entity_type.Set
 		 and module Map = Base.Entity_type.Map
 
-  module Const : sig
-    val at_unique_name : string Base.Attribute_type.t1 Lwt.t
-    val at_proper_name : string Base.Attribute_type.t1 Lwt.t
-    val at_first_name : string Base.Attribute_type.t1 Lwt.t
-    val at_last_name : string Base.Attribute_type.t1 Lwt.t
-    val at_email : string Base.Attribute_type.t1 Lwt.t
-
-    val et_unit : Base.Entity_type.t Lwt.t
-    val et_access_group : Base.Entity_type.t Lwt.t
-    val et_auth_group : Base.Entity_type.t Lwt.t
-    val et_person : Base.Entity_type.t Lwt.t
-
-    val e_forbidden : Base.Entity.t Lwt.t
-    val e_default_viewers : Base.Entity.t Lwt.t
-    val e_default_admins : Base.Entity.t Lwt.t
-    val e_new_users : Base.Entity.t Lwt.t
-  end
-
   module Entity : sig
     include ENTITY with module Attribute_type := Base.Attribute_type
 		    and module Entity_type := Base.Entity_type
@@ -66,10 +48,27 @@ module Make (Base : Subsocia_intf.S) : sig
 		    and module Set = Base.Entity.Set
 		    and module Map = Base.Entity.Map
 
-    val of_unique_name : ?super: Base.Entity.t -> string ->
-			 Base.Entity.t option Lwt.t
-    val display_name : langs: lang list -> Base.Entity.t -> string Lwt.t
-    val candidate_succs : Base.Entity.t -> Base.Entity.Set.t Lwt.t
+    val of_unique_name : ?super: t -> string -> t option Lwt.t
+    val display_name : langs: lang list -> t -> string Lwt.t
+    val candidate_succs : t -> Set.t Lwt.t
+  end
+
+  module Const : sig
+    val at_unique_name : string Attribute_type.t1 Lwt.t
+    val at_proper_name : string Attribute_type.t1 Lwt.t
+    val at_first_name : string Attribute_type.t1 Lwt.t
+    val at_last_name : string Attribute_type.t1 Lwt.t
+    val at_email : string Attribute_type.t1 Lwt.t
+
+    val et_unit : Entity_type.t Lwt.t
+    val et_access_group : Entity_type.t Lwt.t
+    val et_auth_group : Entity_type.t Lwt.t
+    val et_person : Entity_type.t Lwt.t
+
+    val e_forbidden : Entity.t Lwt.t
+    val e_default_viewers : Entity.t Lwt.t
+    val e_default_admins : Entity.t Lwt.t
+    val e_new_users : Entity.t Lwt.t
   end
 
 end

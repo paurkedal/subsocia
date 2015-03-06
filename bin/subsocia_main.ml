@@ -349,17 +349,17 @@ module Entity_utils (C : Subsocia_intf.S) = struct
   include Subsocia_derived.Make (C)
 
   let lookup_assignment (an, vs) =
-    lwt C.Attribute_type.Ex at =
-      match_lwt C.Attribute_type.of_name an with
+    lwt Attribute_type.Ex at =
+      match_lwt Attribute_type.of_name an with
       | None -> Lwt.fail (Failure ("No attribute type has name " ^ an))
       | Some at -> Lwt.return at in
-    let t = C.Attribute_type.type1 at in
+    let t = Attribute_type.type1 at in
     let v = Value.typed_of_string t vs in
     Lwt.return (Attribute.Ex (at, v))
 
   let lookup_aselector (sel_opt, asgn) =
     lwt asgn = Lwt_list.map_p lookup_assignment asgn in
-    lwt e_top = C.Entity.top in
+    lwt e_top = Entity.top in
     match sel_opt with
     | None ->
       Lwt.return (e_top, asgn)
@@ -370,19 +370,19 @@ module Entity_utils (C : Subsocia_intf.S) = struct
   let add_attributes e (e_ctx, attrs) =
     Lwt_list.iter_s
       (fun (Attribute.Ex (at, av)) ->
-	C.Entity.precedes e e_ctx >>=
+	Entity.precedes e e_ctx >>=
 	  (function
 	    | true -> Lwt.return_unit
 	    | false ->
 	      lwt ctx_name = Entity.display_name ~langs e_ctx in
 	      Lwt_log.info_f "Adding required inclusion under %s." ctx_name >>
-	      C.Entity.constrain e e_ctx) >>
-	C.Entity.setattr e e_ctx at [av])
+	      Entity.constrain e e_ctx) >>
+	Entity.setattr e e_ctx at [av])
       attrs
 
   let delete_attributes e (e_ctx, attrs) =
     Lwt_list.iter_s
-      (fun (Attribute.Ex (at, av)) -> C.Entity.delattr e e_ctx at [av])
+      (fun (Attribute.Ex (at, av)) -> Entity.delattr e e_ctx at [av])
       attrs
 end
 
