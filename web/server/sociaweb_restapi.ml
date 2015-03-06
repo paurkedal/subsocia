@@ -14,7 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Sociaweb_server
+open Sociaweb_connection
+open Sociaweb_request
 open Subsocia_common
 open Subsocia_selector
 open Printf

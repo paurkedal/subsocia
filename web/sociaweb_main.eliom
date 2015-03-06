@@ -30,7 +30,9 @@
 }}
 
 {server{
-  open Sociaweb_server
+  open Sociaweb_auth
+  open Sociaweb_connection
+  open Sociaweb_request
 
   let can_edit_entity ~operator entity =
     lwt admin = Sc.Entity.admin entity in

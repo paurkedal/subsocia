@@ -76,11 +76,13 @@ Document api
 Library "subsocia-web"
   Path: web
   Modules:
+    server/Sociaweb_auth,
+    server/Sociaweb_connection,
     server/Sociaweb_content,
     server/Sociaweb_main,
     server/Sociaweb_registration,
+    server/Sociaweb_request,
     server/Sociaweb_restapi,
-    server/Sociaweb_server,
     server/Sociaweb_services
   BuildDepends: eliom.server, prime, subsocia, subsocia-server
   ByteOpt: -thread
