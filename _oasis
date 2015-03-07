@@ -44,13 +44,15 @@ Executable "subsocia"
   BuildDepends:
     cmdliner,
     subsocia,
-    subsocia-server
+    subsocia.data
   ByteOpt: -thread
   NativeOpt: -thread
   CompiledObject: native
 
-Library "subsocia-server"
-  Path: lib/server
+Library "subsocia-data"
+  Path: lib/data
+  FindlibParent: subsocia
+  FindlibName: data
   BuildDepends:
     caqti.lwt,
     config-file,
@@ -75,17 +77,29 @@ Document api
   XOCamlbuildLibraries: subsocia
   DataFiles: COPYING ($docdir), COPYING.LESSER ($docdir)
 
-Library "subsocia-web"
+Library "subsocia-web-server"
   Path: web
+  FindlibParent: subsocia
+  FindlibName: web-server
   Modules:
     server/Sociaweb_auth,
     server/Sociaweb_content,
+    server/Sociaweb_request
+  BuildDepends: eliom.server, prime, subsocia, subsocia.data
+  ByteOpt: -thread
+  NativeOpt: -thread
+  CompiledObject: native
+
+Library "subsocia-web-module"
+  Path: web
+  FindlibParent: subsocia
+  FindlibName: web-module
+  Modules:
     server/Sociaweb_main,
     server/Sociaweb_registration,
-    server/Sociaweb_request,
     server/Sociaweb_restapi,
     server/Sociaweb_services
-  BuildDepends: eliom.server, prime, subsocia, subsocia-server
+  BuildDepends: subsocia.web-server
   ByteOpt: -thread
   NativeOpt: -thread
   DataFiles:
@@ -93,7 +107,7 @@ Library "subsocia-web"
     ../_build/web/client/*.js ($datadir/subsocia/static)
   CompiledObject: native
 
-Executable "subsocia_web"
+Executable "sociaweb_main"
   Path: web/client
   BuildDepends: eliom.client, prime, subsocia
   MainIs: sociaweb_main.ml
