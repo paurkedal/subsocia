@@ -18,8 +18,8 @@
 open Eliom_service
 open Eliom_parameter
 
-let main_service =
-  App.service ~path:[] ~get_params:unit ()
+let self_entity_service =
+  App.service ~path:["entities"; "self"] ~get_params:unit ()
 
 let entity_service =
   App.service ~path:["entities"] ~get_params:(suffix (int32 "entity_id")) ()

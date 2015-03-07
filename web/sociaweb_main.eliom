@@ -212,7 +212,7 @@ let entity_handler entity_id () =
       ~css:[["css"; "subsocia.css"]]
       (body [browser])
 
-let main_handler () () =
+let self_entity_handler () () =
   lwt operator = get_operator () in
   let operator_id = Entity.id operator in
   Lwt.return (Eliom_service.preapply entity_service operator_id)
@@ -222,5 +222,6 @@ module Main_app =
 
 let () =
   Subsocia_plugin.load_web_plugins ();
-  Eliom_registration.Redirection.register ~service:main_service main_handler;
+  Eliom_registration.Redirection.register ~service:self_entity_service
+					  self_entity_handler;
   Main_app.register ~service:entity_service entity_handler
