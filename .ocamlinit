@@ -1,0 +1,25 @@
+try Topdirs.dir_directory (Sys.getenv "OCAML_TOPLEVEL_PATH")
+with Not_found -> ();;
+#use "topfind"
+#thread
+
+#require "config-file"
+#require "lwt.unix"
+#require "lwt.simple-top"
+#require "deriving.runtime"
+#require "extunix"
+#require "prime.unstable"
+#require "rpclib"
+#require "panograph"
+#require "caqti.lwt"
+#require "caqti.caqtus-postgresql"
+
+#directory "_build/lib"
+#directory "_build/lib/data"
+#load "subsocia.cma"
+#load "subsocia-data.cma"
+
+open Subsocia_common
+open Subsocia_connection
+open Subsocia_selector
+open Unprime
