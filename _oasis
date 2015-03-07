@@ -5,6 +5,7 @@ Synopsis: People, organization, and authorization
 Authors: Petter A. Urkedal
 License: LGPL-3 with OCaml linking exception
 AlphaFeatures: ocamlbuild_more_args, pure_interface
+BetaFeatures: section_object
 Plugins: DevFiles (0.4), META (0.4)
 BuildTools: ocamlbuild
 XOCamlbuildPluginTags: package(eliom.ocamlbuild)
@@ -106,6 +107,11 @@ Library "subsocia-web-module"
     static/css/*.css ($datadir/subsocia/static/css),
     ../_build/web/client/*.js ($datadir/subsocia/static)
   CompiledObject: native
+
+Object "subsocia-web-debug-module"
+  Path: web/server
+  FindlibFullName: subsocia.web-debug-module
+  Modules: Sociaweb_debug
 
 Executable "sociaweb_main"
   Path: web/client
