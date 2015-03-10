@@ -102,6 +102,22 @@ module Make (Base : Subsocia_intf.S) = struct
     include Base.Entity
     include Subsocia_selector.Selector_utils (Base)
 
+    let getattr_opt e e' at =
+      lwt vs = getattr e e' at in
+      let n = Values.cardinal vs in
+      if n = 0 then Lwt.return_none else
+      if n = 1 then Lwt.return (Some (Values.min_elt vs)) else
+      lwt an = Attribute_type.(name (Ex at)) in
+      _fail "Multiple matches for attribute %s" an
+
+    let getattr_one e e' at =
+      lwt vs = getattr e e' at in
+      let n = Values.cardinal vs in
+      if n = 1 then Lwt.return (Values.min_elt vs) else
+      lwt an = Attribute_type.(name (Ex at)) in
+      if n = 0 then _fail "No matches for attribute %s" an
+	       else _fail "Multiple matches for attribute %s" an
+
     let of_unique_name ?super en =
       lwt super = match super with Some e -> Lwt.return e
 				 | None -> Entity.top in

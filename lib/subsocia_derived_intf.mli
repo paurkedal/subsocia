@@ -56,6 +56,9 @@ module type S = sig
     val select_opt : selector -> t option Lwt.t
     val select_one : selector -> t Lwt.t
 
+    val getattr_opt : t -> t -> 'a Attribute_type.t1 -> 'a option Lwt.t
+    val getattr_one : t -> t -> 'a Attribute_type.t1 -> 'a Lwt.t
+
     val of_unique_name : ?super: t -> string -> t option Lwt.t
     val display_name : langs: lang list -> t -> string Lwt.t
     val candidate_succs : t -> Set.t Lwt.t

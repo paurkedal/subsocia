@@ -90,6 +90,7 @@ module Values : sig
   val remove : 'a -> 'a t -> 'a t
   val contains : 'a -> 'a t -> bool
   val locate : 'a -> 'a t -> bool * int
+  val cardinal : 'a t -> int
   val min_elt : 'a t -> 'a
   val max_elt : 'a t -> 'a
   val iter : ('a -> unit) -> 'a t -> unit

@@ -178,6 +178,7 @@ module Values = struct
   let is_empty (type a) (T ((module S), s) : a t) = S.is_empty s
   let contains (type a) (x : a) (T ((module S), s) : a t) = S.contains x s
   let locate (type a) (x : a) (T ((module S), s) : a t) = S.locate x s
+  let cardinal (type a) (T ((module S), s) : a t) = S.cardinal s
   let min_elt (type a) (T ((module S), s) : a t) = S.min_elt s
   let max_elt (type a) (T ((module S), s) : a t) = S.max_elt s
   let add (type a) (x : a) (T ((module S), s) : a t) = T ((module S), S.add x s)
