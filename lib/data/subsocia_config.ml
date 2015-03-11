@@ -25,6 +25,10 @@ let database_uri =
   new Config_file.string_cp ~group ["database_uri"] "postgresql://"
     "Caqti URI for connecting to the database."
 
+let enable_caching =
+  new Config_file.bool_cp ~group ["enable_caching"] true
+    "Set to false to disable memory caching."
+
 module Cmd = struct
   let plugins =
     new Config_file.list_cp Config_file.string_wrappers ~group

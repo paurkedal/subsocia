@@ -251,16 +251,48 @@ module Q = struct
        WHERE subentity_id = ? AND attribute_type_id = ? AND value = ?"
 end
 
-let memo_1lwt f =
-  let cache = Prime_cache.create ~cache_metric 23 in
-  let g x =
-    try Lwt.return (Prime_cache.find cache x)
-    with Not_found ->
-      lwt y = f x in
-      Prime_cache.replace cache fetch_grade x y;
-      Lwt.return y in
-  g, cache
+module type CACHE = sig
+  type ('a, 'b) t
+  val create :  cache_metric: Prime_cache_metric.t -> int -> ('a, 'b) t
+  val clear : ('a, 'b) t -> unit
+  val find : ('a, 'b) t -> 'a -> 'b
+  val find_o : ('a, 'b) t -> 'a -> 'b option
+  val replace : ('a, 'b) t -> float -> 'a -> 'b -> unit
+  val remove : ('a, 'b) t -> 'a -> unit
+  val memo_lwt : ('a -> 'b Lwt.t) -> ('a -> 'b Lwt.t) * ('a, 'b) t
+end
 
+module Enabled_cache = struct
+  include Prime_cache
+
+  let memo_lwt f =
+    let cache = Prime_cache.create ~cache_metric 23 in
+    let g x =
+      try Lwt.return (Prime_cache.find cache x)
+      with Not_found ->
+	lwt y = f x in
+	Prime_cache.replace cache fetch_grade x y;
+	Lwt.return y in
+    g, cache
+end
+
+module Disabled_cache = struct
+  type ('a, 'b) t = unit
+  let create ~cache_metric n = ()
+  let clear _ = ()
+  let find _ _ = raise Not_found
+  let find_o _ _ = None
+  let replace _ _ _ _ = ()
+  let remove _ _ = ()
+  let memo_lwt f = f, ()
+end
+
+module Cache =
+  (val if Subsocia_config.enable_caching#get
+       then (module Enabled_cache)
+       else (module Disabled_cache) : CACHE)
+
+let memo_1lwt = Cache.memo_lwt
 let memo_0lwt = memo_1lwt
 let memo_2lwt f = let g, c = memo_1lwt f in (fun x0 x1 -> g (x0, x1)), c
 let memo_3lwt f = let g, c = memo_1lwt f in (fun x0 x1 x2 -> g (x0, x1, x2)), c
@@ -298,17 +330,17 @@ let connect uri = (module struct
 
   include Base
 
-  let inclusion_cache = Prime_cache.create ~cache_metric 61
+  let inclusion_cache = Cache.create ~cache_metric 61
 
   let bool_attribute_cache :
-    (entity_id * entity_id * attribute_type_id, bool Values.t) Prime_cache.t =
-    Prime_cache.create ~cache_metric 61
+    (entity_id * entity_id * attribute_type_id, bool Values.t) Cache.t =
+    Cache.create ~cache_metric 61
   let int_attribute_cache :
-    (entity_id * entity_id * attribute_type_id, int Values.t) Prime_cache.t =
-    Prime_cache.create ~cache_metric 61
+    (entity_id * entity_id * attribute_type_id, int Values.t) Cache.t =
+    Cache.create ~cache_metric 61
   let string_attribute_cache :
-    (entity_id * entity_id * attribute_type_id, string Values.t) Prime_cache.t =
-    Prime_cache.create ~cache_metric 61
+    (entity_id * entity_id * attribute_type_id, string Values.t) Cache.t =
+    Cache.create ~cache_metric 61
 
   let pool =
     let connect () = Caqti_lwt.connect uri in
@@ -550,38 +582,37 @@ let connect uri = (module struct
       Pwt_option.iter_s
 	(fun viewer ->
 	  C.exec Q.set_entity_viewer C.Param.([|int32 viewer; int32 e|]) >>
-	  Lwt.return (Prime_cache.remove viewer_cache e))
+	  Lwt.return (Cache.remove viewer_cache e))
 	viewer >>
       Pwt_option.iter_s
 	(fun admin ->
 	  C.exec Q.set_entity_admin C.Param.([|int32 admin; int32 e|]) >>
-	  Lwt.return (Prime_cache.remove admin_cache e))
+	  Lwt.return (Cache.remove admin_cache e))
 	admin
 
     let delete e =
       with_db @@ fun (module C) ->
       C.exec Q.delete_entity C.Param.([|int32 e|]) >|= fun () ->
-      Prime_cache.clear minimums_cache;
-      Prime_cache.clear preds_cache
+      Cache.clear minimums_cache;
+      Cache.clear preds_cache
 
     let precedes subentity superentity =
       if subentity = superentity then Lwt.return_true else
       let k = subentity, superentity in
-      try Lwt.return (Prime_cache.find inclusion_cache k)
+      try Lwt.return (Cache.find inclusion_cache k)
       with Not_found ->
 	lwt c = with_db @@ fun (module C) ->
 	  C.find_opt Q.select_precedes (fun _ -> ())
 		     C.Param.([|int32 subentity; int32 superentity|]) >|=
 	  function None -> false | Some () -> true in
-	Prime_cache.replace inclusion_cache preceq_grade k c;
+	Cache.replace inclusion_cache preceq_grade k c;
 	Lwt.return c
 
     let clear_inclusion_caches () =
-      let open Prime_cache in
-      clear minimums_cache;
-      clear preds_cache;
-      clear succs_cache;
-      clear inclusion_cache
+      Cache.clear minimums_cache;
+      Cache.clear preds_cache;
+      Cache.clear succs_cache;
+      Cache.clear inclusion_cache
 
     let constrain' subentity superentity (module C : CONNECTION) =
       C.exec Q.insert_inclusion
@@ -617,14 +648,14 @@ let connect uri = (module struct
     let getattr (type a) e e' (ak : a Attribute_type.t1) =
       let open Attribute_type in
       let aux cache q (detuple : _ -> a) : a Values.t Lwt.t =
-	try Lwt.return (Prime_cache.find cache (e, e', ak.ak_id))
+	try Lwt.return (Cache.find cache (e, e', ak.ak_id))
 	with Not_found ->
 	  with_db @@ fun (module C : CONNECTION) ->
 	  let p = C.Param.([|int32 e; int32 e'; int32 ak.ak_id|]) in
 	  let push tup acc =
 	    Values.add (detuple (Ptuple ((module C.Tuple), tup))) acc in
 	  lwt r = C.fold q push p (Values.empty ak.ak_value_type) in
-	  Prime_cache.replace cache attribution_grade (e, e', ak.ak_id) r;
+	  Cache.replace cache attribution_grade (e, e', ak.ak_id) r;
 	  Lwt.return r in
       match ak.ak_value_type with
       | Type.Bool ->
