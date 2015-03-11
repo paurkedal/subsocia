@@ -31,6 +31,7 @@ let langs = [Lang.of_string "en"] (* TODO: Use $LANG *)
 let run f = Lwt_main.run (f (connect ()))
 let run0 f = Lwt_main.run (f (connect ())); 0
 let fail_f fmt = ksprintf (fun s -> Lwt.fail (Failure s)) fmt
+let invalid_arg_f fmt = ksprintf invalid_arg fmt
 
 let value_type_parser s =
   try `Ok (Type.of_string s) with Invalid_argument msg -> `Error msg
@@ -54,8 +55,11 @@ let selector_conv = selector_parser, selector_printer
 
 let aselector_parser s =
   let rec aux acc = function
-    | Select_sub _ | Select_union _ | Select_pred | Select_top | Select_id _ ->
-      invalid_arg "Invalid path for attribute assignement."
+    | Select_sub _ | Select_union _ | Select_pred | Select_top | Select_id _
+	as sel_att ->
+      invalid_arg_f "The selector %s cannot be used for attribute assignement. \
+		     It must be a conjunction of one or more attribute \
+		     equalities." (string_of_selector sel_att)
     | Select_inter (selA, selB) -> aux (aux acc selB) selA
     | Select_attr (an, av) -> (an, av) :: acc in
   try
@@ -529,7 +533,7 @@ let subcommands = [
     ~doc:"List allowed attribution."
     "an-list";
   search_t, Term.info ~docs:e_scn
-    ~doc:"List entities below a path."
+    ~doc:"List entities matching a selector."
     "search";
   create_t, Term.info ~docs:e_scn
     ~doc:"Create an entity."
