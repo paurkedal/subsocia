@@ -59,6 +59,10 @@ module Make (RPCM : RPCM) = struct
     let delete (Ex ak) = Raw.delete ak.ak_id
   end
 
+  module Attribute = struct
+    type t0 = Ex : 'a Attribute_type.t1 * 'a -> t0
+  end
+
   module Entity_type = struct
     module Raw = Raw.Entity_type
 

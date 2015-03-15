@@ -394,6 +394,10 @@ let connect uri = (module struct
       C.exec Q.attribute_type_delete C.Param.([|int32 ak.ak_id|])
   end
 
+  module Attribute = struct
+    type t0 = Ex : 'a Attribute_type.t1 * 'a -> t0
+  end
+
   module Entity_type = struct
     type t = int32
 

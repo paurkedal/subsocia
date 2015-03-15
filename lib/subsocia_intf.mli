@@ -34,6 +34,11 @@ module type ATTRIBUTE_TYPE = sig
   val delete : t0 -> unit Lwt.t
 end
 
+module type ATTRIBUTE = sig
+  module Attribute_type : ATTRIBUTE_TYPE
+  type t0 = Ex : 'a Attribute_type.t1 * 'a -> t0
+end
+
 module type ENTITY_TYPE = sig
   module Attribute_type : ATTRIBUTE_TYPE
 
@@ -118,6 +123,7 @@ end
 
 module type S = sig
   module Attribute_type : ATTRIBUTE_TYPE
+  module Attribute : ATTRIBUTE with module Attribute_type := Attribute_type
   module Entity_type : ENTITY_TYPE with module Attribute_type := Attribute_type
   module Entity : ENTITY with module Attribute_type := Attribute_type
 			  and module Entity_type := Entity_type

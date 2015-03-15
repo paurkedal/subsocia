@@ -34,10 +34,6 @@ module type S = sig
     val coerce : 'a Type.t1 -> t0 -> 'a t1 option
   end
 
-  module Attribute : sig
-    type t0 = Ex : 'a Attribute_type.t1 * 'a -> t0
-  end
-
   module Entity_type :
     ENTITY_TYPE with module Attribute_type := Base.Attribute_type
 		 and type t = Base.Entity_type.t

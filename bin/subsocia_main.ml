@@ -359,7 +359,7 @@ module Entity_utils (C : Subsocia_intf.S) = struct
       | Some at -> Lwt.return at in
     let t = Attribute_type.type1 at in
     let v = Value.typed_of_string t vs in
-    Lwt.return (Attribute.Ex (at, v))
+    Lwt.return (C.Attribute.Ex (at, v))
 
   let lookup_aselector (sel_opt, asgn) =
     lwt asgn = Lwt_list.map_p lookup_assignment asgn in
@@ -373,7 +373,7 @@ module Entity_utils (C : Subsocia_intf.S) = struct
 
   let add_attributes e (e_ctx, attrs) =
     Lwt_list.iter_s
-      (fun (Attribute.Ex (at, av)) ->
+      (fun (C.Attribute.Ex (at, av)) ->
 	Entity.precedes e e_ctx >>=
 	  (function
 	    | true -> Lwt.return_unit
@@ -386,7 +386,7 @@ module Entity_utils (C : Subsocia_intf.S) = struct
 
   let delete_attributes e (e_ctx, attrs) =
     Lwt_list.iter_s
-      (fun (Attribute.Ex (at, av)) -> Entity.delattr e e_ctx at [av])
+      (fun (C.Attribute.Ex (at, av)) -> Entity.delattr e e_ctx at [av])
       attrs
 end
 
