@@ -677,6 +677,22 @@ let connect uri = (module struct
       | Type.Int -> asuccs_integer e ak.ak_id
       | Type.String -> asuccs_text e ak.ak_id
 
+    let clear_integer_caches () =
+      Cache.clear getattr_integer_cache;
+      Cache.clear apreds_integer_cache;
+      Cache.clear asuccs_integer_cache
+
+    let clear_text_caches () =
+      Cache.clear getattr_text_cache;
+      Cache.clear apreds_text_cache;
+      Cache.clear asuccs_text_cache
+
+    let clear_attr_caches (type a) (ak : a Attribute_type.t1) : unit =
+      match Attribute_type.type1 ak with
+      | Type.Bool -> clear_integer_caches ()
+      | Type.Int -> clear_integer_caches ()
+      | Type.String -> clear_text_caches ()
+
     (* Modifying Functions *)
 
     let constrain' subentity superentity (module C : CONNECTION) =
@@ -735,7 +751,7 @@ let connect uri = (module struct
 	    (fun x -> if Hashtbl.mem ht x then false else
 		      (Hashtbl.add ht x (); true)) xs in
       if xs = [] then Lwt.return_unit else
-      addattr' e e' ak xs
+      addattr' e e' ak xs >|= fun () -> clear_attr_caches ak
 
     let delattr' (type a) e e' (ak : a Attribute_type.t1) (xs : a list) =
       with_db @@ fun (module C : CONNECTION) ->
@@ -761,7 +777,7 @@ let connect uri = (module struct
 	  (fun x -> if not (Hashtbl.mem ht x) then false else
 		    (Hashtbl.remove ht x; true)) xs in
       if xs = [] then Lwt.return_unit else
-      delattr' e e' ak xs
+      delattr' e e' ak xs >|= fun () -> clear_attr_caches ak
 
     let setattr (type a) e e' (ak : a Attribute_type.t1) (xs : a list) =
       lwt xs_pres = getattr e e' ak in
@@ -779,7 +795,8 @@ let connect uri = (module struct
       let xs_del =
 	Hashtbl.fold (fun x ins acc -> if ins then acc else x :: acc) ht [] in
       (if xs_del = [] then Lwt.return_unit else delattr' e e' ak xs_del) >>
-      (if xs_ins = [] then Lwt.return_unit else addattr' e e' ak xs_ins)
+      (if xs_ins = [] then Lwt.return_unit else addattr' e e' ak xs_ins) >>
+      (clear_attr_caches ak; Lwt.return_unit)
 
   end
 
