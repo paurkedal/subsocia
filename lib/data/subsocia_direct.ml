@@ -618,34 +618,6 @@ let connect uri = (module struct
       Cache.clear succs_cache;
       Cache.clear inclusion_cache
 
-    let constrain' subentity superentity (module C : CONNECTION) =
-      C.exec Q.insert_inclusion
-	C.Param.([|int32 subentity; int32 superentity|]) >|=
-      clear_inclusion_caches
-
-    let unconstrain' subentity superentity (module C : CONNECTION) =
-      C.exec Q.delete_inclusion
-	C.Param.([|int32 subentity; int32 superentity|]) >|=
-      clear_inclusion_caches
-
-    let constrain subentity superentity =
-      lwt is_sub = precedes subentity superentity in
-      if is_sub then Lwt.return_unit else
-      lwt is_super = precedes superentity subentity in
-      if is_super then Lwt.fail (Invalid_argument "cyclic constraint") else
-      (* TODO: Update entity_rank. *)
-      with_db (constrain' subentity superentity)
-      (* TODO: Update is_subsumed. *)
-      (* FIXME: Clear or update pred and succ caches. *)
-      (* FIXME: Clear or update inclusion cache. *)
-
-    let unconstrain subentity superentity =
-      (* TODO: Update is_subsumed. *)
-      with_db (unconstrain' subentity superentity)
-      (* TODO: Update entity_rank. *)
-      (* FIXME: Clear or update pred and succ caches. *)
-      (* FIXME: Clear or update inclusion cache. *)
-
     type ptuple =
       Ptuple : (module Caqti_sigs.TUPLE with type t = 't) * 't -> ptuple
 
@@ -671,6 +643,74 @@ let connect uri = (module struct
       | Type.String ->
 	aux string_attribute_cache Q.select_text_attribution
 	    (fun (Ptuple ((module T), tup)) -> T.text 0 tup)
+
+    let apreds_integer, apreds_integer_cache =
+      memo_3lwt @@ fun (e, ak_id, x) ->
+      with_db @@ fun (module C : CONNECTION) ->
+      let f tup = Set.add (C.Tuple.int32 0 tup) in
+      C.fold Q.apreds_integer f C.Param.([|int32 e; int32 ak_id; int x|])
+	     Set.empty
+
+    let apreds_text, apreds_text_cache =
+      memo_3lwt @@ fun (e, ak_id, x) ->
+      with_db @@ fun (module C : CONNECTION) ->
+      let f tup = Set.add (C.Tuple.int32 0 tup) in
+      C.fold Q.apreds_text f C.Param.([|int32 e; int32 ak_id; text x|])
+	     Set.empty
+
+    let apreds (type a) e (ak : a Attribute_type.t1) : a -> Set.t Lwt.t =
+      let open Attribute_type in
+      match type1 ak with
+      | Type.Bool -> fun x -> apreds_integer e ak.ak_id (if x then 1 else 0)
+      | Type.Int -> apreds_integer e ak.ak_id
+      | Type.String -> apreds_text e ak.ak_id
+
+    let asuccs_integer, asuccs_integer_cache =
+      memo_3lwt @@ fun (e, ak_id, x) ->
+      with_db @@ fun (module C : CONNECTION) ->
+      let f tup = Set.add (C.Tuple.int32 0 tup) in
+      C.fold Q.asuccs_integer f C.Param.([|int32 e; int32 ak_id; int x|])
+	     Set.empty
+
+    let asuccs_text, asuccs_text_cache =
+      memo_3lwt @@ fun (e, ak_id, x) ->
+      with_db @@ fun (module C : CONNECTION) ->
+      let f tup = Set.add (C.Tuple.int32 0 tup) in
+      C.fold Q.asuccs_text f C.Param.([|int32 e; int32 ak_id; text x|])
+	     Set.empty
+
+    let asuccs (type a) e (ak : a Attribute_type.t1) : a -> Set.t Lwt.t =
+      let open Attribute_type in
+      match type1 ak with
+      | Type.Bool -> fun x -> asuccs_integer e ak.ak_id (if x then 1 else 0)
+      | Type.Int -> asuccs_integer e ak.ak_id
+      | Type.String -> asuccs_text e ak.ak_id
+
+    (* Modifying Functions *)
+
+    let constrain' subentity superentity (module C : CONNECTION) =
+      C.exec Q.insert_inclusion
+	C.Param.([|int32 subentity; int32 superentity|]) >|=
+      clear_inclusion_caches
+
+    let unconstrain' subentity superentity (module C : CONNECTION) =
+      C.exec Q.delete_inclusion
+	C.Param.([|int32 subentity; int32 superentity|]) >|=
+      clear_inclusion_caches
+
+    let constrain subentity superentity =
+      lwt is_sub = precedes subentity superentity in
+      if is_sub then Lwt.return_unit else
+      lwt is_super = precedes superentity subentity in
+      if is_super then Lwt.fail (Invalid_argument "cyclic constraint") else
+      (* TODO: Update entity_rank. *)
+      with_db (constrain' subentity superentity)
+      (* TODO: Update is_subsumed. *)
+
+    let unconstrain subentity superentity =
+      (* TODO: Update is_subsumed. *)
+      with_db (unconstrain' subentity superentity)
+      (* TODO: Update entity_rank. *)
 
     let addattr' (type a) e e' (ak : a Attribute_type.t1) (xs : a list) =
       with_db @@ fun (module C : CONNECTION) ->
@@ -749,48 +789,6 @@ let connect uri = (module struct
 	Hashtbl.fold (fun x ins acc -> if ins then acc else x :: acc) ht [] in
       (if xs_del = [] then Lwt.return_unit else delattr' e e' ak xs_del) >>
       (if xs_ins = [] then Lwt.return_unit else addattr' e e' ak xs_ins)
-
-    let apreds_integer, apreds_integer_cache =
-      memo_3lwt @@ fun (e, ak_id, x) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.apreds_integer f C.Param.([|int32 e; int32 ak_id; int x|])
-	     Set.empty
-
-    let apreds_text, apreds_text_cache =
-      memo_3lwt @@ fun (e, ak_id, x) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.apreds_text f C.Param.([|int32 e; int32 ak_id; text x|])
-	     Set.empty
-
-    let apreds (type a) e (ak : a Attribute_type.t1) : a -> Set.t Lwt.t =
-      let open Attribute_type in
-      match type1 ak with
-      | Type.Bool -> fun x -> apreds_integer e ak.ak_id (if x then 1 else 0)
-      | Type.Int -> apreds_integer e ak.ak_id
-      | Type.String -> apreds_text e ak.ak_id
-
-    let asuccs_integer, asuccs_integer_cache =
-      memo_3lwt @@ fun (e, ak_id, x) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.asuccs_integer f C.Param.([|int32 e; int32 ak_id; int x|])
-	     Set.empty
-
-    let asuccs_text, asuccs_text_cache =
-      memo_3lwt @@ fun (e, ak_id, x) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.asuccs_text f C.Param.([|int32 e; int32 ak_id; text x|])
-	     Set.empty
-
-    let asuccs (type a) e (ak : a Attribute_type.t1) : a -> Set.t Lwt.t =
-      let open Attribute_type in
-      match type1 ak with
-      | Type.Bool -> fun x -> asuccs_integer e ak.ak_id (if x then 1 else 0)
-      | Type.Int -> asuccs_integer e ak.ak_id
-      | Type.String -> asuccs_text e ak.ak_id
 
   end
 
