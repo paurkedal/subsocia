@@ -332,16 +332,6 @@ let connect uri = (module struct
 
   let inclusion_cache = Cache.create ~cache_metric 61
 
-  let bool_attribute_cache :
-    (entity_id * entity_id * attribute_type_id, bool Values.t) Cache.t =
-    Cache.create ~cache_metric 61
-  let int_attribute_cache :
-    (entity_id * entity_id * attribute_type_id, int Values.t) Cache.t =
-    Cache.create ~cache_metric 61
-  let string_attribute_cache :
-    (entity_id * entity_id * attribute_type_id, string Values.t) Cache.t =
-    Cache.create ~cache_metric 61
-
   let pool =
     let connect () = Caqti_lwt.connect uri in
     let disconnect (module C : CONNECTION) = C.disconnect () in
@@ -621,28 +611,29 @@ let connect uri = (module struct
     type ptuple =
       Ptuple : (module Caqti_sigs.TUPLE with type t = 't) * 't -> ptuple
 
-    let getattr (type a) e e' (ak : a Attribute_type.t1) =
-      let open Attribute_type in
-      let aux cache q (detuple : _ -> a) : a Values.t Lwt.t =
-	try Lwt.return (Cache.find cache (e, e', ak.ak_id))
-	with Not_found ->
-	  with_db @@ fun (module C : CONNECTION) ->
-	  let p = C.Param.([|int32 e; int32 e'; int32 ak.ak_id|]) in
-	  let push tup acc =
-	    Values.add (detuple (Ptuple ((module C.Tuple), tup))) acc in
-	  lwt r = C.fold q push p (Values.empty ak.ak_value_type) in
-	  Cache.replace cache attribution_grade (e, e', ak.ak_id) r;
-	  Lwt.return r in
-      match ak.ak_value_type with
+    let getattr_integer, getattr_integer_cache =
+      memo_3lwt @@ fun (e, e', ak_id) ->
+      with_db @@ fun (module C : CONNECTION) ->
+      C.fold Q.select_integer_attribution
+	     C.Tuple.(fun tup -> Values.add (int 0 tup))
+	     C.Param.([|int32 e; int32 e'; int32 ak_id|])
+	     (Values.empty Type.Int)
+
+    let getattr_text, getattr_text_cache =
+      memo_3lwt @@ fun (e, e', ak_id) ->
+      with_db @@ fun (module C : CONNECTION) ->
+      C.fold Q.select_text_attribution
+	     C.Tuple.(fun tup -> Values.add (text 0 tup))
+	     C.Param.([|int32 e; int32 e'; int32 ak_id|])
+	     (Values.empty Type.String)
+
+    let getattr (type a) e e' (ak : a Attribute_type.t1) : a Values.t Lwt.t =
+      match Attribute_type.type1 ak with
       | Type.Bool ->
-	aux bool_attribute_cache Q.select_integer_attribution
-	    (fun (Ptuple ((module T), tup)) -> T.int 0 tup <> 0)
-      | Type.Int ->
-	aux int_attribute_cache Q.select_integer_attribution
-	    (fun (Ptuple ((module T), tup)) -> T.int 0 tup)
-      | Type.String ->
-	aux string_attribute_cache Q.select_text_attribution
-	    (fun (Ptuple ((module T), tup)) -> T.text 0 tup)
+	getattr_integer e e' ak.Attribute_type.ak_id >|= fun s ->
+	Values.fold (Values.add *< (<>) 0) s (Values.empty Type.Bool)
+      | Type.Int -> getattr_integer e e' ak.Attribute_type.ak_id
+      | Type.String -> getattr_text e e' ak.Attribute_type.ak_id
 
     let apreds_integer, apreds_integer_cache =
       memo_3lwt @@ fun (e, ak_id, x) ->
