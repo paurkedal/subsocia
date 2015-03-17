@@ -203,9 +203,16 @@
 let entity_handler entity_id () =
   let open Html5.D in
   lwt cri = get_custom_request_info () in
+  lwt e = Entity.of_id entity_id in
   lwt browser =
-    lwt e = Entity.of_id entity_id in
     render_browser ~cri e in
+  let entity_changed_c = Eliom_react.Down.of_react (entity_changed e) in
+  ignore {unit{
+    Lwt_react.E.keep @@ React.E.trace
+      (fun _ ->
+	Eliom_client.exit_to ~service:Eliom_service.void_coservice' () ())
+      %entity_changed_c
+  }};
   Lwt.return @@
     Eliom_tools.D.html
       ~title:"Entity Browser"

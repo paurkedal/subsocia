@@ -15,3 +15,5 @@
  *)
 
 include Subsocia_derived_intf.S
+
+val entity_changed : Entity.t -> [`Pred | `Succ | `Apred | `Asucc] React.E.t

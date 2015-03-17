@@ -20,3 +20,4 @@ let subsocia_connection = Subsocia_direct.connect subsocia_uri
 module Base = (val subsocia_connection)
 include Subsocia_derived.Make (Base)
 include Subsocia_selector.Selector_utils (Base)
+let entity_changed = Base.entity_changed
