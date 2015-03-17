@@ -55,7 +55,7 @@ module type CONNECTION_POOL = sig
   val pool : (module Caqti_lwt.CONNECTION) Caqti_lwt.Pool.t
 end
 
-module type S = Subsocia_intf.S
+module type S = Subsocia_direct_intf.S
 
 module Q = struct
   open Caqti_query
@@ -527,6 +527,9 @@ let connect uri = (module struct
     module Set = Int32_set
     module Map = Int32_map
 
+    let changed_event_table = Int32_event_table.create 97
+    let emit_changed = Int32_event_table.emit changed_event_table
+
     let compare = Int32.compare
 
     let of_id e = Lwt.return e
@@ -698,12 +701,18 @@ let connect uri = (module struct
     let constrain' subentity superentity (module C : CONNECTION) =
       C.exec Q.insert_inclusion
 	C.Param.([|int32 subentity; int32 superentity|]) >|=
-      clear_inclusion_caches
+      fun () ->
+	clear_inclusion_caches ();
+	emit_changed subentity `Succ;
+	emit_changed superentity `Pred
 
     let unconstrain' subentity superentity (module C : CONNECTION) =
       C.exec Q.delete_inclusion
 	C.Param.([|int32 subentity; int32 superentity|]) >|=
-      clear_inclusion_caches
+      fun () ->
+	clear_inclusion_caches ();
+	emit_changed subentity `Succ;
+	emit_changed superentity `Pred
 
     let constrain subentity superentity =
       lwt is_sub = precedes subentity superentity in
@@ -751,7 +760,11 @@ let connect uri = (module struct
 	    (fun x -> if Hashtbl.mem ht x then false else
 		      (Hashtbl.add ht x (); true)) xs in
       if xs = [] then Lwt.return_unit else
-      addattr' e e' ak xs >|= fun () -> clear_attr_caches ak
+      addattr' e e' ak xs >|=
+      fun () ->
+	clear_attr_caches ak;
+	emit_changed e `Asucc;
+	emit_changed e' `Apred
 
     let delattr' (type a) e e' (ak : a Attribute_type.t1) (xs : a list) =
       with_db @@ fun (module C : CONNECTION) ->
@@ -777,7 +790,11 @@ let connect uri = (module struct
 	  (fun x -> if not (Hashtbl.mem ht x) then false else
 		    (Hashtbl.remove ht x; true)) xs in
       if xs = [] then Lwt.return_unit else
-      delattr' e e' ak xs >|= fun () -> clear_attr_caches ak
+      delattr' e e' ak xs >|=
+      fun () ->
+	clear_attr_caches ak;
+	emit_changed e `Asucc;
+	emit_changed e' `Apred
 
     let setattr (type a) e e' (ak : a Attribute_type.t1) (xs : a list) =
       lwt xs_pres = getattr e e' ak in
@@ -795,9 +812,14 @@ let connect uri = (module struct
       let xs_del =
 	Hashtbl.fold (fun x ins acc -> if ins then acc else x :: acc) ht [] in
       (if xs_del = [] then Lwt.return_unit else delattr' e e' ak xs_del) >>
-      (if xs_ins = [] then Lwt.return_unit else addattr' e e' ak xs_ins) >>
-      (clear_attr_caches ak; Lwt.return_unit)
+      (if xs_ins = [] then Lwt.return_unit else addattr' e e' ak xs_ins) >|=
+      fun () ->
+	clear_attr_caches ak;
+	emit_changed e `Asucc;
+	emit_changed e' `Apred
 
   end
+
+  let entity_changed = Int32_event_table.event Entity.changed_event_table
 
 end : S)

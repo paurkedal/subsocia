@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,14 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-module type S = Subsocia_direct_intf.S
+module type S = sig
+  include Subsocia_intf.S
 
-val schema_prefix : string ref
-val format_query : string -> Caqti_query.query
-val fetch_grade : float
-
-module type CONNECTION_POOL = sig
-  val pool : (module Caqti_lwt.CONNECTION) Caqti_lwt.Pool.t
+  val entity_changed : Entity.t -> [`Pred | `Succ | `Apred | `Asucc] React.E.t
 end
-
-val connect : Uri.t -> (module S)

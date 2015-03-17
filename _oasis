@@ -62,6 +62,7 @@ Library "subsocia-data"
     Subsocia_config,
     Subsocia_connection,
     Subsocia_direct,
+    Subsocia_direct_intf,
     Subsocia_plugin
   ByteOpt: -thread
   NativeOpt: -thread
