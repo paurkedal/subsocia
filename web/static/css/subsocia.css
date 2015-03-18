@@ -7,6 +7,12 @@ body {
 table.layout { border-collapse: collapse; margin: 0; }
 table.layout > tr > td:first-child { padding-left: 0; }
 table.layout > tr > th { text-align: left; }
+table.layout > tr > td { vertical-align: top; }
+table.layout table.multicol { margin: 0; }
+
+.entity-browser > table.layout th { font-size: small; }
+.entity-browser > table.layout td { padding: 0; }
+.entity-browser > table.layout { margin-bottom: 2mm; }
 
 .box-middle, .box-top, .box-bottom { border: solid thin; }
 .box-top, .box-bottom { border-radius: 2mm; min-height: 2mm; }
