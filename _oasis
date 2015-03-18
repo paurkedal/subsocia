@@ -28,8 +28,8 @@ Library "subsocia"
     Subsocia_version
   InternalModules:
     Subsocia_rpc_primitives,
-    Subsocia_selector_lexer,
-    Subsocia_selector_parser
+    Subsocia_lexer,
+    Subsocia_parser
   BuildDepends:
     extunix,
     lwt,

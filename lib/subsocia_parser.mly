@@ -22,10 +22,10 @@ open Subsocia_selector_types
 %token<string> EQ_VERB STR
 %token<int32> ID
 
-%type<Subsocia_selector_types.selector> start
-%start start
+%type<Subsocia_selector_types.selector> selector
+%start selector
 %%
-start: path EOF { $1 };
+selector: path EOF { $1 };
 path:
     attribution { $1 }
   | path SLASH attribution { Select_sub ($1, $3) }

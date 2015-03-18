@@ -22,7 +22,7 @@ open Unprime_string
 include Subsocia_selector_types
 
 let selector_of_string s =
-  try Subsocia_selector_lexer.parse_string s
+  try Subsocia_lexer.selector_of_string s
   with Parsing.Parse_error -> raise (Invalid_argument "Parse error")
 
 let is_reserved = function

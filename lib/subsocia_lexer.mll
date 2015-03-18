@@ -15,7 +15,7 @@
  *)
 
 {
-open Subsocia_selector_parser
+open Subsocia_parser
 open Subsocia_selector_types
 }
 
@@ -40,9 +40,7 @@ and lex = parse
 {
   open Lexing
 
-  let parse_lexbuf = start lex
-
-  let parse_string s =
+  let selector_of_string s =
     let lexbuf = from_string s in
     lexbuf.lex_curr_p <- {
       pos_fname = "";
@@ -50,5 +48,5 @@ and lex = parse
       pos_bol = 0;
       pos_cnum = 0
     };
-    parse_lexbuf lexbuf
+    selector lex lexbuf
 }
