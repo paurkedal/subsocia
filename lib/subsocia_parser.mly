@@ -15,16 +15,50 @@
  */
 
 %{
+open Subsocia_schema_types
 open Subsocia_selector_types
 %}
 
-%token EOF EQ SLASH TOP PLUS LBRACE RBRACE
+%token EOF EQ NOT_LT LT MINUS NL SLASH TOP PLUS LBRACE RBRACE
+%token CREATE MODIFY DELETE
 %token<string> EQ_VERB STR
 %token<int32> ID
 
+%type<Subsocia_schema_types.schema_entry list> schema
 %type<Subsocia_selector_types.selector> selector
-%start selector
+%start selector schema
 %%
+schema: entries EOF { List.rev $1 };
+entries:
+    /* empty */ { [] }
+  | entries entry { $2 :: $1 }
+  ;
+
+entry:
+    CREATE STR NL create_constraints { `Create ($2, List.rev $4) }
+  | MODIFY path NL modify_constraints { `Modify ($2, List.rev $4) }
+  | DELETE path NL { `Delete $2 }
+  ;
+create_constraints:
+    /* empty */ { [] }
+  | create_constraints create_constraint NL { $2 :: $1 }
+  ;
+create_constraint:
+    LT path { `Add_sub $2 }
+  | PLUS path { `Add_attr $2 }
+  ;
+modify_constraints:
+    /* empty */ { [] }
+  | modify_constraints modify_constraint NL { $2 :: $1 }
+  ;
+modify_constraint:
+    LT path { `Add_sub $2 }
+  | NOT_LT path { `Remove_sub $2 }
+  | PLUS path { `Add_attr $2 }
+  | MINUS path { `Remove_attr $2 }
+  | EQ path { `Set_attr $2 }
+  ;
+
 selector: path EOF { $1 };
 path:
     attribution { $1 }

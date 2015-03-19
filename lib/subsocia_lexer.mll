@@ -30,11 +30,20 @@ and lex = parse
   | '{' { LBRACE }
   | '}' { RBRACE }
   | '+' { PLUS }
+  | ".create " { CREATE }
+  | ".modify " { MODIFY }
+  | ".delete " { DELETE }
+  | '-' { MINUS }
+  | '<' { LT }
+  | "!<" { NOT_LT }
   | '=' { EQ }
   | "={" { EQ_VERB (lex_literal (Buffer.create 80) 0 lexbuf) }
   | '#' { TOP }
   | '#' (['0'-'9']+ as s) { ID (Int32.of_string s) }
-  | [^ '{' '}' '/' '+' '=' '\n']+ as s { STR s }
+  | [' ' '\t']* { lex lexbuf }
+  | '\n' [' ' '\n' '\t']* { NL }
+  | [^ '{' '}' '/' '+' '<' '=' '\n' '!' '-' ' ' '.']
+    [^ '{' '}' '/' '+' '<' '=' '\n']* as s { STR s }
   | eof { EOF }
 
 {
@@ -49,4 +58,18 @@ and lex = parse
       pos_cnum = 0
     };
     selector lex lexbuf
+
+  let parse_schema fp =
+    Prime_io.with_file_in
+      begin fun ic ->
+	let lexbuf = from_channel ic in
+	lexbuf.lex_curr_p <- {
+	  pos_fname = fp;
+	  pos_lnum = 1;
+	  pos_bol = 0;
+	  pos_cnum = 0
+	};
+	schema lex lexbuf
+      end
+      fp
 }

@@ -23,6 +23,7 @@ Library "subsocia"
     Subsocia_prereq,
     Subsocia_rpc_client,
     Subsocia_rpc_server,
+    Subsocia_schema_types,
     Subsocia_selector,
     Subsocia_selector_types,
     Subsocia_version
