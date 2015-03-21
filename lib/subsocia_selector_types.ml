@@ -19,6 +19,7 @@ type selector =
   | Select_union of selector * selector
   | Select_inter of selector * selector
   | Select_attr of string * string
+  | Select_attr_present of string
   | Select_top
   | Select_id of int32
   | Select_pred

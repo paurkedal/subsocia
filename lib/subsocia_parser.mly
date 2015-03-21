@@ -76,6 +76,7 @@ attribution:
     disjunction { $1 }
   | STR EQ STR { Select_attr ($1, $3) }
   | STR EQ_VERB { Select_attr ($1, $2) }
+  | STR EQ PLUS { Select_attr_present $1 }
   | TOP { Select_top }
   | ID { Select_id $1 }
   | STR { Select_attr ("unique_name", $1) }

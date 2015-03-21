@@ -47,6 +47,11 @@ let rec bprint_selector buf p = function
     end else
       Buffer.add_string buf v;
     if p > 1 then Buffer.add_char buf '}'
+  | Select_attr_present k ->
+    if p > 1 then Buffer.add_char buf '{';
+    Buffer.add_string buf k;
+    Buffer.add_string buf "=+";
+    if p > 1 then Buffer.add_char buf '}'
   | Select_top -> Buffer.add_char buf '#'
   | Select_id id -> bprintf buf "#%ld" id
   | Select_pred ->
@@ -89,6 +94,18 @@ module Selector_utils (C : Subsocia_intf.S) = struct
 	let x = Value.typed_of_string t v in
 	C.Entity.Set.fold_s
 	  (fun e1 acc -> C.Entity.apreds e1 at x >|= C.Entity.Set.union acc)
+	  es C.Entity.Set.empty
+      end
+    | Select_attr_present an -> fun es ->
+      begin match_lwt C.Attribute_type.of_name an with
+      | None -> Lwt.fail (Failure ("No attribute type is named " ^ an))
+      | Some (C.Attribute_type.Ex at) ->
+	C.Entity.Set.fold_s
+	  (fun e1 acc ->
+	    lwt m = C.Entity.getattrpreds e1 at in
+	    let s = C.Entity.Map.fold (fun e _ -> C.Entity.Set.add e) m
+				      C.Entity.Set.empty in
+	    Lwt.return (C.Entity.Set.union s acc))
 	  es C.Entity.Set.empty
       end
     | Select_top -> fun es ->

@@ -56,6 +56,7 @@ let selector_conv = selector_parser, selector_printer
 let aselector_parser s =
   let rec aux acc = function
     | Select_sub _ | Select_union _ | Select_pred | Select_top | Select_id _
+    | Select_attr_present _
 	as sel_att ->
       invalid_arg_f "The selector %s cannot be used for attribute assignement. \
 		     It must be a conjunction of one or more attribute \
