@@ -15,12 +15,20 @@
  */
 
 %{
+open Printf
 open Subsocia_schema_types
 open Subsocia_selector_types
+
+let parse_error msg =
+  let pos = Parsing.symbol_start_pos () in
+  let open Lexing in
+  fprintf stderr "%s:%d:%d: %s\n%!" pos.pos_fname
+	  pos.pos_lnum (pos.pos_cnum - pos.pos_bol) msg
 %}
 
-%token EOF EQ NOT_LT LT MINUS NL SLASH TOP PLUS LBRACE RBRACE
-%token CREATE MODIFY DELETE
+%token EOF CREATE MODIFY DELETE
+%token DELINCL ADDINCL ADDATTR DELATTR SETATTR
+%token EQ SLASH TOP PLUS LBRACE RBRACE
 %token<string> EQ_VERB STR
 %token<int32> ID
 
@@ -35,28 +43,28 @@ entries:
   ;
 
 entry:
-    CREATE STR NL create_constraints { `Create ($2, List.rev $4) }
-  | MODIFY path NL modify_constraints { `Modify ($2, List.rev $4) }
-  | DELETE path NL { `Delete $2 }
+    CREATE STR create_constraints { `Create ($2, List.rev $3) }
+  | MODIFY path modify_constraints { `Modify ($2, List.rev $3) }
+  | DELETE path { `Delete $2 }
   ;
 create_constraints:
     /* empty */ { [] }
-  | create_constraints create_constraint NL { $2 :: $1 }
+  | create_constraints create_constraint { $2 :: $1 }
   ;
 create_constraint:
-    LT path { `Add_sub $2 }
-  | PLUS path { `Add_attr $2 }
+    ADDINCL path { `Add_sub $2 }
+  | ADDATTR path { `Add_attr $2 }
   ;
 modify_constraints:
     /* empty */ { [] }
-  | modify_constraints modify_constraint NL { $2 :: $1 }
+  | modify_constraints modify_constraint { $2 :: $1 }
   ;
 modify_constraint:
-    LT path { `Add_sub $2 }
-  | NOT_LT path { `Remove_sub $2 }
-  | PLUS path { `Add_attr $2 }
-  | MINUS path { `Remove_attr $2 }
-  | EQ path { `Set_attr $2 }
+    ADDINCL path { `Add_sub $2 }
+  | DELINCL path { `Remove_sub $2 }
+  | ADDATTR path { `Add_attr $2 }
+  | DELATTR path { `Remove_attr $2 }
+  | SETATTR path { `Set_attr $2 }
   ;
 
 selector: path EOF { $1 };

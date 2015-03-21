@@ -15,9 +15,21 @@
  *)
 
 {
-open Subsocia_parser
-open Subsocia_selector_types
+  open Lexing
+  open Printf
+  open Subsocia_parser
+  open Subsocia_selector_types
+
+  let lexical_error lexbuf c =
+    let pos = lexbuf.lex_start_p in
+    fprintf stderr "%s:%d:%d: Not expecting '%c' here.\n%!" pos.pos_fname
+	    pos.pos_lnum (pos.pos_cnum - pos.pos_bol) c
 }
+
+let space = [' ' '\t']
+let bareedge = ['a'-'z' 'A'-'Z' '0'-'9' '_' '\x80'-'\xff']
+let barefill = ['a'-'z' 'A'-'Z' '0'-'9' '_' '\x80'-'\xff' '@' '-' '.' ' ']
+let barepath = bareedge (barefill* bareedge)?
 
 rule lex_literal buf level = parse
   | '{' { Buffer.add_char buf '{'; lex_literal buf (level + 1) lexbuf }
@@ -30,25 +42,25 @@ and lex = parse
   | '{' { LBRACE }
   | '}' { RBRACE }
   | '+' { PLUS }
-  | ".create " { CREATE }
-  | ".modify " { MODIFY }
-  | ".delete " { DELETE }
-  | '-' { MINUS }
-  | '<' { LT }
-  | "!<" { NOT_LT }
+  | "*" space { CREATE }
+  | "@" space { MODIFY }
+  | "?@" space { DELETE }
+  | '!' { ADDATTR }
+  | '?' { DELATTR }
+  | "?!" { SETATTR }
+  | "!<" { ADDINCL }
+  | "?<" { DELINCL }
   | '=' { EQ }
   | "={" { EQ_VERB (lex_literal (Buffer.create 80) 0 lexbuf) }
   | '#' { TOP }
   | '#' (['0'-'9']+ as s) { ID (Int32.of_string s) }
-  | [' ' '\t']* { lex lexbuf }
-  | '\n' [' ' '\n' '\t']* { NL }
-  | [^ '{' '}' '/' '+' '<' '=' '\n' '!' '-' ' ' '.']
-    [^ '{' '}' '/' '+' '<' '=' '\n']* as s { STR s }
+  | barepath as s { STR s }
+  | space+ | '#' space [^ '\n']* { lex lexbuf }
+  | '\n' { Lexing.new_line lexbuf; lex lexbuf }
   | eof { EOF }
+  | _ as c { lexical_error lexbuf c; raise Parsing.Parse_error; }
 
 {
-  open Lexing
-
   let selector_of_string s =
     let lexbuf = from_string s in
     lexbuf.lex_curr_p <- {
