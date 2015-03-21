@@ -16,6 +16,8 @@
 
 module Int_map : Map.S with type key = int
 
+val invalid_arg_f : ('a, unit, string, 'b) format4 -> 'a
+
 val (>>=) : 'a Lwt.t -> ('a -> 'b Lwt.t) -> 'b Lwt.t
 val (>|=) : 'a Lwt.t -> ('a -> 'b) -> 'b Lwt.t
 

@@ -18,6 +18,8 @@ open Printf
 
 module Int_map = Map.Make (struct type t = int let compare = compare end)
 
+let invalid_arg_f fmt = ksprintf invalid_arg fmt
+
 let (>>=) = Lwt.(>>=)
 let (>|=) = Lwt.(>|=)
 

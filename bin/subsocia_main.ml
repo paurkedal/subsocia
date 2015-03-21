@@ -496,6 +496,16 @@ let modify_t =
 			    $ add_attrs_t $ del_attrs_t
 			    $ admin_t $ viewer_t)
 
+let load schema_path =
+  run0 @@ fun (module C) ->
+  let schema = Subsocia_schema.load_schema schema_path in
+  Subsocia_schema.exec_schema (module C : Subsocia_intf.S) schema
+
+let load_t =
+  let schema_t = Arg.(required & pos 0 (some file) None &
+		      info ~docv:"PATH" []) in
+  Term.(pure load $ schema_t)
+
 (* Main *)
 
 let db_scn = "DATABASE COMMANDS"
@@ -560,6 +570,10 @@ let subcommands = [
   modify_t, Term.info ~docs:e_scn
     ~doc:"Modify an entity."
     "modify";
+  load_t, Term.info ~docs:e_scn
+    ~doc:"Add, modify, and delete attributes according to the schema loaded \
+	  from PATH."
+    "load"
 ]
 
 let main_t = Term.(ret @@ pure (`Error (true, "Missing subcommand.")))

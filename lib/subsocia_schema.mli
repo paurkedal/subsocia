@@ -14,21 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Subsocia_selector_types
+open Subsocia_schema_types
 
-type schema_add =
-  [ `Add_sub of selector
-  | `Add_attr of selector ]
+val load_schema : string -> schema
 
-type schema_mod =
-  [ schema_add
-  | `Remove_sub of selector
-  | `Remove_attr of selector
-  | `Set_attr of selector ]
-
-type schema_entry =
-  [ `Create of string * schema_add list
-  | `Modify of selector * schema_mod list
-  | `Delete of selector ]
-
-type schema = schema_entry list
+val exec_schema : (module Subsocia_intf.S) -> schema -> unit Lwt.t

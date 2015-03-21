@@ -35,8 +35,6 @@ module Lwtx_list = struct
 		     | Some _ as r -> Lwt.return r
 end
 
-let invalid_arg_f fmt = ksprintf invalid_arg fmt
-
 module Multiplicity = struct
   type t = May1 | Must1 | May | Must with rpc
 

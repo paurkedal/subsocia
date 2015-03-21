@@ -32,7 +32,7 @@ let parse_error msg =
 %token<string> EQ_VERB STR
 %token<int32> ID
 
-%type<Subsocia_schema_types.schema_entry list> schema
+%type<Subsocia_schema_types.schema> schema
 %type<Subsocia_selector_types.selector> selector
 %start selector schema
 %%
