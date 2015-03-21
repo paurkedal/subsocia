@@ -53,16 +53,18 @@ let selector_printer fmtr sel =
   Format.pp_print_string fmtr (string_of_selector sel)
 let selector_conv = selector_parser, selector_printer
 
-let aselector_parser s =
+let aselector_parser ~with_presence s =
   let rec aux acc = function
     | Select_sub _ | Select_union _ | Select_pred | Select_top | Select_id _
-    | Select_attr_present _
 	as sel_att ->
       invalid_arg_f "The selector %s cannot be used for attribute assignement. \
 		     It must be a conjunction of one or more attribute \
 		     equalities." (string_of_selector sel_att)
     | Select_inter (selA, selB) -> aux (aux acc selB) selA
-    | Select_attr (an, av) -> (an, av) :: acc in
+    | Select_attr (an, av) -> (an, Some av) :: acc
+    | Select_attr_present an ->
+      if not with_presence then invalid_arg_f "Presence selector not allowed.";
+      (an, None) :: acc in
   try
     `Ok
       begin match selector_of_string s with
@@ -72,19 +74,24 @@ let aselector_parser s =
   with Invalid_argument msg -> `Error msg
 
 let aselector_printer fmtr (ctx, asgn) =
+  let select_attr = function
+    | (an, None) -> Select_attr_present an
+    | (an, Some av) -> Select_attr (an, av) in
   let sel_attr =
     match asgn with
     | [] -> assert false
-    | (an, av) :: xs ->
-      List.fold_left
-	(fun acc (an, av) -> Select_sub (acc, Select_attr (an, av)))
-	(Select_attr (an, av)) xs in
+    | anv :: xs ->
+      List.fold_left (fun acc anv -> Select_sub (acc, select_attr anv))
+		     (select_attr anv) xs in
   Format.pp_print_string fmtr @@
     string_of_selector
       (match ctx with None -> sel_attr
 		    | Some sel_ctx -> Select_sub (sel_ctx, sel_attr))
 
-let aselector_conv = aselector_parser, aselector_printer
+let aselector_conv =
+  aselector_parser ~with_presence:false, aselector_printer
+let aselector_pres_conv =
+  aselector_parser ~with_presence:true, aselector_printer
 
 (* Database Commands *)
 
@@ -353,14 +360,18 @@ module Entity_utils (C : Subsocia_intf.S) = struct
   include Selector_utils (C)
   include Subsocia_derived.Make (C)
 
-  let lookup_assignment (an, vs) =
+  let lookup_assignment (an, vs_opt) =
     lwt Attribute_type.Ex at =
       match_lwt Attribute_type.of_name an with
       | None -> Lwt.fail (Failure ("No attribute type has name " ^ an))
       | Some at -> Lwt.return at in
-    let t = Attribute_type.type1 at in
-    let v = Value.typed_of_string t vs in
-    Lwt.return (C.Attribute.Ex (at, v))
+    match vs_opt with
+    | Some vs ->
+      let t = Attribute_type.type1 at in
+      let v = Value.typed_of_string t vs in
+      Lwt.return (`One (C.Attribute.Ex (at, v)))
+    | None ->
+      Lwt.return (`All (Attribute_type.Ex at))
 
   let lookup_aselector (sel_opt, asgn) =
     lwt asgn = Lwt_list.map_p lookup_assignment asgn in
@@ -374,7 +385,8 @@ module Entity_utils (C : Subsocia_intf.S) = struct
 
   let add_attributes e (e_ctx, attrs) =
     Lwt_list.iter_s
-      (fun (C.Attribute.Ex (at, av)) ->
+      (function
+      | `One (C.Attribute.Ex (at, av)) ->
 	Entity.precedes e e_ctx >>=
 	  (function
 	    | true -> Lwt.return_unit
@@ -382,12 +394,15 @@ module Entity_utils (C : Subsocia_intf.S) = struct
 	      lwt ctx_name = Entity.display_name ~langs e_ctx in
 	      Lwt_log.info_f "Adding required inclusion under %s." ctx_name >>
 	      Entity.constrain e e_ctx) >>
-	Entity.setattr e e_ctx at [av])
+	Entity.setattr e e_ctx at [av]
+      | `All _ -> assert false)
       attrs
 
   let delete_attributes e (e_ctx, attrs) =
     Lwt_list.iter_s
-      (fun (C.Attribute.Ex (at, av)) -> Entity.delattr e e_ctx at [av])
+      (function
+      | `One (C.Attribute.Ex (at, av)) -> Entity.delattr e e_ctx at [av]
+      | `All (Attribute_type.Ex at) -> Entity.setattr e e_ctx at [])
       attrs
 end
 
@@ -469,7 +484,7 @@ let modify_t =
 			 info ~docv:"PATH" ["r"]) in
   let add_attrs_t = Arg.(value & opt_all aselector_conv [] &
 			 info ~docv:"APATH" ["a"]) in
-  let del_attrs_t = Arg.(value & opt_all aselector_conv [] &
+  let del_attrs_t = Arg.(value & opt_all aselector_pres_conv [] &
 			 info ~docv:"APATH" ["d"]) in
   let admin_t = Arg.(value & opt (some selector_conv) None &
 		     info ~docv:"PATH" ~doc:"Set administrator group."
