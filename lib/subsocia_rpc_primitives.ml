@@ -73,6 +73,8 @@ module Entity = struct
   external delattr : int32 -> int32 -> int32 -> Value.t0 list -> unit=""
   external apreds : int32 -> int32 -> Value.t0 -> int32 list = ""
   external asuccs : int32 -> int32 -> Value.t0 -> int32 list = ""
+  external getattrpreds : int32 -> int32 -> (int32 * Value.t0) list = ""
+  external getattrsuccs : int32 -> int32 -> (int32 * Value.t0) list = ""
   external constrain : int32 -> int32 -> unit = ""
   external unconstrain : int32 -> int32 -> unit = ""
 end

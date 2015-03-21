@@ -16,6 +16,7 @@
 
 open Subsocia_common
 open Unprime
+open Unprime_list
 open Unprime_option
 
 module type RPCM = Subsocia_rpc_primitives.RPCM with type 'a t = 'a Lwt.t
@@ -182,6 +183,24 @@ module Make (RPCM : RPCM) = struct
       let t = Attribute_type.type1 ak in
       Raw.asuccs e (Attribute_type.(id (Ex ak))) (Value.Ex (t, av))
 	>|= Set.of_ordered_elements
+
+    let getattrpreds e ak =
+      let t = Attribute_type.type1 ak in
+      Raw.getattrpreds e (Attribute_type.(id (Ex ak))) >|= fun bindings ->
+      List.fold
+	(fun (e, v) m ->
+	  let vs = try Map.find e m with Not_found -> Values.empty t in
+	  Map.add e (Values.add (Value.coerce t v) vs) m)
+	bindings Map.empty
+
+    let getattrsuccs e ak =
+      let t = Attribute_type.type1 ak in
+      Raw.getattrsuccs e (Attribute_type.(id (Ex ak))) >|= fun bindings ->
+      List.fold
+	(fun (e, v) m ->
+	  let vs = try Map.find e m with Not_found -> Values.empty t in
+	  Map.add e (Values.add (Value.coerce t v) vs) m)
+	bindings Map.empty
 
     let precedes = Raw.precedes
     let constrain = Raw.constrain

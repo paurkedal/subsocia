@@ -16,6 +16,7 @@
 
 open Subsocia_common
 open Unprime
+open Unprime_list
 open Unprime_option
 
 module Server_impl = struct
@@ -222,6 +223,34 @@ module Server_impl = struct
       let t = C.Attribute_type.type1 ak in
       C.Entity.asuccs e ak (Value.coerce t v) >|=
       C.Entity.Set.elements *> List.map C.Entity.id
+
+    let getattrpreds (module C : Subsocia_intf.S) e_id ak_id =
+      lwt e = C.Entity.of_id e_id in
+      lwt C.Attribute_type.Ex ak = C.Attribute_type.of_id ak_id in
+      lwt m = C.Entity.getattrpreds e ak in
+      Lwt.return @@
+	C.Entity.Map.fold
+	  (fun e vs ->
+	    Values.fold
+	      (fun v ->
+		let v0 = Value.Ex (C.Attribute_type.type1 ak, v) in
+		List.push (C.Entity.id e, v0))
+	      vs)
+	  m []
+
+    let getattrsuccs (module C : Subsocia_intf.S) e_id ak_id =
+      lwt e = C.Entity.of_id e_id in
+      lwt C.Attribute_type.Ex ak = C.Attribute_type.of_id ak_id in
+      lwt m = C.Entity.getattrsuccs e ak in
+      Lwt.return @@
+	C.Entity.Map.fold
+	  (fun e vs ->
+	    Values.fold
+	      (fun v ->
+		let v0 = Value.Ex (C.Attribute_type.type1 ak, v) in
+		List.push (C.Entity.id e, v0))
+	      vs)
+	  m []
 
     let constrain (module C : Subsocia_intf.S) lb_id ub_id =
       lwt lb = C.Entity.of_id lb_id in
