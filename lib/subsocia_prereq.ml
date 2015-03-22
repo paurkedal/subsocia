@@ -16,13 +16,7 @@
 
 open Printf
 
-module Int_map = Map.Make (struct type t = int let compare = compare end)
-
 let invalid_arg_f fmt = ksprintf invalid_arg fmt
-
-let (>>=) = Lwt.(>>=)
-let (>|=) = Lwt.(>|=)
-
 let lwt_failure_f fmt = ksprintf (fun s -> Lwt.fail (Failure s)) fmt
 
 let cache_hertz = Int64.to_float ExtUnixSpecific.(sysconf CLK_TCK)

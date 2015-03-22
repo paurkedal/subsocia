@@ -14,13 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-module Int_map : Map.S with type key = int
-
 val invalid_arg_f : ('a, unit, string, 'b) format4 -> 'a
-
-val (>>=) : 'a Lwt.t -> ('a -> 'b Lwt.t) -> 'b Lwt.t
-val (>|=) : 'a Lwt.t -> ('a -> 'b) -> 'b Lwt.t
-
 val lwt_failure_f : ('a, unit, string, 'b Lwt.t) format4 -> 'a
 
 val cache_hertz : float
