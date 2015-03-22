@@ -102,7 +102,7 @@ module Selector_utils (C : Subsocia_intf.S) = struct
       | Some (C.Attribute_type.Ex at) ->
 	C.Entity.Set.fold_s
 	  (fun e1 acc ->
-	    lwt m = C.Entity.getattrpreds e1 at in
+	    lwt m = C.Entity.atpreds e1 at in
 	    let s = C.Entity.Map.fold (fun e _ -> C.Entity.Set.add e) m
 				      C.Entity.Set.empty in
 	    Lwt.return (C.Entity.Set.union s acc))

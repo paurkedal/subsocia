@@ -224,10 +224,10 @@ module Server_impl = struct
       C.Entity.asuccs e ak (Value.coerce t v) >|=
       C.Entity.Set.elements *> List.map C.Entity.id
 
-    let getattrpreds (module C : Subsocia_intf.S) e_id ak_id =
+    let atpreds (module C : Subsocia_intf.S) e_id ak_id =
       lwt e = C.Entity.of_id e_id in
       lwt C.Attribute_type.Ex ak = C.Attribute_type.of_id ak_id in
-      lwt m = C.Entity.getattrpreds e ak in
+      lwt m = C.Entity.atpreds e ak in
       Lwt.return @@
 	C.Entity.Map.fold
 	  (fun e vs ->
@@ -238,10 +238,10 @@ module Server_impl = struct
 	      vs)
 	  m []
 
-    let getattrsuccs (module C : Subsocia_intf.S) e_id ak_id =
+    let atsuccs (module C : Subsocia_intf.S) e_id ak_id =
       lwt e = C.Entity.of_id e_id in
       lwt C.Attribute_type.Ex ak = C.Attribute_type.of_id ak_id in
-      lwt m = C.Entity.getattrsuccs e ak in
+      lwt m = C.Entity.atsuccs e ak in
       Lwt.return @@
 	C.Entity.Map.fold
 	  (fun e vs ->

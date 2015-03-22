@@ -116,8 +116,8 @@ module type ENTITY = sig
 
   val apreds : t -> 'a Attribute_type.t1 -> 'a -> Set.t Lwt.t
   val asuccs : t -> 'a Attribute_type.t1 -> 'a -> Set.t Lwt.t
-  val getattrpreds : t -> 'a Attribute_type.t1 -> 'a Values.t Map.t Lwt.t
-  val getattrsuccs : t -> 'a Attribute_type.t1 -> 'a Values.t Map.t Lwt.t
+  val atpreds : t -> 'a Attribute_type.t1 -> 'a Values.t Map.t Lwt.t
+  val atsuccs : t -> 'a Attribute_type.t1 -> 'a Values.t Map.t Lwt.t
 
   val constrain : t -> t -> unit Lwt.t
   val unconstrain : t -> t -> unit Lwt.t

@@ -250,17 +250,17 @@ module Q = struct
     q "SELECT superentity_id FROM @integer_attribution \
        WHERE subentity_id = ? AND attribute_type_id = ? AND value = ?"
 
-  let getattrpreds_text =
+  let atpreds_text =
     q "SELECT subentity_id, value FROM @text_attribution \
        WHERE superentity_id = ? AND attribute_type_id = ?"
-  let getattrpreds_integer =
+  let atpreds_integer =
     q "SELECT subentity_id, value FROM @integer_attribution \
        WHERE superentity_id = ? AND attribute_type_id = ?"
 
-  let getattrsuccs_text =
+  let atsuccs_text =
     q "SELECT superentity_id, value FROM @text_attribution \
        WHERE subentity_id = ? AND attribute_type_id = ?"
-  let getattrsuccs_integer =
+  let atsuccs_integer =
     q "SELECT superentity_id, value FROM @integer_attribution \
        WHERE subentity_id = ? AND attribute_type_id = ?"
 end
@@ -694,79 +694,79 @@ let connect uri = (module struct
       | Type.Int -> asuccs_integer e ak.ak_id
       | Type.String -> asuccs_text e ak.ak_id
 
-    let getattrpreds_integer, getattrpreds_integer_cache =
+    let atpreds_integer, atpreds_integer_cache =
       memo_2lwt @@ fun (e, ak_id) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup m =
 	let e', v = C.Tuple.(int32 0 tup, int 1 tup) in
 	let vs = try Map.find e' m with Not_found -> Values.empty Type.Int in
 	Map.add e' (Values.add v vs) m in
-      C.fold Q.getattrpreds_integer f C.Param.([|int32 e; int32 ak_id|])
+      C.fold Q.atpreds_integer f C.Param.([|int32 e; int32 ak_id|])
 	     Map.empty
 
-    let getattrpreds_text, getattrpreds_text_cache =
+    let atpreds_text, atpreds_text_cache =
       memo_2lwt @@ fun (e, ak_id) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup m =
 	let e', v = C.Tuple.(int32 0 tup, text 1 tup) in
 	let vs = try Map.find e' m with Not_found -> Values.empty Type.String in
 	Map.add e' (Values.add v vs) m in
-      C.fold Q.getattrpreds_text f C.Param.([|int32 e; int32 ak_id|]) Map.empty
+      C.fold Q.atpreds_text f C.Param.([|int32 e; int32 ak_id|]) Map.empty
 
-    let getattrpreds (type a) e (ak : a Attribute_type.t1)
+    let atpreds (type a) e (ak : a Attribute_type.t1)
 	  : a Values.t Map.t Lwt.t =
       match Attribute_type.type1 ak with
       | Type.Bool ->
-	lwt m = getattrpreds_integer e ak.Attribute_type.ak_id in
+	lwt m = atpreds_integer e ak.Attribute_type.ak_id in
 	let t = Attribute_type.type1 ak in
 	let aux vs = Values.fold (Values.add *< ((<>) 0)) vs (Values.empty t) in
 	Lwt.return (Map.map aux m)
-      | Type.Int -> getattrpreds_integer e ak.Attribute_type.ak_id
-      | Type.String -> getattrpreds_text e ak.Attribute_type.ak_id
+      | Type.Int -> atpreds_integer e ak.Attribute_type.ak_id
+      | Type.String -> atpreds_text e ak.Attribute_type.ak_id
 
-    let getattrsuccs_integer, getattrsuccs_integer_cache =
+    let atsuccs_integer, atsuccs_integer_cache =
       memo_2lwt @@ fun (e, ak_id) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup m =
 	let e', v = C.Tuple.(int32 0 tup, int 1 tup) in
 	let vs = try Map.find e' m with Not_found -> Values.empty Type.Int in
 	Map.add e' (Values.add v vs) m in
-      C.fold Q.getattrsuccs_integer f C.Param.([|int32 e; int32 ak_id|])
+      C.fold Q.atsuccs_integer f C.Param.([|int32 e; int32 ak_id|])
 	     Map.empty
 
-    let getattrsuccs_text, getattrsuccs_text_cache =
+    let atsuccs_text, atsuccs_text_cache =
       memo_2lwt @@ fun (e, ak_id) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup m =
 	let e', v = C.Tuple.(int32 0 tup, text 1 tup) in
 	let vs = try Map.find e' m with Not_found -> Values.empty Type.String in
 	Map.add e' (Values.add v vs) m in
-      C.fold Q.getattrsuccs_text f C.Param.([|int32 e; int32 ak_id|]) Map.empty
+      C.fold Q.atsuccs_text f C.Param.([|int32 e; int32 ak_id|]) Map.empty
 
-    let getattrsuccs (type a) e (ak : a Attribute_type.t1)
+    let atsuccs (type a) e (ak : a Attribute_type.t1)
 	  : a Values.t Map.t Lwt.t =
       match Attribute_type.type1 ak with
       | Type.Bool ->
-	lwt m = getattrsuccs_integer e ak.Attribute_type.ak_id in
+	lwt m = atsuccs_integer e ak.Attribute_type.ak_id in
 	let t = Attribute_type.type1 ak in
 	let aux vs = Values.fold (Values.add *< ((<>) 0)) vs (Values.empty t) in
 	Lwt.return (Map.map aux m)
-      | Type.Int -> getattrsuccs_integer e ak.Attribute_type.ak_id
-      | Type.String -> getattrsuccs_text e ak.Attribute_type.ak_id
+      | Type.Int -> atsuccs_integer e ak.Attribute_type.ak_id
+      | Type.String -> atsuccs_text e ak.Attribute_type.ak_id
 
     let clear_integer_caches () =
       Cache.clear getattr_integer_cache;
       Cache.clear apreds_integer_cache;
       Cache.clear asuccs_integer_cache;
-      Cache.clear getattrpreds_integer_cache;
-      Cache.clear getattrsuccs_integer_cache
+      Cache.clear atpreds_integer_cache;
+      Cache.clear atsuccs_integer_cache
 
     let clear_text_caches () =
       Cache.clear getattr_text_cache;
       Cache.clear apreds_text_cache;
       Cache.clear asuccs_text_cache;
-      Cache.clear getattrpreds_text_cache;
-      Cache.clear getattrsuccs_text_cache
+      Cache.clear atpreds_text_cache;
+      Cache.clear atsuccs_text_cache
 
     let clear_attr_caches (type a) (ak : a Attribute_type.t1) : unit =
       match Attribute_type.type1 ak with
