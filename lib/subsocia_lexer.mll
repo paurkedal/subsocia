@@ -27,8 +27,9 @@
 }
 
 let space = [' ' '\t']
-let bareedge = ['a'-'z' 'A'-'Z' '0'-'9' '_' '\x80'-'\xff']
-let barefill = ['a'-'z' 'A'-'Z' '0'-'9' '_' '\x80'-'\xff' '@' '-' '.' ' ']
+let bareedge = ['a'-'z' 'A'-'Z' '0'-'9' '_' '[' ']' '\x80'-'\xff']
+let barefill = ['a'-'z' 'A'-'Z' '0'-'9' '_' '[' ']' '\x80'-'\xff'
+		' ' '-' '.' ':' '@']
 let barepath = bareedge (barefill* bareedge)?
 
 rule lex_literal buf level = parse
