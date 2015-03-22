@@ -25,11 +25,11 @@ INSERT INTO subsocia.entity_type (entity_type_name, entity_name_tmpl) VALUES
 
 INSERT INTO subsocia.attribute_type (attribute_name, value_type) VALUES
   ('unique_name', 'string'),	-- 1
-  ('proper_name', 'string'),	-- 2
-  ('first_name', 'string'),	-- 3
-  ('last_name', 'string'),	-- 4
-  ('email', 'string'),		-- 5
-  ('role', 'string');		-- 6
+  ('role', 'string'),		-- 2
+  ('proper_name', 'string'),	-- 3
+  ('first_name', 'string'),	-- 4
+  ('last_name', 'string'),	-- 5
+  ('email', 'string');		-- 6
 
 INSERT INTO subsocia.inclusion_type
   (subentity_type_id, superentity_type_id,
@@ -52,14 +52,14 @@ VALUES
   (2, 2, 1, 3), -- org_group [+:unique_name] org_group
   (3, 1, 1, 3), -- access_base [+:unique_name] unit
   (3, 2, 1, 3), -- access_base [+:unique_name] org_group
-  (3, 1, 2, 3), -- access_base [+:proper_name] unit
-  (4, 3, 6, 2),	-- access_group [*:role] access_base
+  (3, 1, 3, 3), -- access_base [+:proper_name] unit
+  (4, 3, 2, 2),	-- access_group [*:role] access_base
   (5, 2, 1, 3), -- auth_group [+:unique_name] org_group
-  (6, 1, 2, 2), -- person [*:proper_name] unit
-  (6, 1, 3, 1), -- person [1:first_name] unit
-  (6, 1, 4, 1), -- person [1:last_name] unit
-  (6, 1, 5, 2), -- person [*:email] unit
-  (6, 3, 6, 2), -- person [*:role] access_base
+  (6, 1, 3, 2), -- person [*:proper_name] unit
+  (6, 1, 4, 1), -- person [1:first_name] unit
+  (6, 1, 5, 1), -- person [1:last_name] unit
+  (6, 1, 6, 2), -- person [*:email] unit
+  (6, 3, 2, 2), -- person [*:role] access_base
   (6, 5, 1, 3); -- person [+:unique_name] auth_group
 
 -- Initial Data: Objects
@@ -89,6 +89,6 @@ VALUES
   (1, 1, 1, 'top'),
   (2, 1, 1, 'forbidden'),
   (3, 1, 1, 'default_access'),
-  (4, 3, 6, 'admin'),		-- default_access/role=admin
+  (4, 3, 2, 'admin'),		-- default_access/role=admin
   (5, 1, 1, 'auth'),
   (6, 1, 1, 'registrations');
