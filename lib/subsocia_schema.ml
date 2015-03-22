@@ -68,8 +68,8 @@ let dselector_of_selector = function
 let exec_schema (module C : Subsocia_intf.S) =
   let module C = Subsocia_derived.Make (C) in
 
-  let add_set_helper f e sel =
-    let sel', attrs = aselector_of_selector sel in
+  let add_set_helper f e asel =
+    let sel', attrs = aselector_of_selector asel in
     lwt e' =
       match sel' with
       | None -> C.Entity.top
@@ -110,9 +110,9 @@ let exec_schema (module C : Subsocia_intf.S) =
     | `Remove_sub sel ->
       lwt e' = C.Entity.select_one sel in
       C.Entity.unconstrain e e'
-    | `Add_attr sel -> add_set_helper `Add e sel
-    | `Set_attr sel -> add_set_helper `Set e sel
-    | `Remove_attr sel -> del_helper e sel in
+    | `Add_attr asel -> add_set_helper `Add e asel
+    | `Set_attr asel -> add_set_helper `Set e asel
+    | `Remove_attr sel' -> del_helper e sel' in
 
   let exec_schema_entry = function
     | `Create (etn, addl) ->
