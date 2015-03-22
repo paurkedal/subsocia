@@ -14,6 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+(** Signature for the derived API. *)
+
 open Panograph_i18n
 open Subsocia_common
 open Subsocia_intf

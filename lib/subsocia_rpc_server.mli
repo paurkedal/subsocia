@@ -14,4 +14,6 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+(** RPC server. *)
+
 val process : (module Subsocia_intf.S) -> Rpc.call -> Rpc.response Lwt.t

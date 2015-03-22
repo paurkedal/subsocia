@@ -14,6 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+(** Selector type definition. *)
+
 type selector =
   | Select_sub of selector * selector
   | Select_union of selector * selector

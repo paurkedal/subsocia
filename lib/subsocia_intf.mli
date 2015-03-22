@@ -14,6 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+(** Signatures for the core API. *)
+
 open Panograph_i18n
 open Subsocia_common
 
@@ -115,12 +117,31 @@ module type ENTITY = sig
   val delattr : t -> t -> 'a Attribute_type.t1 -> 'a list -> unit Lwt.t
 
   val apreds : t -> 'a Attribute_type.t1 -> 'a -> Set.t Lwt.t
+  (** [apreds e at v] are the attribution-predecessors of [e] along [at]
+      gaining the value [v]. *)
+
   val asuccs : t -> 'a Attribute_type.t1 -> 'a -> Set.t Lwt.t
+  (** [asuccs e at v] are the attribution-successors of [e] along [at] loosing
+      the value [v]. *)
+
   val atpreds : t -> 'a Attribute_type.t1 -> 'a Values.t Map.t Lwt.t
+  (** [atpreds e at] is a map of [at]-values indexed by
+      attribution-predecessors of [e] which gain those values along [at].
+      The function name is short for "attribute-type predecessors". *)
+
   val atsuccs : t -> 'a Attribute_type.t1 -> 'a Values.t Map.t Lwt.t
+  (** [atsuccs e at] is a map of [at]-values indexed by attribution-successors
+      of [e] which loose those values along [at]. The function name is short
+      for "attribute-type successors". *)
 
   val constrain : t -> t -> unit Lwt.t
+  (** [constrain e e'] forces an inclusion of [e] in [e'].
+      @raise Invalid_argument if [e'] is included in [e]. *)
+
   val unconstrain : t -> t -> unit Lwt.t
+  (** [unconstrain e e'] relaxes an inclusion of [e] in [e']. Only a direct
+      inclusion is relaxed. [e] may still be included in [e'] though a set of
+      intermediate inclusions after this call. *)
 end
 
 module type S = sig

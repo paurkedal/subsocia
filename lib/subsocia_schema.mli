@@ -14,6 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+(** Schema for adding, deleting, and modifying entries. *)
+
 open Subsocia_schema_types
 
 val load_schema : string -> schema

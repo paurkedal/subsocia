@@ -14,6 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+(** Parser and evaluator of expressions to select entities. *)
+
 include module type of Subsocia_selector_types
    with type selector = Subsocia_selector_types.selector
 

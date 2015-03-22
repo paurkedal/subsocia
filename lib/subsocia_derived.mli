@@ -14,5 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+(** Implementation of the derived API. *)
+
 module Make (Base : Subsocia_intf.S) :
   Subsocia_derived_intf.S with module Base := Base

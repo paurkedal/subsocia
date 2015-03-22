@@ -14,6 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+(** Schema type definitions. *)
+
 open Subsocia_selector_types
 
 type schema_add =

@@ -14,6 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+(** Common types, modules, and utilities. *)
+
 open Panograph_i18n
 
 module type SET = Prime_enumset.S_with_monadic with type 'a monad = 'a Lwt.t
