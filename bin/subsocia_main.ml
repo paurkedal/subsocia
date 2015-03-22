@@ -394,7 +394,7 @@ module Entity_utils (C : Subsocia_intf.S) = struct
 	      lwt ctx_name = Entity.display_name ~langs e_ctx in
 	      Lwt_log.info_f "Adding required inclusion under %s." ctx_name >>
 	      Entity.constrain e e_ctx) >>
-	Entity.setattr e e_ctx at [av]
+	Entity.addattr e e_ctx at [av]
       | `All _ -> assert false)
       attrs
 

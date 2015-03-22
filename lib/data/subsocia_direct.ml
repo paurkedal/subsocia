@@ -821,22 +821,32 @@ let connect uri = (module struct
       | Type.Int -> aux Q.insert_integer_attribution C.Param.int
       | Type.String -> aux Q.insert_text_attribution C.Param.text
 
+    let check_mult e e' ak =
+      lwt et = type_ e in
+      lwt et' = type_ e' in
+      match_lwt Entity_type.attribution_mult1 et et' ak with
+      | None ->
+	lwt etn = Entity_type.name et in
+	lwt etn' = Entity_type.name et' in
+	lwt_failure_f "addattr: %s is not allowed from %s to %s."
+		      ak.Attribute_type.ak_name etn etn'
+      | Some mu -> Lwt.return mu
+
     let addattr (type a) e e' (ak : a Attribute_type.t1) (xs : a list) =
-      lwt mu = Entity_type.attribution_mult1 e e' ak in
       lwt xs_pres = getattr e e' ak in
-      let xs =
-	match mu with
-	| None -> failwith "addattr: Not allowed between these elements."
-	| Some Multiplicity.May1 | Some Multiplicity.Must1 ->
-	  if not (Values.is_empty xs_pres) then
-	    invalid_arg "addattr: Attribute already set.";
-	  xs
-	| Some Multiplicity.May | Some Multiplicity.Must ->
+      lwt xs =
+	match_lwt check_mult e e' ak with
+	| Multiplicity.May1 | Multiplicity.Must1 ->
+	  if Values.is_empty xs_pres
+	  then Lwt.return xs
+	  else lwt_failure_f "addattr: Attribute already set.";
+	| Multiplicity.May | Multiplicity.Must ->
 	  let ht = Hashtbl.create 7 in
 	  Values.iter (fun x -> Hashtbl.add ht x ()) xs_pres;
-	  List.filter
-	    (fun x -> if Hashtbl.mem ht x then false else
-		      (Hashtbl.add ht x (); true)) xs in
+	  Lwt.return @@
+	    List.filter
+	      (fun x -> if Hashtbl.mem ht x then false else
+			(Hashtbl.add ht x (); true)) xs in
       if xs = [] then Lwt.return_unit else
       addattr' e e' ak xs >|=
       fun () ->
@@ -875,20 +885,25 @@ let connect uri = (module struct
 	emit_changed e' `Apred
 
     let setattr (type a) e e' (ak : a Attribute_type.t1) (xs : a list) =
+      begin match_lwt check_mult e e' ak with
+      | Multiplicity.May1 | Multiplicity.Must1 ->
+	if List.length xs <= 1 then Lwt.return_unit else
+	lwt_failure_f "addattr: Attribute already set.";
+      | Multiplicity.May | Multiplicity.Must ->
+	Lwt.return_unit
+      end >>
       lwt xs_pres = getattr e e' ak in
       let ht = Hashtbl.create 7 in
       Values.iter (fun x -> Hashtbl.add ht x false) xs_pres;
       let xs_ins =
 	List.filter
 	  (fun x ->
-	    try
-	      if Hashtbl.find ht x then false else
-	      (Hashtbl.replace ht x true; true)
-	    with Not_found ->
-	      (Hashtbl.add ht x true; true))
+	    let pres = Hashtbl.mem ht x in
+	    Hashtbl.replace ht x true;
+	    not pres)
 	  xs in
       let xs_del =
-	Hashtbl.fold (fun x ins acc -> if ins then acc else x :: acc) ht [] in
+	Hashtbl.fold (fun x keep acc -> if keep then acc else x :: acc) ht [] in
       (if xs_del = [] then Lwt.return_unit else delattr' e e' ak xs_del) >>
       (if xs_ins = [] then Lwt.return_unit else addattr' e e' ak xs_ins) >|=
       fun () ->
