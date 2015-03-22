@@ -15,6 +15,7 @@
  *)
 
 open Printf
+open Pwt_infix
 open Subsocia_prereq
 open Subsocia_common
 open Unprime_string

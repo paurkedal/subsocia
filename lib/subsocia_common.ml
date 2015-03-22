@@ -24,17 +24,6 @@ open Unprime_string
 module type SET = Prime_enumset.S_with_monadic with type 'a monad = 'a Lwt.t
 module type MAP = Prime_enummap.S_with_monadic with type 'a monad = 'a Lwt.t
 
-let (>>=) = Lwt.(>>=)
-let (>|=) = Lwt.(>|=)
-
-module Lwtx_list = struct
-  let rec search_s f = function
-    | [] -> Lwt.return_none
-    | x :: xs ->
-      f x >>= function None -> search_s f xs
-		     | Some _ as r -> Lwt.return r
-end
-
 module Multiplicity = struct
   type t = May1 | Must1 | May | Must with rpc
 

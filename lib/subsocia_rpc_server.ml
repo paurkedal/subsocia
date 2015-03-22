@@ -14,6 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Pwt_infix
 open Subsocia_common
 open Unprime
 open Unprime_list

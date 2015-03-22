@@ -17,6 +17,7 @@
 open Cmdliner
 open Panograph_i18n
 open Printf
+open Pwt_infix
 open Subsocia_common
 open Subsocia_selector
 open Unprime

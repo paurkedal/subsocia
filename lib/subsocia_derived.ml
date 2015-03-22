@@ -151,7 +151,7 @@ module Make (Base : Subsocia_intf.S) = struct
 				else Lwt.return (Some (Values.min_elt vs)) in
 
       let aux_i18n an =
-	Lwtx_list.search_s
+	Pwt_list.search_s
 	  (fun lang -> aux_plain (sprintf "%s[%s]" an (Lang.to_string lang)))
 	  langs in
 
@@ -161,7 +161,7 @@ module Make (Base : Subsocia_intf.S) = struct
 	else aux_plain an in
 
       let comps = Prime_string.chop_affix "|" spec in
-      match_lwt Lwtx_list.search_s aux comps with
+      match_lwt Pwt_list.search_s aux comps with
       | None -> raise_lwt Not_found
       | Some s -> Lwt.return s
 
@@ -179,7 +179,7 @@ module Make (Base : Subsocia_intf.S) = struct
 	with Not_found -> Lwt.return None in
       lwt et = Base.Entity.type_ e in
       lwt tmpl = Base.Entity_type.entity_name_tmpl et in
-      match_lwt Lwtx_list.search_s aux (Prime_string.chop_affix "|" tmpl) with
+      match_lwt Pwt_list.search_s aux (Prime_string.chop_affix "|" tmpl) with
       | Some s -> Lwt.return s
       | None -> Lwt.return @@ sprintf "# %ld" (Entity.id e)
 
