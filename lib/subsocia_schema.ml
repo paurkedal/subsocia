@@ -14,6 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Pwt_infix
 open Subsocia_common
 open Subsocia_prereq
 open Subsocia_selector
@@ -68,6 +69,32 @@ let dselector_of_selector = function
 let exec_schema (module C : Subsocia_intf.S) =
   let module C = Subsocia_derived.Make (C) in
 
+  let req_at atn =
+    match_lwt C.Attribute_type.of_name atn with
+    | Some at -> Lwt.return at
+    | None -> lwt_failure_f "No attribute type is named %s." atn in
+
+  let req_et etn =
+    match_lwt C.Entity_type.of_name etn with
+    | Some et -> Lwt.return et
+    | None -> lwt_failure_f "No entity type is named %s." etn in
+
+  let exec_et_adjust et = function
+    | `Allow_inclusion (etn', mu, mu') ->
+      lwt et' = req_et etn' in
+      C.Entity_type.inclusion_allow mu mu' et et'
+    | `Disallow_inclusion etn' ->
+      lwt et' = req_et etn' in
+      C.Entity_type.inclusion_disallow et et'
+    | `Allow_attribution (etn', atn, mu) ->
+      lwt et' = req_et etn' in
+      lwt at = req_at atn in
+      C.Entity_type.attribution_allow et et' at mu
+    | `Disallow_attribution (etn', atn) ->
+      lwt et' = req_et etn' in
+      lwt at = req_at atn in
+      C.Entity_type.attribution_disallow et et' at in
+
   let add_set_helper f e asel =
     let sel', attrs = aselector_of_selector asel in
     lwt e' =
@@ -115,6 +142,25 @@ let exec_schema (module C : Subsocia_intf.S) =
     | `Remove_attr sel' -> del_helper e sel' in
 
   let exec_schema_entry = function
+    | `At_create (atn, tn) ->
+      let t = Type.of_string tn in
+      C.Attribute_type.create t atn >|= fun _ -> ()
+    | `At_delete atn ->
+      lwt at = C.Attribute_type.of_name atn in
+      Pwt_option.iter_s C.Attribute_type.delete at
+    | `Et_create (etn, allows) ->
+      lwt et = C.Entity_type.create etn in
+      Lwt_list.iter_s (exec_et_adjust et) allows
+    | `Et_modify (etn, adjusts) ->
+      begin match_lwt C.Entity_type.of_name etn with
+      | Some et ->
+	Lwt_list.iter_s (exec_et_adjust et) adjusts
+      | None ->
+	lwt_failure_f "No entity type is called %s." etn
+      end
+    | `Et_delete etn ->
+      lwt et = C.Entity_type.of_name etn in
+      Pwt_option.iter_s C.Entity_type.delete et
     | `Create (etn, addl) ->
       begin match_lwt C.Entity_type.of_name etn with
       | Some et ->

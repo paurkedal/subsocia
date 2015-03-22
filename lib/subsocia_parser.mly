@@ -16,6 +16,7 @@
 
 %{
 open Printf
+open Subsocia_common
 open Subsocia_schema_types
 open Subsocia_selector_types
 
@@ -27,6 +28,7 @@ let parse_error msg =
 %}
 
 %token EOF CREATE MODIFY DELETE
+%token AT_CREATE AT_DELETE ET_CREATE ET_MODIFY ET_DELETE
 %token DELINCL ADDINCL ADDATTR DELATTR SETATTR
 %token EQ SLASH TOP PLUS LBRACE RBRACE
 %token<string> EQ_VERB STR
@@ -46,6 +48,29 @@ entry:
     CREATE STR create_constraints { `Create ($2, List.rev $3) }
   | MODIFY path modify_constraints { `Modify ($2, List.rev $3) }
   | DELETE path { `Delete $2 }
+  | AT_CREATE STR EQ STR { `At_create ($2, $4) }
+  | AT_DELETE STR { `At_delete $2 }
+  | ET_CREATE STR et_create_constraints { `Et_create ($2, List.rev $3) }
+  | ET_MODIFY STR et_modify_constraints { `Et_modify ($2, List.rev $3) }
+  | ET_DELETE STR { `Et_delete $2 }
+  ;
+et_create_constraints:
+    /* empty */ { [] }
+  | et_create_constraints et_create_constraint { $2 :: $1 }
+  ;
+et_modify_constraints:
+    /* empty */ { [] }
+  | et_modify_constraints et_modify_constraint { $2 :: $1 }
+  ;
+et_create_constraint:
+    ADDINCL STR { `Allow_inclusion ($2, Multiplicity.May, Multiplicity.May) }
+  | ADDATTR STR SLASH STR { `Allow_attribution ($2, $4, Multiplicity.May) }
+  ;
+et_modify_constraint:
+    ADDINCL STR { `Allow_inclusion ($2, Multiplicity.May, Multiplicity.May) }
+  | ADDATTR STR SLASH STR { `Allow_attribution ($2, $4, Multiplicity.May) }
+  | DELINCL STR { `Disallow_inclusion $2 }
+  | DELATTR STR SLASH STR { `Disallow_attribution ($2, $4) }
   ;
 create_constraints:
     /* empty */ { [] }

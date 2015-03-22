@@ -16,7 +16,17 @@
 
 (** Schema type definitions. *)
 
+open Subsocia_common
 open Subsocia_selector_types
+
+type et_allow =
+  [ `Allow_inclusion of string * Multiplicity.t * Multiplicity.t
+  | `Allow_attribution of string * string * Multiplicity.t ]
+
+type et_adjust =
+  [ et_allow
+  | `Disallow_inclusion of string
+  | `Disallow_attribution of string * string ]
 
 type schema_add =
   [ `Add_sub of selector
@@ -29,7 +39,12 @@ type schema_mod =
   | `Set_attr of selector ]
 
 type schema_entry =
-  [ `Create of string * schema_add list
+  [ `At_create of string * string
+  | `At_delete of string
+  | `Et_create of string * et_allow list
+  | `Et_modify of string * et_adjust list
+  | `Et_delete of string
+  | `Create of string * schema_add list
   | `Modify of selector * schema_mod list
   | `Delete of selector ]
 

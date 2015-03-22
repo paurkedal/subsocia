@@ -43,9 +43,14 @@ and lex = parse
   | '{' { LBRACE }
   | '}' { RBRACE }
   | '+' { PLUS }
+  | ":!" space { AT_CREATE }
+  | ":?" space { AT_DELETE }
+  | ":*" space { ET_CREATE }
+  | ":@" space { ET_MODIFY }
+  | ":@?" space { ET_DELETE }
   | "*" space { CREATE }
   | "@" space { MODIFY }
-  | "?@" space { DELETE }
+  | "@?" space { DELETE }
   | '!' { ADDATTR }
   | '?' { DELATTR }
   | "?!" { SETATTR }
