@@ -118,9 +118,7 @@ let exec_schema (module C : Subsocia_intf.S) =
     | `Create (etn, addl) ->
       begin match_lwt C.Entity_type.of_name etn with
       | Some et ->
-	lwt viewer = C.Const.e_default_viewers in
-	lwt admin = C.Const.e_default_admins in
-	lwt e = C.Entity.create ~viewer ~admin et in
+	lwt e = C.Entity.create et in
 	Lwt_list.iter_s (exec_mod e) addl
       | None ->
 	lwt_failure_f "No entity type is called %s." etn

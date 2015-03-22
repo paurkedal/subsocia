@@ -139,18 +139,16 @@ module Server_impl = struct
   end
 
   module Entity = struct
-    let create (module C : Subsocia_intf.S) ~viewer ~admin entity_type =
-      lwt viewer = C.Entity.of_id viewer in
-      lwt admin = C.Entity.of_id admin in
+    let create (module C : Subsocia_intf.S) ?access entity_type =
+      lwt access = Pwt_option.map_s C.Entity.of_id access in
       lwt entity_type = C.Entity_type.of_id entity_type in
-      C.Entity.create ~viewer ~admin entity_type >|=
+      C.Entity.create ?access entity_type >|=
       C.Entity.id
 
-    let modify (module C : Subsocia_intf.S) ?viewer ?admin entity =
-      lwt viewer = Pwt_option.map_s C.Entity.of_id viewer in
-      lwt admin = Pwt_option.map_s C.Entity.of_id admin in
+    let modify (module C : Subsocia_intf.S) ?access entity =
+      lwt access = Pwt_option.map_s C.Entity.of_id access in
       lwt entity = C.Entity.of_id entity in
-      C.Entity.modify ?viewer ?admin entity
+      C.Entity.modify ?access entity
 
     let delete (module C : Subsocia_intf.S) entity =
       lwt entity = C.Entity.of_id entity in
@@ -159,10 +157,8 @@ module Server_impl = struct
     let type_ (module C : Subsocia_intf.S) e_id =
       C.Entity.of_id e_id >>= C.Entity.type_ >|= C.Entity_type.id
 
-    let viewer (module C : Subsocia_intf.S) e_id =
-      C.Entity.of_id e_id >>= C.Entity.viewer >|= C.Entity.id
-    let admin (module C : Subsocia_intf.S) e_id =
-      C.Entity.of_id e_id >>= C.Entity.admin >|= C.Entity.id
+    let access (module C : Subsocia_intf.S) e_id =
+      C.Entity.of_id e_id >>= C.Entity.access >|= C.Entity.id
 
     let type_members (module C : Subsocia_intf.S) et_id =
       lwt et = C.Entity_type.of_id et_id in

@@ -72,6 +72,7 @@ module Make (Base : Subsocia_intf.S) = struct
     let at_first_name = _at_string "first_name"
     let at_last_name = _at_string "last_name"
     let at_email = _at_string "email"
+    let at_role = _at_string "role"
 
     (* Predefined entity types. *)
     let et_unit = _et "unit"
@@ -123,6 +124,15 @@ module Make (Base : Subsocia_intf.S) = struct
       | 1 -> Lwt.return (Some (Entity.Set.min_elt es))
       | 0 -> Lwt.return_none
       | _ -> _fail "Multiple matches for unique name %s" en
+
+    let has_role role subj obj =
+      lwt access_base = access obj in
+      lwt at_role = Const.at_role in
+      lwt access_groups = apreds access_base at_role role in
+      Entity.Set.exists_s (Entity.precedes subj) access_groups
+
+    let can_view = has_role "viewer"
+    let can_edit = has_role "admin"
 
     let display_name_ats_cache :
 	  (lang, string Base.Attribute_type.t1 list) Hashtbl.t =

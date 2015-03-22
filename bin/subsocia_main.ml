@@ -429,11 +429,9 @@ let create etn succs aselectors = run0 @@ fun (module C) ->
     match_lwt C.Entity_type.of_name etn with
     | None -> Lwt.fail (Failure ("No entity type has name " ^ etn))
     | Some et -> Lwt.return et in
-  lwt viewer = U.Const.e_default_viewers in
-  lwt admin = U.Const.e_default_admins in
   lwt aselectors = Lwt_list.map_p U.lookup_aselector aselectors in
   lwt succs = Lwt_list.map_p U.Entity.select_one succs in
-  lwt e = C.Entity.create ~viewer ~admin et in
+  lwt e = C.Entity.create et in
   Lwt_list.iter_s (fun (e_sub) -> C.Entity.constrain e e_sub) succs >>
   Lwt_list.iter_s (U.add_attributes e) aselectors
 
@@ -456,22 +454,21 @@ let delete_t =
 		   info ~docv:"PATH" []) in
   Term.(pure delete $ sel_t)
 
-let modify sel add_succs del_succs add_asels del_asels admin viewer =
+let modify sel add_succs del_succs add_asels del_asels access =
   run0 @@ fun (module C) ->
   let module U = Entity_utils (C) in
   lwt add_succs = Lwt_list.map_p U.Entity.select_one add_succs in
   lwt del_succs = Lwt_list.map_p U.Entity.select_one del_succs in
   lwt add_asels = Lwt_list.map_p U.lookup_aselector add_asels in
   lwt del_asels = Lwt_list.map_p U.lookup_aselector del_asels in
-  lwt admin = Pwt_option.map_s U.Entity.select_one admin in
-  lwt viewer = Pwt_option.map_s U.Entity.select_one viewer in
+  lwt access = Pwt_option.map_s U.Entity.select_one access in
   lwt e = U.Entity.select_one sel in
   Lwt_list.iter_s (fun e_sub -> C.Entity.constrain e e_sub) add_succs >>
   Lwt_list.iter_s (U.add_attributes e) add_asels >>
   Lwt_list.iter_s (U.delete_attributes e) del_asels >>
   Lwt_list.iter_s (fun e_sub -> C.Entity.unconstrain e e_sub) del_succs >>
-  if admin <> None || viewer <> None then
-    C.Entity.modify ?admin ?viewer e
+  if access <> None then
+    C.Entity.modify ?access e
   else
     Lwt.return_unit
 
@@ -486,15 +483,12 @@ let modify_t =
 			 info ~docv:"APATH" ["a"]) in
   let del_attrs_t = Arg.(value & opt_all aselector_pres_conv [] &
 			 info ~docv:"APATH" ["d"]) in
-  let admin_t = Arg.(value & opt (some selector_conv) None &
-		     info ~docv:"PATH" ~doc:"Set administrator group."
+  let access_t = Arg.(value & opt (some selector_conv) None &
+		      info ~docv:"PATH" ~doc:"Set access group."
 			  ["admin"]) in
-  let viewer_t = Arg.(value & opt (some selector_conv) None &
-		      info ~docv:"PATH" ~doc:"Set viewer group."
-			   ["viewer"]) in
   Term.(pure modify $ sel_t $ add_succs_t $ del_succs_t
 			    $ add_attrs_t $ del_attrs_t
-			    $ admin_t $ viewer_t)
+			    $ access_t)
 
 let load schema_path =
   run0 @@ fun (module C) ->

@@ -34,16 +34,12 @@
   open Sociaweb_request
   open Subsocia_connection
 
-  let can_edit_entity ~operator entity =
-    lwt admin = Entity.admin entity in
-    Entity.precedes operator admin
-
   let entity_for_view ~operator entity_id =
     Entity.of_id entity_id (* TODO: View permissions. *)
 
   let entity_for_edit ~operator entity_id =
     lwt entity = Entity.of_id entity_id in
-    lwt can_edit = can_edit_entity ~operator entity in
+    lwt can_edit = Entity.can_edit operator entity in
     if can_edit then Lwt.return entity
 		else http_error 403 "Unauthorized edit."
 
@@ -69,8 +65,7 @@
     Lwt.return [F.a ~service:entity_service [F.pcdata name] id]
 
   let render_neigh_remove ~cri focus succ =
-    lwt succ_admin = Entity.admin succ in
-    lwt can_edit = Entity.precedes cri.cri_operator succ_admin in
+    lwt can_edit = Entity.can_edit cri.cri_operator succ in
     let focus_id = Entity.id focus in
     let succ_id = Entity.id succ in
     lwt name = Entity.display_name ~langs:cri.cri_langs succ in
@@ -89,8 +84,7 @@
       Lwt.return [link]
 
   let render_neigh_add ~cri focus succ =
-    lwt succ_admin = Entity.admin succ in
-    lwt can_edit = Entity.precedes cri.cri_operator succ_admin in
+    lwt can_edit = Entity.can_edit cri.cri_operator succ in
     let focus_id = Entity.id focus in
     let succ_id = Entity.id succ in
     lwt name = Entity.display_name ~langs:cri.cri_langs succ in
@@ -156,7 +150,7 @@
       let operator = cri.cri_operator in
       lwt csuccs = Entity.candidate_succs ent in
       let csuccs = Entity.Set.compl succs csuccs in
-      lwt csuccs = Entity.Set.filter_s (can_edit_entity ~operator) csuccs in
+      lwt csuccs = Entity.Set.filter_s (Entity.can_edit operator) csuccs in
       if Entity.Set.is_empty csuccs then
 	Lwt.return_none
       else

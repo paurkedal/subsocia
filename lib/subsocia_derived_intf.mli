@@ -58,6 +58,11 @@ module type S = sig
     val getattr_one : t -> t -> 'a Attribute_type.t1 -> 'a Lwt.t
 
     val of_unique_name : ?super: t -> string -> t option Lwt.t
+
+    val has_role : string -> t -> t -> bool Lwt.t
+    val can_view : t -> t -> bool Lwt.t
+    val can_edit : t -> t -> bool Lwt.t
+
     val display_name : langs: lang list -> t -> string Lwt.t
     val candidate_succs : t -> Set.t Lwt.t
   end

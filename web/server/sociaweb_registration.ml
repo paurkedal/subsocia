@@ -66,10 +66,8 @@ let () =
   lwt at_last_name = Const.at_last_name in
   lwt at_email = Const.at_email in
   lwt e_top = Entity.top in
-  lwt e_viewer = Const.e_default_viewers in
-  lwt e_admin = Const.e_default_admins in
   lwt et_person = Const.et_person in
-  lwt e_new_user = Entity.create ~viewer:e_viewer ~admin:e_admin et_person in
+  lwt e_new_user = Entity.create et_person in
   lwt e_new_users = Const.e_new_users in
   Entity.constrain e_new_user e_new_users >>
   Entity.setattr e_new_user e_top at_first_name [first_name] >>

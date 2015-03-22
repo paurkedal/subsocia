@@ -157,8 +157,7 @@ module Q = struct
     q "SELECT subentity_id FROM @inclusion WHERE superentity_id = ?"
 
   let entity_type = q "SELECT entity_type_id FROM @entity WHERE entity_id = ?"
-  let entity_viewer = q "SELECT viewer_id FROM @entity WHERE entity_id = ?"
-  let entity_admin = q "SELECT admin_id FROM @entity WHERE entity_id = ?"
+  let entity_access = q "SELECT access_id FROM @entity WHERE entity_id = ?"
 
   let type_members =
     q "SELECT entity_id FROM @entity WHERE entity_type_id = ?"
@@ -194,13 +193,11 @@ module Q = struct
        SELECT 0 FROM successors WHERE entity_id = ? LIMIT 1"
 
   let create_entity =
-    q "INSERT INTO @entity (entity_type_id, viewer_id, admin_id) \
-       VALUES (?, ?, ?) RETURNING entity_id"
+    q "INSERT INTO @entity (entity_type_id, access_id) \
+       VALUES (?, ?) RETURNING entity_id"
 
-  let set_entity_admin =
-    q "UPDATE @entity SET admin_id = ? WHERE entity_id = ?"
-  let set_entity_viewer =
-    q "UPDATE @entity SET viewer_id = ? WHERE entity_id = ?"
+  let set_entity_access =
+    q "UPDATE @entity SET access_id = ? WHERE entity_id = ?"
 
   let delete_entity =
     q "DELETE FROM @entity WHERE entity_id = ?"
@@ -553,20 +550,17 @@ let connect uri = (module struct
       with_db @@ fun (module C) ->
       C.find Q.entity_type C.Tuple.(int32 0) C.Param.([|int32 e|])
 
-    let viewer, viewer_cache = memo_1lwt @@ fun e ->
+    let access, access_cache = memo_1lwt @@ fun e ->
       with_db @@ fun (module C) ->
-      C.find Q.entity_viewer C.Tuple.(int32 0) C.Param.([|int32 e|])
-
-    let admin, admin_cache = memo_1lwt @@ fun e ->
-      with_db @@ fun (module C) ->
-      C.find Q.entity_admin C.Tuple.(int32 0) C.Param.([|int32 e|])
+      C.find Q.entity_access C.Tuple.(int32 0) C.Param.([|int32 e|])
 
     let type_members, type_members_cache = memo_1lwt @@ fun entity_type_id ->
       with_db @@ fun (module C) ->
       let add tup = Set.add (C.Tuple.int32 0 tup) in
       C.fold Q.type_members add C.Param.([|int32 entity_type_id|]) Set.empty
 
-    let top = of_id 1l
+    let top_id = 1l
+    let top = of_id top_id
 
     let minimums, minimums_cache = memo_0lwt @@ fun () ->
       with_db @@ fun (module C) ->
@@ -583,23 +577,18 @@ let connect uri = (module struct
       let add tup = Set.add (C.Tuple.int32 0 tup) in
       C.fold Q.entity_succs add C.Param.([|int32 e|]) Set.empty
 
-    let create ~viewer ~admin entity_type =
+    let create ?(access = top_id) entity_type =
       with_db @@ fun (module C) ->
 	C.find Q.create_entity C.Tuple.(int32 0)
-	       C.Param.([|int32 entity_type; int32 viewer; int32 admin|])
+	       C.Param.([|int32 entity_type; int32 access|])
 
-    let modify ?viewer ?admin e =
+    let modify ?access e =
       with_db @@ fun (module C) ->
       Pwt_option.iter_s
-	(fun viewer ->
-	  C.exec Q.set_entity_viewer C.Param.([|int32 viewer; int32 e|]) >>
-	  Lwt.return (Cache.remove viewer_cache e))
-	viewer >>
-      Pwt_option.iter_s
-	(fun admin ->
-	  C.exec Q.set_entity_admin C.Param.([|int32 admin; int32 e|]) >>
-	  Lwt.return (Cache.remove admin_cache e))
-	admin
+	(fun access ->
+	  C.exec Q.set_entity_access C.Param.([|int32 access; int32 e|]) >>
+	  Lwt.return (Cache.remove access_cache e))
+	access
 
     let delete e =
       with_db @@ fun (module C) ->
