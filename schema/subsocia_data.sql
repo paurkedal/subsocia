@@ -19,7 +19,7 @@ INSERT INTO subsocia.entity_type (entity_type_name, entity_name_tmpl) VALUES
   ('unit', DEFAULT),				-- 1
   ('org_group', DEFAULT),			-- 2
   ('access_base', DEFAULT),			-- 3
-  ('access_role', DEFAULT),			-- 4
+  ('access_group', DEFAULT),			-- 4
   ('auth_group', DEFAULT),			-- 5
   ('person', '${first_name} ${last_name}');	-- 6
 
@@ -38,11 +38,11 @@ VALUES
   (2, 1, 2, 0), -- org_group *--? unit
   (2, 2, 2, 0), -- org_group *--? org_group
   (3, 1, 2, 0), -- access_base *--? unit
-  (4, 3, 2, 2), -- access_role *--* access_base
-  (4, 4, 2, 2), -- access_role *--* access_role
+  (4, 3, 2, 2), -- access_group *--* access_base
+  (4, 4, 2, 2), -- access_group *--* access_group
   (5, 1, 2, 1), -- auth_group *--1 unit
   (6, 3, 2, 2), -- person *--* access_base
-  (6, 4, 2, 2), -- person *--* access_role
+  (6, 4, 2, 2), -- person *--* access_group
   (6, 5, 2, 2); -- person *--* auth_group
 INSERT INTO subsocia.attribution_type
   (subentity_type_id, superentity_type_id,
@@ -53,7 +53,7 @@ VALUES
   (3, 1, 1, 3), -- access_base [+:unique_name] unit
   (3, 2, 1, 3), -- access_base [+:unique_name] org_group
   (3, 1, 2, 3), -- access_base [+:proper_name] unit
-  (4, 3, 6, 2),	-- access_role [*:role] access_base
+  (4, 3, 6, 2),	-- access_group [*:role] access_base
   (5, 2, 1, 3), -- auth_group [+:unique_name] org_group
   (6, 1, 2, 2), -- person [*:proper_name] unit
   (6, 1, 3, 1), -- person [1:first_name] unit
@@ -70,7 +70,7 @@ VALUES
   (1, 0, 3), -- 1 top : unit; NB! Must have entity_id = 1
   (3, 0, 2), -- 2 forbidden : access_base
   (3, 0, 2), -- 3 default_access : access_base
-  (4, 0, 3), -- 4 default_access/role=admin : access_role
+  (4, 0, 3), -- 4 default_access/role=admin : access_group
   (2, 0, 3), -- 5 auth : org_group
   (3, 0, 3); -- 6 registrations : access_group
 
