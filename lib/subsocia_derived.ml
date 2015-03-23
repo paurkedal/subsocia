@@ -152,11 +152,11 @@ module Make (Base : Subsocia_intf.S) = struct
 
       let aux_i18n an =
 	Pwt_list.search_s
-	  (fun lang -> aux_plain (sprintf "%s[%s]" an (Lang.to_string lang)))
+	  (fun lang -> aux_plain (sprintf "%s:%s" an (Lang.to_string lang)))
 	  langs in
 
       let aux an =
-	if Prime_string.has_suffix "[]" an
+	if Prime_string.has_suffix ":+" an
 	then aux_i18n (Prime_string.slice 0 (String.length an - 2) an)
 	else aux_plain an in
 
