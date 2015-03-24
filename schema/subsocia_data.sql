@@ -72,7 +72,7 @@ VALUES
   (3, 0, 2), -- 3 default_access : access_base
   (4, 0, 3), -- 4 default_access/role=admin : access_group
   (2, 0, 3), -- 5 auth : org_group
-  (3, 0, 3); -- 6 registrations : access_group
+  (2, 0, 3); -- 6 registrations : org_group
 
 INSERT INTO subsocia.inclusion
   (subentity_id, superentity_id)
