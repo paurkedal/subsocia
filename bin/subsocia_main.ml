@@ -492,9 +492,10 @@ let modify_t =
 			    $ access_t)
 
 let load schema_path =
-  run0 @@ fun (module C) ->
   let schema = Subsocia_schema.load_schema schema_path in
-  Subsocia_schema.exec_schema (module C : Subsocia_intf.S) schema
+  run0 @@ fun (module C) ->
+  C.transaction @@ fun conn ->
+  Subsocia_schema.exec_schema conn schema
 
 let load_t =
   let schema_t = Arg.(required & pos 0 (some file) None &

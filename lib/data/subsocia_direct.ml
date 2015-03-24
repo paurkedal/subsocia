@@ -63,6 +63,10 @@ module Q = struct
 
   let q = format_query
 
+  let begin_   = prepare_sql "BEGIN"
+  let commit   = prepare_sql "COMMIT"
+  let rollback = prepare_sql "ROLLBACK"
+
   (* Attribute key *)
 
   let attribute_type_by_id =
@@ -272,6 +276,8 @@ module type CACHE = sig
   val replace : ('a, 'b) t -> float -> 'a -> 'b -> unit
   val remove : ('a, 'b) t -> 'a -> unit
   val memo_lwt : ('a -> 'b Lwt.t) -> ('a -> 'b Lwt.t) * ('a, 'b) t
+  val memo_lwt_conn : (?conn: 'c -> 'a -> 'b Lwt.t) ->
+		      (?conn: 'c -> 'a -> 'b Lwt.t) * ('a, 'b) t
 end
 
 module Enabled_cache = struct
@@ -286,6 +292,16 @@ module Enabled_cache = struct
 	Prime_cache.replace cache fetch_grade x y;
 	Lwt.return y in
     g, cache
+
+  let memo_lwt_conn f =
+    let cache = Prime_cache.create ~cache_metric 23 in
+    let g ?conn x =
+      try Lwt.return (Prime_cache.find cache x)
+      with Not_found ->
+	lwt y = f ?conn x in
+	Prime_cache.replace cache fetch_grade x y;
+	Lwt.return y in
+    g, cache
 end
 
 module Disabled_cache = struct
@@ -297,6 +313,7 @@ module Disabled_cache = struct
   let replace _ _ _ _ = ()
   let remove _ _ = ()
   let memo_lwt f = f, ()
+  let memo_lwt_conn f = f, ()
 end
 
 module Cache =
@@ -338,20 +355,44 @@ module Base = struct
   end
 end
 
-let connect uri = (module struct
+let rec make uri_or_conn = (module struct
 
   include Base
 
   let inclusion_cache = Cache.create ~cache_metric 61
 
-  let pool =
-    let connect () = Caqti_lwt.connect uri in
-    let disconnect (module C : CONNECTION) = C.disconnect () in
-    let validate (module C : CONNECTION) = C.validate () in
-    let check (module C : CONNECTION) = C.check in
-    Caqti_lwt.Pool.create ~validate ~check connect disconnect
+  type with_db = {
+    with_db : 'a. ((module Caqti_lwt.CONNECTION) -> 'a Lwt.t) -> 'a Lwt.t;
+  }
+  let with_db =
+    match uri_or_conn with
+    | `Uri uri ->
+      let pool =
+	let connect () = Caqti_lwt.connect uri in
+	let disconnect (module C : CONNECTION) = C.disconnect () in
+	let validate (module C : CONNECTION) = C.validate () in
+	let check (module C : CONNECTION) = C.check in
+	Caqti_lwt.Pool.create ~validate ~check connect disconnect in
+      {with_db = fun f -> Caqti_lwt.Pool.use f pool}
+    | `Connection conn ->
+      let lock = Lwt_mutex.create () in
+      {with_db = fun f -> Lwt_mutex.with_lock lock (fun () -> f conn)}
+  let with_db ?conn f =
+    match conn with
+    | None -> with_db.with_db f
+    | Some conn -> f conn
 
-  let with_db f = Caqti_lwt.Pool.use f pool
+  let transaction f =
+    with_db @@ fun ((module C : CONNECTION) as conn) ->
+    C.exec Q.begin_ [||] >>= fun () ->
+    try_lwt
+      let module C' = (val make (`Connection conn) : S) in
+      lwt r = f (module C' : Subsocia_intf.S) in
+      C.exec Q.commit [||] >>
+      Lwt.return r
+    with exc ->
+      Lwt_log.debug_f "Raised in transaction: %s" (Printexc.to_string exc) >>
+      C.exec Q.rollback [||] >> Lwt.fail exc
 
   module Attribute_type = struct
     include Attribute_type_base
@@ -366,14 +407,16 @@ let connect uri = (module struct
     let id (Ex ak) = ak.ak_id
     let name (Ex ak) = Lwt.return ak.ak_name
 
-    let of_id, of_id_cache = memo_1lwt @@ fun ak_id ->
-      with_db @@ fun (module C : CONNECTION) ->
+    let of_id', of_id_cache = Cache.memo_lwt_conn @@ fun ?conn ak_id ->
+      with_db ?conn @@ fun (module C : CONNECTION) ->
       C.find Q.attribute_type_by_id
 	     C.Tuple.(fun tup -> text 0 tup, text 1 tup)
 	     C.Param.([|int32 ak_id|]) >|= fun (ak_name, value_type) ->
       let Type.Ex ak_value_type = Type.of_string value_type in
       Beacon.embed attribute_type_grade @@ fun ak_beacon ->
       Ex {ak_id; ak_name; ak_value_type; ak_beacon}
+
+    let of_id id = of_id' id
 
     let of_name, of_name_cache = memo_1lwt @@ fun ak_name ->
       with_db @@ fun (module C : CONNECTION) ->
@@ -387,9 +430,10 @@ let connect uri = (module struct
       end
 
     let create vt ak_name =
-      with_db @@ fun (module C : CONNECTION) ->
+      with_db @@ fun ((module C : CONNECTION) as conn) ->
       C.find Q.attribute_type_create C.Tuple.(int32 0)
-	     C.Param.([|text ak_name; text (Type.string_of_t0 vt)|]) >>= of_id
+	     C.Param.([|text ak_name; text (Type.string_of_t0 vt)|])
+	>>= of_id' ~conn
 
     let delete (Ex ak) =
       with_db @@ fun (module C : CONNECTION) ->
@@ -488,9 +532,9 @@ let connect uri = (module struct
 
     let attribution, attribution_cache =
       memo_2lwt @@ fun (et, et') ->
-      with_db @@ fun (module C) ->
+      with_db @@ fun ((module C) as conn) ->
       let aux tup akm =
-	lwt ak = Attribute_type.of_id (C.Tuple.int32 0 tup) in
+	lwt ak = Attribute_type.of_id' ~conn (C.Tuple.int32 0 tup) in
 	let mult = Multiplicity.of_int (C.Tuple.int 1 tup) in
 	Lwt.return (Attribute_type.Map.add ak mult akm) in
       C.fold_s Q.attribution_type aux C.Param.([|int32 et; int32 et'|])
@@ -510,11 +554,11 @@ let connect uri = (module struct
       attribution_mult' et et' ak.Attribute_type.ak_id
 
     let attribution_dump () =
-      with_db @@ fun (module C) ->
+      with_db @@ fun ((module C) as conn) ->
       let aux tup acc =
 	let et0, et1 = C.Tuple.(int32 0 tup, int32 1 tup) in
 	let mu = Multiplicity.of_int C.Tuple.(int 3 tup) in
-	Attribute_type.of_id C.Tuple.(int32 2 tup) >|= fun ak ->
+	Attribute_type.of_id' ~conn C.Tuple.(int32 2 tup) >|= fun ak ->
 	(et0, et1, ak, mu) :: acc in
       C.fold_s Q.attribution_type_dump aux [||] []
 
@@ -906,3 +950,5 @@ let connect uri = (module struct
   let entity_changed = Int32_event_table.event Entity.changed_event_table
 
 end : S)
+
+let connect uri = make (`Uri uri)
