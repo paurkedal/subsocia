@@ -67,7 +67,7 @@ let dselector_of_selector = function
     None, dconj_of_selector sel_att String_map.empty
 
 let exec_schema (module C : Subsocia_intf.S) =
-  let module C = Subsocia_derived.Make (C) in
+  let module Su = Selector_utils (C) in
 
   let req_at atn =
     match_lwt C.Attribute_type.of_name atn with
@@ -100,7 +100,7 @@ let exec_schema (module C : Subsocia_intf.S) =
     lwt e' =
       match sel' with
       | None -> C.Entity.top
-      | Some sel' -> C.Entity.select_one sel' in
+      | Some sel' -> Su.select_one sel' in
     String_map.iter_s
       (fun an vs ->
 	match_lwt C.Attribute_type.of_name an with
@@ -117,7 +117,7 @@ let exec_schema (module C : Subsocia_intf.S) =
     lwt e' =
       match sel' with
       | None -> C.Entity.top
-      | Some sel' -> C.Entity.select_one sel' in
+      | Some sel' -> Su.select_one sel' in
     String_map.iter_s
       (fun an vs_opt ->
 	match_lwt C.Attribute_type.of_name an with
@@ -132,10 +132,10 @@ let exec_schema (module C : Subsocia_intf.S) =
 
   let exec_mod e = function
     | `Add_sub sel ->
-      lwt e' = C.Entity.select_one sel in
+      lwt e' = Su.select_one sel in
       C.Entity.constrain e e'
     | `Remove_sub sel ->
-      lwt e' = C.Entity.select_one sel in
+      lwt e' = Su.select_one sel in
       C.Entity.unconstrain e e'
     | `Add_attr asel -> add_set_helper `Add e asel
     | `Set_attr asel -> add_set_helper `Set e asel
@@ -170,9 +170,9 @@ let exec_schema (module C : Subsocia_intf.S) =
 	lwt_failure_f "No entity type is called %s." etn
       end
     | `Modify (sel, modl) ->
-      lwt e = C.Entity.select_one sel in
+      lwt e = Su.select_one sel in
       Lwt_list.iter_s (exec_mod e) modl
     | `Delete sel ->
-      lwt e = C.Entity.select_one sel in
+      lwt e = Su.select_one sel in
       C.Entity.delete e in
   Lwt_list.iter_s exec_schema_entry
