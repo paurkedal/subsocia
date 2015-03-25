@@ -62,7 +62,7 @@ and lex = parse
   | '#' (['0'-'9']+ as s) { ID (Int32.of_string s) }
   | barepath as s { STR s }
   | space+ | '#' space [^ '\n']* { lex lexbuf }
-  | '\n' { Lexing.new_line lexbuf; lex lexbuf }
+  | '#'? '\n' { Lexing.new_line lexbuf; lex lexbuf }
   | eof { EOF }
   | _ as c { lexical_error lexbuf c; raise Parsing.Parse_error; }
 
