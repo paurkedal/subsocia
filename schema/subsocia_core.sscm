@@ -2,12 +2,18 @@
 :* unit
 * unit
 
+# Attribute Types
+# ---------------
+
 :! unique_name=string
 :! role=string
 :! proper_name=string
 :! first_name=string
 :! last_name=string
 :! email=string
+
+# Entity Types
+# ------------
 
 :* org_group
     !< org_group ! org_group/unique_name
@@ -28,8 +34,11 @@
     !< org_group
     ! unit/first_name ! unit/last_name ! unit/proper_name ! unit/email
 
-* access_base !< #1 ! forbidden
-* access_base !< #1 ! default_access
+# Initial Entities
+# ----------------
+
+* access_base !< {#} ! forbidden
+* access_base !< {#} ! default_access
 * access_group !< default_access ! default_access/role=admin
-* org_group !< #1 ! auth
-* org_group !< #1 ! registrations
+* org_group !< {#} ! auth
+* org_group !< {#} ! registrations
