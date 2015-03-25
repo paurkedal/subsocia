@@ -491,16 +491,22 @@ let modify_t =
 			    $ add_attrs_t $ del_attrs_t
 			    $ access_t)
 
-let load schema_path =
+let load schema_path disable_transaction =
   let schema = Subsocia_schema.load_schema schema_path in
   run0 @@ fun (module C) ->
-  C.transaction @@ fun conn ->
-  Subsocia_schema.exec_schema conn schema
+  if disable_transaction then
+    Subsocia_schema.exec_schema (module C) schema
+  else
+    C.transaction @@ (fun conn -> Subsocia_schema.exec_schema conn schema)
 
 let load_t =
   let schema_t = Arg.(required & pos 0 (some file) None &
 		      info ~docv:"PATH" []) in
-  Term.(pure load $ schema_t)
+  let disable_transaction_t =
+    Arg.(value & flag &
+	 info ~doc:"Commit changes one at a time instead of as a single \
+		    transaction." ["disable-transaction"]) in
+  Term.(pure load $ schema_t $ disable_transaction_t)
 
 (* Main *)
 
