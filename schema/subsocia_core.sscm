@@ -1,0 +1,35 @@
+# It is absolutely essential to create to top node first.
+:* unit
+* unit
+
+:! unique_name=string
+:! role=string
+:! proper_name=string
+:! first_name=string
+:! last_name=string
+:! email=string
+
+:* org_group
+    !< org_group ! org_group/unique_name
+    !< unit ! unit/unique_name
+:* access_base
+    !< org_group ! org_group/unique_name
+    !< unit ! unit/unique_name
+:* access_group
+    !< access_group
+    !< access_base ! access_base/role
+:* auth_group
+    !< unit ! unit/unique_name
+    !< org_group ! org_group/unique_name
+:* person
+    !< access_group
+    !< access_base ! access_base/role
+    !< auth_group ! auth_group/unique_name
+    !< org_group
+    ! unit/first_name ! unit/last_name ! unit/proper_name ! unit/email
+
+* access_base !< #1 ! forbidden
+* access_base !< #1 ! default_access
+* access_group !< default_access ! default_access/role=admin
+* org_group !< #1 ! auth
+* org_group !< #1 ! registrations
