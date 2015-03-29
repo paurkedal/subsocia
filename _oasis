@@ -70,6 +70,7 @@ Library "subsocia-data"
   NativeOpt: -thread
   DataFiles:
     ../../schema/subsocia_core.sql ($datadir/subsocia/schema),
+    ../../schema/subsocia_core.sscm ($datadir/subsocia/schema),
     ../../schema/subsocia_data.sql ($datadir/subsocia/schema)
 
 Document api

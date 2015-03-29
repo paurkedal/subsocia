@@ -22,6 +22,7 @@ open Subsocia_common
 open Subsocia_selector
 open Unprime
 open Unprime_option
+open Unprime_string
 
 let connect () =
   let uri = Uri.of_string Subsocia_config.database_uri#get in
@@ -94,19 +95,28 @@ let aselector_conv =
 let aselector_pres_conv =
   aselector_parser ~with_presence:true, aselector_printer
 
+let disable_transaction_t =
+  Arg.(value & flag &
+       info ~doc:"Commit changes one at a time instead of as a single \
+		  transaction." ["disable-transaction"])
+
 (* Database Commands *)
 
-let schemas = ["subsocia_core.sql"; "subsocia_data.sql"]
+let sql_schemas = ["subsocia_core.sql"]
+let subsocia_schemas = ["subsocia_core.sscm"]
+let schema_dir =
+  try Sys.getenv "SUBSOCIA_SCHEMA_DIR"
+  with Not_found -> Subsocia_version.schema_dir
 
 let db_schema do_dir =
   Lwt_main.run begin
     if do_dir then
-      Lwt_io.printl Subsocia_version.schema_dir
+      Lwt_io.printl schema_dir
     else
       Lwt_list.iter_s
 	(fun schema ->
-	  Lwt_io.printl (Filename.concat Subsocia_version.schema_dir schema))
-	schemas
+	  Lwt_io.printl (Filename.concat schema_dir schema))
+	sql_schemas
   end; 0
 
 let db_schema_t =
@@ -116,25 +126,35 @@ let db_schema_t =
 		    instead of to the individual schema files." ["dir"]) in
   Term.(pure db_schema $ do_dir_t)
 
-let db_init () =
-  (* TODO: Check presence of psql. Or better, use Caqti. Though this may
-   * require splitting up the schema files into individual statements. *)
-  Lwt_main.run begin
-    let uri = Subsocia_config.database_uri#get in
-    Pwt_list.search_s
-      (fun schema ->
-	let p = Filename.concat Subsocia_version.schema_dir schema in
-	Lwt_log.info_f "Loading %s" p >>
-	let cmd = "psql", [|"psql"; "-d"; uri; "-f"; p|] in
-	match_lwt Lwt_process.exec cmd with
-	| Unix.WEXITED 0 -> Lwt.return None
-	| Unix.WEXITED rc -> Lwt.return (Some rc)
-	| Unix.WSIGNALED sg | Unix.WSTOPPED sg ->
-	  fail_f "psql received signal %d." sg)
-      schemas >|= Option.get_or 0
-  end
+let load_sql (module C : Caqti_lwt.CONNECTION) sql =
+  Lwt_io.with_file ~mode:Lwt_io.input sql @@ fun ic ->
+  let rec loop () =
+    match_lwt Caqti_lwt.read_sql_statement Lwt_io.read_char_opt ic with
+    | None -> Lwt.return_unit
+    | Some stmt -> C.exec (Caqti_query.oneshot_sql stmt) [||] >> loop () in
+  loop ()
 
-let db_init_t = Term.(pure db_init $ pure ())
+let db_init disable_transaction = run0 @@ fun (module C) ->
+  let uri = Uri.of_string Subsocia_config.database_uri#get in
+  lwt cc = Caqti_lwt.connect uri in
+  Lwt_list.iter_s
+    (fun fn ->
+      let fp = Filename.concat schema_dir fn in
+      Lwt_log.info_f "Loading %s." fp >>
+      load_sql cc fp)
+    sql_schemas >>
+  Lwt_list.iter_s
+    (fun fn ->
+      let fp = Filename.concat schema_dir fn in
+      Lwt_log.info_f "Loading %s." fp >>
+      let schema = Subsocia_schema.load_schema fp in
+      if disable_transaction then
+	Subsocia_schema.exec_schema (module C) schema
+      else
+	C.transaction @@ (fun conn -> Subsocia_schema.exec_schema conn schema))
+    subsocia_schemas
+
+let db_init_t = Term.(pure db_init $ disable_transaction_t)
 
 (* Entity Types *)
 
@@ -502,10 +522,6 @@ let load schema_path disable_transaction =
 let load_t =
   let schema_t = Arg.(required & pos 0 (some file) None &
 		      info ~docv:"PATH" []) in
-  let disable_transaction_t =
-    Arg.(value & flag &
-	 info ~doc:"Commit changes one at a time instead of as a single \
-		    transaction." ["disable-transaction"]) in
   Term.(pure load $ schema_t $ disable_transaction_t)
 
 (* Main *)
