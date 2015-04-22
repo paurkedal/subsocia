@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -21,7 +21,8 @@ open Subsocia_selector_types
 
 type et_allow =
   [ `Allow_inclusion of string * Multiplicity.t * Multiplicity.t
-  | `Allow_attribution of string * string * Multiplicity.t ]
+  | `Allow_attribution of string * string * Multiplicity.t
+  | `Set_special of string * string ]
 
 type et_adjust =
   [ et_allow

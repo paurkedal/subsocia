@@ -29,7 +29,7 @@ let parse_error msg =
 
 %token EOF CREATE MODIFY DELETE
 %token AT_CREATE AT_DELETE ET_CREATE ET_MODIFY ET_DELETE
-%token DELINCL ADDINCL ADDATTR DELATTR SETATTR
+%token SETSPECIAL DELINCL ADDINCL ADDATTR DELATTR SETATTR
 %token EQ SLASH TOP PLUS LBRACE RBRACE
 %token<string> EQ_VERB STR
 %token<int32> ID
@@ -65,12 +65,16 @@ et_modify_constraints:
 et_create_constraint:
     ADDINCL STR { `Allow_inclusion ($2, Multiplicity.May, Multiplicity.May) }
   | ADDATTR STR SLASH STR { `Allow_attribution ($2, $4, Multiplicity.May) }
+  | SETSPECIAL STR EQ STR { `Set_special ($2, $4) }
+  | SETSPECIAL STR EQ_VERB { `Set_special ($2, $3) }
   ;
 et_modify_constraint:
     ADDINCL STR { `Allow_inclusion ($2, Multiplicity.May, Multiplicity.May) }
   | ADDATTR STR SLASH STR { `Allow_attribution ($2, $4, Multiplicity.May) }
   | DELINCL STR { `Disallow_inclusion $2 }
   | DELATTR STR SLASH STR { `Disallow_attribution ($2, $4) }
+  | SETSPECIAL STR EQ STR { `Set_special ($2, $4) }
+  | SETSPECIAL STR EQ_VERB { `Set_special ($2, $3) }
   ;
 create_constraints:
     /* empty */ { [] }

@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -93,7 +93,11 @@ let exec_schema (module C : Subsocia_intf.S) =
     | `Disallow_attribution (etn', atn) ->
       lwt et' = req_et etn' in
       lwt at = req_at atn in
-      C.Entity_type.attribution_disallow et et' at in
+      C.Entity_type.attribution_disallow et et' at
+    | `Set_special ("display", tmpl) ->
+      C.Entity_type.set_entity_name_tmpl et tmpl
+    | `Set_special (p, _) ->
+      lwt_failure_f "Entity types have no property %s." p in
 
   let add_set_helper f e asel =
     let sel', attrs = aselector_of_selector asel in

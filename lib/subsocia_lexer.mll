@@ -51,6 +51,7 @@ and lex = parse
   | "*" space { CREATE }
   | "@" space { MODIFY }
   | "@?" space { DELETE }
+  | '%' { SETSPECIAL }
   | '!' { ADDATTR }
   | '?' { DELATTR }
   | "?!" { SETATTR }
