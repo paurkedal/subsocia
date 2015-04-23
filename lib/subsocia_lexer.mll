@@ -20,13 +20,14 @@
   open Subsocia_parser
   open Subsocia_selector_types
 
-  let lexical_error lexbuf c =
+  let lexical_error lexbuf s =
     let pos = lexbuf.lex_start_p in
-    fprintf stderr "%s:%d:%d: Not expecting '%c' here.\n%!" pos.pos_fname
-	    pos.pos_lnum (pos.pos_cnum - pos.pos_bol) c
+    fprintf stderr "%s:%d:%d: Not expecting '%s' here.\n%!" pos.pos_fname
+	    pos.pos_lnum (pos.pos_cnum - pos.pos_bol) s
 }
 
 let space = [' ' '\t']
+let identifier = ['A'-'Z' 'a'-'z' '_'] ['0'-'9' 'A'-'Z' 'a'-'z' '_']*
 let bareedge = ['a'-'z' 'A'-'Z' '0'-'9' '_' '[' ']' '\x80'-'\xff']
 let barefill = ['a'-'z' 'A'-'Z' '0'-'9' '_' '[' ']' '\x80'-'\xff'
 		' ' '-' '.' ':' '@']
@@ -37,6 +38,11 @@ rule lex_literal buf level = parse
   | '}' { if level = 0 then Buffer.contents buf else
 	  (Buffer.add_char buf '}'; lex_literal buf (level - 1) lexbuf) }
   | [^ '{' '}']+ as s { Buffer.add_string buf s; lex_literal buf level lexbuf }
+
+and lex_string buf = parse
+  | '"' { STRING (Buffer.contents buf) }
+  | '\\' (_ as c) { Buffer.add_char buf c; lex_string buf lexbuf }
+  | [^ '"' '\\']+ as s { Buffer.add_string buf s; lex_string buf lexbuf }
 
 and lex = parse
   | '/' { SLASH }
@@ -51,7 +57,11 @@ and lex = parse
   | "*" space { CREATE }
   | "@" space { MODIFY }
   | "@?" space { DELETE }
-  | '%' { SETSPECIAL }
+  | '%' (identifier as idr)
+    { match idr with
+      | "access" -> AUX_SELECTOR idr
+      | "display" -> AUX_STRING idr
+      | _ -> lexical_error lexbuf idr; raise Parsing.Parse_error }
   | '!' { ADDATTR }
   | '?' { DELATTR }
   | "?!" { SETATTR }
@@ -59,13 +69,15 @@ and lex = parse
   | "?<" { DELINCL }
   | '=' { EQ }
   | "={" { EQ_VERB (lex_literal (Buffer.create 80) 0 lexbuf) }
+  | '"' { lex_string (Buffer.create 80) lexbuf }
   | '#' { TOP }
   | '#' (['0'-'9']+ as s) { ID (Int32.of_string s) }
   | barepath as s { STR s }
   | space+ | '#' space [^ '\n']* { lex lexbuf }
   | '#'? '\n' { Lexing.new_line lexbuf; lex lexbuf }
   | eof { EOF }
-  | _ as c { lexical_error lexbuf c; raise Parsing.Parse_error; }
+  | _ as c
+    { lexical_error lexbuf (String.make 1 c); raise Parsing.Parse_error; }
 
 {
   let selector_of_string s =

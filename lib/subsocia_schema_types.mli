@@ -20,9 +20,9 @@ open Subsocia_common
 open Subsocia_selector_types
 
 type et_allow =
-  [ `Allow_inclusion of string * Multiplicity.t * Multiplicity.t
-  | `Allow_attribution of string * string * Multiplicity.t
-  | `Set_special of string * string ]
+  [ `Aux_string of string * string
+  | `Allow_inclusion of string * Multiplicity.t * Multiplicity.t
+  | `Allow_attribution of string * string * Multiplicity.t ]
 
 type et_adjust =
   [ et_allow
@@ -30,7 +30,8 @@ type et_adjust =
   | `Disallow_attribution of string * string ]
 
 type schema_add =
-  [ `Add_sub of selector
+  [ `Aux_selector of string * selector
+  | `Add_sub of selector
   | `Add_attr of selector ]
 
 type schema_mod =

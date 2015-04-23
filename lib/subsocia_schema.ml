@@ -94,9 +94,9 @@ let exec_schema (module C : Subsocia_intf.S) =
       lwt et' = req_et etn' in
       lwt at = req_at atn in
       C.Entity_type.attribution_disallow et et' at
-    | `Set_special ("display", tmpl) ->
+    | `Aux_string ("display", tmpl) ->
       C.Entity_type.set_entity_name_tmpl et tmpl
-    | `Set_special (p, _) ->
+    | `Aux_string (p, _) ->
       lwt_failure_f "Entity types have no property %s." p in
 
   let add_set_helper f e asel =
@@ -135,6 +135,11 @@ let exec_schema (module C : Subsocia_intf.S) =
       attrs in
 
   let exec_mod e = function
+    | `Aux_selector ("access", sel) ->
+      lwt access = Su.select_one sel in
+      C.Entity.modify ~access e
+    | `Aux_selector (p, _) ->
+      lwt_failure_f "Entities have no property %s." p
     | `Add_sub sel ->
       lwt e' = Su.select_one sel in
       C.Entity.constrain e e'

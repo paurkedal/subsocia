@@ -33,7 +33,7 @@
     !< auth_group ! auth_group/unique_name
     !< org_group
     ! unit/first_name ! unit/last_name ! unit/proper_name ! unit/email
-    % display={${first_name} ${last_name}}
+    %display "${first_name} ${last_name}"
 
 # Initial Entities
 # ----------------
