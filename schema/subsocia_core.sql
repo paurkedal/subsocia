@@ -49,7 +49,7 @@ CREATE TABLE subsocia.entity (
     entity_id SERIAL PRIMARY KEY,
     entity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
     entity_rank smallint NOT NULL DEFAULT 0,
-    access_id integer NOT NULL REFERENCES subsocia.entity
+    access_id integer REFERENCES subsocia.entity
 );
 CREATE TABLE subsocia.inclusion (
     subentity_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,

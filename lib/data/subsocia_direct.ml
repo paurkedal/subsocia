@@ -595,17 +595,22 @@ let rec make uri_or_conn = (module struct
       with_db @@ fun (module C) ->
       C.find Q.entity_type C.Tuple.(int32 0) C.Param.([|int32 e|])
 
-    let access, access_cache = memo_1lwt @@ fun e ->
+    let top_id = 1l
+    let top = of_id top_id
+
+    let access_opt, access_opt_cache = memo_1lwt @@ fun e ->
       with_db @@ fun (module C) ->
-      C.find Q.entity_access C.Tuple.(int32 0) C.Param.([|int32 e|])
+      C.find Q.entity_access C.Tuple.(option int32 0) C.Param.([|int32 e|])
+
+    let rec access e =
+      match_lwt access_opt e with
+      | Some e' -> Lwt.return e'
+      | None -> assert (e <> top_id); access top_id
 
     let type_members, type_members_cache = memo_1lwt @@ fun entity_type_id ->
       with_db @@ fun (module C) ->
       let add tup = Set.add (C.Tuple.int32 0 tup) in
       C.fold Q.type_members add C.Param.([|int32 entity_type_id|]) Set.empty
-
-    let top_id = 1l
-    let top = of_id top_id
 
     let minimums, minimums_cache = memo_0lwt @@ fun () ->
       with_db @@ fun (module C) ->
@@ -622,17 +627,17 @@ let rec make uri_or_conn = (module struct
       let add tup = Set.add (C.Tuple.int32 0 tup) in
       C.fold Q.entity_succs add C.Param.([|int32 e|]) Set.empty
 
-    let create ?(access = top_id) entity_type =
+    let create ?access entity_type =
       with_db @@ fun (module C) ->
 	C.find Q.create_entity C.Tuple.(int32 0)
-	       C.Param.([|int32 entity_type; int32 access|])
+	       C.Param.([|int32 entity_type; option int32 access|])
 
     let modify ?access e =
       with_db @@ fun (module C) ->
       Pwt_option.iter_s
 	(fun access ->
 	  C.exec Q.set_entity_access C.Param.([|int32 access; int32 e|]) >>
-	  Lwt.return (Cache.remove access_cache e))
+	  Lwt.return (Cache.remove access_opt_cache e))
 	access
 
     let delete e =

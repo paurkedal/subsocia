@@ -49,3 +49,6 @@
 * access_base ! app/subsocia !< app
 * access_group ! app/subsocia/role=user  !< app/subsocia
 * access_group ! app/subsocia/role=admin !< app/subsocia/role=user
+
+# The access of {#} serves as default for entities with unspecified access.
+@ {#} %access app/subsocia
