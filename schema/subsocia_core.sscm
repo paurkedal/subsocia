@@ -38,8 +38,14 @@
 # Initial Entities
 # ----------------
 
-* access_base !< {#} ! forbidden
-* access_base !< {#} ! default_access
-* access_group !< default_access ! default_access/role=admin
-* org_group !< {#} ! auth
-* org_group !< {#} ! registrations
+# Top level
+* access_base ! forbidden !< {#}
+* org_group ! auth !< {#}
+* org_group ! app  !< {#}
+* org_group ! registrations !< {#}
+@ forbidden %access forbidden
+
+# Subsocia
+* access_base ! app/subsocia !< app
+* access_group ! app/subsocia/role=user  !< app/subsocia
+* access_group ! app/subsocia/role=admin !< app/subsocia/role=user

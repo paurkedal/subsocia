@@ -69,8 +69,8 @@ INSERT INTO subsocia.entity
 VALUES
   (1, 0, 3), -- 1 top : unit; NB! Must have entity_id = 1
   (3, 0, 2), -- 2 forbidden : access_base
-  (3, 0, 2), -- 3 default_access : access_base
-  (4, 0, 3), -- 4 default_access/role=admin : access_group
+  (3, 0, 2), -- 3 subsocia : access_base
+  (4, 0, 3), -- 4 subsocia/role=admin : access_group
   (2, 0, 3), -- 5 auth : org_group
   (2, 0, 3); -- 6 registrations : org_group
 
@@ -78,8 +78,8 @@ INSERT INTO subsocia.inclusion
   (subentity_id, superentity_id)
 VALUES
   (2, 1), -- forbidden ⊆ top
-  (3, 1), -- default_access ⊆ top
-  (4, 3), -- default_access/role=admin ⊆ default_access
+  (3, 1), -- subsocia ⊆ top
+  (4, 3), -- subsocia/role=admin ⊆ subsocia
   (5, 1), -- auth ⊆ top
   (6, 1); -- registrations ⊆ top
 
@@ -88,7 +88,7 @@ INSERT INTO subsocia.text_attribution
 VALUES
   (1, 1, 1, 'top'),
   (2, 1, 1, 'forbidden'),
-  (3, 1, 1, 'default_access'),
-  (4, 3, 2, 'admin'),		-- default_access/role=admin
+  (3, 1, 1, 'subsocia'),
+  (4, 3, 2, 'admin'),		-- subsocia/role=admin
   (5, 1, 1, 'auth'),
   (6, 1, 1, 'registrations');

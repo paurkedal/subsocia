@@ -129,7 +129,7 @@ module Make (Base : Subsocia_intf.S) = struct
       lwt access_groups = apreds access_base at_role role in
       Entity.Set.exists_s (Entity.precedes subj) access_groups
 
-    let can_view = has_role "viewer"
+    let can_view = has_role "user"
     let can_edit = has_role "admin"
 
     let resolve_attr ~langs e spec =
