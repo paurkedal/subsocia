@@ -505,8 +505,8 @@ let modify_t =
   let del_attrs_t = Arg.(value & opt_all aselector_pres_conv [] &
 			 info ~docv:"APATH" ["d"]) in
   let access_t = Arg.(value & opt (some selector_conv) None &
-		      info ~docv:"PATH" ~doc:"Set access group."
-			  ["admin"]) in
+		      info ~docv:"PATH" ~doc:"Set the access base entity."
+			   ["access"]) in
   Term.(pure modify $ sel_t $ add_succs_t $ del_succs_t
 			    $ add_attrs_t $ del_attrs_t
 			    $ access_t)
