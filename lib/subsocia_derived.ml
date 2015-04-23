@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -90,8 +90,6 @@ module Make (Base : Subsocia_intf.S) = struct
       | _ -> _fail "Multiple matches for unique name %s" en
 
     let e_forbidden = _e_un "forbidden"
-    let e_default_viewers = _e_un "default_viewers"
-    let e_default_admins = _e_un "default_admins"
     let e_new_users = _e_un "registrations"
   end
 
@@ -133,10 +131,6 @@ module Make (Base : Subsocia_intf.S) = struct
 
     let can_view = has_role "viewer"
     let can_edit = has_role "admin"
-
-    let display_name_ats_cache :
-	  (lang, string Base.Attribute_type.t1 list) Hashtbl.t =
-      Hashtbl.create 5
 
     let resolve_attr ~langs e spec =
       lwt e_top = Entity.top in

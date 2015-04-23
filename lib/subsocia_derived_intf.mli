@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -80,8 +80,6 @@ module type S = sig
     val et_person : Entity_type.t Lwt.t
 
     val e_forbidden : Entity.t Lwt.t
-    val e_default_viewers : Entity.t Lwt.t
-    val e_default_admins : Entity.t Lwt.t
     val e_new_users : Entity.t Lwt.t
   end
 end
