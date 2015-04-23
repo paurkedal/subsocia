@@ -35,13 +35,16 @@
   open Subsocia_connection
 
   let entity_for_view ~operator entity_id =
-    Entity.of_id entity_id (* TODO: View permissions. *)
+    lwt entity = Entity.of_id entity_id in
+    match_lwt Entity.can_view operator entity with
+    | true -> Lwt.return entity
+    | false -> http_error 403 "Not authorized for this entity."
 
   let entity_for_edit ~operator entity_id =
     lwt entity = Entity.of_id entity_id in
-    lwt can_edit = Entity.can_edit operator entity in
-    if can_edit then Lwt.return entity
-		else http_error 403 "Unauthorized edit."
+    match_lwt Entity.can_edit operator entity with
+    | true -> Lwt.return entity
+    | false -> http_error 403 "Not authorized for editing this entity."
 
   let constrain ~operator (lb_id, ub_id) =
     lwt ub = entity_for_edit ~operator ub_id in
@@ -197,7 +200,7 @@
 let entity_handler entity_id () =
   let open Html5.D in
   lwt cri = get_custom_request_info () in
-  lwt e = Entity.of_id entity_id in
+  lwt e = entity_for_view ~operator:cri.cri_operator entity_id in
   lwt browser =
     render_browser ~cri e in
   let entity_changed_c = Eliom_react.Down.of_react (entity_changed e) in
