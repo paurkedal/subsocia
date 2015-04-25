@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -435,7 +435,10 @@ let search sel = run @@ fun (module C) ->
     lwt name = U.Entity.display_name ~langs e in
     lwt et = C.Entity.type_ e in
     lwt etn = C.Entity_type.name et in
-    Lwt_io.printlf "%s : %s" name etn in
+    Lwt_io.printlf "%s : %s" name etn >>
+    lwt paths = U.Entity.paths e in
+    Lwt_list.iter_s (fun p -> Lwt_io.printf "  %s\n" (string_of_selector p))
+		    paths in
   C.Entity.Set.iter_s show es >>
   Lwt.return (if C.Entity.Set.is_empty es then 1 else 0)
 

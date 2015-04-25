@@ -59,6 +59,8 @@ module type S = sig
 
     val of_unique_name : ?super: t -> string -> t option Lwt.t
 
+    val paths : t -> selector list Lwt.t
+
     val has_role : string -> t -> t -> bool Lwt.t
     val can_view : t -> t -> bool Lwt.t
     val can_edit : t -> t -> bool Lwt.t

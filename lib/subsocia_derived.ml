@@ -16,7 +16,11 @@
 
 open Panograph_i18n
 open Printf
+open Pwt_infix
 open Subsocia_common
+open Subsocia_selector_types
+open Unprime_list
+open Unprime_option
 
 let _fail fmt = ksprintf (fun s -> Lwt.fail (Failure s)) fmt
 
@@ -131,6 +135,64 @@ module Make (Base : Subsocia_intf.S) = struct
 
     let can_view = has_role "user"
     let can_edit = has_role "admin"
+
+    let path_candidates = [
+      ["unique_name"];
+      ["role"];
+      ["first_name"; "last_name"]
+    ]
+
+    let paths e =
+
+      lwt r = Entity.rank e in
+      let a = Array.make (r + 1) Entity.Map.empty in
+
+      let inter _ selsA selsB =
+	List.map (fun a -> List.map (fun b -> Select_inter (a, b)) selsB) selsA
+	  |> List.flatten |> Option.some in
+
+      let add_conj e ps ats =
+	let select_attr (type a) an (at : a Attribute_type.t1) : a -> selector =
+	  match Attribute_type.type1 at with
+	  | Type.Bool -> fun v -> Select_attr (an, string_of_bool v)
+	  | Type.Int -> fun v -> Select_attr (an, string_of_int v)
+	  | Type.String -> fun v -> Select_attr (an, v) in
+	let attr_by_succ (Attribute_type.Ex at as at0) =
+	  lwt an = Attribute_type.name at0 in
+	  let attr vs = Values.elements vs |> List.map (select_attr an at) in
+	  Entity.atsuccs e at >|= Entity.Map.map attr in
+	match_lwt Lwt_list.map_s attr_by_succ ats with
+	| [] -> assert false
+	| m :: ms ->
+	  Entity.Map.iter_s
+	    (fun e' sels ->
+	      lwt r' = rank e' in
+	      let ps' = List.flatten @@
+		List.map (fun p -> List.map (fun sel -> sel :: p) sels) ps in
+	      let ps_acc = try Entity.Map.find e' a.(r') with Not_found -> [] in
+	      a.(r') <- Entity.Map.add e' (ps' @ ps_acc) a.(r');
+	      Lwt.return_unit)
+	    (List.fold (Entity.Map.finter inter) ms m) in
+
+      lwt path_candidates =
+	Lwt_list.map_s (Pwt_list.fmap_s Attribute_type.of_name)
+		       path_candidates in
+      a.(r) <- Entity.Map.singleton e [[]];
+      for_lwt r' = r downto 1 do
+	Entity.Map.iter_s
+	  (fun e ps -> Lwt_list.iter_s (add_conj e ps) path_candidates)
+	  a.(r')
+      done >>
+
+      lwt top = Entity.top in
+      Lwt.return begin
+	try
+	  let aux = function
+	    | [] -> Select_top
+	    | x :: xs -> List.fold (fun a y -> Select_sub (y, a)) xs x in
+	  List.map aux (Entity.Map.find top a.(0))
+	with Not_found -> []
+      end
 
     let resolve_attr ~langs e spec =
       lwt e_top = Entity.top in
