@@ -147,6 +147,7 @@ module Make (RPCM : RPCM) = struct
     let modify = Raw.modify
     let delete = Raw.delete
     let type_ = Raw.type_
+    let rank = Raw.rank
     let access = Raw.access
     let type_members et = Raw.type_members et >|= Set.of_ordered_elements
     let top = Raw.top ()

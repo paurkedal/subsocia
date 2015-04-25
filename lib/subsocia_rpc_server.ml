@@ -158,6 +158,9 @@ module Server_impl = struct
     let type_ (module C : Subsocia_intf.S) e_id =
       C.Entity.of_id e_id >>= C.Entity.type_ >|= C.Entity_type.id
 
+    let rank (module C : Subsocia_intf.S) e_id =
+      C.Entity.of_id e_id >>= C.Entity.rank
+
     let access (module C : Subsocia_intf.S) e_id =
       C.Entity.of_id e_id >>= C.Entity.access >|= C.Entity.id
 

@@ -162,7 +162,11 @@ module Q = struct
     q "SELECT subentity_id FROM @inclusion WHERE superentity_id = ?"
 
   let entity_type = q "SELECT entity_type_id FROM @entity WHERE entity_id = ?"
+  let entity_rank = q "SELECT entity_rank FROM @entity WHERE entity_id = ?"
   let entity_access = q "SELECT access_id FROM @entity WHERE entity_id = ?"
+
+  let set_entity_rank =
+    q "UPDATE @entity SET entity_rank = ? WHERE entity_id = ?"
 
   let type_members =
     q "SELECT entity_id FROM @entity WHERE entity_type_id = ?"
@@ -183,17 +187,20 @@ module Q = struct
        WHERE subentity_id = ?"
 
   let select_precedes =
-    q (* TODO: Utilize entity_rank when implemented. *)
-      "WITH RECURSIVE successors(entity_id) AS ( \
+    q "WITH RECURSIVE successors(entity_id) AS ( \
 	  SELECT i.superentity_id AS entity_id \
 	  FROM @inclusion i \
+	  JOIN @entity e ON e.entity_id = i.superentity_id \
 	  WHERE i.is_subsumed = false \
+	    AND e.entity_rank >= ? \
 	    AND i.subentity_id = ? \
 	UNION \
 	  SELECT i.superentity_id \
-	  FROM @inclusion i JOIN successors c \
-	    ON i.subentity_id = c.entity_id \
+	  FROM @inclusion i \
+	  JOIN @entity e ON e.entity_id = i.superentity_id \
+	  JOIN successors c ON i.subentity_id = c.entity_id \
 	  WHERE i.is_subsumed = false \
+	    AND e.entity_rank >= ? \
        ) \
        SELECT 0 FROM successors WHERE entity_id = ? LIMIT 1"
 
@@ -593,12 +600,16 @@ let rec make uri_or_conn = (module struct
     let of_id e = Lwt.return e
     let id e = e
 
+    let top_id = 1l
+    let top = of_id top_id
+
     let type_, type_cache = memo_1lwt @@ fun e ->
       with_db @@ fun (module C) ->
       C.find Q.entity_type C.Tuple.(int32 0) C.Param.([|int32 e|])
 
-    let top_id = 1l
-    let top = of_id top_id
+    let rank, rank_cache = memo_1lwt @@ fun e ->
+      with_db @@ fun (module C) ->
+      C.find Q.entity_rank C.Tuple.(int 0) C.Param.([|int32 e|])
 
     let access_opt, access_opt_cache = memo_1lwt @@ fun e ->
       with_db @@ fun (module C) ->
@@ -653,9 +664,11 @@ let rec make uri_or_conn = (module struct
       let k = subentity, superentity in
       try Lwt.return (Cache.find inclusion_cache k)
       with Not_found ->
+	lwt r_lim = rank superentity in
 	lwt c = with_db @@ fun (module C) ->
 	  C.find_opt Q.select_precedes (fun _ -> ())
-		     C.Param.([|int32 subentity; int32 superentity|]) >|=
+		     C.Param.([|int r_lim; int32 subentity;
+				int r_lim; int32 superentity|]) >|=
 	  function None -> false | Some () -> true in
 	Cache.replace inclusion_cache preceq_grade k c;
 	Lwt.return c
@@ -817,6 +830,35 @@ let rec make uri_or_conn = (module struct
 
     (* Modifying Functions *)
 
+    let set_rank r e =
+      with_db (fun (module C) ->
+		C.exec Q.set_entity_rank C.Param.[|int r; int32 e|])
+	>|= fun () -> Cache.replace rank_cache fetch_grade e r
+
+    let rec raise_rank r_min e =
+      lwt r = rank e in
+      if r >= r_min then Lwt.return_unit else
+      begin
+	preds e >>= Set.iter_s (raise_rank (r_min + 1)) >>
+	set_rank r_min e
+      end
+
+    let rec lower_rank e =
+      lwt r = rank e in
+      let update_rank eS r' =
+	if r' = r then Lwt.return r' else
+	rank eS >|= max r' *< succ in
+      lwt esS = succs e in
+      lwt r' = Set.fold_s update_rank esS 0 in
+      if r' = r then Lwt.return_unit else begin
+	set_rank r' e >>
+	preds e >>= Set.iter_s begin fun eP ->
+	  lwt rP = rank eP in
+	  if rP = r + 1 then lower_rank eP
+			else Lwt.return_unit
+	end
+      end
+
     let constrain' subentity superentity (module C : CONNECTION) =
       C.exec Q.maybe_insert_inclusion
 	C.Param.([|int32 subentity; int32 superentity;
@@ -837,14 +879,19 @@ let rec make uri_or_conn = (module struct
     let constrain subentity superentity =
       lwt is_super = precedes superentity subentity in
       if is_super then Lwt.fail (Invalid_argument "cyclic constraint") else
-      (* TODO: Update entity_rank. *)
+      lwt subentity_rank = rank subentity in
+      lwt superentity_rank = rank superentity in
+      raise_rank (max subentity_rank (superentity_rank + 1)) subentity >>
       with_db (constrain' subentity superentity)
       (* TODO: Update is_subsumed. *)
 
     let unconstrain subentity superentity =
       (* TODO: Update is_subsumed. *)
-      with_db (unconstrain' subentity superentity)
-      (* TODO: Update entity_rank. *)
+      with_db (unconstrain' subentity superentity) >>
+      lwt subentity_rank = rank subentity in
+      lwt superentity_rank = rank superentity in
+      if subentity_rank > superentity_rank + 1 then Lwt.return_unit
+					       else lower_rank subentity
 
     let addattr' (type a) e e' (ak : a Attribute_type.t1) (xs : a list) =
       with_db @@ fun (module C : CONNECTION) ->

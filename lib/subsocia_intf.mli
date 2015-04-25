@@ -101,6 +101,7 @@ module type ENTITY = sig
   val id : t -> int32
 
   val type_ : t -> Entity_type.t Lwt.t
+  val rank : t -> int Lwt.t
   val access : t -> t Lwt.t
 
   val type_members : Entity_type.t -> Set.t Lwt.t
