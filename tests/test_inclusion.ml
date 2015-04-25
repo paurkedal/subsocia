@@ -18,13 +18,40 @@ open OUnit
 open Subsocia_connection
 open Printf
 open Pwt_infix
+open Unprime
 open Unprime_option
+
+module String_set = Set.Make (String)
+
+module Perf = struct
+  let ht = Hashtbl.create 19
+
+  let get tag = try Hashtbl.find ht tag with Not_found -> 0.0, 0.0
+
+  let start tag =
+    let tC, tW = get tag in
+    Hashtbl.replace ht tag (tC -. Sys.time (), tW -. Unix.time ())
+
+  let stop tag =
+    let tC, tW = get tag in
+    Hashtbl.replace ht tag (tC +. Sys.time (), tW +. Unix.time ())
+
+  let start_lwt tag = start tag; Lwt.return_unit
+  let stop_lwt tag = stop tag; Lwt.return_unit
+
+  let show () =
+    let keys = Hashtbl.fold (fun s _ -> String_set.add s) ht String_set.empty in
+    let len = String_set.fold (max *< String.length) keys 0 in
+    keys |> String_set.iter (fun tag -> let tC, tW = get tag in
+					printf "%*s: %8g %8g\n" len tag tC tW)
+end
 
 let test n =
   lwt top = Entity.top in
   let ea = Array.make n top in
   let ia = Array.init n (fun _ -> Array.make n false) in
   lwt org_group = Entity_type.of_name "org_group" >|= Option.get in
+  Perf.start "insert";
   for_lwt i = 0 to n - 1 do
     lwt e = Entity.create org_group in
     ea.(i) <- e;
@@ -36,6 +63,8 @@ let test n =
 	Lwt.return_unit
     done
   done >>
+  Perf.stop_lwt "insert" >>
+  Perf.start_lwt "update" >>
   for_lwt i = 0 to n - 1 do
     for_lwt j = 0 to i - 1 do
       if Random.int 4 = 0 then begin
@@ -46,6 +75,8 @@ let test n =
 	Lwt.return_unit
     done
   done >>
+  Perf.stop_lwt "update" >>
+  Perf.start_lwt "closure" >>
   for i = 0 to n - 1 do
     for j = 0 to i - 1 do
       for k = 0 to j - 1 do
@@ -54,6 +85,8 @@ let test n =
       done
     done
   done;
+  Perf.stop_lwt "closure" >>
+  Perf.start_lwt "precedes" >>
   for_lwt i = 0 to n - 1 do
     for_lwt j = 0 to i - 1 do
       lwt issub = Entity.precedes ea.(i) ea.(j) in
@@ -64,8 +97,12 @@ let test n =
       Lwt.return_unit
     done
   done >>
+  Perf.stop_lwt "precedes" >>
+  Perf.start_lwt "delete" >>
   for_lwt i = n - 1 downto 0 do
     Entity.delete ea.(i)
-  done
+  done >>
+  Perf.stop_lwt "delete" >>
+  Lwt.return_unit
 
-let run () = Lwt_main.run (test 100)
+let run () = Lwt_main.run (test 100); Perf.show ()
