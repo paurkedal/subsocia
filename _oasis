@@ -123,3 +123,12 @@ Executable "sociaweb_main"
   MainIs: sociaweb_main.ml
   ByteOpt: -thread
   Install: false
+
+Executable "testsuite"
+  Path: tests
+  MainIs: testsuite.ml
+  BuildDepends: oUnit, lwt.syntax, subsocia.data
+  ByteOpt: -thread
+  NativeOpt: -thread
+  Install: false
+  CompiledObject: native
