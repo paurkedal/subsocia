@@ -1,5 +1,5 @@
 # It is absolutely essential to create to top node first.
-:* unit
+:* unit %display "Top"
 * unit
 
 # Attribute Types
@@ -17,16 +17,20 @@
 
 :* org_group
     !< org_group ! org_group/unique_name
-    !< unit ! unit/unique_name
+    !< unit ! unit/unique_name ! unit/proper_name
+    %display "${proper_name}|${unique_name}"
 :* access_base
     !< org_group ! org_group/unique_name
-    !< unit ! unit/unique_name
+    !< unit ! unit/unique_name ! unit/proper_name
+    %display "${proper_name}|${unique_name}"
 :* access_group
     !< access_group
-    !< access_base ! access_base/role
+    !< access_base ! access_base/role ! unit/proper_name
+    %display "${proper_name}|${unique_name}"
 :* auth_group
     !< unit ! unit/unique_name
     !< org_group ! org_group/unique_name
+    %display "${proper_name}|${unique_name}"
 :* person
     !< access_group
     !< access_base ! access_base/role
@@ -40,15 +44,18 @@
 
 # Top level
 * access_base ! forbidden !< {#}
-* org_group ! auth !< {#}
-* org_group ! app  !< {#}
-* org_group ! registrations !< {#}
+* org_group ! auth !< {#} ! proper_name=Authentication
+* org_group ! app  !< {#} ! proper_name=Application access
+* org_group ! registrations !< {#} ! proper_name={New registrations}
 @ forbidden %access forbidden
 
 # Subsocia
 * access_base ! app/subsocia !< app
 * access_group ! app/subsocia/role=user  !< app/subsocia
 * access_group ! app/subsocia/role=admin !< app/subsocia/role=user
+@ app/subsocia ! proper_name={Subsocia access groups}
+@ app/subsocia/role=user ! proper_name={Subsocia users}
+@ app/subsocia/role=admin ! proper_name={Subsocia administrators}
 
 # The access of {#} serves as default for entities with unspecified access.
 @ {#} %access app/subsocia
