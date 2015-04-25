@@ -207,8 +207,10 @@ module Q = struct
   let delete_entity =
     q "DELETE FROM @entity WHERE entity_id = ?"
 
-  let insert_inclusion =
-    q "INSERT INTO @inclusion (subentity_id, superentity_id) VALUES (?, ?)"
+  let maybe_insert_inclusion =
+    q "INSERT INTO @inclusion (subentity_id, superentity_id) SELECT ?, ? \
+       WHERE NOT EXISTS (SELECT 0 FROM @inclusion \
+			 WHERE subentity_id = ? AND superentity_id = ?)"
 
   let delete_inclusion =
     q "DELETE FROM @inclusion WHERE subentity_id = ? AND superentity_id = ?"
@@ -816,8 +818,9 @@ let rec make uri_or_conn = (module struct
     (* Modifying Functions *)
 
     let constrain' subentity superentity (module C : CONNECTION) =
-      C.exec Q.insert_inclusion
-	C.Param.([|int32 subentity; int32 superentity|]) >|=
+      C.exec Q.maybe_insert_inclusion
+	C.Param.([|int32 subentity; int32 superentity;
+		   int32 subentity; int32 superentity|]) >|=
       fun () ->
 	clear_inclusion_caches ();
 	emit_changed subentity `Succ;
@@ -832,8 +835,6 @@ let rec make uri_or_conn = (module struct
 	emit_changed superentity `Pred
 
     let constrain subentity superentity =
-      lwt is_sub = precedes subentity superentity in
-      if is_sub then Lwt.return_unit else
       lwt is_super = precedes superentity subentity in
       if is_super then Lwt.fail (Invalid_argument "cyclic constraint") else
       (* TODO: Update entity_rank. *)
