@@ -130,5 +130,6 @@ Executable "testsuite"
   BuildDepends: oUnit, lwt.syntax, subsocia.data
   ByteOpt: -thread
   NativeOpt: -thread
+  Build$: flag(tests)
   Install: false
   CompiledObject: native
