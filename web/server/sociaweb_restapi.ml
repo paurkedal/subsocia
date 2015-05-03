@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -81,7 +81,7 @@ let _ =
       let is_member_of group =
 	match_lwt selected_entity group with
 	| None -> Lwt.return false
-	| Some group -> Entity.precedes user group in
+	| Some group -> Entity.is_sub user group in
       let get_attribute an =
 	if not (String_set.contains an allowed_ans) then Lwt.return_none else
 	match_lwt Attribute_type.of_name an with

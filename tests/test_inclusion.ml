@@ -58,7 +58,7 @@ let test n =
     for_lwt j = 0 to i - 1 do
       if Random.int 4 = 0 then begin
 	ia.(i).(j) <- true;
-	Entity.constrain ea.(i) ea.(j)
+	Entity.force_dsub ea.(i) ea.(j)
       end else
 	Lwt.return_unit
     done
@@ -69,8 +69,8 @@ let test n =
     for_lwt j = 0 to i - 1 do
       if Random.int 4 = 0 then begin
 	ia.(i).(j) <- not ia.(i).(j);
-	if ia.(i).(j) then Entity.constrain ea.(i) ea.(j)
-		      else Entity.unconstrain ea.(i) ea.(j)
+	if ia.(i).(j) then Entity.force_dsub ea.(i) ea.(j)
+		      else Entity.relax_dsub ea.(i) ea.(j)
       end else
 	Lwt.return_unit
     done
@@ -86,18 +86,18 @@ let test n =
     done
   done;
   Perf.stop_lwt "closure" >>
-  Perf.start_lwt "precedes" >>
+  Perf.start_lwt "is_sub" >>
   for_lwt i = 0 to n - 1 do
     for_lwt j = 0 to i - 1 do
-      lwt issub = Entity.precedes ea.(i) ea.(j) in
-      lwt issup = Entity.precedes ea.(j) ea.(i) in
+      lwt issub = Entity.is_sub ea.(i) ea.(j) in
+      lwt issup = Entity.is_sub ea.(j) ea.(i) in
       let msg = sprintf "#%ld ⊆ #%ld" (Entity.id ea.(i)) (Entity.id ea.(j)) in
       assert_equal ~msg ~printer:string_of_bool ia.(i).(j) issub;
       assert (not issup);
       Lwt.return_unit
     done
   done >>
-  Perf.stop_lwt "precedes" >>
+  Perf.stop_lwt "is_sub" >>
   Perf.start_lwt "delete" >>
   for_lwt i = n - 1 downto 0 do
     Entity.delete ea.(i)

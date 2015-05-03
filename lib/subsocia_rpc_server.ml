@@ -75,10 +75,10 @@ module Server_impl = struct
       lwt et = C.Entity_type.of_id et in
       C.Entity_type.set_entity_name_tmpl et name
 
-    let inclusion (module C : Subsocia_intf.S) et0 et1 =
+    let can_dsub (module C : Subsocia_intf.S) et0 et1 =
       lwt et0 = C.Entity_type.of_id et0 in
       lwt et1 = C.Entity_type.of_id et1 in
-      C.Entity_type.inclusion et0 et1
+      C.Entity_type.can_dsub et0 et1
 
     let dsub (module C : Subsocia_intf.S) entity_id =
       C.Entity_type.of_id entity_id >>=
@@ -92,51 +92,51 @@ module Server_impl = struct
       C.Entity_type.Map.bindings *>
       List.map (fun (et, (muA, muB)) -> C.Entity_type.id et, muA, muB)
 
-    let inclusion_dump (module C : Subsocia_intf.S) () =
-      C.Entity_type.inclusion_dump () >|=
+    let dsub_elements (module C : Subsocia_intf.S) () =
+      C.Entity_type.dsub_elements () >|=
       List.map (fun (et0, et1, mu0, mu1) ->
 		  C.Entity_type.(id et0, id et1, mu0, mu1))
 
-    let inclusion_allow (module C : Subsocia_intf.S) mu0 mu1 et0 et1 =
+    let allow_dsub (module C : Subsocia_intf.S) mu0 mu1 et0 et1 =
       lwt et0 = C.Entity_type.of_id et0 in
       lwt et1 = C.Entity_type.of_id et1 in
-      C.Entity_type.inclusion_allow mu0 mu1 et0 et1
+      C.Entity_type.allow_dsub mu0 mu1 et0 et1
 
-    let inclusion_disallow (module C : Subsocia_intf.S) et0 et1 =
+    let disallow_dsub (module C : Subsocia_intf.S) et0 et1 =
       lwt et0 = C.Entity_type.of_id et0 in
       lwt et1 = C.Entity_type.of_id et1 in
-      C.Entity_type.inclusion_disallow et0 et1
+      C.Entity_type.disallow_dsub et0 et1
 
-    let attribution_mult (module C : Subsocia_intf.S) lb_id ub_id ak_id =
+    let can_asub (module C : Subsocia_intf.S) lb_id ub_id ak_id =
       lwt lb = C.Entity_type.of_id lb_id in
       lwt ub = C.Entity_type.of_id ub_id in
       lwt (C.Attribute_type.Ex ak) = C.Attribute_type.of_id ak_id in
-      C.Entity_type.attribution_mult lb ub ak
+      C.Entity_type.can_asub lb ub ak
 
-    let attribution (module C : Subsocia_intf.S) lb_id ub_id =
+    let can_asub_byattr (module C : Subsocia_intf.S) lb_id ub_id =
       lwt lb = C.Entity_type.of_id lb_id in
       lwt ub = C.Entity_type.of_id ub_id in
-      C.Entity_type.attribution lb ub >|=
+      C.Entity_type.can_asub_byattr lb ub >|=
       C.Attribute_type.Map.bindings *>
       List.map (fun (ak, mu) -> C.Attribute_type.id ak, mu)
 
-    let attribution_dump (module C : Subsocia_intf.S) () =
-      C.Entity_type.attribution_dump () >|=
+    let asub_elements (module C : Subsocia_intf.S) () =
+      C.Entity_type.asub_elements () >|=
       List.map (fun (et0, et1, ak, mu) ->
 		  (C.Entity_type.id et0, C.Entity_type.id et1,
 		   C.Attribute_type.id ak, mu))
 
-    let attribution_allow (module C : Subsocia_intf.S) et0 et1 ak mu =
+    let allow_asub (module C : Subsocia_intf.S) et0 et1 ak mu =
       lwt et0 = C.Entity_type.of_id et0 in
       lwt et1 = C.Entity_type.of_id et1 in
       lwt ak = C.Attribute_type.of_id ak in
-      C.Entity_type.attribution_allow et0 et1 ak mu
+      C.Entity_type.allow_asub et0 et1 ak mu
 
-    let attribution_disallow (module C : Subsocia_intf.S) et0 et1 ak =
+    let disallow_asub (module C : Subsocia_intf.S) et0 et1 ak =
       lwt et0 = C.Entity_type.of_id et0 in
       lwt et1 = C.Entity_type.of_id et1 in
       lwt ak = C.Attribute_type.of_id ak in
-      C.Entity_type.attribution_disallow et0 et1 ak
+      C.Entity_type.disallow_asub et0 et1 ak
   end
 
   module Entity = struct
@@ -176,10 +176,10 @@ module Server_impl = struct
     let dsuper (module C : Subsocia_intf.S) e_id =
       C.Entity.of_id e_id >>= C.Entity.dsuper >|=
       C.Entity.Set.elements *> List.map C.Entity.id
-    let precedes (module C : Subsocia_intf.S) lb_id ub_id =
+    let is_sub (module C : Subsocia_intf.S) lb_id ub_id =
       lwt lb = C.Entity.of_id lb_id in
       lwt ub = C.Entity.of_id ub_id in
-      C.Entity.precedes lb ub
+      C.Entity.is_sub lb ub
 
     let getattr (module C : Subsocia_intf.S) lb_id ub_id ak_id =
       lwt lb = C.Entity.of_id lb_id in
@@ -210,24 +210,24 @@ module Server_impl = struct
       let vs1 = List.map (Value.coerce (C.Attribute_type.type1 ak)) vs in
       C.Entity.delattr lb ub ak vs1
 
-    let asub (module C : Subsocia_intf.S) e_id ak_id v =
+    let asub_eq (module C : Subsocia_intf.S) e_id ak_id v =
       lwt e = C.Entity.of_id e_id in
       lwt C.Attribute_type.Ex ak = C.Attribute_type.of_id ak_id in
       let t = C.Attribute_type.type1 ak in
-      C.Entity.asub e ak (Value.coerce t v) >|=
+      C.Entity.asub_eq e ak (Value.coerce t v) >|=
       C.Entity.Set.elements *> List.map C.Entity.id
 
-    let asuper (module C : Subsocia_intf.S) e_id ak_id v =
+    let asuper_eq (module C : Subsocia_intf.S) e_id ak_id v =
       lwt e = C.Entity.of_id e_id in
       lwt C.Attribute_type.Ex ak = C.Attribute_type.of_id ak_id in
       let t = C.Attribute_type.type1 ak in
-      C.Entity.asuper e ak (Value.coerce t v) >|=
+      C.Entity.asuper_eq e ak (Value.coerce t v) >|=
       C.Entity.Set.elements *> List.map C.Entity.id
 
-    let apsub (module C : Subsocia_intf.S) e_id ak_id =
+    let asub_get (module C : Subsocia_intf.S) e_id ak_id =
       lwt e = C.Entity.of_id e_id in
       lwt C.Attribute_type.Ex ak = C.Attribute_type.of_id ak_id in
-      lwt m = C.Entity.apsub e ak in
+      lwt m = C.Entity.asub_get e ak in
       Lwt.return @@
 	C.Entity.Map.fold
 	  (fun e vs ->
@@ -238,10 +238,10 @@ module Server_impl = struct
 	      vs)
 	  m []
 
-    let apsuper (module C : Subsocia_intf.S) e_id ak_id =
+    let asuper_get (module C : Subsocia_intf.S) e_id ak_id =
       lwt e = C.Entity.of_id e_id in
       lwt C.Attribute_type.Ex ak = C.Attribute_type.of_id ak_id in
-      lwt m = C.Entity.apsuper e ak in
+      lwt m = C.Entity.asuper_get e ak in
       Lwt.return @@
 	C.Entity.Map.fold
 	  (fun e vs ->
@@ -252,15 +252,15 @@ module Server_impl = struct
 	      vs)
 	  m []
 
-    let constrain (module C : Subsocia_intf.S) lb_id ub_id =
+    let force_dsub (module C : Subsocia_intf.S) lb_id ub_id =
       lwt lb = C.Entity.of_id lb_id in
       lwt ub = C.Entity.of_id ub_id in
-      C.Entity.constrain lb ub
+      C.Entity.force_dsub lb ub
 
-    let unconstrain (module C : Subsocia_intf.S) lb_id ub_id =
+    let relax_dsub (module C : Subsocia_intf.S) lb_id ub_id =
       lwt lb = C.Entity.of_id lb_id in
       lwt ub = C.Entity.of_id ub_id in
-      C.Entity.unconstrain lb ub
+      C.Entity.relax_dsub lb ub
 
   end
 end

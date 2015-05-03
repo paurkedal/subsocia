@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -69,7 +69,7 @@ let () =
   lwt et_person = Const.et_person in
   lwt e_new_user = Entity.create et_person in
   lwt e_new_users = Const.e_new_users in
-  Entity.constrain e_new_user e_new_users >>
+  Entity.force_dsub e_new_user e_new_users >>
   Entity.setattr e_new_user e_top at_first_name [first_name] >>
   Entity.setattr e_new_user e_top at_last_name [last_name] >>
   Entity.setattr e_new_user e_top at_email [email] >>

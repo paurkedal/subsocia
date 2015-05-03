@@ -88,8 +88,8 @@ module Make (RPCM : RPCM) = struct
     let entity_name_tmpl = Raw.entity_name_tmpl
     let set_entity_name_tmpl = Raw.set_entity_name_tmpl
 
-    let inclusion et0 et1 =
-      Raw.inclusion et0 et1
+    let can_dsub et0 et1 =
+      Raw.can_dsub et0 et1
 
     let dsub et =
       Raw.dsub et >|=
@@ -99,33 +99,33 @@ module Make (RPCM : RPCM) = struct
       Raw.dsuper et >|=
       List.map (fun (et, muA, muB) -> et, (muA, muB)) *> Map.of_ordered_bindings
 
-    let inclusion_dump () =
-      Raw.inclusion_dump ()
+    let dsub_elements () =
+      Raw.dsub_elements ()
 
-    let inclusion_allow mu0 mu1 et0 et1 =
-      Raw.inclusion_allow mu0 mu1 et0 et1
+    let allow_dsub mu0 mu1 et0 et1 =
+      Raw.allow_dsub mu0 mu1 et0 et1
 
-    let inclusion_disallow et0 et1 =
-      Raw.inclusion_disallow et0 et1
+    let disallow_dsub et0 et1 =
+      Raw.disallow_dsub et0 et1
 
-    let attribution_mult lbt ubt ak =
-      Raw.attribution_mult lbt ubt (Attribute_type.id (Attribute_type.Ex ak))
+    let can_asub lbt ubt ak =
+      Raw.can_asub lbt ubt (Attribute_type.id (Attribute_type.Ex ak))
 
-    let attribution lbt ubt =
+    let can_asub_byattr lbt ubt =
       let aux (ak_id, mu) = Attribute_type.of_id ak_id >|= fun ak -> ak, mu in
-      Raw.attribution lbt ubt >>= Lwt_list.map_s aux >|=
+      Raw.can_asub_byattr lbt ubt >>= Lwt_list.map_s aux >|=
       Attribute_type.Map.of_ordered_bindings
 
-    let attribution_dump () =
+    let asub_elements () =
       let aux (et0, et1, ak_id, mu) =
 	Attribute_type.of_id ak_id >|= fun ak -> (et0, et1, ak, mu) in
-      Raw.attribution_dump () >>= Lwt_list.map_s aux
+      Raw.asub_elements () >>= Lwt_list.map_s aux
 
-    let attribution_allow et0 et1 (Attribute_type.Ex ak) mu =
-      Raw.attribution_allow et0 et1 ak.Attribute_type.ak_id mu
+    let allow_asub et0 et1 (Attribute_type.Ex ak) mu =
+      Raw.allow_asub et0 et1 ak.Attribute_type.ak_id mu
 
-    let attribution_disallow et0 et1 (Attribute_type.Ex ak) =
-      Raw.attribution_disallow et0 et1 ak.Attribute_type.ak_id
+    let disallow_asub et0 et1 (Attribute_type.Ex ak) =
+      Raw.disallow_asub et0 et1 ak.Attribute_type.ak_id
   end
 
   module Entity = struct
@@ -172,37 +172,37 @@ module Make (RPCM : RPCM) = struct
       Raw.delattr lb ub (Attribute_type.(id (Ex ak)))
 		  (List.map (fun v -> Value.Ex (t, v)) vs)
 
-    let asub e ak av =
+    let asub_eq e ak av =
       let t = Attribute_type.type1 ak in
-      Raw.asub e (Attribute_type.(id (Ex ak))) (Value.Ex (t, av))
+      Raw.asub_eq e (Attribute_type.(id (Ex ak))) (Value.Ex (t, av))
 	>|= Set.of_ordered_elements
 
-    let asuper e ak av =
+    let asuper_eq e ak av =
       let t = Attribute_type.type1 ak in
-      Raw.asuper e (Attribute_type.(id (Ex ak))) (Value.Ex (t, av))
+      Raw.asuper_eq e (Attribute_type.(id (Ex ak))) (Value.Ex (t, av))
 	>|= Set.of_ordered_elements
 
-    let apsub e ak =
+    let asub_get e ak =
       let t = Attribute_type.type1 ak in
-      Raw.apsub e (Attribute_type.(id (Ex ak))) >|= fun bindings ->
+      Raw.asub_get e (Attribute_type.(id (Ex ak))) >|= fun bindings ->
       List.fold
 	(fun (e, v) m ->
 	  let vs = try Map.find e m with Not_found -> Values.empty t in
 	  Map.add e (Values.add (Value.coerce t v) vs) m)
 	bindings Map.empty
 
-    let apsuper e ak =
+    let asuper_get e ak =
       let t = Attribute_type.type1 ak in
-      Raw.apsuper e (Attribute_type.(id (Ex ak))) >|= fun bindings ->
+      Raw.asuper_get e (Attribute_type.(id (Ex ak))) >|= fun bindings ->
       List.fold
 	(fun (e, v) m ->
 	  let vs = try Map.find e m with Not_found -> Values.empty t in
 	  Map.add e (Values.add (Value.coerce t v) vs) m)
 	bindings Map.empty
 
-    let precedes = Raw.precedes
-    let constrain = Raw.constrain
-    let unconstrain = Raw.unconstrain
+    let is_sub = Raw.is_sub
+    let force_dsub = Raw.force_dsub
+    let relax_dsub = Raw.relax_dsub
     let display_name ~langs e = Lwt.return ("#" ^ Int32.to_string e) (* TODO *)
   end
 end

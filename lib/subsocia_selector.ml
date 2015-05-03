@@ -114,20 +114,20 @@ module Selector_utils (C : Subsocia_intf.S) = struct
       let t = C.Attribute_type.type1 at in
       let x = Value.typed_of_string t v in
       C.Entity.Set.fold_s
-	(fun e1 acc -> C.Entity.asub e1 at x >|= C.Entity.Set.union acc)
+	(fun e1 acc -> C.Entity.asub_eq e1 at x >|= C.Entity.Set.union acc)
 	es C.Entity.Set.empty
     | Select_asuper (an, v) -> fun es ->
       lwt (C.Attribute_type.Ex at) = req_at an in
       let t = C.Attribute_type.type1 at in
       let x = Value.typed_of_string t v in
       C.Entity.Set.fold_s
-	(fun e1 acc -> C.Entity.asuper e1 at x >|= C.Entity.Set.union acc)
+	(fun e1 acc -> C.Entity.asuper_eq e1 at x >|= C.Entity.Set.union acc)
 	es C.Entity.Set.empty
     | Select_asub_present an -> fun es ->
       lwt (C.Attribute_type.Ex at) = req_at an in
       C.Entity.Set.fold_s
 	(fun e1 acc ->
-	  lwt m = C.Entity.apsub e1 at in
+	  lwt m = C.Entity.asub_get e1 at in
 	  let s = C.Entity.Map.fold (fun e _ -> C.Entity.Set.add e) m
 				    C.Entity.Set.empty in
 	  Lwt.return (C.Entity.Set.union s acc))
@@ -136,7 +136,7 @@ module Selector_utils (C : Subsocia_intf.S) = struct
       lwt (C.Attribute_type.Ex at) = req_at an in
       C.Entity.Set.fold_s
 	(fun e1 acc ->
-	  lwt m = C.Entity.apsuper e1 at in
+	  lwt m = C.Entity.asuper_get e1 at in
 	  let s = C.Entity.Map.fold (fun e _ -> C.Entity.Set.add e) m
 				    C.Entity.Set.empty in
 	  Lwt.return (C.Entity.Set.union s acc))

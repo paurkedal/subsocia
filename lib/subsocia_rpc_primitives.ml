@@ -31,26 +31,26 @@ module Entity_type = struct
   external all : unit -> int32 list = ""
   external entity_name_tmpl : int32 -> string = ""
   external set_entity_name_tmpl : int32 -> string -> unit = ""
-  external inclusion :
+  external can_dsub :
     int32 -> int32 -> (Multiplicity.t * Multiplicity.t) option = ""
   external dsub :
     int32 -> (int32 * Multiplicity.t * Multiplicity.t) list = ""
   external dsuper :
     int32 -> (int32 * Multiplicity.t * Multiplicity.t) list = ""
-  external inclusion_dump :
+  external dsub_elements :
     unit -> (int32 * int32 * Multiplicity.t * Multiplicity.t) list = ""
-  external inclusion_allow :
+  external allow_dsub :
     Multiplicity.t -> Multiplicity.t -> int32 -> int32 -> unit = ""
-  external inclusion_disallow : int32 -> int32 -> unit = ""
-  external attribution_mult :
+  external disallow_dsub : int32 -> int32 -> unit = ""
+  external can_asub :
     int32 -> int32 -> int32 -> Multiplicity.t option = ""
-  external attribution :
+  external can_asub_byattr :
     int32 -> int32 -> (int32 * Multiplicity.t) list = ""
-  external attribution_dump :
+  external asub_elements :
     unit -> (int32 * int32 * int32 * Multiplicity.t) list = ""
-  external attribution_allow :
+  external allow_asub :
     int32 -> int32 -> int32 -> Multiplicity.t -> unit = ""
-  external attribution_disallow :
+  external disallow_asub :
     int32 -> int32 -> int32 -> unit = ""
 end
 
@@ -66,15 +66,15 @@ module Entity = struct
   external minimums : unit -> int32 list = ""
   external dsub : int32 -> int32 list = ""
   external dsuper : int32 -> int32 list = ""
-  external precedes : int32 -> int32 -> bool = ""
+  external is_sub : int32 -> int32 -> bool = ""
   external getattr : int32 -> int32 -> int32 -> Value.t0 list = ""
   external setattr : int32 -> int32 -> int32 -> Value.t0 list -> unit=""
   external addattr : int32 -> int32 -> int32 -> Value.t0 list -> unit=""
   external delattr : int32 -> int32 -> int32 -> Value.t0 list -> unit=""
-  external asub : int32 -> int32 -> Value.t0 -> int32 list = ""
-  external asuper : int32 -> int32 -> Value.t0 -> int32 list = ""
-  external apsub : int32 -> int32 -> (int32 * Value.t0) list = ""
-  external apsuper : int32 -> int32 -> (int32 * Value.t0) list = ""
-  external constrain : int32 -> int32 -> unit = ""
-  external unconstrain : int32 -> int32 -> unit = ""
+  external asub_eq : int32 -> int32 -> Value.t0 -> int32 list = ""
+  external asuper_eq : int32 -> int32 -> Value.t0 -> int32 list = ""
+  external asub_get : int32 -> int32 -> (int32 * Value.t0) list = ""
+  external asuper_get : int32 -> int32 -> (int32 * Value.t0) list = ""
+  external force_dsub : int32 -> int32 -> unit = ""
+  external relax_dsub : int32 -> int32 -> unit = ""
 end

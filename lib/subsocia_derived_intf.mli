@@ -95,6 +95,9 @@ module type S = sig
 
     val display_name : langs: lang list -> t -> string Lwt.t
     val candidate_dsupers : t -> Set.t Lwt.t
+
+    val precedes : t -> t -> bool Lwt.t
+    (** @deprecated Use is_sub. *)
   end
 
   module Const : sig

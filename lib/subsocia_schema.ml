@@ -85,18 +85,18 @@ let exec_schema (module C : Subsocia_intf.S) =
   let exec_et_adjust et = function
     | `Allow_inclusion (etn', mu, mu') ->
       lwt et' = req_et etn' in
-      C.Entity_type.inclusion_allow mu mu' et et'
+      C.Entity_type.allow_dsub mu mu' et et'
     | `Disallow_inclusion etn' ->
       lwt et' = req_et etn' in
-      C.Entity_type.inclusion_disallow et et'
+      C.Entity_type.disallow_dsub et et'
     | `Allow_attribution (etn', atn, mu) ->
       lwt et' = req_et etn' in
       lwt at = req_at atn in
-      C.Entity_type.attribution_allow et et' at mu
+      C.Entity_type.allow_asub et et' at mu
     | `Disallow_attribution (etn', atn) ->
       lwt et' = req_et etn' in
       lwt at = req_at atn in
-      C.Entity_type.attribution_disallow et et' at
+      C.Entity_type.disallow_asub et et' at
     | `Aux_string ("display", tmpl) ->
       C.Entity_type.set_entity_name_tmpl et tmpl
     | `Aux_string (p, _) ->
@@ -145,10 +145,10 @@ let exec_schema (module C : Subsocia_intf.S) =
       lwt_failure_f "Entities have no property %s." p
     | `Add_sub sel ->
       lwt e' = Su.select_one sel in
-      C.Entity.constrain e e'
+      C.Entity.force_dsub e e'
     | `Remove_sub sel ->
       lwt e' = Su.select_one sel in
-      C.Entity.unconstrain e e'
+      C.Entity.relax_dsub e e'
     | `Add_attr asel -> add_set_helper `Add e asel
     | `Set_attr asel -> add_set_helper `Set e asel
     | `Remove_attr sel' -> del_helper e sel' in

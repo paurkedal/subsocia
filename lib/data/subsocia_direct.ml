@@ -128,7 +128,7 @@ module Q = struct
     q "SELECT attribute_type_id, attribute_multiplicity \
        FROM @attribution_type \
        WHERE subentity_type_id = ? AND superentity_type_id = ?"
-  let attribution_mult =
+  let can_asub =
     q "SELECT attribute_multiplicity FROM @attribution_type \
        WHERE subentity_type_id = ? AND superentity_type_id = ? \
 	 AND attribute_type_id = ?"
@@ -144,12 +144,12 @@ module Q = struct
     q "SELECT subentity_type_id, superentity_type_id, \
 	      attribute_type_id, attribute_multiplicity \
        FROM @attribution_type"
-  let attribution_allow =
+  let allow_asub =
     q "INSERT INTO @attribution_type \
 	(subentity_type_id, superentity_type_id, \
 	 attribute_type_id, attribute_multiplicity) \
        VALUES (?, ?, ?, ?)"
-  let attribution_disallow =
+  let disallow_asub =
     q "DELETE FROM @attribution_type \
        WHERE subentity_type_id = ? AND superentity_type_id = ? \
 	 AND attribute_type_id = ?"
@@ -496,14 +496,14 @@ let rec make uri_or_conn = (module struct
       with_db @@ fun (module C) ->
       C.exec Q.set_entity_name_tmpl C.Param.([|text name; int32 et|])
 
-    let inclusion, inclusion_cache =
+    let can_dsub, can_dsub_cache =
       memo_2lwt @@ fun (et0, et1) ->
       with_db @@ fun (module C) ->
       let mult i tup = Multiplicity.of_int (C.Tuple.int i tup) in
       C.find_opt Q.inclusion_type C.Tuple.(fun tup -> mult 0 tup, mult 1 tup)
 		 C.Param.([|int32 et0; int32 et1|])
 
-    let dsub, inclusion_preds_cache =
+    let dsub, dsub_cache =
       memo_1lwt @@ fun et ->
       with_db @@ fun (module C) ->
       let mult i tup = Multiplicity.of_int (C.Tuple.int i tup) in
@@ -512,7 +512,7 @@ let rec make uri_or_conn = (module struct
 	     C.Param.([|int32 et|])
 	     Map.empty
 
-    let dsuper, inclusion_succs_cache =
+    let dsuper, dsuper_cache =
       memo_1lwt @@ fun et ->
       with_db @@ fun (module C) ->
       let mult i tup = Multiplicity.of_int (C.Tuple.int i tup) in
@@ -521,7 +521,7 @@ let rec make uri_or_conn = (module struct
 	     C.Param.([|int32 et|])
 	     Map.empty
 
-    let inclusion_dump () =
+    let dsub_elements () =
       with_db @@ fun (module C) ->
       let mult i tup = Multiplicity.of_int (C.Tuple.int i tup) in
       C.fold Q.inclusion_type_dump
@@ -529,17 +529,17 @@ let rec make uri_or_conn = (module struct
 				      mult 2 tup, mult 3 tup) :: acc)
 	     [||] []
 
-    let inclusion_allow mu0 mu1 et0 et1 =
+    let allow_dsub mu0 mu1 et0 et1 =
       with_db @@ fun (module C) ->
       let mu0, mu1 = Multiplicity.(to_int mu0, to_int mu1) in
       C.exec Q.inclusion_type_allow
 	     C.Param.([|int mu0; int mu1; int32 et0; int32 et1|])
 
-    let inclusion_disallow et0 et1 =
+    let disallow_dsub et0 et1 =
       with_db @@ fun (module C) ->
       C.exec Q.inclusion_type_disallow C.Param.([|int32 et0; int32 et1|])
 
-    let attribution, attribution_cache =
+    let can_asub_byattr, attribution_cache =
       memo_2lwt @@ fun (et, et') ->
       with_db @@ fun ((module C) as conn) ->
       let aux tup akm =
@@ -549,17 +549,17 @@ let rec make uri_or_conn = (module struct
       C.fold_s Q.attribution_type aux C.Param.([|int32 et; int32 et'|])
 	       Attribute_type.Map.empty
 
-    let attribution_mult', attribution_mult_cache =
+    let can_asub', attribution_mult_cache =
       memo_3lwt @@ fun (et, et', ak) ->
       with_db @@ fun (module C) ->
       let aux tup = Multiplicity.of_int (C.Tuple.int 0 tup) in
-      C.find_opt Q.attribution_mult aux
+      C.find_opt Q.can_asub aux
 		 C.Param.([|int32 et; int32 et'; int32 ak|])
 
-    let attribution_mult et et' ak =
-      attribution_mult' et et' ak.Attribute_type.ak_id
+    let can_asub et et' ak =
+      can_asub' et et' ak.Attribute_type.ak_id
 
-    let attribution_dump () =
+    let asub_elements () =
       with_db @@ fun ((module C) as conn) ->
       let aux tup acc =
 	let et0, et1 = C.Tuple.(int32 0 tup, int32 1 tup) in
@@ -568,16 +568,16 @@ let rec make uri_or_conn = (module struct
 	(et0, et1, ak, mu) :: acc in
       C.fold_s Q.attribution_type_dump aux [||] []
 
-    let attribution_allow et et' (Attribute_type.Ex ak) mu =
+    let allow_asub et et' (Attribute_type.Ex ak) mu =
       with_db @@ fun (module C) ->
       let mu = Multiplicity.to_int mu in
-      C.exec Q.attribution_allow
+      C.exec Q.allow_asub
 	     C.Param.([|int32 et; int32 et'; int32 ak.Attribute_type.ak_id;
 			int mu|])
 
-    let attribution_disallow et et' (Attribute_type.Ex ak) =
+    let disallow_asub et et' (Attribute_type.Ex ak) =
       with_db @@ fun (module C) ->
-      C.exec Q.attribution_disallow
+      C.exec Q.disallow_asub
 	     C.Param.([|int32 et; int32 et'; int32 ak.Attribute_type.ak_id|])
 
     let display_name ~langs ?pl = name (* FIXME *)
@@ -656,7 +656,7 @@ let rec make uri_or_conn = (module struct
       Cache.clear minimums_cache;
       Cache.clear preds_cache
 
-    let precedes subentity superentity =
+    let is_sub subentity superentity =
       if subentity = superentity then Lwt.return_true else
       let k = subentity, superentity in
       try Lwt.return (Cache.find inclusion_cache k)
@@ -717,7 +717,7 @@ let rec make uri_or_conn = (module struct
       C.fold Q.apreds_text f C.Param.([|int32 e; int32 ak_id; text x|])
 	     Set.empty
 
-    let asub (type a) e (ak : a Attribute_type.t1) : a -> Set.t Lwt.t =
+    let asub_eq (type a) e (ak : a Attribute_type.t1) : a -> Set.t Lwt.t =
       let open Attribute_type in
       match type1 ak with
       | Type.Bool -> fun x -> apreds_integer e ak.ak_id (if x then 1 else 0)
@@ -738,7 +738,7 @@ let rec make uri_or_conn = (module struct
       C.fold Q.asuccs_text f C.Param.([|int32 e; int32 ak_id; text x|])
 	     Set.empty
 
-    let asuper (type a) e (ak : a Attribute_type.t1) : a -> Set.t Lwt.t =
+    let asuper_eq (type a) e (ak : a Attribute_type.t1) : a -> Set.t Lwt.t =
       let open Attribute_type in
       match type1 ak with
       | Type.Bool -> fun x -> asuccs_integer e ak.ak_id (if x then 1 else 0)
@@ -764,7 +764,7 @@ let rec make uri_or_conn = (module struct
 	Map.add e' (Values.add v vs) m in
       C.fold Q.atpreds_text f C.Param.([|int32 e; int32 ak_id|]) Map.empty
 
-    let apsub (type a) e (ak : a Attribute_type.t1)
+    let asub_get (type a) e (ak : a Attribute_type.t1)
 	  : a Values.t Map.t Lwt.t =
       match Attribute_type.type1 ak with
       | Type.Bool ->
@@ -794,7 +794,7 @@ let rec make uri_or_conn = (module struct
 	Map.add e' (Values.add v vs) m in
       C.fold Q.atsuccs_text f C.Param.([|int32 e; int32 ak_id|]) Map.empty
 
-    let apsuper (type a) e (ak : a Attribute_type.t1)
+    let asuper_get (type a) e (ak : a Attribute_type.t1)
 	  : a Values.t Map.t Lwt.t =
       match Attribute_type.type1 ak with
       | Type.Bool ->
@@ -856,7 +856,7 @@ let rec make uri_or_conn = (module struct
 	end
       end
 
-    let constrain' subentity superentity (module C : CONNECTION) =
+    let force_dsub' subentity superentity (module C : CONNECTION) =
       C.exec Q.maybe_insert_inclusion
 	C.Param.([|int32 subentity; int32 superentity;
 		   int32 subentity; int32 superentity|]) >|=
@@ -865,7 +865,7 @@ let rec make uri_or_conn = (module struct
 	emit_changed subentity `Dsuper;
 	emit_changed superentity `Dsub
 
-    let unconstrain' subentity superentity (module C : CONNECTION) =
+    let relax_dsub' subentity superentity (module C : CONNECTION) =
       C.exec Q.delete_inclusion
 	C.Param.([|int32 subentity; int32 superentity|]) >|=
       fun () ->
@@ -873,18 +873,18 @@ let rec make uri_or_conn = (module struct
 	emit_changed subentity `Dsuper;
 	emit_changed superentity `Dsub
 
-    let constrain subentity superentity =
-      lwt is_super = precedes superentity subentity in
+    let force_dsub subentity superentity =
+      lwt is_super = is_sub superentity subentity in
       if is_super then Lwt.fail (Invalid_argument "cyclic constraint") else
       lwt subentity_rank = rank subentity in
       lwt superentity_rank = rank superentity in
       raise_rank (max subentity_rank (superentity_rank + 1)) subentity >>
-      with_db (constrain' subentity superentity)
+      with_db (force_dsub' subentity superentity)
       (* TODO: Update is_subsumed. *)
 
-    let unconstrain subentity superentity =
+    let relax_dsub subentity superentity =
       (* TODO: Update is_subsumed. *)
-      with_db (unconstrain' subentity superentity) >>
+      with_db (relax_dsub' subentity superentity) >>
       lwt subentity_rank = rank subentity in
       lwt superentity_rank = rank superentity in
       if subentity_rank > superentity_rank + 1 then Lwt.return_unit
@@ -908,7 +908,7 @@ let rec make uri_or_conn = (module struct
     let check_mult e e' ak =
       lwt et = type_ e in
       lwt et' = type_ e' in
-      match_lwt Entity_type.attribution_mult et et' ak with
+      match_lwt Entity_type.can_asub et et' ak with
       | None ->
 	lwt etn = Entity_type.name et in
 	lwt etn' = Entity_type.name et' in

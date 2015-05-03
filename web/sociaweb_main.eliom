@@ -46,21 +46,21 @@
     | true -> Lwt.return entity
     | false -> http_error 403 "Not authorized for editing this entity."
 
-  let constrain ~operator (lb_id, ub_id) =
+  let force_dsub ~operator (lb_id, ub_id) =
     lwt ub = entity_for_edit ~operator ub_id in
     lwt lb = entity_for_view ~operator lb_id in
     lwt user_name = Entity.display_name ~langs:[] operator in
     Lwt_log.info_f "%s adds inclusion #%ld ⊆ #%ld" user_name lb_id ub_id >>
-    Entity.constrain lb ub
-  let constrain_c = auth_sf Json.t<int32 * int32> constrain
+    Entity.force_dsub lb ub
+  let constrain_c = auth_sf Json.t<int32 * int32> force_dsub
 
-  let unconstrain ~operator (lb_id, ub_id) =
+  let relax_dsub ~operator (lb_id, ub_id) =
     lwt ub = entity_for_edit ~operator ub_id in
     lwt lb = entity_for_view ~operator lb_id in
     lwt user_name = Entity.display_name ~langs:[] operator in
     Lwt_log.info_f "%s removes inclusion #%ld ⊆ #%ld" user_name lb_id ub_id >>
-    Entity.unconstrain lb ub
-  let unconstrain_c = auth_sf Json.t<int32 * int32> unconstrain
+    Entity.relax_dsub lb ub
+  let unconstrain_c = auth_sf Json.t<int32 * int32> relax_dsub
 
   let render_neigh ~cri ent =
     let id = Entity.id ent in
@@ -117,7 +117,7 @@
     let open Html5 in
     lwt lbt = Entity.type_ lb in
     lwt ubt = Entity.type_ ub in
-    lwt attrs = Entity_type.attribution lbt ubt in
+    lwt attrs = Entity_type.can_asub_byattr lbt ubt in
     let attrs' = Attribute_type.Map.bindings attrs in
     let render_tr (at, mu) =
       lwt an = Attribute_type.name at in

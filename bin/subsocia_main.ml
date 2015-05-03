@@ -224,7 +224,7 @@ let in_allow etn0 etn1 = run @@ fun (module C) ->
   match et0, et1 with
   | Some et0, Some et1 ->
     let mu0, mu1 = Multiplicity.(May, May) in (* TODO *)
-    C.Entity_type.inclusion_allow mu0 mu1 et0 et1 >>
+    C.Entity_type.allow_dsub mu0 mu1 et0 et1 >>
     Lwt.return (`Ok 0)
   | None, Some _ -> report_missing etn0
   | Some _, None -> report_missing etn1
@@ -236,7 +236,7 @@ let in_disallow etn0 etn1 = run @@ fun (module C) ->
   let report_missing etns =
     Lwt.return (`Error (false, "Missing types " ^ etns ^ ".")) in
   match et0, et1 with
-  | Some et0, Some et1 -> C.Entity_type.inclusion_disallow et0 et1 >>
+  | Some et0, Some et1 -> C.Entity_type.disallow_dsub et0 et1 >>
 			  Lwt.return (`Ok 0)
   | None, Some _ -> report_missing etn0
   | Some _, None -> report_missing etn1
@@ -273,7 +273,7 @@ let in_list etn0_opt etn1_opt = run @@ fun (module C) ->
       etn0 (Multiplicity.to_string mu0) (Multiplicity.to_string mu1) etn1 in
   match et0, et1 with
   | None, None ->
-    C.Entity_type.inclusion_dump () >>=
+    C.Entity_type.dsub_elements () >>=
       Lwt_list.iter_s (fun (et0, et1, mu0, mu1) -> pp mu0 mu1 et0 et1) >>
     Lwt.return 0
   | Some et0, None ->
@@ -285,7 +285,7 @@ let in_list etn0_opt etn1_opt = run @@ fun (module C) ->
       C.Entity_type.Map.iter_s (fun et0 (mu0, mu1) -> pp mu0 mu1 et0 et1) >>
     Lwt.return 0
   | Some et0, Some et1 ->
-    begin match_lwt C.Entity_type.inclusion et0 et1 with
+    begin match_lwt C.Entity_type.can_dsub et0 et1 with
     | Some (mu0, mu1) ->
       Lwt_io.printlf "%s%s" (Multiplicity.to_string mu0)
 			    (Multiplicity.to_string mu1) >>
@@ -338,7 +338,7 @@ let an_allow atn etn0 etn1 mu = run0 @@ fun (module C) ->
   lwt at = C.Attribute_type.of_name atn >>= req "attribute type" atn in
   lwt et0 = C.Entity_type.of_name etn0 >>= req "entity type" etn0 in
   lwt et1 = C.Entity_type.of_name etn1 >>= req "entity type" etn1 in
-  C.Entity_type.attribution_allow et0 et1 at mu
+  C.Entity_type.allow_asub et0 et1 at mu
 
 let an_allow_t =
   let atn_t = Arg.(required & pos 0 (some string) None &
@@ -355,7 +355,7 @@ let an_disallow atn etn0 etn1 = run0 @@ fun (module C) ->
   lwt at = C.Attribute_type.of_name atn >>= req "attribute type" atn in
   lwt et0 = C.Entity_type.of_name etn0 >>= req "entity type" etn0 in
   lwt et1 = C.Entity_type.of_name etn1 >>= req "entity type" etn1 in
-  C.Entity_type.attribution_disallow et0 et1 at
+  C.Entity_type.disallow_asub et0 et1 at
 
 let an_disallow_t =
   let atn_t = Arg.(required & pos 0 (some string) None &
@@ -367,7 +367,7 @@ let an_disallow_t =
   Term.(pure an_disallow $ atn_t $ etn0_t $ etn1_t)
 
 let an_list () = run0 @@ fun (module C) ->
-  C.Entity_type.attribution_dump () >>=
+  C.Entity_type.asub_elements () >>=
   Lwt_list.map_s @@ fun (et0, et1, at, mu) ->
   lwt atn = C.Attribute_type.name at in
   lwt etn0 = C.Entity_type.name et0 in
@@ -409,13 +409,13 @@ module Entity_utils (C : Subsocia_intf.S) = struct
     Lwt_list.iter_s
       (function
       | `One (C.Attribute.Ex (at, av)) ->
-	Entity.precedes e e_ctx >>=
+	Entity.is_sub e e_ctx >>=
 	  (function
 	    | true -> Lwt.return_unit
 	    | false ->
 	      lwt ctx_name = Entity.display_name ~langs e_ctx in
 	      Lwt_log.info_f "Adding required inclusion under %s." ctx_name >>
-	      Entity.constrain e e_ctx) >>
+	      Entity.force_dsub e e_ctx) >>
 	Entity.addattr e e_ctx at [av]
       | `All _ -> assert false)
       attrs
@@ -457,7 +457,7 @@ let create etn dsuper aselectors = run0 @@ fun (module C) ->
   lwt aselectors = Lwt_list.map_p U.lookup_aselector aselectors in
   lwt dsuper = Lwt_list.map_p U.Entity.select_one dsuper in
   lwt e = C.Entity.create et in
-  Lwt_list.iter_s (fun (e_sub) -> C.Entity.constrain e e_sub) dsuper >>
+  Lwt_list.iter_s (fun (e_sub) -> C.Entity.force_dsub e e_sub) dsuper >>
   Lwt_list.iter_s (U.add_attributes e) aselectors
 
 let create_t =
@@ -488,10 +488,10 @@ let modify sel add_succs del_succs add_asels del_asels access =
   lwt del_asels = Lwt_list.map_p U.lookup_aselector del_asels in
   lwt access = Pwt_option.map_s U.Entity.select_one access in
   lwt e = U.Entity.select_one sel in
-  Lwt_list.iter_s (fun e_sub -> C.Entity.constrain e e_sub) add_succs >>
+  Lwt_list.iter_s (fun e_sub -> C.Entity.force_dsub e e_sub) add_succs >>
   Lwt_list.iter_s (U.add_attributes e) add_asels >>
   Lwt_list.iter_s (U.delete_attributes e) del_asels >>
-  Lwt_list.iter_s (fun e_sub -> C.Entity.unconstrain e e_sub) del_succs >>
+  Lwt_list.iter_s (fun e_sub -> C.Entity.relax_dsub e e_sub) del_succs >>
   if access <> None then
     C.Entity.modify ?access e
   else

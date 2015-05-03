@@ -88,7 +88,7 @@ module Make (Base : Subsocia_intf.S) = struct
     let _e_un en =
       lwt top = Entity.top in
       lwt at_unique_name = at_unique_name in
-      lwt es = Entity.asub top at_unique_name en in
+      lwt es = Entity.asub_eq top at_unique_name en in
       match Entity.Set.cardinal es with
       | 1 -> Lwt.return (Entity.Set.min_elt es)
       | 0 -> _fail "Missing initial entity %s" en
@@ -122,7 +122,7 @@ module Make (Base : Subsocia_intf.S) = struct
       lwt super = match super with Some e -> Lwt.return e
 				 | None -> Entity.top in
       lwt at_unique_name = Const.at_unique_name in
-      lwt es = Entity.asub super at_unique_name en in
+      lwt es = Entity.asub_eq super at_unique_name en in
       match Entity.Set.cardinal es with
       | 1 -> Lwt.return (Some (Entity.Set.min_elt es))
       | 0 -> Lwt.return_none
@@ -218,8 +218,8 @@ module Make (Base : Subsocia_intf.S) = struct
     let has_role role subj obj =
       lwt access_base = access obj in
       lwt at_role = Const.at_role in
-      lwt access_groups = asub access_base at_role role in
-      Entity.Set.exists_s (Entity.precedes subj) access_groups
+      lwt access_groups = asub_eq access_base at_role role in
+      Entity.Set.exists_s (Entity.is_sub subj) access_groups
 
     let can_view = has_role "user"
     let can_edit = has_role "admin"
@@ -248,7 +248,7 @@ module Make (Base : Subsocia_intf.S) = struct
 	let attr_by_succ (Attribute_type.Ex at as at0) =
 	  lwt an = Attribute_type.name at0 in
 	  let attr vs = Values.elements vs |> List.map (select_attr an at) in
-	  Entity.apsuper e at >|= Entity.Map.map attr in
+	  Entity.asuper_get e at >|= Entity.Map.map attr in
 	match_lwt Lwt_list.map_s attr_by_succ ats with
 	| [] -> assert false
 	| m :: ms ->
@@ -331,9 +331,9 @@ module Make (Base : Subsocia_intf.S) = struct
       lwt et = Entity.type_ e in
       lwt ets' = Entity_type.dsuper et in
       let not_related e' =
-	match_lwt Entity.precedes e e' with
+	match_lwt Entity.is_sub e e' with
 	| true -> Lwt.return false
-	| false -> Lwt.map not (Entity.precedes e' e) in
+	| false -> Lwt.map not (Entity.is_sub e' e) in
       Entity_type.Map.fold
 	(fun et' _ m_es ->
 	  lwt es = m_es in
@@ -342,5 +342,7 @@ module Make (Base : Subsocia_intf.S) = struct
 	  Lwt.return (Entity.Set.union s es))
 	ets'
 	(Lwt.return Entity.Set.empty)
+
+    let precedes = Entity.is_sub
   end
 end

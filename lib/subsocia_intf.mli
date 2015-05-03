@@ -61,23 +61,20 @@ module type ENTITY_TYPE = sig
   val entity_name_tmpl : t -> string Lwt.t
   val set_entity_name_tmpl : t -> string -> unit Lwt.t
 
-  val inclusion : t -> t -> (Multiplicity.t * Multiplicity.t) option Lwt.t
+  val can_dsub : t -> t -> (Multiplicity.t * Multiplicity.t) option Lwt.t
   val dsub : t -> (Multiplicity.t * Multiplicity.t) Map.t Lwt.t
   val dsuper : t -> (Multiplicity.t * Multiplicity.t) Map.t Lwt.t
-  val inclusion_dump :
+  val dsub_elements :
     unit -> (t * t * Multiplicity.t * Multiplicity.t) list Lwt.t
-  val inclusion_allow : Multiplicity.t -> Multiplicity.t -> t -> t ->
-			unit Lwt.t
-  val inclusion_disallow : t -> t -> unit Lwt.t
+  val allow_dsub : Multiplicity.t -> Multiplicity.t -> t -> t -> unit Lwt.t
+  val disallow_dsub : t -> t -> unit Lwt.t
 
-  val attribution_mult : t -> t -> 'a Attribute_type.t1 ->
-			 Multiplicity.t option Lwt.t
-  val attribution : t -> t -> Multiplicity.t Attribute_type.Map.t Lwt.t
-  val attribution_dump :
+  val can_asub : t -> t -> 'a Attribute_type.t1 -> Multiplicity.t option Lwt.t
+  val can_asub_byattr : t -> t -> Multiplicity.t Attribute_type.Map.t Lwt.t
+  val asub_elements :
     unit -> (t * t * Attribute_type.t0 * Multiplicity.t) list Lwt.t
-  val attribution_allow : t -> t -> Attribute_type.t0 -> Multiplicity.t ->
-			  unit Lwt.t
-  val attribution_disallow : t -> t -> Attribute_type.t0 -> unit Lwt.t
+  val allow_asub : t -> t -> Attribute_type.t0 -> Multiplicity.t -> unit Lwt.t
+  val disallow_asub : t -> t -> Attribute_type.t0 -> unit Lwt.t
 end
 
 module type ENTITY = sig
@@ -107,37 +104,37 @@ module type ENTITY = sig
   val minimums : unit -> Set.t Lwt.t
   val dsub : t -> Set.t Lwt.t
   val dsuper : t -> Set.t Lwt.t
-  val precedes : t -> t -> bool Lwt.t
+  val is_sub : t -> t -> bool Lwt.t
 
   val getattr : t -> t -> 'a Attribute_type.t1 -> 'a Values.t Lwt.t
   val setattr : t -> t -> 'a Attribute_type.t1 -> 'a list -> unit Lwt.t
   val addattr : t -> t -> 'a Attribute_type.t1 -> 'a list -> unit Lwt.t
   val delattr : t -> t -> 'a Attribute_type.t1 -> 'a list -> unit Lwt.t
 
-  val asub : t -> 'a Attribute_type.t1 -> 'a -> Set.t Lwt.t
-  (** [asub e at v] are the attribution sub-entities of [e] along [at] gaining
-      the value [v]. *)
+  val asub_eq : t -> 'a Attribute_type.t1 -> 'a -> Set.t Lwt.t
+  (** [asub_eq e at v] are the attribution sub-entities of [e] along [at]
+      gaining the value [v]. *)
 
-  val asuper : t -> 'a Attribute_type.t1 -> 'a -> Set.t Lwt.t
-  (** [asuper e at v] are the attribution super-entities of [e] along [at]
+  val asuper_eq : t -> 'a Attribute_type.t1 -> 'a -> Set.t Lwt.t
+  (** [asuper_eq e at v] are the attribution super-entities of [e] along [at]
       loosing the value [v]. *)
 
-  val apsub : t -> 'a Attribute_type.t1 -> 'a Values.t Map.t Lwt.t
-  (** [apsub e at] is a map of [at]-values indexed by attribution sub-entities
-      of [e] which gain those values along [at].  The function name is short
-      for "attribute presence sub-entities". *)
+  val asub_get : t -> 'a Attribute_type.t1 -> 'a Values.t Map.t Lwt.t
+  (** [asub_get e at] is a map of [at]-values indexed by attribution
+      sub-entities of [e] which gain those values along [at].  The function
+      name is short for "attribute presence sub-entities". *)
 
-  val apsuper : t -> 'a Attribute_type.t1 -> 'a Values.t Map.t Lwt.t
-  (** [apsuper e at] is a map of [at]-values indexed by attribution
+  val asuper_get : t -> 'a Attribute_type.t1 -> 'a Values.t Map.t Lwt.t
+  (** [asuper_get e at] is a map of [at]-values indexed by attribution
       super-entities of [e] which loose those values along [at]. The function
       name is short for "attribute presence super-entities". *)
 
-  val constrain : t -> t -> unit Lwt.t
-  (** [constrain e e'] forces an inclusion of [e] in [e'].
+  val force_dsub : t -> t -> unit Lwt.t
+  (** [force_dsub e e'] forces an inclusion of [e] in [e'].
       @raise Invalid_argument if [e'] is included in [e]. *)
 
-  val unconstrain : t -> t -> unit Lwt.t
-  (** [unconstrain e e'] relaxes an inclusion of [e] in [e']. Only a direct
+  val relax_dsub : t -> t -> unit Lwt.t
+  (** [relax_dsub e e'] relaxes an inclusion of [e] in [e']. Only a direct
       inclusion is relaxed. [e] may still be included in [e'] though a set of
       intermediate inclusions after this call. *)
 end
