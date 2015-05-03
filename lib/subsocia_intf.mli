@@ -70,10 +70,8 @@ module type ENTITY_TYPE = sig
 			unit Lwt.t
   val inclusion_disallow : t -> t -> unit Lwt.t
 
-  val attribution_mult0 : t -> t -> Attribute_type.t0 ->
-			  Multiplicity.t option Lwt.t
-  val attribution_mult1 : t -> t -> 'a Attribute_type.t1 ->
-			  Multiplicity.t option Lwt.t
+  val attribution_mult : t -> t -> 'a Attribute_type.t1 ->
+			 Multiplicity.t option Lwt.t
   val attribution : t -> t -> Multiplicity.t Attribute_type.Map.t Lwt.t
   val attribution_dump :
     unit -> (t * t * Attribute_type.t0 * Multiplicity.t) list Lwt.t

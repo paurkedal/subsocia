@@ -108,10 +108,7 @@ module Make (RPCM : RPCM) = struct
     let inclusion_disallow et0 et1 =
       Raw.inclusion_disallow et0 et1
 
-    let attribution_mult0 lbt ubt ak =
-      Raw.attribution_mult lbt ubt (Attribute_type.id ak)
-
-    let attribution_mult1 lbt ubt ak =
+    let attribution_mult lbt ubt ak =
       Raw.attribution_mult lbt ubt (Attribute_type.id (Attribute_type.Ex ak))
 
     let attribution lbt ubt =

@@ -110,8 +110,8 @@ module Server_impl = struct
     let attribution_mult (module C : Subsocia_intf.S) lb_id ub_id ak_id =
       lwt lb = C.Entity_type.of_id lb_id in
       lwt ub = C.Entity_type.of_id ub_id in
-      lwt ak = C.Attribute_type.of_id ak_id in
-      C.Entity_type.attribution_mult0 lb ub ak
+      lwt (C.Attribute_type.Ex ak) = C.Attribute_type.of_id ak_id in
+      C.Entity_type.attribution_mult lb ub ak
 
     let attribution (module C : Subsocia_intf.S) lb_id ub_id =
       lwt lb = C.Entity_type.of_id lb_id in

@@ -556,10 +556,7 @@ let rec make uri_or_conn = (module struct
       C.find_opt Q.attribution_mult aux
 		 C.Param.([|int32 et; int32 et'; int32 ak|])
 
-    let attribution_mult0 et et' (Attribute_type.Ex ak) =
-      attribution_mult' et et' ak.Attribute_type.ak_id
-
-    let attribution_mult1 et et' ak =
+    let attribution_mult et et' ak =
       attribution_mult' et et' ak.Attribute_type.ak_id
 
     let attribution_dump () =
@@ -911,7 +908,7 @@ let rec make uri_or_conn = (module struct
     let check_mult e e' ak =
       lwt et = type_ e in
       lwt et' = type_ e' in
-      match_lwt Entity_type.attribution_mult1 et et' ak with
+      match_lwt Entity_type.attribution_mult et et' ak with
       | None ->
 	lwt etn = Entity_type.name et in
 	lwt etn' = Entity_type.name et' in
