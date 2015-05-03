@@ -20,11 +20,11 @@ type selector =
   | Select_sub of selector * selector
   | Select_union of selector * selector
   | Select_inter of selector * selector
-  | Select_apred of string * string
-  | Select_asucc of string * string
-  | Select_apred_present of string
-  | Select_asucc_present of string
+  | Select_dsub
+  | Select_dsuper
+  | Select_asub of string * string
+  | Select_asuper of string * string
+  | Select_asub_present of string
+  | Select_asuper_present of string
   | Select_top
   | Select_id of int32
-  | Select_pred
-  | Select_succ

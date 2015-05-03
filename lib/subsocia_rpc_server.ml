@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -80,15 +80,15 @@ module Server_impl = struct
       lwt et1 = C.Entity_type.of_id et1 in
       C.Entity_type.inclusion et0 et1
 
-    let inclusion_preds (module C : Subsocia_intf.S) entity_id =
+    let dsub (module C : Subsocia_intf.S) entity_id =
       C.Entity_type.of_id entity_id >>=
-      C.Entity_type.inclusion_preds >|=
+      C.Entity_type.dsub >|=
       C.Entity_type.Map.bindings *>
       List.map (fun (et, (muA, muB)) -> C.Entity_type.id et, muA, muB)
 
-    let inclusion_succs (module C : Subsocia_intf.S) entity_id =
+    let dsuper (module C : Subsocia_intf.S) entity_id =
       C.Entity_type.of_id entity_id >>=
-      C.Entity_type.inclusion_succs >|=
+      C.Entity_type.dsuper >|=
       C.Entity_type.Map.bindings *>
       List.map (fun (et, (muA, muB)) -> C.Entity_type.id et, muA, muB)
 
@@ -170,11 +170,11 @@ module Server_impl = struct
     let top (module C : Subsocia_intf.S) () = C.Entity.top >|= C.Entity.id
     let minimums (module C : Subsocia_intf.S) () =
       C.Entity.minimums () >|= C.Entity.Set.elements *> List.map C.Entity.id
-    let preds (module C : Subsocia_intf.S) e_id =
-      C.Entity.of_id e_id >>= C.Entity.preds >|=
+    let dsub (module C : Subsocia_intf.S) e_id =
+      C.Entity.of_id e_id >>= C.Entity.dsub >|=
       C.Entity.Set.elements *> List.map C.Entity.id
-    let succs (module C : Subsocia_intf.S) e_id =
-      C.Entity.of_id e_id >>= C.Entity.succs >|=
+    let dsuper (module C : Subsocia_intf.S) e_id =
+      C.Entity.of_id e_id >>= C.Entity.dsuper >|=
       C.Entity.Set.elements *> List.map C.Entity.id
     let precedes (module C : Subsocia_intf.S) lb_id ub_id =
       lwt lb = C.Entity.of_id lb_id in
@@ -210,24 +210,24 @@ module Server_impl = struct
       let vs1 = List.map (Value.coerce (C.Attribute_type.type1 ak)) vs in
       C.Entity.delattr lb ub ak vs1
 
-    let apreds (module C : Subsocia_intf.S) e_id ak_id v =
+    let asub (module C : Subsocia_intf.S) e_id ak_id v =
       lwt e = C.Entity.of_id e_id in
       lwt C.Attribute_type.Ex ak = C.Attribute_type.of_id ak_id in
       let t = C.Attribute_type.type1 ak in
-      C.Entity.apreds e ak (Value.coerce t v) >|=
+      C.Entity.asub e ak (Value.coerce t v) >|=
       C.Entity.Set.elements *> List.map C.Entity.id
 
-    let asuccs (module C : Subsocia_intf.S) e_id ak_id v =
+    let asuper (module C : Subsocia_intf.S) e_id ak_id v =
       lwt e = C.Entity.of_id e_id in
       lwt C.Attribute_type.Ex ak = C.Attribute_type.of_id ak_id in
       let t = C.Attribute_type.type1 ak in
-      C.Entity.asuccs e ak (Value.coerce t v) >|=
+      C.Entity.asuper e ak (Value.coerce t v) >|=
       C.Entity.Set.elements *> List.map C.Entity.id
 
-    let atpreds (module C : Subsocia_intf.S) e_id ak_id =
+    let apsub (module C : Subsocia_intf.S) e_id ak_id =
       lwt e = C.Entity.of_id e_id in
       lwt C.Attribute_type.Ex ak = C.Attribute_type.of_id ak_id in
-      lwt m = C.Entity.atpreds e ak in
+      lwt m = C.Entity.apsub e ak in
       Lwt.return @@
 	C.Entity.Map.fold
 	  (fun e vs ->
@@ -238,10 +238,10 @@ module Server_impl = struct
 	      vs)
 	  m []
 
-    let atsuccs (module C : Subsocia_intf.S) e_id ak_id =
+    let apsuper (module C : Subsocia_intf.S) e_id ak_id =
       lwt e = C.Entity.of_id e_id in
       lwt C.Attribute_type.Ex ak = C.Attribute_type.of_id ak_id in
-      lwt m = C.Entity.atsuccs e ak in
+      lwt m = C.Entity.apsuper e ak in
       Lwt.return @@
 	C.Entity.Map.fold
 	  (fun e vs ->

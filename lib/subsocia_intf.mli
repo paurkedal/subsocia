@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -62,8 +62,8 @@ module type ENTITY_TYPE = sig
   val set_entity_name_tmpl : t -> string -> unit Lwt.t
 
   val inclusion : t -> t -> (Multiplicity.t * Multiplicity.t) option Lwt.t
-  val inclusion_preds : t -> (Multiplicity.t * Multiplicity.t) Map.t Lwt.t
-  val inclusion_succs : t -> (Multiplicity.t * Multiplicity.t) Map.t Lwt.t
+  val dsub : t -> (Multiplicity.t * Multiplicity.t) Map.t Lwt.t
+  val dsuper : t -> (Multiplicity.t * Multiplicity.t) Map.t Lwt.t
   val inclusion_dump :
     unit -> (t * t * Multiplicity.t * Multiplicity.t) list Lwt.t
   val inclusion_allow : Multiplicity.t -> Multiplicity.t -> t -> t ->
@@ -107,8 +107,8 @@ module type ENTITY = sig
   val type_members : Entity_type.t -> Set.t Lwt.t
   val top : t Lwt.t
   val minimums : unit -> Set.t Lwt.t
-  val preds : t -> Set.t Lwt.t
-  val succs : t -> Set.t Lwt.t
+  val dsub : t -> Set.t Lwt.t
+  val dsuper : t -> Set.t Lwt.t
   val precedes : t -> t -> bool Lwt.t
 
   val getattr : t -> t -> 'a Attribute_type.t1 -> 'a Values.t Lwt.t
@@ -116,23 +116,23 @@ module type ENTITY = sig
   val addattr : t -> t -> 'a Attribute_type.t1 -> 'a list -> unit Lwt.t
   val delattr : t -> t -> 'a Attribute_type.t1 -> 'a list -> unit Lwt.t
 
-  val apreds : t -> 'a Attribute_type.t1 -> 'a -> Set.t Lwt.t
-  (** [apreds e at v] are the attribution-predecessors of [e] along [at]
-      gaining the value [v]. *)
-
-  val asuccs : t -> 'a Attribute_type.t1 -> 'a -> Set.t Lwt.t
-  (** [asuccs e at v] are the attribution-successors of [e] along [at] loosing
+  val asub : t -> 'a Attribute_type.t1 -> 'a -> Set.t Lwt.t
+  (** [asub e at v] are the attribution sub-entities of [e] along [at] gaining
       the value [v]. *)
 
-  val atpreds : t -> 'a Attribute_type.t1 -> 'a Values.t Map.t Lwt.t
-  (** [atpreds e at] is a map of [at]-values indexed by
-      attribution-predecessors of [e] which gain those values along [at].
-      The function name is short for "attribute-type predecessors". *)
+  val asuper : t -> 'a Attribute_type.t1 -> 'a -> Set.t Lwt.t
+  (** [asuper e at v] are the attribution super-entities of [e] along [at]
+      loosing the value [v]. *)
 
-  val atsuccs : t -> 'a Attribute_type.t1 -> 'a Values.t Map.t Lwt.t
-  (** [atsuccs e at] is a map of [at]-values indexed by attribution-successors
-      of [e] which loose those values along [at]. The function name is short
-      for "attribute-type successors". *)
+  val apsub : t -> 'a Attribute_type.t1 -> 'a Values.t Map.t Lwt.t
+  (** [apsub e at] is a map of [at]-values indexed by attribution sub-entities
+      of [e] which gain those values along [at].  The function name is short
+      for "attribute presence sub-entities". *)
+
+  val apsuper : t -> 'a Attribute_type.t1 -> 'a Values.t Map.t Lwt.t
+  (** [apsuper e at] is a map of [at]-values indexed by attribution
+      super-entities of [e] which loose those values along [at]. The function
+      name is short for "attribute presence super-entities". *)
 
   val constrain : t -> t -> unit Lwt.t
   (** [constrain e e'] forces an inclusion of [e] in [e'].

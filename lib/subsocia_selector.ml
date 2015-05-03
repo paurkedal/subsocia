@@ -53,14 +53,14 @@ let rec bprint_selector buf p = function
     Buffer.add_char buf '/';
     bprint_selector buf 0 s1;
     if p > 0 then Buffer.add_char buf '}'
-  | Select_apred (k, v) -> bprint_attr `Pred buf p k v
-  | Select_asucc (k, v) -> bprint_attr `Succ buf p k v
-  | Select_apred_present k ->
+  | Select_asub (k, v) -> bprint_attr `Pred buf p k v
+  | Select_asuper (k, v) -> bprint_attr `Succ buf p k v
+  | Select_asub_present k ->
     if p > 1 then Buffer.add_char buf '{';
     Buffer.add_string buf k;
     Buffer.add_string buf "=_";
     if p > 1 then Buffer.add_char buf '}'
-  | Select_asucc_present k ->
+  | Select_asuper_present k ->
     if p > 1 then Buffer.add_char buf '{';
     Buffer.add_char buf succ_char;
     Buffer.add_string buf k;
@@ -68,11 +68,11 @@ let rec bprint_selector buf p = function
     if p > 1 then Buffer.add_char buf '}'
   | Select_top -> Buffer.add_char buf '#'
   | Select_id id -> bprintf buf "#%ld" id
-  | Select_pred ->
+  | Select_dsub ->
     if p > 1 then Buffer.add_char buf '{';
     Buffer.add_char buf pred_char;
     if p > 1 then Buffer.add_char buf '}'
-  | Select_succ ->
+  | Select_dsuper ->
     if p > 1 then Buffer.add_char buf '{';
     Buffer.add_char buf succ_char;
     if p > 1 then Buffer.add_char buf '}'
@@ -109,34 +109,34 @@ module Selector_utils (C : Subsocia_intf.S) = struct
       lwt esA = select_from selA es in
       lwt esB = select_from selB es in
       Lwt.return (C.Entity.Set.inter esA esB)
-    | Select_apred (an, v) -> fun es ->
+    | Select_asub (an, v) -> fun es ->
       lwt (C.Attribute_type.Ex at) = req_at an in
       let t = C.Attribute_type.type1 at in
       let x = Value.typed_of_string t v in
       C.Entity.Set.fold_s
-	(fun e1 acc -> C.Entity.apreds e1 at x >|= C.Entity.Set.union acc)
+	(fun e1 acc -> C.Entity.asub e1 at x >|= C.Entity.Set.union acc)
 	es C.Entity.Set.empty
-    | Select_asucc (an, v) -> fun es ->
+    | Select_asuper (an, v) -> fun es ->
       lwt (C.Attribute_type.Ex at) = req_at an in
       let t = C.Attribute_type.type1 at in
       let x = Value.typed_of_string t v in
       C.Entity.Set.fold_s
-	(fun e1 acc -> C.Entity.asuccs e1 at x >|= C.Entity.Set.union acc)
+	(fun e1 acc -> C.Entity.asuper e1 at x >|= C.Entity.Set.union acc)
 	es C.Entity.Set.empty
-    | Select_apred_present an -> fun es ->
+    | Select_asub_present an -> fun es ->
       lwt (C.Attribute_type.Ex at) = req_at an in
       C.Entity.Set.fold_s
 	(fun e1 acc ->
-	  lwt m = C.Entity.atpreds e1 at in
+	  lwt m = C.Entity.apsub e1 at in
 	  let s = C.Entity.Map.fold (fun e _ -> C.Entity.Set.add e) m
 				    C.Entity.Set.empty in
 	  Lwt.return (C.Entity.Set.union s acc))
 	es C.Entity.Set.empty
-    | Select_asucc_present an -> fun es ->
+    | Select_asuper_present an -> fun es ->
       lwt (C.Attribute_type.Ex at) = req_at an in
       C.Entity.Set.fold_s
 	(fun e1 acc ->
-	  lwt m = C.Entity.atsuccs e1 at in
+	  lwt m = C.Entity.apsuper e1 at in
 	  let s = C.Entity.Map.fold (fun e _ -> C.Entity.Set.add e) m
 				    C.Entity.Set.empty in
 	  Lwt.return (C.Entity.Set.union s acc))
@@ -147,13 +147,13 @@ module Selector_utils (C : Subsocia_intf.S) = struct
     | Select_id id -> fun es ->
       if C.Entity.Set.is_empty es then Lwt.return C.Entity.Set.empty else
       C.Entity.of_id id >|= C.Entity.Set.singleton
-    | Select_pred -> fun es ->
+    | Select_dsub -> fun es ->
       C.Entity.Set.fold_s
-	(fun e1 acc -> C.Entity.preds e1 >|= C.Entity.Set.union acc)
+	(fun e1 acc -> C.Entity.dsub e1 >|= C.Entity.Set.union acc)
 	es C.Entity.Set.empty
-    | Select_succ -> fun es ->
+    | Select_dsuper -> fun es ->
       C.Entity.Set.fold_s
-	(fun e1 acc -> C.Entity.succs e1 >|= C.Entity.Set.union acc)
+	(fun e1 acc -> C.Entity.dsuper e1 >|= C.Entity.Set.union acc)
 	es C.Entity.Set.empty
 
   let select sel =

@@ -23,15 +23,15 @@ let load_schema = Subsocia_lexer.parse_schema
 
 let rec aconj_of_selector = function
   | Select_sub _ | Select_union _ | Select_top | Select_id _
-  | Select_pred | Select_succ
-  | Select_apred_present _ | Select_asucc _ | Select_asucc_present _
+  | Select_dsub | Select_dsuper
+  | Select_asub_present _ | Select_asuper _ | Select_asuper_present _
       as sel_att -> fun _ ->
     invalid_arg_f "The selector %s cannot be used for attribute assignement. \
 		   It must be a conjunction of one or more attribute \
 		   equalities." (string_of_selector sel_att)
   | Select_inter (selA, selB) -> fun m ->
     aconj_of_selector selA (aconj_of_selector selB m)
-  | Select_apred (an, v) -> fun m ->
+  | Select_asub (an, v) -> fun m ->
     let vs = try String_map.find an m with Not_found -> [] in
     String_map.add an (v :: vs) m
 
@@ -43,18 +43,18 @@ let aselector_of_selector = function
 
 let rec dconj_of_selector = function
   | Select_sub _ | Select_union _ | Select_top | Select_id _
-  | Select_pred | Select_succ | Select_asucc _ | Select_asucc_present _
+  | Select_dsub | Select_dsuper | Select_asuper _ | Select_asuper_present _
       as sel_att -> fun _ ->
     invalid_arg_f "The selector %s cannot be used for attribute assignement. \
 		   It must be a conjunction of one or more attribute \
 		   equalities." (string_of_selector sel_att)
   | Select_inter (selA, selB) -> fun m ->
     dconj_of_selector selA (dconj_of_selector selB m)
-  | Select_apred_present an -> fun m ->
+  | Select_asub_present an -> fun m ->
     if String_map.contains an m then
       invalid_arg_f "Conflicting wildcard for %s." an;
     String_map.add an None m
-  | Select_apred (an, v) -> fun m ->
+  | Select_asub (an, v) -> fun m ->
     let vs =
       try
 	match String_map.find an m with

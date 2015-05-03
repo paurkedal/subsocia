@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,7 +17,7 @@
 module type S = sig
   include Subsocia_intf.S
 
-  val entity_changed : Entity.t -> [`Pred | `Succ | `Apred | `Asucc] React.E.t
+  val entity_changed : Entity.t -> [`Dsub | `Dsuper | `Asub | `Asuper] React.E.t
 
   val transaction : ((module Subsocia_intf.S) -> unit Lwt.t) -> unit Lwt.t
 end

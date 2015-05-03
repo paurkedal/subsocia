@@ -58,14 +58,14 @@ let selector_conv = selector_parser, selector_printer
 let aselector_parser ~with_presence s =
   let rec aux acc = function
     | Select_top | Select_id _ | Select_sub _ | Select_union _
-    | Select_pred | Select_succ | Select_asucc _ | Select_asucc_present _
+    | Select_dsub | Select_dsuper | Select_asuper _ | Select_asuper_present _
 	as sel_att ->
       invalid_arg_f "The selector %s cannot be used for attribute assignement. \
 		     It must be a conjunction of one or more attribute \
 		     equalities." (string_of_selector sel_att)
     | Select_inter (selA, selB) -> aux (aux acc selB) selA
-    | Select_apred (an, av) -> (an, Some av) :: acc
-    | Select_apred_present an ->
+    | Select_asub (an, av) -> (an, Some av) :: acc
+    | Select_asub_present an ->
       if not with_presence then invalid_arg_f "Presence selector not allowed.";
       (an, None) :: acc in
   try
@@ -78,8 +78,8 @@ let aselector_parser ~with_presence s =
 
 let aselector_printer fmtr (ctx, asgn) =
   let select_attr = function
-    | (an, None) -> Select_apred_present an
-    | (an, Some av) -> Select_apred (an, av) in
+    | (an, None) -> Select_asub_present an
+    | (an, Some av) -> Select_asub (an, av) in
   let sel_attr =
     match asgn with
     | [] -> assert false
@@ -277,11 +277,11 @@ let in_list etn0_opt etn1_opt = run @@ fun (module C) ->
       Lwt_list.iter_s (fun (et0, et1, mu0, mu1) -> pp mu0 mu1 et0 et1) >>
     Lwt.return 0
   | Some et0, None ->
-    C.Entity_type.inclusion_succs et0 >>=
+    C.Entity_type.dsuper et0 >>=
       C.Entity_type.Map.iter_s (fun et1 (mu0, mu1) -> pp mu0 mu1 et0 et1) >>
     Lwt.return 0
   | None, Some et1 ->
-    C.Entity_type.inclusion_preds et1 >>=
+    C.Entity_type.dsub et1 >>=
       C.Entity_type.Map.iter_s (fun et0 (mu0, mu1) -> pp mu0 mu1 et0 et1) >>
     Lwt.return 0
   | Some et0, Some et1 ->
@@ -448,16 +448,16 @@ let search_t =
 		   info ~docv:"PATH" []) in
   Term.(pure search $ sel_t)
 
-let create etn succs aselectors = run0 @@ fun (module C) ->
+let create etn dsuper aselectors = run0 @@ fun (module C) ->
   let module U = Entity_utils (C) in
   lwt et =
     match_lwt C.Entity_type.of_name etn with
     | None -> Lwt.fail (Failure ("No entity type has name " ^ etn))
     | Some et -> Lwt.return et in
   lwt aselectors = Lwt_list.map_p U.lookup_aselector aselectors in
-  lwt succs = Lwt_list.map_p U.Entity.select_one succs in
+  lwt dsuper = Lwt_list.map_p U.Entity.select_one dsuper in
   lwt e = C.Entity.create et in
-  Lwt_list.iter_s (fun (e_sub) -> C.Entity.constrain e e_sub) succs >>
+  Lwt_list.iter_s (fun (e_sub) -> C.Entity.constrain e e_sub) dsuper >>
   Lwt_list.iter_s (U.add_attributes e) aselectors
 
 let create_t =

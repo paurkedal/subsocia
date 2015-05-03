@@ -109,16 +109,16 @@ relative_path:
   ;
 path_component:
     disjunction { $1 }
-  | PLUS { Select_pred }
-  | MINUS { Select_succ }
-  | STR EQ STR { Select_apred ($1, $3) }
-  | STR EQ_VERB { Select_apred ($1, $2) }
-  | STR EQ UNDERSCORE { Select_apred_present $1 }
-  | MINUS STR EQ STR { Select_asucc ($2, $4) }
-  | MINUS STR EQ_VERB { Select_asucc ($2, $3) }
-  | MINUS STR EQ UNDERSCORE { Select_asucc_present $2 }
-  | STR { Select_apred ("unique_name", $1) }
-  | MINUS STR { Select_asucc ("unique_name", $2) }
+  | PLUS { Select_dsub }
+  | MINUS { Select_dsuper }
+  | STR EQ STR { Select_asub ($1, $3) }
+  | STR EQ_VERB { Select_asub ($1, $2) }
+  | STR EQ UNDERSCORE { Select_asub_present $1 }
+  | MINUS STR EQ STR { Select_asuper ($2, $4) }
+  | MINUS STR EQ_VERB { Select_asuper ($2, $3) }
+  | MINUS STR EQ UNDERSCORE { Select_asuper_present $2 }
+  | STR { Select_asub ("unique_name", $1) }
+  | MINUS STR { Select_asuper ("unique_name", $2) }
   ;
 disjunction:
     conjunction { $1 }

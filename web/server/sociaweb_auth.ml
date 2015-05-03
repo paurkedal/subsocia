@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -79,7 +79,7 @@ let entity_of_authenticalia auth =
   | None -> Lwt.return_none
   | Some amg ->
     lwt at_unique_name = Const.at_unique_name in
-    lwt s = Entity.apreds amg at_unique_name auth.auth_identity in
+    lwt s = Entity.asub amg at_unique_name auth.auth_identity in
     match Entity.Set.cardinal s with
     | 1 -> Lwt.return (Some (Entity.Set.min_elt s))
     | 0 -> Lwt.return_none

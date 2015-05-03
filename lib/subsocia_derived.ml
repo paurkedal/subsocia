@@ -88,7 +88,7 @@ module Make (Base : Subsocia_intf.S) = struct
     let _e_un en =
       lwt top = Entity.top in
       lwt at_unique_name = at_unique_name in
-      lwt es = Entity.apreds top at_unique_name en in
+      lwt es = Entity.asub top at_unique_name en in
       match Entity.Set.cardinal es with
       | 1 -> Lwt.return (Entity.Set.min_elt es)
       | 0 -> _fail "Missing initial entity %s" en
@@ -122,26 +122,26 @@ module Make (Base : Subsocia_intf.S) = struct
       lwt super = match super with Some e -> Lwt.return e
 				 | None -> Entity.top in
       lwt at_unique_name = Const.at_unique_name in
-      lwt es = Entity.apreds super at_unique_name en in
+      lwt es = Entity.asub super at_unique_name en in
       match Entity.Set.cardinal es with
       | 1 -> Lwt.return (Some (Entity.Set.min_elt es))
       | 0 -> Lwt.return_none
       | _ -> _fail "Multiple matches for unique name %s" en
 
-    module Dsucc = struct
-      let fold_s f e acc = succs e >>= (fun xs -> Set.fold_s f xs acc)
-      let iter_s f e = succs e >>= Set.iter_s f
-      let for_all_s f e = succs e >>= Set.for_all_s f
-      let exists_s f e = succs e >>= Set.exists_s f
-      let search_s f e = succs e >>= Set.search_s f
+    module Dsuper = struct
+      let fold_s f e acc = dsuper e >>= (fun xs -> Set.fold_s f xs acc)
+      let iter_s f e = dsuper e >>= Set.iter_s f
+      let for_all_s f e = dsuper e >>= Set.for_all_s f
+      let exists_s f e = dsuper e >>= Set.exists_s f
+      let search_s f e = dsuper e >>= Set.search_s f
     end
 
-    module Dpred = struct
-      let fold_s f e acc = preds e >>= (fun xs -> Set.fold_s f xs acc)
-      let iter_s f e = preds e >>= Set.iter_s f
-      let for_all_s f e = preds e >>= Set.for_all_s f
-      let exists_s f e = preds e >>= Set.exists_s f
-      let search_s f e = preds e >>= Set.search_s f
+    module Dsub = struct
+      let fold_s f e acc = dsub e >>= (fun xs -> Set.fold_s f xs acc)
+      let iter_s f e = dsub e >>= Set.iter_s f
+      let for_all_s f e = dsub e >>= Set.for_all_s f
+      let exists_s f e = dsub e >>= Set.exists_s f
+      let search_s f e = dsub e >>= Set.search_s f
     end
 
     let make_visit () =
@@ -212,13 +212,13 @@ module Make (Base : Subsocia_intf.S) = struct
       let search_s ?(max_depth = max_int) f e =
 	search_s' (make_visit ()) max_depth f e
     end
-    module Tsucc = Transitive (Dsucc)
-    module Tpred = Transitive (Dpred)
+    module Super = Transitive (Dsuper)
+    module Sub = Transitive (Dsub)
 
     let has_role role subj obj =
       lwt access_base = access obj in
       lwt at_role = Const.at_role in
-      lwt access_groups = apreds access_base at_role role in
+      lwt access_groups = asub access_base at_role role in
       Entity.Set.exists_s (Entity.precedes subj) access_groups
 
     let can_view = has_role "user"
@@ -242,13 +242,13 @@ module Make (Base : Subsocia_intf.S) = struct
       let add_conj e ps ats =
 	let select_attr (type a) an (at : a Attribute_type.t1) : a -> selector =
 	  match Attribute_type.type1 at with
-	  | Type.Bool -> fun v -> Select_apred (an, string_of_bool v)
-	  | Type.Int -> fun v -> Select_apred (an, string_of_int v)
-	  | Type.String -> fun v -> Select_apred (an, v) in
+	  | Type.Bool -> fun v -> Select_asub (an, string_of_bool v)
+	  | Type.Int -> fun v -> Select_asub (an, string_of_int v)
+	  | Type.String -> fun v -> Select_asub (an, v) in
 	let attr_by_succ (Attribute_type.Ex at as at0) =
 	  lwt an = Attribute_type.name at0 in
 	  let attr vs = Values.elements vs |> List.map (select_attr an at) in
-	  Entity.atsuccs e at >|= Entity.Map.map attr in
+	  Entity.apsuper e at >|= Entity.Map.map attr in
 	match_lwt Lwt_list.map_s attr_by_succ ats with
 	| [] -> assert false
 	| m :: ms ->
@@ -327,9 +327,9 @@ module Make (Base : Subsocia_intf.S) = struct
       | Some s -> Lwt.return s
       | None -> Lwt.return @@ sprintf "# %ld" (Entity.id e)
 
-    let candidate_succs e =
+    let candidate_dsupers e =
       lwt et = Entity.type_ e in
-      lwt ets' = Entity_type.inclusion_succs et in
+      lwt ets' = Entity_type.dsuper et in
       let not_related e' =
 	match_lwt Entity.precedes e e' with
 	| true -> Lwt.return false

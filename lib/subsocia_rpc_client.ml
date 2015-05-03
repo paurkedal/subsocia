@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -91,12 +91,12 @@ module Make (RPCM : RPCM) = struct
     let inclusion et0 et1 =
       Raw.inclusion et0 et1
 
-    let inclusion_preds et =
-      Raw.inclusion_preds et >|=
+    let dsub et =
+      Raw.dsub et >|=
       List.map (fun (et, muA, muB) -> et, (muA, muB)) *> Map.of_ordered_bindings
 
-    let inclusion_succs et =
-      Raw.inclusion_succs et >|=
+    let dsuper et =
+      Raw.dsuper et >|=
       List.map (fun (et, muA, muB) -> et, (muA, muB)) *> Map.of_ordered_bindings
 
     let inclusion_dump () =
@@ -152,8 +152,8 @@ module Make (RPCM : RPCM) = struct
     let type_members et = Raw.type_members et >|= Set.of_ordered_elements
     let top = Raw.top ()
     let minimums () = Raw.minimums () >|= Set.of_ordered_elements
-    let preds e = Raw.preds e >|= Set.of_ordered_elements
-    let succs e = Raw.succs e >|= Set.of_ordered_elements
+    let dsub e = Raw.dsub e >|= Set.of_ordered_elements
+    let dsuper e = Raw.dsuper e >|= Set.of_ordered_elements
 
     let getattr lb ub ak =
       let t1 = Attribute_type.type1 ak in
@@ -175,28 +175,28 @@ module Make (RPCM : RPCM) = struct
       Raw.delattr lb ub (Attribute_type.(id (Ex ak)))
 		  (List.map (fun v -> Value.Ex (t, v)) vs)
 
-    let apreds e ak av =
+    let asub e ak av =
       let t = Attribute_type.type1 ak in
-      Raw.apreds e (Attribute_type.(id (Ex ak))) (Value.Ex (t, av))
+      Raw.asub e (Attribute_type.(id (Ex ak))) (Value.Ex (t, av))
 	>|= Set.of_ordered_elements
 
-    let asuccs e ak av =
+    let asuper e ak av =
       let t = Attribute_type.type1 ak in
-      Raw.asuccs e (Attribute_type.(id (Ex ak))) (Value.Ex (t, av))
+      Raw.asuper e (Attribute_type.(id (Ex ak))) (Value.Ex (t, av))
 	>|= Set.of_ordered_elements
 
-    let atpreds e ak =
+    let apsub e ak =
       let t = Attribute_type.type1 ak in
-      Raw.atpreds e (Attribute_type.(id (Ex ak))) >|= fun bindings ->
+      Raw.apsub e (Attribute_type.(id (Ex ak))) >|= fun bindings ->
       List.fold
 	(fun (e, v) m ->
 	  let vs = try Map.find e m with Not_found -> Values.empty t in
 	  Map.add e (Values.add (Value.coerce t v) vs) m)
 	bindings Map.empty
 
-    let atsuccs e ak =
+    let apsuper e ak =
       let t = Attribute_type.type1 ak in
-      Raw.atsuccs e (Attribute_type.(id (Ex ak))) >|= fun bindings ->
+      Raw.apsuper e (Attribute_type.(id (Ex ak))) >|= fun bindings ->
       List.fold
 	(fun (e, v) m ->
 	  let vs = try Map.find e m with Not_found -> Values.empty t in

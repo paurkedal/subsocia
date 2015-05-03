@@ -1,4 +1,4 @@
-(* Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -105,13 +105,13 @@
     end else
       Lwt.return [link]
 
-  let rec fold_closure_from f succs x acc =
-    lwt xs = succs x in
-    lwt acc = Entity.Set.fold_s (fold_closure_from f succs) xs acc in
+  let rec fold_closure_from f dsucc x acc =
+    lwt xs = dsucc x in
+    lwt acc = Entity.Set.fold_s (fold_closure_from f dsucc) xs acc in
     Lwt.return (f x acc)
 
   let upwards_closure e =
-    fold_closure_from Entity.Set.add Entity.succs e Entity.Set.empty
+    fold_closure_from Entity.Set.add Entity.dsuper e Entity.Set.empty
 
   let render_attribution ~cri lb ub =
     let open Html5 in
@@ -140,26 +140,26 @@
        then None
        else Some (F.tr [F.td []; F.th [F.pcdata ub_name]] :: attr_trs))
 
-  let render_succs ~cri ~enable_edit ent =
+  let render_dsuper ~cri ~enable_edit ent =
     let render_succ =
       if enable_edit then render_neigh_remove ent
 		     else render_neigh in
-    lwt succs = Entity.succs ent in
-    let succs' = Entity.Set.elements succs in
-    lwt succ_frags = Lwt_list.map_s (render_succ ~cri) succs' in
+    lwt dsupers = Entity.dsuper ent in
+    let dsupers' = Entity.Set.elements dsupers in
+    lwt succ_frags = Lwt_list.map_s (render_succ ~cri) dsupers' in
     let succs_view = multicol ~cls:["succ1"] succ_frags in
     lwt succs_add =
       if not enable_edit then Lwt.return_none else
       let operator = cri.cri_operator in
-      lwt csuccs = Entity.candidate_succs ent in
-      let csuccs = Entity.Set.compl succs csuccs in
-      lwt csuccs = Entity.Set.filter_s (Entity.can_edit operator) csuccs in
-      if Entity.Set.is_empty csuccs then
+      lwt csupers = Entity.candidate_dsupers ent in
+      let csupers = Entity.Set.compl dsupers csupers in
+      lwt csupers = Entity.Set.filter_s (Entity.can_edit operator) csupers in
+      if Entity.Set.is_empty csupers then
 	Lwt.return_none
       else
-	let csuccs = Entity.Set.elements csuccs in
-	lwt csuccs = Lwt_list.map_s (render_neigh_add ~cri ent) csuccs in
-	Lwt.return (Some (multicol ~cls:["candidate"; "succ1"] csuccs)) in
+	let csupers = Entity.Set.elements csupers in
+	lwt csupers = Lwt_list.map_s (render_neigh_add ~cri ent) csupers in
+	Lwt.return (Some (multicol ~cls:["candidate"; "succ1"] csupers)) in
     Lwt.return @@
       match succs_add with
       | None ->
@@ -173,9 +173,9 @@
 
   let render_browser ~cri ?(enable_edit = true) ent =
     let open Html5 in
-    lwt preds = Entity.preds ent in
-    let preds' = Entity.Set.elements preds in
-    lwt pred_frags = Lwt_list.map_s (render_neigh ~cri) preds' in
+    lwt dsub = Entity.dsub ent in
+    let dsub' = Entity.Set.elements dsub in
+    lwt pred_frags = Lwt_list.map_s (render_neigh ~cri) dsub' in
     lwt name = Entity.display_name ~langs:cri.cri_langs ent in
     lwt ubs = upwards_closure ent in
     let attr_aux ub acc =
@@ -184,9 +184,9 @@
     lwt attr_trss = Entity.Set.fold_s attr_aux ubs [] in
     let attr_table = F.table ~a:[F.a_class ["assoc"]]
 			     (List.flatten attr_trss) in
-    lwt succs_frag = render_succs ~cri ~enable_edit ent in
+    lwt dsuper_frag = render_dsuper ~cri ~enable_edit ent in
     Lwt.return @@ F.div ~a:[F.a_class ["entity-browser"]] [
-      succs_frag;
+      dsuper_frag;
       F.div ~a:[F.a_class ["focus"; "box-top"]] [F.pcdata name];
       F.div ~a:[F.a_class ["focus"; "box-middle"; "content"]] [attr_table];
       F.div ~a:[F.a_class ["focus"; "box-bottom"; "content"]] [

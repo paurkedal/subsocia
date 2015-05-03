@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -156,9 +156,9 @@ module Q = struct
 
   (* Entites *)
 
-  let inclusion_succs =
+  let dsuper =
     q "SELECT superentity_id FROM @inclusion WHERE subentity_id = ?"
-  let inclusion_preds =
+  let dsub =
     q "SELECT subentity_id FROM @inclusion WHERE superentity_id = ?"
 
   let entity_type = q "SELECT entity_type_id FROM @entity WHERE entity_id = ?"
@@ -503,7 +503,7 @@ let rec make uri_or_conn = (module struct
       C.find_opt Q.inclusion_type C.Tuple.(fun tup -> mult 0 tup, mult 1 tup)
 		 C.Param.([|int32 et0; int32 et1|])
 
-    let inclusion_preds, inclusion_preds_cache =
+    let dsub, inclusion_preds_cache =
       memo_1lwt @@ fun et ->
       with_db @@ fun (module C) ->
       let mult i tup = Multiplicity.of_int (C.Tuple.int i tup) in
@@ -512,7 +512,7 @@ let rec make uri_or_conn = (module struct
 	     C.Param.([|int32 et|])
 	     Map.empty
 
-    let inclusion_succs, inclusion_succs_cache =
+    let dsuper, inclusion_succs_cache =
       memo_1lwt @@ fun et ->
       with_db @@ fun (module C) ->
       let mult i tup = Multiplicity.of_int (C.Tuple.int i tup) in
@@ -630,12 +630,12 @@ let rec make uri_or_conn = (module struct
       let add tup = Set.add (C.Tuple.int32 0 tup) in
       C.fold Q.minimums add [||] Set.empty
 
-    let preds, preds_cache = memo_1lwt @@ fun e ->
+    let dsub, preds_cache = memo_1lwt @@ fun e ->
       with_db @@ fun (module C) ->
       let add tup = Set.add (C.Tuple.int32 0 tup) in
       C.fold Q.entity_preds add C.Param.([|int32 e|]) Set.empty
 
-    let succs, succs_cache = memo_1lwt @@ fun e ->
+    let dsuper, succs_cache = memo_1lwt @@ fun e ->
       with_db @@ fun (module C) ->
       let add tup = Set.add (C.Tuple.int32 0 tup) in
       C.fold Q.entity_succs add C.Param.([|int32 e|]) Set.empty
@@ -720,7 +720,7 @@ let rec make uri_or_conn = (module struct
       C.fold Q.apreds_text f C.Param.([|int32 e; int32 ak_id; text x|])
 	     Set.empty
 
-    let apreds (type a) e (ak : a Attribute_type.t1) : a -> Set.t Lwt.t =
+    let asub (type a) e (ak : a Attribute_type.t1) : a -> Set.t Lwt.t =
       let open Attribute_type in
       match type1 ak with
       | Type.Bool -> fun x -> apreds_integer e ak.ak_id (if x then 1 else 0)
@@ -741,7 +741,7 @@ let rec make uri_or_conn = (module struct
       C.fold Q.asuccs_text f C.Param.([|int32 e; int32 ak_id; text x|])
 	     Set.empty
 
-    let asuccs (type a) e (ak : a Attribute_type.t1) : a -> Set.t Lwt.t =
+    let asuper (type a) e (ak : a Attribute_type.t1) : a -> Set.t Lwt.t =
       let open Attribute_type in
       match type1 ak with
       | Type.Bool -> fun x -> asuccs_integer e ak.ak_id (if x then 1 else 0)
@@ -767,7 +767,7 @@ let rec make uri_or_conn = (module struct
 	Map.add e' (Values.add v vs) m in
       C.fold Q.atpreds_text f C.Param.([|int32 e; int32 ak_id|]) Map.empty
 
-    let atpreds (type a) e (ak : a Attribute_type.t1)
+    let apsub (type a) e (ak : a Attribute_type.t1)
 	  : a Values.t Map.t Lwt.t =
       match Attribute_type.type1 ak with
       | Type.Bool ->
@@ -797,7 +797,7 @@ let rec make uri_or_conn = (module struct
 	Map.add e' (Values.add v vs) m in
       C.fold Q.atsuccs_text f C.Param.([|int32 e; int32 ak_id|]) Map.empty
 
-    let atsuccs (type a) e (ak : a Attribute_type.t1)
+    let apsuper (type a) e (ak : a Attribute_type.t1)
 	  : a Values.t Map.t Lwt.t =
       match Attribute_type.type1 ak with
       | Type.Bool ->
@@ -839,7 +839,7 @@ let rec make uri_or_conn = (module struct
       lwt r = rank e in
       if r >= r_min then Lwt.return_unit else
       begin
-	preds e >>= Set.iter_s (raise_rank (r_min + 1)) >>
+	dsub e >>= Set.iter_s (raise_rank (r_min + 1)) >>
 	set_rank r_min e
       end
 
@@ -848,11 +848,11 @@ let rec make uri_or_conn = (module struct
       let update_rank eS r' =
 	if r' = r then Lwt.return r' else
 	rank eS >|= max r' *< succ in
-      lwt esS = succs e in
+      lwt esS = dsuper e in
       lwt r' = Set.fold_s update_rank esS 0 in
       if r' = r then Lwt.return_unit else begin
 	set_rank r' e >>
-	preds e >>= Set.iter_s begin fun eP ->
+	dsub e >>= Set.iter_s begin fun eP ->
 	  lwt rP = rank eP in
 	  if rP = r + 1 then lower_rank eP
 			else Lwt.return_unit
@@ -865,16 +865,16 @@ let rec make uri_or_conn = (module struct
 		   int32 subentity; int32 superentity|]) >|=
       fun () ->
 	clear_inclusion_caches ();
-	emit_changed subentity `Succ;
-	emit_changed superentity `Pred
+	emit_changed subentity `Dsuper;
+	emit_changed superentity `Dsub
 
     let unconstrain' subentity superentity (module C : CONNECTION) =
       C.exec Q.delete_inclusion
 	C.Param.([|int32 subentity; int32 superentity|]) >|=
       fun () ->
 	clear_inclusion_caches ();
-	emit_changed subentity `Succ;
-	emit_changed superentity `Pred
+	emit_changed subentity `Dsuper;
+	emit_changed superentity `Dsub
 
     let constrain subentity superentity =
       lwt is_super = precedes superentity subentity in
@@ -938,8 +938,8 @@ let rec make uri_or_conn = (module struct
       addattr' e e' ak xs >|=
       fun () ->
 	clear_attr_caches ak;
-	emit_changed e `Asucc;
-	emit_changed e' `Apred
+	emit_changed e `Asuper;
+	emit_changed e' `Asub
 
     let delattr' (type a) e e' (ak : a Attribute_type.t1) (xs : a list) =
       with_db @@ fun (module C : CONNECTION) ->
@@ -968,8 +968,8 @@ let rec make uri_or_conn = (module struct
       delattr' e e' ak xs >|=
       fun () ->
 	clear_attr_caches ak;
-	emit_changed e `Asucc;
-	emit_changed e' `Apred
+	emit_changed e `Asuper;
+	emit_changed e' `Asub
 
     let setattr (type a) e e' (ak : a Attribute_type.t1) (xs : a list) =
       begin match_lwt check_mult e e' ak with
@@ -995,8 +995,8 @@ let rec make uri_or_conn = (module struct
       (if xs_ins = [] then Lwt.return_unit else addattr' e e' ak xs_ins) >|=
       fun () ->
 	clear_attr_caches ak;
-	emit_changed e `Asucc;
-	emit_changed e' `Apred
+	emit_changed e `Asuper;
+	emit_changed e' `Asub
 
   end
 

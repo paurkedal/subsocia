@@ -82,10 +82,10 @@ module type S = sig
 
     val of_unique_name : ?super: t -> string -> t option Lwt.t
 
-    module Dsucc : ITERABLE with type t := t
-    module Dpred : ITERABLE with type t := t
-    module Tsucc : NESTED_ITERABLE with type t := t
-    module Tpred : NESTED_ITERABLE with type t := t
+    module Dsuper : ITERABLE with type t := t
+    module Dsub : ITERABLE with type t := t
+    module Super : NESTED_ITERABLE with type t := t
+    module Sub : NESTED_ITERABLE with type t := t
 
     val paths : t -> selector list Lwt.t
 
@@ -94,7 +94,7 @@ module type S = sig
     val can_edit : t -> t -> bool Lwt.t
 
     val display_name : langs: lang list -> t -> string Lwt.t
-    val candidate_succs : t -> Set.t Lwt.t
+    val candidate_dsupers : t -> Set.t Lwt.t
   end
 
   module Const : sig

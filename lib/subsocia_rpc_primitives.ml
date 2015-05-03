@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -33,9 +33,9 @@ module Entity_type = struct
   external set_entity_name_tmpl : int32 -> string -> unit = ""
   external inclusion :
     int32 -> int32 -> (Multiplicity.t * Multiplicity.t) option = ""
-  external inclusion_preds :
+  external dsub :
     int32 -> (int32 * Multiplicity.t * Multiplicity.t) list = ""
-  external inclusion_succs :
+  external dsuper :
     int32 -> (int32 * Multiplicity.t * Multiplicity.t) list = ""
   external inclusion_dump :
     unit -> (int32 * int32 * Multiplicity.t * Multiplicity.t) list = ""
@@ -64,17 +64,17 @@ module Entity = struct
   external type_members : int32 -> int32 list = ""
   external top : unit -> int32 = ""
   external minimums : unit -> int32 list = ""
-  external preds : int32 -> int32 list = ""
-  external succs : int32 -> int32 list = ""
+  external dsub : int32 -> int32 list = ""
+  external dsuper : int32 -> int32 list = ""
   external precedes : int32 -> int32 -> bool = ""
   external getattr : int32 -> int32 -> int32 -> Value.t0 list = ""
   external setattr : int32 -> int32 -> int32 -> Value.t0 list -> unit=""
   external addattr : int32 -> int32 -> int32 -> Value.t0 list -> unit=""
   external delattr : int32 -> int32 -> int32 -> Value.t0 list -> unit=""
-  external apreds : int32 -> int32 -> Value.t0 -> int32 list = ""
-  external asuccs : int32 -> int32 -> Value.t0 -> int32 list = ""
-  external atpreds : int32 -> int32 -> (int32 * Value.t0) list = ""
-  external atsuccs : int32 -> int32 -> (int32 * Value.t0) list = ""
+  external asub : int32 -> int32 -> Value.t0 -> int32 list = ""
+  external asuper : int32 -> int32 -> Value.t0 -> int32 list = ""
+  external apsub : int32 -> int32 -> (int32 * Value.t0) list = ""
+  external apsuper : int32 -> int32 -> (int32 * Value.t0) list = ""
   external constrain : int32 -> int32 -> unit = ""
   external unconstrain : int32 -> int32 -> unit = ""
 end
