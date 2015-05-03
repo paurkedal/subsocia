@@ -30,7 +30,7 @@ let parse_error msg =
 %token EOF CREATE MODIFY DELETE
 %token AT_CREATE AT_DELETE ET_CREATE ET_MODIFY ET_DELETE
 %token DELINCL ADDINCL ADDATTR DELATTR SETATTR
-%token EQ SLASH TOP PLUS COMMA LBRACE RBRACE
+%token EQ SLASH TOP MINUS PLUS COMMA LBRACE RBRACE
 %token<string> EQ_VERB STR STRING AUX_STRING AUX_SELECTOR
 %token<int32> ID
 
@@ -97,18 +97,28 @@ modify_constraint:
 
 selector: path EOF { $1 };
 path:
-    attribution { $1 }
-  | path SLASH attribution { Select_sub ($1, $3) }
-  ;
-attribution:
-    disjunction { $1 }
-  | STR EQ STR { Select_attr ($1, $3) }
-  | STR EQ_VERB { Select_attr ($1, $2) }
-  | STR EQ PLUS { Select_attr_present $1 }
+    relative_path { $1 }
   | TOP { Select_top }
   | ID { Select_id $1 }
-  | STR { Select_attr ("unique_name", $1) }
+  | TOP relative_path { Select_sub (Select_top, $2) }
+  | ID relative_path { Select_sub (Select_id $1, $2) }
+  ;
+relative_path:
+    path_component { $1 }
+  | relative_path SLASH path_component { Select_sub ($1, $3) }
+  ;
+path_component:
+    disjunction { $1 }
   | PLUS { Select_pred }
+  | MINUS { Select_succ }
+  | STR EQ STR { Select_apred ($1, $3) }
+  | STR EQ_VERB { Select_apred ($1, $2) }
+  | STR EQ PLUS { Select_apred_present $1 }
+  | MINUS STR EQ STR { Select_asucc ($2, $4) }
+  | MINUS STR EQ_VERB { Select_asucc ($2, $3) }
+  | MINUS STR EQ PLUS { Select_asucc_present $2 }
+  | STR { Select_apred ("unique_name", $1) }
+  | MINUS STR { Select_asucc ("unique_name", $2) }
   ;
 disjunction:
     conjunction { $1 }

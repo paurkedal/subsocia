@@ -57,14 +57,15 @@ let selector_conv = selector_parser, selector_printer
 
 let aselector_parser ~with_presence s =
   let rec aux acc = function
-    | Select_sub _ | Select_union _ | Select_pred | Select_top | Select_id _
+    | Select_top | Select_id _ | Select_sub _ | Select_union _
+    | Select_pred | Select_succ | Select_asucc _ | Select_asucc_present _
 	as sel_att ->
       invalid_arg_f "The selector %s cannot be used for attribute assignement. \
 		     It must be a conjunction of one or more attribute \
 		     equalities." (string_of_selector sel_att)
     | Select_inter (selA, selB) -> aux (aux acc selB) selA
-    | Select_attr (an, av) -> (an, Some av) :: acc
-    | Select_attr_present an ->
+    | Select_apred (an, av) -> (an, Some av) :: acc
+    | Select_apred_present an ->
       if not with_presence then invalid_arg_f "Presence selector not allowed.";
       (an, None) :: acc in
   try
@@ -77,8 +78,8 @@ let aselector_parser ~with_presence s =
 
 let aselector_printer fmtr (ctx, asgn) =
   let select_attr = function
-    | (an, None) -> Select_attr_present an
-    | (an, Some av) -> Select_attr (an, av) in
+    | (an, None) -> Select_apred_present an
+    | (an, Some av) -> Select_apred (an, av) in
   let sel_attr =
     match asgn with
     | [] -> assert false

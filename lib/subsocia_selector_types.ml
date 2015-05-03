@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -20,8 +20,11 @@ type selector =
   | Select_sub of selector * selector
   | Select_union of selector * selector
   | Select_inter of selector * selector
-  | Select_attr of string * string
-  | Select_attr_present of string
+  | Select_apred of string * string
+  | Select_asucc of string * string
+  | Select_apred_present of string
+  | Select_asucc_present of string
   | Select_top
   | Select_id of int32
   | Select_pred
+  | Select_succ

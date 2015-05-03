@@ -48,6 +48,8 @@ and lex = parse
   | '/' { SLASH }
   | '{' { LBRACE }
   | '}' { RBRACE }
+  | ',' { COMMA }
+  | '-' { MINUS }
   | '+' { PLUS }
   | ',' { COMMA }
   | ":!" space { AT_CREATE }
@@ -71,7 +73,7 @@ and lex = parse
   | '=' { EQ }
   | "={" { EQ_VERB (lex_literal (Buffer.create 80) 0 lexbuf) }
   | '"' { lex_string (Buffer.create 80) lexbuf }
-  | '#' { TOP }
+  | "#" { TOP }
   | '#' (['0'-'9']+ as s) { ID (Int32.of_string s) }
   | barepath as s { STR s }
   | space+ | '#' space [^ '\n']* { lex lexbuf }

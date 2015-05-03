@@ -242,9 +242,9 @@ module Make (Base : Subsocia_intf.S) = struct
       let add_conj e ps ats =
 	let select_attr (type a) an (at : a Attribute_type.t1) : a -> selector =
 	  match Attribute_type.type1 at with
-	  | Type.Bool -> fun v -> Select_attr (an, string_of_bool v)
-	  | Type.Int -> fun v -> Select_attr (an, string_of_int v)
-	  | Type.String -> fun v -> Select_attr (an, v) in
+	  | Type.Bool -> fun v -> Select_apred (an, string_of_bool v)
+	  | Type.Int -> fun v -> Select_apred (an, string_of_int v)
+	  | Type.String -> fun v -> Select_apred (an, v) in
 	let attr_by_succ (Attribute_type.Ex at as at0) =
 	  lwt an = Attribute_type.name at0 in
 	  let attr vs = Values.elements vs |> List.map (select_attr an at) in
