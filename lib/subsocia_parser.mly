@@ -30,7 +30,7 @@ let parse_error msg =
 %token EOF CREATE MODIFY DELETE
 %token AT_CREATE AT_DELETE ET_CREATE ET_MODIFY ET_DELETE
 %token DELINCL ADDINCL ADDATTR DELATTR SETATTR
-%token EQ SLASH TOP MINUS PLUS COMMA LBRACE RBRACE
+%token EQ SLASH TOP MINUS PLUS COMMA LBRACE RBRACE UNDERSCORE
 %token<string> EQ_VERB STR STRING AUX_STRING AUX_SELECTOR
 %token<int32> ID
 
@@ -113,10 +113,10 @@ path_component:
   | MINUS { Select_succ }
   | STR EQ STR { Select_apred ($1, $3) }
   | STR EQ_VERB { Select_apred ($1, $2) }
-  | STR EQ PLUS { Select_apred_present $1 }
+  | STR EQ UNDERSCORE { Select_apred_present $1 }
   | MINUS STR EQ STR { Select_asucc ($2, $4) }
   | MINUS STR EQ_VERB { Select_asucc ($2, $3) }
-  | MINUS STR EQ PLUS { Select_asucc_present $2 }
+  | MINUS STR EQ UNDERSCORE { Select_asucc_present $2 }
   | STR { Select_apred ("unique_name", $1) }
   | MINUS STR { Select_asucc ("unique_name", $2) }
   ;

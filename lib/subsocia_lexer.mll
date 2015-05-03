@@ -52,6 +52,7 @@ and lex = parse
   | '-' { MINUS }
   | '+' { PLUS }
   | ',' { COMMA }
+  | '_' { UNDERSCORE }
   | ":!" space { AT_CREATE }
   | ":?" space { AT_DELETE }
   | ":*" space { ET_CREATE }

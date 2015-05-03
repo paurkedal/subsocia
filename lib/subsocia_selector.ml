@@ -58,13 +58,13 @@ let rec bprint_selector buf p = function
   | Select_apred_present k ->
     if p > 1 then Buffer.add_char buf '{';
     Buffer.add_string buf k;
-    Buffer.add_string buf "=+";
+    Buffer.add_string buf "=_";
     if p > 1 then Buffer.add_char buf '}'
   | Select_asucc_present k ->
     if p > 1 then Buffer.add_char buf '{';
     Buffer.add_char buf succ_char;
     Buffer.add_string buf k;
-    Buffer.add_string buf "=+";
+    Buffer.add_string buf "=_";
     if p > 1 then Buffer.add_char buf '}'
   | Select_top -> Buffer.add_char buf '#'
   | Select_id id -> bprintf buf "#%ld" id
