@@ -18,6 +18,7 @@ open Panograph_i18n
 open Printf
 open Pwt_infix
 open Subsocia_common
+open Subsocia_derived_intf
 open Subsocia_selector_types
 open Unprime_list
 open Unprime_option
@@ -126,6 +127,93 @@ module Make (Base : Subsocia_intf.S) = struct
       | 1 -> Lwt.return (Some (Entity.Set.min_elt es))
       | 0 -> Lwt.return_none
       | _ -> _fail "Multiple matches for unique name %s" en
+
+    module Dsucc = struct
+      let fold_s f e acc = succs e >>= (fun xs -> Set.fold_s f xs acc)
+      let iter_s f e = succs e >>= Set.iter_s f
+      let for_all_s f e = succs e >>= Set.for_all_s f
+      let exists_s f e = succs e >>= Set.exists_s f
+      let search_s f e = succs e >>= Set.search_s f
+    end
+
+    module Dpred = struct
+      let fold_s f e acc = preds e >>= (fun xs -> Set.fold_s f xs acc)
+      let iter_s f e = preds e >>= Set.iter_s f
+      let for_all_s f e = preds e >>= Set.for_all_s f
+      let exists_s f e = preds e >>= Set.exists_s f
+      let search_s f e = preds e >>= Set.search_s f
+    end
+
+    let make_visit () =
+      let ht = Hashtbl.create 61 in
+      fun e -> if Hashtbl.mem ht e then true else (Hashtbl.add ht e (); false)
+
+    module Transitive (Dir : ITERABLE with type t := t) = struct
+      exception Prune
+
+      let rec fold_s' visit max_depth f e acc =
+	if visit e then Lwt.return acc else
+	try_lwt
+	  lwt acc = f e acc in
+	  if max_depth = 0 then Lwt.return acc else
+	  Dir.fold_s (fold_s' visit (max_depth - 1) f) e acc
+	with Prune -> Lwt.return acc
+
+      let fold_s ?(max_depth = max_int) f e acc =
+	fold_s' (make_visit ()) max_depth f e acc
+
+      let rec iter_s' visit max_depth f e =
+	if visit e then Lwt.return_unit else
+	try_lwt
+	  f e >>
+	  if max_depth = 0 then Lwt.return_unit else
+	  Dir.iter_s (iter_s' visit (max_depth - 1) f) e
+	with Prune -> Lwt.return_unit
+
+      let iter_s ?(max_depth = max_int) f e =
+	iter_s' (make_visit ()) max_depth f e
+
+      let rec for_all_s' visit max_depth f e =
+	if visit e then Lwt.return_true else
+	try_lwt
+	  match_lwt f e with
+	  | false -> Lwt.return_false
+	  | true ->
+	    if max_depth <= 0 then Lwt.return_true else
+	    Dir.for_all_s (for_all_s' visit (max_depth - 1) f) e
+	with Prune -> Lwt.return_true
+
+      let for_all_s ?(max_depth = max_int) f e =
+	for_all_s' (make_visit ()) max_depth f e
+
+      let rec exists_s' visit max_depth f e =
+	if visit e then Lwt.return_false else
+	try_lwt
+	  match_lwt f e with
+	  | true -> Lwt.return_true
+	  | false ->
+	    if max_depth <= 0 then Lwt.return_false else
+	    Dir.exists_s (exists_s' visit (max_depth - 1) f) e
+	with Prune -> Lwt.return_false
+
+      let exists_s ?(max_depth = max_int) f e =
+	exists_s' (make_visit ()) max_depth f e
+
+      let rec search_s' visit max_depth f e =
+	if visit e then Lwt.return_none else
+	try_lwt
+	  match_lwt f e with
+	  | Some _ as x -> Lwt.return x
+	  | None ->
+	    if max_depth <= 0 then Lwt.return_none else
+	    Dir.search_s (search_s' visit (max_depth - 1) f) e
+	with Prune -> Lwt.return_none
+
+      let search_s ?(max_depth = max_int) f e =
+	search_s' (make_visit ()) max_depth f e
+    end
+    module Tsucc = Transitive (Dsucc)
+    module Tpred = Transitive (Dpred)
 
     let has_role role subj obj =
       lwt access_base = access obj in

@@ -21,6 +21,29 @@ open Subsocia_common
 open Subsocia_intf
 open Subsocia_selector_types
 
+module type ITERABLE = sig
+  type t
+
+  val fold_s : (t -> 'a -> 'a Lwt.t) -> t -> 'a -> 'a Lwt.t
+  val iter_s : (t -> unit Lwt.t) -> t -> unit Lwt.t
+  val for_all_s : (t -> bool Lwt.t) -> t -> bool Lwt.t
+  val exists_s : (t -> bool Lwt.t) -> t -> bool Lwt.t
+  val search_s : (t -> 'a option Lwt.t) -> t -> 'a option Lwt.t
+end
+
+module type NESTED_ITERABLE = sig
+  type t
+
+  exception Prune
+
+  val fold_s : ?max_depth: int -> (t -> 'a -> 'a Lwt.t) -> t -> 'a -> 'a Lwt.t
+  val iter_s : ?max_depth: int -> (t -> unit Lwt.t) -> t -> unit Lwt.t
+  val for_all_s : ?max_depth: int -> (t -> bool Lwt.t) -> t -> bool Lwt.t
+  val exists_s : ?max_depth: int -> (t -> bool Lwt.t) -> t -> bool Lwt.t
+  val search_s : ?max_depth: int ->
+		 (t -> 'a option Lwt.t) -> t -> 'a option Lwt.t
+end
+
 module type S = sig
   module Base : Subsocia_intf.S
 
@@ -58,6 +81,11 @@ module type S = sig
     val getattr_one : t -> t -> 'a Attribute_type.t1 -> 'a Lwt.t
 
     val of_unique_name : ?super: t -> string -> t option Lwt.t
+
+    module Dsucc : ITERABLE with type t := t
+    module Dpred : ITERABLE with type t := t
+    module Tsucc : NESTED_ITERABLE with type t := t
+    module Tpred : NESTED_ITERABLE with type t := t
 
     val paths : t -> selector list Lwt.t
 
