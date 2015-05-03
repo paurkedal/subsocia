@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -27,7 +27,7 @@ let selector_of_string s =
   with Parsing.Parse_error -> raise (Invalid_argument "Parse error")
 
 let is_reserved = function
-  | '{' | '}' | '/' | '+' | '=' -> true
+  | '{' | '}' | '/' | ',' | '+' | '=' -> true
   | _ -> false
 
 let rec bprint_selector buf p = function
@@ -62,7 +62,7 @@ let rec bprint_selector buf p = function
   | Select_union (s0, s1) ->
     if p > 2 then Buffer.add_char buf '{';
     bprint_selector buf 2 s0;
-    Buffer.add_char buf '+';
+    Buffer.add_char buf ',';
     bprint_selector buf 2 s1;
     if p > 2 then Buffer.add_char buf '}'
   | Select_inter (s0, s1) ->

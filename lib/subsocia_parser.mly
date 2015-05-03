@@ -1,4 +1,4 @@
-/* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+/* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -30,7 +30,7 @@ let parse_error msg =
 %token EOF CREATE MODIFY DELETE
 %token AT_CREATE AT_DELETE ET_CREATE ET_MODIFY ET_DELETE
 %token DELINCL ADDINCL ADDATTR DELATTR SETATTR
-%token EQ SLASH TOP PLUS LBRACE RBRACE
+%token EQ SLASH TOP PLUS COMMA LBRACE RBRACE
 %token<string> EQ_VERB STR STRING AUX_STRING AUX_SELECTOR
 %token<int32> ID
 
@@ -112,7 +112,7 @@ attribution:
   ;
 disjunction:
     conjunction { $1 }
-  | disjunction PLUS conjunction { Select_union ($1, $3) }
+  | disjunction COMMA conjunction { Select_union ($1, $3) }
   ;
 conjunction:
     braced { $1 }

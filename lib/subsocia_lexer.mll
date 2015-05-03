@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -49,6 +49,7 @@ and lex = parse
   | '{' { LBRACE }
   | '}' { RBRACE }
   | '+' { PLUS }
+  | ',' { COMMA }
   | ":!" space { AT_CREATE }
   | ":?" space { AT_DELETE }
   | ":*" space { ET_CREATE }
