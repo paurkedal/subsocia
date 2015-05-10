@@ -62,12 +62,30 @@ module type ENTITY_TYPE = sig
   val set_entity_name_tmpl : t -> string -> unit Lwt.t
 
   val can_dsub : t -> t -> (Multiplicity.t * Multiplicity.t) option Lwt.t
+  (** [can_dsub et et'] is the corresponding multiplicities if entities of
+      type [et] can be direct subentities of entities of type [et']. *)
+
   val dsub : t -> (Multiplicity.t * Multiplicity.t) Map.t Lwt.t
+  (** [dsub et] fetches a map from types of candidate subentities of entities
+      of [et] to the allowed multiplicity of the inclusion, with the subentity
+      multiplicity first. *)
+
   val dsuper : t -> (Multiplicity.t * Multiplicity.t) Map.t Lwt.t
+  (** [dsuper et] fetches a map from types of candidate superentities of
+      entities of [et] to the allowed multiplicity of the inclusion, with the
+      subentity multiplicity first. *)
+
   val dsub_elements :
     unit -> (t * t * Multiplicity.t * Multiplicity.t) list Lwt.t
+  (** [dsub_elements ()] fetches the complete subentitiy relation policy. *)
+
   val allow_dsub : Multiplicity.t -> Multiplicity.t -> t -> t -> unit Lwt.t
+  (** After [allow_dsub m m' et et'], entities of type [et] can be direct
+      subentities of entities of type [et']. *)
+
   val disallow_dsub : t -> t -> unit Lwt.t
+  (** After [disallow_dsub et et'], entities of type [et] can no longer be
+      direct subentities of entities of type [et']. *)
 
   val can_asub : t -> t -> 'a Attribute_type.t1 -> Multiplicity.t option Lwt.t
   val can_asub_byattr : t -> t -> Multiplicity.t Attribute_type.Map.t Lwt.t
@@ -102,32 +120,46 @@ module type ENTITY = sig
   val type_members : Entity_type.t -> Set.t Lwt.t
   val top : t Lwt.t
   val minimums : unit -> Set.t Lwt.t
+
   val dsub : t -> Set.t Lwt.t
+  (** [dsub e] fetches the direct subentities of [e]. *)
+
   val dsuper : t -> Set.t Lwt.t
+  (** [dsuper e] fetches the direct superentities of [e]. *)
+
   val is_sub : t -> t -> bool Lwt.t
+  (** [is_sub e e'] holds iff [e] is a subentity of [e']. *)
 
   val getattr : t -> t -> 'a Attribute_type.t1 -> 'a Values.t Lwt.t
+  (** [getattr e e' at] fetches attributes from [e] to [e'] of type [at]. *)
+
   val setattr : t -> t -> 'a Attribute_type.t1 -> 'a list -> unit Lwt.t
+  (** [setattr e e' at xs] replaces attributes from [e] to [e'] of type [et]
+      with [xs]. *)
+
   val addattr : t -> t -> 'a Attribute_type.t1 -> 'a list -> unit Lwt.t
+  (** [addattr e e' at xs] adds attributes [xs] of type [et] from [e] to
+      [e']. *)
+
   val delattr : t -> t -> 'a Attribute_type.t1 -> 'a list -> unit Lwt.t
+  (** [delattr e e' at] removes attributes [xs] of type [et] from [e] to
+      [e']. *)
 
   val asub_eq : t -> 'a Attribute_type.t1 -> 'a -> Set.t Lwt.t
-  (** [asub_eq e at v] are the attribution sub-entities of [e] along [at]
+  (** [asub_eq e at v] are the attribution subentities of [e] along [at]
       gaining the value [v]. *)
 
   val asuper_eq : t -> 'a Attribute_type.t1 -> 'a -> Set.t Lwt.t
-  (** [asuper_eq e at v] are the attribution super-entities of [e] along [at]
+  (** [asuper_eq e at v] are the attribution superentities of [e] along [at]
       loosing the value [v]. *)
 
   val asub_get : t -> 'a Attribute_type.t1 -> 'a Values.t Map.t Lwt.t
   (** [asub_get e at] is a map of [at]-values indexed by attribution
-      sub-entities of [e] which gain those values along [at].  The function
-      name is short for "attribute presence sub-entities". *)
+      subentities of [e] which gain those values along [at]. *)
 
   val asuper_get : t -> 'a Attribute_type.t1 -> 'a Values.t Map.t Lwt.t
   (** [asuper_get e at] is a map of [at]-values indexed by attribution
-      super-entities of [e] which loose those values along [at]. The function
-      name is short for "attribute presence super-entities". *)
+      superentities of [e] which loose those values along [at]. *)
 
   val force_dsub : t -> t -> unit Lwt.t
   (** [force_dsub e e'] forces an inclusion of [e] in [e'].
