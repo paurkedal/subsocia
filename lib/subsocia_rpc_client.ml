@@ -23,7 +23,7 @@ open Unprime_option
 module type RPCM = Subsocia_rpc_primitives.RPCM with type 'a t = 'a Lwt.t
 
 module Attribute_type_base = struct
-  type 'a t1 = {ak_id : int32; ak_name : string; ak_type : 'a Type.t1}
+  type 'a t1 = {at_id : int32; at_name : string; at_type : 'a Type.t1}
   type t0 = Ex : 'a t1 -> t0
 end
 
@@ -37,28 +37,28 @@ module Make (RPCM : RPCM) = struct
 
     module Comparable = struct
       type t = t0
-      let compare (Ex a) (Ex b) = compare a.ak_id b.ak_id
+      let compare (Ex a) (Ex b) = compare a.at_id b.at_id
     end
     module Set = Prime_enumset.Make_monadic (Comparable) (Lwt)
     module Map = Prime_enummap.Make_monadic (Comparable) (Lwt)
 
-    let of_name ak_name =
-      Raw.of_name ak_name >|=
-      Option.map @@ fun (ak_id, Type.Ex ak_type) -> Ex {ak_id; ak_name; ak_type}
+    let of_name at_name =
+      Raw.of_name at_name >|=
+      Option.map @@ fun (at_id, Type.Ex at_type) -> Ex {at_id; at_name; at_type}
 
-    let of_id ak_id =
-      lwt ak_name, Type.Ex ak_type = Raw.of_id ak_id in
-      Lwt.return (Ex {ak_id; ak_name; ak_type})
+    let of_id at_id =
+      lwt at_name, Type.Ex at_type = Raw.of_id at_id in
+      Lwt.return (Ex {at_id; at_name; at_type})
 
-    let id (Ex ak) = ak.ak_id
-    let name (Ex ak) = Lwt.return ak.ak_name
-    let type0 (Ex ak) = Type.Ex ak.ak_type
-    let type1 ak = ak.ak_type
-    let create vt ak_name =
-      Raw.create vt ak_name >|= fun ak_id ->
-      let Type.Ex ak_type = vt in
-      Ex {ak_id; ak_name; ak_type}
-    let delete (Ex ak) = Raw.delete ak.ak_id
+    let id (Ex at) = at.at_id
+    let name (Ex at) = Lwt.return at.at_name
+    let type0 (Ex at) = Type.Ex at.at_type
+    let type1 at = at.at_type
+    let create vt at_name =
+      Raw.create vt at_name >|= fun at_id ->
+      let Type.Ex at_type = vt in
+      Ex {at_id; at_name; at_type}
+    let delete (Ex at) = Raw.delete at.at_id
   end
 
   module Attribute = struct
@@ -108,24 +108,24 @@ module Make (RPCM : RPCM) = struct
     let disallow_dsub et0 et1 =
       Raw.disallow_dsub et0 et1
 
-    let can_asub lbt ubt ak =
-      Raw.can_asub lbt ubt (Attribute_type.id (Attribute_type.Ex ak))
+    let can_asub lbt ubt at =
+      Raw.can_asub lbt ubt (Attribute_type.id (Attribute_type.Ex at))
 
     let can_asub_byattr lbt ubt =
-      let aux (ak_id, mu) = Attribute_type.of_id ak_id >|= fun ak -> ak, mu in
+      let aux (at_id, mu) = Attribute_type.of_id at_id >|= fun at -> at, mu in
       Raw.can_asub_byattr lbt ubt >>= Lwt_list.map_s aux >|=
       Attribute_type.Map.of_ordered_bindings
 
     let asub_elements () =
-      let aux (et0, et1, ak_id, mu) =
-	Attribute_type.of_id ak_id >|= fun ak -> (et0, et1, ak, mu) in
+      let aux (et0, et1, at_id, mu) =
+	Attribute_type.of_id at_id >|= fun at -> (et0, et1, at, mu) in
       Raw.asub_elements () >>= Lwt_list.map_s aux
 
-    let allow_asub et0 et1 (Attribute_type.Ex ak) mu =
-      Raw.allow_asub et0 et1 ak.Attribute_type.ak_id mu
+    let allow_asub et0 et1 (Attribute_type.Ex at) mu =
+      Raw.allow_asub et0 et1 at.Attribute_type.at_id mu
 
-    let disallow_asub et0 et1 (Attribute_type.Ex ak) =
-      Raw.disallow_asub et0 et1 ak.Attribute_type.ak_id
+    let disallow_asub et0 et1 (Attribute_type.Ex at) =
+      Raw.disallow_asub et0 et1 at.Attribute_type.at_id
   end
 
   module Entity = struct
@@ -152,48 +152,48 @@ module Make (RPCM : RPCM) = struct
     let dsub e = Raw.dsub e >|= Set.of_ordered_elements
     let dsuper e = Raw.dsuper e >|= Set.of_ordered_elements
 
-    let getattr lb ub ak =
-      let t1 = Attribute_type.type1 ak in
-      Raw.getattr lb ub (Attribute_type.(id (Ex ak))) >|=
+    let getattr lb ub at =
+      let t1 = Attribute_type.type1 at in
+      Raw.getattr lb ub (Attribute_type.(id (Ex at))) >|=
       List.map (Value.coerce t1) *> Values.of_ordered_elements t1
 
-    let setattr lb ub ak vs =
-      let t = Attribute_type.type1 ak in
-      Raw.setattr lb ub (Attribute_type.(id (Ex ak)))
+    let setattr lb ub at vs =
+      let t = Attribute_type.type1 at in
+      Raw.setattr lb ub (Attribute_type.(id (Ex at)))
 		  (List.map (fun v -> Value.Ex (t, v)) vs)
 
-    let addattr lb ub ak vs =
-      let t = Attribute_type.type1 ak in
-      Raw.addattr lb ub (Attribute_type.(id (Ex ak)))
+    let addattr lb ub at vs =
+      let t = Attribute_type.type1 at in
+      Raw.addattr lb ub (Attribute_type.(id (Ex at)))
 		  (List.map (fun v -> Value.Ex (t, v)) vs)
 
-    let delattr lb ub ak vs =
-      let t = Attribute_type.type1 ak in
-      Raw.delattr lb ub (Attribute_type.(id (Ex ak)))
+    let delattr lb ub at vs =
+      let t = Attribute_type.type1 at in
+      Raw.delattr lb ub (Attribute_type.(id (Ex at)))
 		  (List.map (fun v -> Value.Ex (t, v)) vs)
 
-    let asub_eq e ak av =
-      let t = Attribute_type.type1 ak in
-      Raw.asub_eq e (Attribute_type.(id (Ex ak))) (Value.Ex (t, av))
+    let asub_eq e at av =
+      let t = Attribute_type.type1 at in
+      Raw.asub_eq e (Attribute_type.(id (Ex at))) (Value.Ex (t, av))
 	>|= Set.of_ordered_elements
 
-    let asuper_eq e ak av =
-      let t = Attribute_type.type1 ak in
-      Raw.asuper_eq e (Attribute_type.(id (Ex ak))) (Value.Ex (t, av))
+    let asuper_eq e at av =
+      let t = Attribute_type.type1 at in
+      Raw.asuper_eq e (Attribute_type.(id (Ex at))) (Value.Ex (t, av))
 	>|= Set.of_ordered_elements
 
-    let asub_get e ak =
-      let t = Attribute_type.type1 ak in
-      Raw.asub_get e (Attribute_type.(id (Ex ak))) >|= fun bindings ->
+    let asub_get e at =
+      let t = Attribute_type.type1 at in
+      Raw.asub_get e (Attribute_type.(id (Ex at))) >|= fun bindings ->
       List.fold
 	(fun (e, v) m ->
 	  let vs = try Map.find e m with Not_found -> Values.empty t in
 	  Map.add e (Values.add (Value.coerce t v) vs) m)
 	bindings Map.empty
 
-    let asuper_get e ak =
-      let t = Attribute_type.type1 ak in
-      Raw.asuper_get e (Attribute_type.(id (Ex ak))) >|= fun bindings ->
+    let asuper_get e at =
+      let t = Attribute_type.type1 at in
+      Raw.asuper_get e (Attribute_type.(id (Ex at))) >|= fun bindings ->
       List.fold
 	(fun (e, v) m ->
 	  let vs = try Map.find e m with Not_found -> Values.empty t in

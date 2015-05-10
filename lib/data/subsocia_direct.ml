@@ -337,22 +337,22 @@ module Base = struct
 
   module Attribute_type_base = struct
     type 'a t1 = {
-      ak_id : attribute_type_id;
-      ak_name : string;
-      ak_value_type : 'a Type.t1;
-      ak_beacon : Beacon.t;
+      at_id : attribute_type_id;
+      at_name : string;
+      at_value_type : 'a Type.t1;
+      at_beacon : Beacon.t;
     }
     type t0 = Ex : 'a t1 -> t0
 
     let dummy = {
-      ak_id = Int32.zero;
-      ak_name = "";
-      ak_value_type = Type.Bool;
-      ak_beacon = Beacon.dummy;
+      at_id = Int32.zero;
+      at_name = "";
+      at_value_type = Type.Bool;
+      at_beacon = Beacon.dummy;
     }
 
-    let type0 (Ex ak) = Type.Ex ak.ak_value_type
-    let type1 ak = ak.ak_value_type
+    let type0 (Ex at) = Type.Ex at.at_value_type
+    let type1 at = at.at_value_type
   end
 end
 
@@ -400,45 +400,45 @@ let rec make uri_or_conn = (module struct
 
     module Comparable = struct
       type t = t0
-      let compare (Ex x) (Ex y) = compare x.ak_id y.ak_id
+      let compare (Ex x) (Ex y) = compare x.at_id y.at_id
     end
     module Map = Prime_enummap.Make_monadic (Comparable) (Lwt)
     module Set = Prime_enumset.Make_monadic (Comparable) (Lwt)
 
-    let id (Ex ak) = ak.ak_id
-    let name (Ex ak) = Lwt.return ak.ak_name
+    let id (Ex at) = at.at_id
+    let name (Ex at) = Lwt.return at.at_name
 
-    let of_id', of_id_cache = Cache.memo_lwt_conn @@ fun ?conn ak_id ->
+    let of_id', of_id_cache = Cache.memo_lwt_conn @@ fun ?conn at_id ->
       with_db ?conn @@ fun (module C : CONNECTION) ->
       C.find Q.at_by_id
 	     C.Tuple.(fun tup -> text 0 tup, text 1 tup)
-	     C.Param.([|int32 ak_id|]) >|= fun (ak_name, value_type) ->
-      let Type.Ex ak_value_type = Type.of_string value_type in
-      Beacon.embed attribute_type_grade @@ fun ak_beacon ->
-      Ex {ak_id; ak_name; ak_value_type; ak_beacon}
+	     C.Param.([|int32 at_id|]) >|= fun (at_name, value_type) ->
+      let Type.Ex at_value_type = Type.of_string value_type in
+      Beacon.embed attribute_type_grade @@ fun at_beacon ->
+      Ex {at_id; at_name; at_value_type; at_beacon}
 
     let of_id id = of_id' id
 
-    let of_name, of_name_cache = memo_1lwt @@ fun ak_name ->
+    let of_name, of_name_cache = memo_1lwt @@ fun at_name ->
       with_db @@ fun (module C : CONNECTION) ->
       C.find_opt Q.at_by_name
 		 C.Tuple.(fun tup -> int32 0 tup, text 1 tup)
-		 C.Param.([|text ak_name|]) >|=
-      Option.map begin fun (ak_id, value_type) ->
-	let Type.Ex ak_value_type = Type.of_string value_type in
-	Beacon.embed attribute_type_grade @@ fun ak_beacon ->
-	  (Ex {ak_id; ak_name; ak_value_type; ak_beacon})
+		 C.Param.([|text at_name|]) >|=
+      Option.map begin fun (at_id, value_type) ->
+	let Type.Ex at_value_type = Type.of_string value_type in
+	Beacon.embed attribute_type_grade @@ fun at_beacon ->
+	  (Ex {at_id; at_name; at_value_type; at_beacon})
       end
 
-    let create vt ak_name =
+    let create vt at_name =
       with_db @@ fun ((module C : CONNECTION) as conn) ->
       C.find Q.at_create C.Tuple.(int32 0)
-	     C.Param.([|text ak_name; text (Type.string_of_t0 vt)|])
+	     C.Param.([|text at_name; text (Type.string_of_t0 vt)|])
 	>>= of_id' ~conn
 
-    let delete (Ex ak) =
+    let delete (Ex at) =
       with_db @@ fun (module C : CONNECTION) ->
-      C.exec Q.at_delete C.Param.([|int32 ak.ak_id|])
+      C.exec Q.at_delete C.Param.([|int32 at.at_id|])
   end
 
   module Attribute = struct
@@ -534,43 +534,43 @@ let rec make uri_or_conn = (module struct
     let can_asub_byattr, can_asub_byattr_cache =
       memo_2lwt @@ fun (et, et') ->
       with_db @@ fun ((module C) as conn) ->
-      let aux tup akm =
-	lwt ak = Attribute_type.of_id' ~conn (C.Tuple.int32 0 tup) in
+      let aux tup at_map =
+	lwt at = Attribute_type.of_id' ~conn (C.Tuple.int32 0 tup) in
 	let mult = Multiplicity.of_int (C.Tuple.int 1 tup) in
-	Lwt.return (Attribute_type.Map.add ak mult akm) in
+	Lwt.return (Attribute_type.Map.add at mult at_map) in
       C.fold_s Q.et_can_asub_byattr aux C.Param.([|int32 et; int32 et'|])
 	       Attribute_type.Map.empty
 
     let can_asub', can_asub_cache =
-      memo_3lwt @@ fun (et, et', ak) ->
+      memo_3lwt @@ fun (et, et', at) ->
       with_db @@ fun (module C) ->
       let aux tup = Multiplicity.of_int (C.Tuple.int 0 tup) in
       C.find_opt Q.et_can_asub aux
-		 C.Param.([|int32 et; int32 et'; int32 ak|])
+		 C.Param.([|int32 et; int32 et'; int32 at|])
 
-    let can_asub et et' ak =
-      can_asub' et et' ak.Attribute_type.ak_id
+    let can_asub et et' at =
+      can_asub' et et' at.Attribute_type.at_id
 
     let asub_elements () =
       with_db @@ fun ((module C) as conn) ->
       let aux tup acc =
 	let et0, et1 = C.Tuple.(int32 0 tup, int32 1 tup) in
 	let mu = Multiplicity.of_int C.Tuple.(int 3 tup) in
-	Attribute_type.of_id' ~conn C.Tuple.(int32 2 tup) >|= fun ak ->
-	(et0, et1, ak, mu) :: acc in
+	Attribute_type.of_id' ~conn C.Tuple.(int32 2 tup) >|= fun at ->
+	(et0, et1, at, mu) :: acc in
       C.fold_s Q.et_asub_elements aux [||] []
 
-    let allow_asub et et' (Attribute_type.Ex ak) mu =
+    let allow_asub et et' (Attribute_type.Ex at) mu =
       with_db @@ fun (module C) ->
       let mu = Multiplicity.to_int mu in
       C.exec Q.et_allow_asub
-	     C.Param.([|int32 et; int32 et'; int32 ak.Attribute_type.ak_id;
+	     C.Param.([|int32 et; int32 et'; int32 at.Attribute_type.at_id;
 			int mu|])
 
-    let disallow_asub et et' (Attribute_type.Ex ak) =
+    let disallow_asub et et' (Attribute_type.Ex at) =
       with_db @@ fun (module C) ->
       C.exec Q.et_disallow_asub
-	     C.Param.([|int32 et; int32 et'; int32 ak.Attribute_type.ak_id|])
+	     C.Param.([|int32 et; int32 et'; int32 at.Attribute_type.at_id|])
 
     let display_name ~langs ?pl = name (* FIXME *)
   end
@@ -672,130 +672,130 @@ let rec make uri_or_conn = (module struct
       Ptuple : (module Caqti_sigs.TUPLE with type t = 't) * 't -> ptuple
 
     let getattr_integer, getattr_integer_cache =
-      memo_3lwt @@ fun (e, e', ak_id) ->
+      memo_3lwt @@ fun (e, e', at_id) ->
       with_db @@ fun (module C : CONNECTION) ->
       C.fold Q.e_select_integer_attribution
 	     C.Tuple.(fun tup -> Values.add (int 0 tup))
-	     C.Param.([|int32 e; int32 e'; int32 ak_id|])
+	     C.Param.([|int32 e; int32 e'; int32 at_id|])
 	     (Values.empty Type.Int)
 
     let getattr_text, getattr_text_cache =
-      memo_3lwt @@ fun (e, e', ak_id) ->
+      memo_3lwt @@ fun (e, e', at_id) ->
       with_db @@ fun (module C : CONNECTION) ->
       C.fold Q.e_select_text_attribution
 	     C.Tuple.(fun tup -> Values.add (text 0 tup))
-	     C.Param.([|int32 e; int32 e'; int32 ak_id|])
+	     C.Param.([|int32 e; int32 e'; int32 at_id|])
 	     (Values.empty Type.String)
 
-    let getattr (type a) e e' (ak : a Attribute_type.t1) : a Values.t Lwt.t =
-      match Attribute_type.type1 ak with
+    let getattr (type a) e e' (at : a Attribute_type.t1) : a Values.t Lwt.t =
+      match Attribute_type.type1 at with
       | Type.Bool ->
-	getattr_integer e e' ak.Attribute_type.ak_id >|= fun s ->
+	getattr_integer e e' at.Attribute_type.at_id >|= fun s ->
 	Values.fold (Values.add *< (<>) 0) s (Values.empty Type.Bool)
-      | Type.Int -> getattr_integer e e' ak.Attribute_type.ak_id
-      | Type.String -> getattr_text e e' ak.Attribute_type.ak_id
+      | Type.Int -> getattr_integer e e' at.Attribute_type.at_id
+      | Type.String -> getattr_text e e' at.Attribute_type.at_id
 
     let asub_eq_integer, asub_eq_integer_cache =
-      memo_3lwt @@ fun (e, ak_id, x) ->
+      memo_3lwt @@ fun (e, at_id, x) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asub_eq_integer f C.Param.([|int32 e; int32 ak_id; int x|])
+      C.fold Q.e_asub_eq_integer f C.Param.([|int32 e; int32 at_id; int x|])
 	     Set.empty
 
     let asub_eq_text, asub_eq_text_cache =
-      memo_3lwt @@ fun (e, ak_id, x) ->
+      memo_3lwt @@ fun (e, at_id, x) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asub_eq_text f C.Param.([|int32 e; int32 ak_id; text x|])
+      C.fold Q.e_asub_eq_text f C.Param.([|int32 e; int32 at_id; text x|])
 	     Set.empty
 
-    let asub_eq (type a) e (ak : a Attribute_type.t1) : a -> Set.t Lwt.t =
+    let asub_eq (type a) e (at : a Attribute_type.t1) : a -> Set.t Lwt.t =
       let open Attribute_type in
-      match type1 ak with
-      | Type.Bool -> fun x -> asub_eq_integer e ak.ak_id (if x then 1 else 0)
-      | Type.Int -> asub_eq_integer e ak.ak_id
-      | Type.String -> asub_eq_text e ak.ak_id
+      match type1 at with
+      | Type.Bool -> fun x -> asub_eq_integer e at.at_id (if x then 1 else 0)
+      | Type.Int -> asub_eq_integer e at.at_id
+      | Type.String -> asub_eq_text e at.at_id
 
     let asuper_eq_integer, asuper_eq_integer_cache =
-      memo_3lwt @@ fun (e, ak_id, x) ->
+      memo_3lwt @@ fun (e, at_id, x) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asuper_eq_integer f C.Param.([|int32 e; int32 ak_id; int x|])
+      C.fold Q.e_asuper_eq_integer f C.Param.([|int32 e; int32 at_id; int x|])
 	     Set.empty
 
     let asuper_eq_text, asuper_eq_text_cache =
-      memo_3lwt @@ fun (e, ak_id, x) ->
+      memo_3lwt @@ fun (e, at_id, x) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asuper_eq_text f C.Param.([|int32 e; int32 ak_id; text x|])
+      C.fold Q.e_asuper_eq_text f C.Param.([|int32 e; int32 at_id; text x|])
 	     Set.empty
 
-    let asuper_eq (type a) e (ak : a Attribute_type.t1) : a -> Set.t Lwt.t =
+    let asuper_eq (type a) e (at : a Attribute_type.t1) : a -> Set.t Lwt.t =
       let open Attribute_type in
-      match type1 ak with
-      | Type.Bool -> fun x -> asuper_eq_integer e ak.ak_id (if x then 1 else 0)
-      | Type.Int -> asuper_eq_integer e ak.ak_id
-      | Type.String -> asuper_eq_text e ak.ak_id
+      match type1 at with
+      | Type.Bool -> fun x -> asuper_eq_integer e at.at_id (if x then 1 else 0)
+      | Type.Int -> asuper_eq_integer e at.at_id
+      | Type.String -> asuper_eq_text e at.at_id
 
     let asub_get_integer, asub_get_integer_cache =
-      memo_2lwt @@ fun (e, ak_id) ->
+      memo_2lwt @@ fun (e, at_id) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup m =
 	let e', v = C.Tuple.(int32 0 tup, int 1 tup) in
 	let vs = try Map.find e' m with Not_found -> Values.empty Type.Int in
 	Map.add e' (Values.add v vs) m in
-      C.fold Q.e_asub_get_integer f C.Param.([|int32 e; int32 ak_id|])
+      C.fold Q.e_asub_get_integer f C.Param.([|int32 e; int32 at_id|])
 	     Map.empty
 
     let asub_get_text, asub_get_text_cache =
-      memo_2lwt @@ fun (e, ak_id) ->
+      memo_2lwt @@ fun (e, at_id) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup m =
 	let e', v = C.Tuple.(int32 0 tup, text 1 tup) in
 	let vs = try Map.find e' m with Not_found -> Values.empty Type.String in
 	Map.add e' (Values.add v vs) m in
-      C.fold Q.e_asub_get_text f C.Param.([|int32 e; int32 ak_id|]) Map.empty
+      C.fold Q.e_asub_get_text f C.Param.([|int32 e; int32 at_id|]) Map.empty
 
-    let asub_get (type a) e (ak : a Attribute_type.t1)
+    let asub_get (type a) e (at : a Attribute_type.t1)
 	  : a Values.t Map.t Lwt.t =
-      match Attribute_type.type1 ak with
+      match Attribute_type.type1 at with
       | Type.Bool ->
-	lwt m = asub_get_integer e ak.Attribute_type.ak_id in
-	let t = Attribute_type.type1 ak in
+	lwt m = asub_get_integer e at.Attribute_type.at_id in
+	let t = Attribute_type.type1 at in
 	let aux vs = Values.fold (Values.add *< ((<>) 0)) vs (Values.empty t) in
 	Lwt.return (Map.map aux m)
-      | Type.Int -> asub_get_integer e ak.Attribute_type.ak_id
-      | Type.String -> asub_get_text e ak.Attribute_type.ak_id
+      | Type.Int -> asub_get_integer e at.Attribute_type.at_id
+      | Type.String -> asub_get_text e at.Attribute_type.at_id
 
     let asuper_get_integer, asuper_get_integer_cache =
-      memo_2lwt @@ fun (e, ak_id) ->
+      memo_2lwt @@ fun (e, at_id) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup m =
 	let e', v = C.Tuple.(int32 0 tup, int 1 tup) in
 	let vs = try Map.find e' m with Not_found -> Values.empty Type.Int in
 	Map.add e' (Values.add v vs) m in
-      C.fold Q.e_asuper_get_integer f C.Param.([|int32 e; int32 ak_id|])
+      C.fold Q.e_asuper_get_integer f C.Param.([|int32 e; int32 at_id|])
 	     Map.empty
 
     let asuper_get_text, asuper_get_text_cache =
-      memo_2lwt @@ fun (e, ak_id) ->
+      memo_2lwt @@ fun (e, at_id) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup m =
 	let e', v = C.Tuple.(int32 0 tup, text 1 tup) in
 	let vs = try Map.find e' m with Not_found -> Values.empty Type.String in
 	Map.add e' (Values.add v vs) m in
-      C.fold Q.e_asuper_get_text f C.Param.([|int32 e; int32 ak_id|]) Map.empty
+      C.fold Q.e_asuper_get_text f C.Param.([|int32 e; int32 at_id|]) Map.empty
 
-    let asuper_get (type a) e (ak : a Attribute_type.t1)
+    let asuper_get (type a) e (at : a Attribute_type.t1)
 	  : a Values.t Map.t Lwt.t =
-      match Attribute_type.type1 ak with
+      match Attribute_type.type1 at with
       | Type.Bool ->
-	lwt m = asuper_get_integer e ak.Attribute_type.ak_id in
-	let t = Attribute_type.type1 ak in
+	lwt m = asuper_get_integer e at.Attribute_type.at_id in
+	let t = Attribute_type.type1 at in
 	let aux vs = Values.fold (Values.add *< ((<>) 0)) vs (Values.empty t) in
 	Lwt.return (Map.map aux m)
-      | Type.Int -> asuper_get_integer e ak.Attribute_type.ak_id
-      | Type.String -> asuper_get_text e ak.Attribute_type.ak_id
+      | Type.Int -> asuper_get_integer e at.Attribute_type.at_id
+      | Type.String -> asuper_get_text e at.Attribute_type.at_id
 
     let clear_integer_caches () =
       Cache.clear getattr_integer_cache;
@@ -811,8 +811,8 @@ let rec make uri_or_conn = (module struct
       Cache.clear asub_get_text_cache;
       Cache.clear asuper_get_text_cache
 
-    let clear_attr_caches (type a) (ak : a Attribute_type.t1) : unit =
-      match Attribute_type.type1 ak with
+    let clear_attr_caches (type a) (at : a Attribute_type.t1) : unit =
+      match Attribute_type.type1 at with
       | Type.Bool -> clear_integer_caches ()
       | Type.Int -> clear_integer_caches ()
       | Type.String -> clear_text_caches ()
@@ -882,36 +882,36 @@ let rec make uri_or_conn = (module struct
       if subentity_rank > superentity_rank + 1 then Lwt.return_unit
 					       else lower_rank subentity
 
-    let addattr' (type a) e e' (ak : a Attribute_type.t1) (xs : a list) =
+    let addattr' (type a) e e' (at : a Attribute_type.t1) (xs : a list) =
       with_db @@ fun (module C : CONNECTION) ->
       let aux q conv =
 	Lwt_list.iter_s
 	  (fun x ->
 	    let p = C.Param.([|int32 e; int32 e';
-			       int32 ak.Attribute_type.ak_id; conv x|]) in
+			       int32 at.Attribute_type.at_id; conv x|]) in
 	    C.exec q p)
 	  xs in
-      match ak.Attribute_type.ak_value_type with
+      match at.Attribute_type.at_value_type with
       | Type.Bool -> aux Q.e_insert_integer_attribution
 		     (fun x -> C.Param.int (if x then 1 else 0))
       | Type.Int -> aux Q.e_insert_integer_attribution C.Param.int
       | Type.String -> aux Q.e_insert_text_attribution C.Param.text
 
-    let check_mult e e' ak =
+    let check_mult e e' at =
       lwt et = type_ e in
       lwt et' = type_ e' in
-      match_lwt Entity_type.can_asub et et' ak with
+      match_lwt Entity_type.can_asub et et' at with
       | None ->
 	lwt etn = Entity_type.name et in
 	lwt etn' = Entity_type.name et' in
 	lwt_failure_f "addattr: %s is not allowed from %s to %s."
-		      ak.Attribute_type.ak_name etn etn'
+		      at.Attribute_type.at_name etn etn'
       | Some mu -> Lwt.return mu
 
-    let addattr (type a) e e' (ak : a Attribute_type.t1) (xs : a list) =
-      lwt xs_pres = getattr e e' ak in
+    let addattr (type a) e e' (at : a Attribute_type.t1) (xs : a list) =
+      lwt xs_pres = getattr e e' at in
       lwt xs =
-	match_lwt check_mult e e' ak with
+	match_lwt check_mult e e' at with
 	| Multiplicity.May1 | Multiplicity.Must1 ->
 	  if Values.is_empty xs_pres
 	  then Lwt.return xs
@@ -924,29 +924,29 @@ let rec make uri_or_conn = (module struct
 	      (fun x -> if Hashtbl.mem ht x then false else
 			(Hashtbl.add ht x (); true)) xs in
       if xs = [] then Lwt.return_unit else
-      addattr' e e' ak xs >|=
+      addattr' e e' at xs >|=
       fun () ->
-	clear_attr_caches ak;
+	clear_attr_caches at;
 	emit_changed e `Asuper;
 	emit_changed e' `Asub
 
-    let delattr' (type a) e e' (ak : a Attribute_type.t1) (xs : a list) =
+    let delattr' (type a) e e' (at : a Attribute_type.t1) (xs : a list) =
       with_db @@ fun (module C : CONNECTION) ->
       let aux q conv =
 	Lwt_list.iter_s
 	  (fun x ->
 	    let p = C.Param.([|int32 e; int32 e';
-			       int32 ak.Attribute_type.ak_id; conv x|]) in
+			       int32 at.Attribute_type.at_id; conv x|]) in
 	    C.exec q p)
 	  xs in
-      match ak.Attribute_type.ak_value_type with
+      match at.Attribute_type.at_value_type with
       | Type.Bool -> aux Q.e_delete_integer_attribution
 		     (fun x -> C.Param.int (if x then 1 else 0))
       | Type.Int -> aux Q.e_delete_integer_attribution C.Param.int
       | Type.String -> aux Q.e_delete_text_attribution C.Param.text
 
-    let delattr (type a) e e' (ak : a Attribute_type.t1) (xs : a list) =
-      lwt xs_pres = getattr e e' ak in
+    let delattr (type a) e e' (at : a Attribute_type.t1) (xs : a list) =
+      lwt xs_pres = getattr e e' at in
       let xs =
 	let ht = Hashtbl.create 7 in
 	Values.iter (fun x -> Hashtbl.add ht x ()) xs_pres;
@@ -954,21 +954,21 @@ let rec make uri_or_conn = (module struct
 	  (fun x -> if not (Hashtbl.mem ht x) then false else
 		    (Hashtbl.remove ht x; true)) xs in
       if xs = [] then Lwt.return_unit else
-      delattr' e e' ak xs >|=
+      delattr' e e' at xs >|=
       fun () ->
-	clear_attr_caches ak;
+	clear_attr_caches at;
 	emit_changed e `Asuper;
 	emit_changed e' `Asub
 
-    let setattr (type a) e e' (ak : a Attribute_type.t1) (xs : a list) =
-      begin match_lwt check_mult e e' ak with
+    let setattr (type a) e e' (at : a Attribute_type.t1) (xs : a list) =
+      begin match_lwt check_mult e e' at with
       | Multiplicity.May1 | Multiplicity.Must1 ->
 	if List.length xs <= 1 then Lwt.return_unit else
 	lwt_failure_f "addattr: Attribute already set.";
       | Multiplicity.May | Multiplicity.Must ->
 	Lwt.return_unit
       end >>
-      lwt xs_pres = getattr e e' ak in
+      lwt xs_pres = getattr e e' at in
       let ht = Hashtbl.create 7 in
       Values.iter (fun x -> Hashtbl.add ht x false) xs_pres;
       let xs_ins =
@@ -980,10 +980,10 @@ let rec make uri_or_conn = (module struct
 	  xs in
       let xs_del =
 	Hashtbl.fold (fun x keep acc -> if keep then acc else x :: acc) ht [] in
-      (if xs_del = [] then Lwt.return_unit else delattr' e e' ak xs_del) >>
-      (if xs_ins = [] then Lwt.return_unit else addattr' e e' ak xs_ins) >|=
+      (if xs_del = [] then Lwt.return_unit else delattr' e e' at xs_del) >>
+      (if xs_ins = [] then Lwt.return_unit else addattr' e e' at xs_ins) >|=
       fun () ->
-	clear_attr_caches ak;
+	clear_attr_caches at;
 	emit_changed e `Asuper;
 	emit_changed e' `Asub
 
