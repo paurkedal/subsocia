@@ -53,6 +53,7 @@ and lex = parse
   | '+' { PLUS }
   | ',' { COMMA }
   | '_' { UNDERSCORE }
+  | ":" { COLON }
   | ":!" space { AT_CREATE }
   | ":?" space { AT_DELETE }
   | ":*" space { ET_CREATE }

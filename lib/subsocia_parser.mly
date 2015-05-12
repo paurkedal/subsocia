@@ -30,7 +30,7 @@ let parse_error msg =
 %token EOF CREATE MODIFY DELETE
 %token AT_CREATE AT_DELETE ET_CREATE ET_MODIFY ET_DELETE
 %token DELINCL ADDINCL ADDATTR DELATTR SETATTR
-%token EQ SLASH TOP MINUS PLUS COMMA LBRACE RBRACE UNDERSCORE
+%token EQ SLASH COLON TOP MINUS PLUS COMMA LBRACE RBRACE UNDERSCORE
 %token<string> EQ_VERB STR STRING AUX_STRING AUX_SELECTOR
 %token<int32> ID
 
@@ -108,6 +108,10 @@ relative_path:
   | relative_path SLASH path_component { Select_with ($1, $3) }
   ;
 path_component:
+    attribute { $1 }
+  | attribute COLON STR { Select_type ($1, $3) }
+  ;
+attribute:
     disjunction { $1 }
   | STR EQ STR { Select_adjacent (Asub (Attribute_eq ($1, $3))) }
   | STR EQ_VERB { Select_adjacent (Asub (Attribute_eq ($1, $2))) }

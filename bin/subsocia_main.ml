@@ -59,6 +59,7 @@ let aselector_parser ~with_presence s =
   let rec aux acc = function
     | Select_top | Select_id _ | Select_with _ | Select_union _
     | Select_adjacent (Dsub | Dsuper | Asuper _)
+    | Select_type _
 	as sel_att ->
       invalid_arg_f "The selector %s cannot be used for attribute assignement. \
 		     It must be a conjunction of one or more attribute \

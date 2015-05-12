@@ -27,5 +27,6 @@ type selector =
   | Select_union of selector * selector
   | Select_inter of selector * selector
   | Select_adjacent of attribute_predicate adjacency
+  | Select_type of selector * string
   | Select_top
   | Select_id of int32
