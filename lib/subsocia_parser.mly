@@ -100,25 +100,25 @@ path:
     relative_path { $1 }
   | TOP { Select_top }
   | ID { Select_id $1 }
-  | TOP relative_path { Select_sub (Select_top, $2) }
-  | ID relative_path { Select_sub (Select_id $1, $2) }
+  | TOP relative_path { Select_with (Select_top, $2) }
+  | ID relative_path { Select_with (Select_id $1, $2) }
   ;
 relative_path:
     path_component { $1 }
-  | relative_path SLASH path_component { Select_sub ($1, $3) }
+  | relative_path SLASH path_component { Select_with ($1, $3) }
   ;
 path_component:
     disjunction { $1 }
-  | PLUS { Select_dsub }
-  | MINUS { Select_dsuper }
-  | STR EQ STR { Select_asub ($1, $3) }
-  | STR EQ_VERB { Select_asub ($1, $2) }
-  | STR EQ UNDERSCORE { Select_asub_present $1 }
-  | MINUS STR EQ STR { Select_asuper ($2, $4) }
-  | MINUS STR EQ_VERB { Select_asuper ($2, $3) }
-  | MINUS STR EQ UNDERSCORE { Select_asuper_present $2 }
-  | STR { Select_asub ("unique_name", $1) }
-  | MINUS STR { Select_asuper ("unique_name", $2) }
+  | PLUS { Select_adjacent Dsub }
+  | MINUS { Select_adjacent Dsuper }
+  | STR EQ STR { Select_adjacent (Asub (Attribute_eq ($1, $3))) }
+  | STR EQ_VERB { Select_adjacent (Asub (Attribute_eq ($1, $2))) }
+  | STR EQ UNDERSCORE { Select_adjacent (Asub (Attribute_present $1)) }
+  | MINUS STR EQ STR { Select_adjacent (Asuper (Attribute_eq ($2, $4))) }
+  | MINUS STR EQ_VERB { Select_adjacent (Asuper (Attribute_eq ($2, $3))) }
+  | MINUS STR EQ UNDERSCORE { Select_adjacent (Asuper (Attribute_present $2)) }
+  | STR { Select_adjacent (Asub (Attribute_eq ("unique_name", $1))) }
+  | MINUS STR { Select_adjacent (Asuper (Attribute_eq ("unique_name", $2))) }
   ;
 disjunction:
     conjunction { $1 }

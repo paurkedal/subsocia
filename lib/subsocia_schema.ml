@@ -22,39 +22,39 @@ open Subsocia_selector
 let load_schema = Subsocia_lexer.parse_schema
 
 let rec aconj_of_selector = function
-  | Select_sub _ | Select_union _ | Select_top | Select_id _
-  | Select_dsub | Select_dsuper
-  | Select_asub_present _ | Select_asuper _ | Select_asuper_present _
+  | Select_with _ | Select_union _ | Select_top | Select_id _
+  | Select_adjacent (Dsub | Dsuper
+		      | Asub (Attribute_present _) | Asuper _)
       as sel_att -> fun _ ->
     invalid_arg_f "The selector %s cannot be used for attribute assignement. \
 		   It must be a conjunction of one or more attribute \
 		   equalities." (string_of_selector sel_att)
   | Select_inter (selA, selB) -> fun m ->
     aconj_of_selector selA (aconj_of_selector selB m)
-  | Select_asub (an, v) -> fun m ->
+  | Select_adjacent (Asub (Attribute_eq (an, v))) -> fun m ->
     let vs = try String_map.find an m with Not_found -> [] in
     String_map.add an (v :: vs) m
 
 let aselector_of_selector = function
-  | Select_sub (sel_ctx, sel_att) ->
+  | Select_with (sel_ctx, sel_att) ->
     Some sel_ctx, aconj_of_selector sel_att String_map.empty
   | sel_att ->
     None, aconj_of_selector sel_att String_map.empty
 
 let rec dconj_of_selector = function
-  | Select_sub _ | Select_union _ | Select_top | Select_id _
-  | Select_dsub | Select_dsuper | Select_asuper _ | Select_asuper_present _
+  | Select_with _ | Select_union _ | Select_top | Select_id _
+  | Select_adjacent (Dsub | Dsuper | Asuper _)
       as sel_att -> fun _ ->
     invalid_arg_f "The selector %s cannot be used for attribute assignement. \
 		   It must be a conjunction of one or more attribute \
 		   equalities." (string_of_selector sel_att)
   | Select_inter (selA, selB) -> fun m ->
     dconj_of_selector selA (dconj_of_selector selB m)
-  | Select_asub_present an -> fun m ->
+  | Select_adjacent (Asub (Attribute_present an)) -> fun m ->
     if String_map.contains an m then
       invalid_arg_f "Conflicting wildcard for %s." an;
     String_map.add an None m
-  | Select_asub (an, v) -> fun m ->
+  | Select_adjacent (Asub (Attribute_eq (an, v))) -> fun m ->
     let vs =
       try
 	match String_map.find an m with
@@ -64,7 +64,7 @@ let rec dconj_of_selector = function
     String_map.add an (Some (v :: vs)) m
 
 let dselector_of_selector = function
-  | Select_sub (sel_ctx, sel_att) ->
+  | Select_with (sel_ctx, sel_att) ->
     Some sel_ctx, dconj_of_selector sel_att String_map.empty
   | sel_att ->
     None, dconj_of_selector sel_att String_map.empty

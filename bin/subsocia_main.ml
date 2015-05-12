@@ -57,39 +57,40 @@ let selector_conv = selector_parser, selector_printer
 
 let aselector_parser ~with_presence s =
   let rec aux acc = function
-    | Select_top | Select_id _ | Select_sub _ | Select_union _
-    | Select_dsub | Select_dsuper | Select_asuper _ | Select_asuper_present _
+    | Select_top | Select_id _ | Select_with _ | Select_union _
+    | Select_adjacent (Dsub | Dsuper | Asuper _)
 	as sel_att ->
       invalid_arg_f "The selector %s cannot be used for attribute assignement. \
 		     It must be a conjunction of one or more attribute \
 		     equalities." (string_of_selector sel_att)
     | Select_inter (selA, selB) -> aux (aux acc selB) selA
-    | Select_asub (an, av) -> (an, Some av) :: acc
-    | Select_asub_present an ->
+    | Select_adjacent (Asub (Attribute_eq (an, av))) ->
+      (an, Some av) :: acc
+    | Select_adjacent (Asub (Attribute_present an)) ->
       if not with_presence then invalid_arg_f "Presence selector not allowed.";
       (an, None) :: acc in
   try
     `Ok
       begin match selector_of_string s with
-      | Select_sub (sel_ctx, sel_att) -> Some sel_ctx, aux [] sel_att
+      | Select_with (sel_ctx, sel_att) -> Some sel_ctx, aux [] sel_att
       | sel_att -> None, aux [] sel_att
       end
   with Invalid_argument msg -> `Error msg
 
 let aselector_printer fmtr (ctx, asgn) =
   let select_attr = function
-    | (an, None) -> Select_asub_present an
-    | (an, Some av) -> Select_asub (an, av) in
+    | (an, None) -> Select_adjacent (Asub (Attribute_present an))
+    | (an, Some av) -> Select_adjacent (Asub (Attribute_eq (an, av))) in
   let sel_attr =
     match asgn with
     | [] -> assert false
     | anv :: xs ->
-      List.fold_left (fun acc anv -> Select_sub (acc, select_attr anv))
+      List.fold_left (fun acc anv -> Select_with (acc, select_attr anv))
 		     (select_attr anv) xs in
   Format.pp_print_string fmtr @@
     string_of_selector
       (match ctx with None -> sel_attr
-		    | Some sel_ctx -> Select_sub (sel_ctx, sel_attr))
+		    | Some sel_ctx -> Select_with (sel_ctx, sel_attr))
 
 let aselector_conv =
   aselector_parser ~with_presence:false, aselector_printer

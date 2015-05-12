@@ -16,15 +16,16 @@
 
 (** Selector type definition. *)
 
+type 'a adjacency = Dsub | Dsuper | Asub of 'a | Asuper of 'a
+
+type attribute_predicate =
+  | Attribute_present of string
+  | Attribute_eq of string * string
+
 type selector =
-  | Select_sub of selector * selector
+  | Select_with of selector * selector
   | Select_union of selector * selector
   | Select_inter of selector * selector
-  | Select_dsub
-  | Select_dsuper
-  | Select_asub of string * string
-  | Select_asuper of string * string
-  | Select_asub_present of string
-  | Select_asuper_present of string
+  | Select_adjacent of attribute_predicate adjacency
   | Select_top
   | Select_id of int32
