@@ -109,20 +109,23 @@ relative_path:
   ;
 path_component:
     disjunction { $1 }
-  | PLUS { Select_adjacent Dsub }
-  | MINUS { Select_adjacent Dsuper }
   | STR EQ STR { Select_adjacent (Asub (Attribute_eq ($1, $3))) }
   | STR EQ_VERB { Select_adjacent (Asub (Attribute_eq ($1, $2))) }
   | STR EQ UNDERSCORE { Select_adjacent (Asub (Attribute_present $1)) }
   | MINUS STR EQ STR { Select_adjacent (Asuper (Attribute_eq ($2, $4))) }
   | MINUS STR EQ_VERB { Select_adjacent (Asuper (Attribute_eq ($2, $3))) }
   | MINUS STR EQ UNDERSCORE { Select_adjacent (Asuper (Attribute_present $2)) }
-  | STR { Select_adjacent (Asub (Attribute_eq ("unique_name", $1))) }
-  | MINUS STR { Select_adjacent (Asuper (Attribute_eq ("unique_name", $2))) }
   ;
 disjunction:
+    disjunction_case { $1 }
+  | disjunction COMMA disjunction_case { Select_union ($1, $3) }
+  ;
+disjunction_case:
     conjunction { $1 }
-  | disjunction COMMA conjunction { Select_union ($1, $3) }
+  | STR { Select_adjacent (Asub (Attribute_eq ("unique_name", $1))) }
+  | PLUS { Select_adjacent Dsub }
+  | MINUS { Select_adjacent Dsuper }
+  | MINUS STR { Select_adjacent (Asuper (Attribute_eq ("unique_name", $2))) }
   ;
 conjunction:
     braced { $1 }
