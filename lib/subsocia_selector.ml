@@ -33,8 +33,13 @@ let is_reserved = function
   | '{' | '}' | '/' | '-' | '+' | ',' | '=' -> true
   | _ -> false
 
+let p_slash = 0
+let p_equal = 1
+let p_disj = 2
+let p_conj = 3
+
 let bprint_attr dir buf p k v =
-  if p > 1 then Buffer.add_char buf '{';
+  if p > p_equal then Buffer.add_char buf '{';
   Buffer.add_string buf k;
   Buffer.add_char buf '=';
   if String.exists is_reserved v then begin
@@ -44,53 +49,53 @@ let bprint_attr dir buf p k v =
     Buffer.add_char buf '}'
   end else
     Buffer.add_string buf v;
-  if p > 1 then Buffer.add_char buf '}'
+  if p > p_equal then Buffer.add_char buf '}'
 
 let rec bprint_selector buf p = function
   | Select_with (s0, s1) ->
-    if p > 0 then Buffer.add_char buf '{';
-    bprint_selector buf 0 s0;
+    if p > p_slash then Buffer.add_char buf '{';
+    bprint_selector buf p_slash s0;
     Buffer.add_char buf '/';
-    bprint_selector buf 0 s1;
-    if p > 0 then Buffer.add_char buf '}'
+    bprint_selector buf p_slash s1;
+    if p > p_slash then Buffer.add_char buf '}'
   | Select_adjacent (Asub (Attribute_eq (k, v))) ->
     bprint_attr `Pred buf p k v
   | Select_adjacent (Asuper (Attribute_eq (k, v))) ->
     bprint_attr `Succ buf p k v
   | Select_adjacent (Asub (Attribute_present k)) ->
-    if p > 1 then Buffer.add_char buf '{';
+    if p > p_equal then Buffer.add_char buf '{';
     Buffer.add_string buf k;
     Buffer.add_string buf "=_";
-    if p > 1 then Buffer.add_char buf '}'
+    if p > p_equal then Buffer.add_char buf '}'
   | Select_adjacent (Asuper (Attribute_present k)) ->
-    if p > 1 then Buffer.add_char buf '{';
+    if p > p_equal then Buffer.add_char buf '{';
     Buffer.add_char buf succ_char;
     Buffer.add_string buf k;
     Buffer.add_string buf "=_";
-    if p > 1 then Buffer.add_char buf '}'
+    if p > p_equal then Buffer.add_char buf '}'
   | Select_top -> Buffer.add_char buf '#'
   | Select_id id -> bprintf buf "#%ld" id
   | Select_adjacent Dsub ->
-    if p > 1 then Buffer.add_char buf '{';
+    if p > p_equal then Buffer.add_char buf '{';
     Buffer.add_char buf pred_char;
-    if p > 1 then Buffer.add_char buf '}'
+    if p > p_equal then Buffer.add_char buf '}'
   | Select_adjacent Dsuper ->
-    if p > 1 then Buffer.add_char buf '{';
+    if p > p_equal then Buffer.add_char buf '{';
     Buffer.add_char buf succ_char;
-    if p > 1 then Buffer.add_char buf '}'
+    if p > p_equal then Buffer.add_char buf '}'
   | Select_union (s0, s1) ->
-    if p > 2 then Buffer.add_char buf '{';
-    bprint_selector buf 2 s0;
+    if p > p_disj then Buffer.add_char buf '{';
+    bprint_selector buf p_disj s0;
     Buffer.add_char buf ',';
-    bprint_selector buf 2 s1;
-    if p > 2 then Buffer.add_char buf '}'
+    bprint_selector buf p_disj s1;
+    if p > p_disj then Buffer.add_char buf '}'
   | Select_inter (s0, s1) ->
-    bprint_selector buf 3 s0;
-    bprint_selector buf 3 s1
+    bprint_selector buf p_conj s0;
+    bprint_selector buf p_conj s1
 
 let string_of_selector s =
   let buf = Buffer.create 80 in
-  bprint_selector buf 0 s;
+  bprint_selector buf p_slash s;
   Buffer.contents buf
 
 module Selector_utils (C : Subsocia_intf.S) = struct
