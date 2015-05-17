@@ -62,12 +62,12 @@ CREATE TABLE subsocia.integer_attribution (
     superentity_id integer NOT NULL REFERENCES subsocia.entity,
     attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
     value integer NOT NULL,
-    PRIMARY KEY (superentity_id, subentity_id, attribute_type_id)
+    PRIMARY KEY (superentity_id, subentity_id, attribute_type_id, value)
 );
 CREATE TABLE subsocia.text_attribution (
     subentity_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
     superentity_id integer NOT NULL REFERENCES subsocia.entity,
     attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
     value text NOT NULL,
-    PRIMARY KEY (superentity_id, subentity_id, attribute_type_id)
+    PRIMARY KEY (superentity_id, subentity_id, attribute_type_id, value)
 );
