@@ -102,6 +102,10 @@ module Make (Base : Subsocia_intf.S) = struct
     include Base.Entity
     include Subsocia_selector.Selector_utils (Base)
 
+    let force_sub subentity superentity =
+      lwt is_sub = is_sub subentity superentity in
+      if is_sub then Lwt.return_unit else force_dsub subentity superentity
+
     let getattr_opt e e' at =
       lwt vs = getattr e e' at in
       let n = Values.cardinal vs in

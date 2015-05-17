@@ -91,6 +91,7 @@ let set_authenticalia subject auth =
   | Some amg ->
     lwt at_unique_name = Const.at_unique_name in
     lwt auth_top = auth_method_group auth.auth_method in
+    Entity.force_sub subject amg >>
     Entity.setattr subject amg at_unique_name [auth.auth_identity]
 
 let autoreg_entity_of_authenticalia auth =

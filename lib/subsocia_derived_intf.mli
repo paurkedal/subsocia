@@ -72,6 +72,8 @@ module type S = sig
 		    and module Set = Base.Entity.Set
 		    and module Map = Base.Entity.Map
 
+    val force_sub : t -> t -> unit Lwt.t
+
     val select_from : selector -> Set.t -> Set.t Lwt.t
     val select : selector -> Set.t Lwt.t
     val select_opt : selector -> t option Lwt.t
