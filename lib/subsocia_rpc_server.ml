@@ -16,9 +16,29 @@
 
 open Pwt_infix
 open Subsocia_common
+open Subsocia_rpc_types
 open Unprime
 open Unprime_list
 open Unprime_option
+
+module Utils (C : Subsocia_intf.S) = struct
+  let decode_eap = function
+    | Eap_present e_id ->
+      lwt C.Attribute_type.Ex at = C.Attribute_type.of_id e_id in
+      Lwt.return (C.Attribute.Present at)
+    | Eap_eq (e_id, av) ->
+      lwt C.Attribute_type.Ex at = C.Attribute_type.of_id e_id in
+      let x = Value.coerce (C.Attribute_type.type1 at) av in
+      Lwt.return (C.Attribute.Eq (at, x))
+    | Eap_leq (e_id, av) ->
+      lwt C.Attribute_type.Ex at = C.Attribute_type.of_id e_id in
+      let x = Value.coerce (C.Attribute_type.type1 at) av in
+      Lwt.return (C.Attribute.Leq (at, x))
+    | Eap_geq (e_id, av) ->
+      lwt C.Attribute_type.Ex at = C.Attribute_type.of_id e_id in
+      let x = Value.coerce (C.Attribute_type.type1 at) av in
+      Lwt.return (C.Attribute.Geq (at, x))
+end
 
 module Server_impl = struct
 
@@ -213,6 +233,18 @@ module Server_impl = struct
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id at_id in
       let vs1 = List.map (Value.coerce (C.Attribute_type.type1 at)) vs in
       C.Entity.delattr lb ub at vs1
+
+    let asub (module C : Subsocia_intf.S) e_id at_enc =
+      let module U = Utils (C) in
+      lwt e = C.Entity.of_id e_id in
+      lwt p = U.decode_eap at_enc in
+      C.Entity.asub e p >|= C.Entity.Set.elements *> List.map C.Entity.id
+
+    let asuper (module C : Subsocia_intf.S) e_id at_enc =
+      let module U = Utils (C) in
+      lwt e = C.Entity.of_id e_id in
+      lwt p = U.decode_eap at_enc in
+      C.Entity.asuper e p >|= C.Entity.Set.elements *> List.map C.Entity.id
 
     let asub_eq (module C : Subsocia_intf.S) e_id at_id v =
       lwt e = C.Entity.of_id e_id in

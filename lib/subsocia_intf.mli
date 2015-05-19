@@ -38,7 +38,14 @@ end
 
 module type ATTRIBUTE = sig
   module Attribute_type : ATTRIBUTE_TYPE
+
   type t0 = Ex : 'a Attribute_type.t1 * 'a -> t0
+
+  type predicate =
+    | Present : 'a Attribute_type.t1 -> predicate
+    | Eq : 'a Attribute_type.t1 * 'a -> predicate
+    | Leq : 'a Attribute_type.t1 * 'a -> predicate
+    | Geq : 'a Attribute_type.t1 * 'a -> predicate
 end
 
 module type ENTITY_TYPE = sig
@@ -97,6 +104,7 @@ end
 
 module type ENTITY = sig
   module Attribute_type : ATTRIBUTE_TYPE
+  module Attribute : ATTRIBUTE with module Attribute_type := Attribute_type
   module Entity_type : ENTITY_TYPE with module Attribute_type := Attribute_type
 
   type t
@@ -145,6 +153,14 @@ module type ENTITY = sig
   (** [delattr e e' at] removes attributes [xs] of type [et] from [e] to
       [e']. *)
 
+  val asub : t -> Attribute.predicate -> Set.t Lwt.t
+  (** [asub e p] are the attribution subentities of [e] along attributes for
+      which [p] holds. *)
+
+  val asuper : t -> Attribute.predicate -> Set.t Lwt.t
+  (** [asub e p] are the attribution superentities of [e] along attributes for
+      which [p] holds. *)
+
   val asub_eq : t -> 'a Attribute_type.t1 -> 'a -> Set.t Lwt.t
   (** [asub_eq e at v] are the attribution subentities of [e] along [at]
       gaining the value [v]. *)
@@ -176,5 +192,6 @@ module type S = sig
   module Attribute : ATTRIBUTE with module Attribute_type := Attribute_type
   module Entity_type : ENTITY_TYPE with module Attribute_type := Attribute_type
   module Entity : ENTITY with module Attribute_type := Attribute_type
+			  and module Attribute := Attribute
 			  and module Entity_type := Entity_type
 end

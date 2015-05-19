@@ -67,6 +67,7 @@ module type S = sig
 
   module Entity : sig
     include ENTITY with module Attribute_type := Base.Attribute_type
+		    and module Attribute := Base.Attribute
 		    and module Entity_type := Base.Entity_type
 		    and type t = Base.Entity.t
 		    and module Set = Base.Entity.Set

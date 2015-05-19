@@ -51,6 +51,8 @@ module Make (Base : Subsocia_intf.S) = struct
 	_fail "Wrong type for %s : %s, expected %s." an tn tn'
   end
 
+  module Attribute = Base.Attribute
+
   module Entity_type = Base.Entity_type
 
   module Const = struct

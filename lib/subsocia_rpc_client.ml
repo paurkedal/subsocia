@@ -16,6 +16,7 @@
 
 open Pwt_infix
 open Subsocia_common
+open Subsocia_rpc_types
 open Unprime
 open Unprime_list
 open Unprime_option
@@ -63,6 +64,11 @@ module Make (RPCM : RPCM) = struct
 
   module Attribute = struct
     type t0 = Ex : 'a Attribute_type.t1 * 'a -> t0
+    type predicate =
+      | Present : 'a Attribute_type.t1 -> predicate
+      | Eq : 'a Attribute_type.t1 * 'a -> predicate
+      | Leq : 'a Attribute_type.t1 * 'a -> predicate
+      | Geq : 'a Attribute_type.t1 * 'a -> predicate
   end
 
   module Entity_type = struct
@@ -171,6 +177,23 @@ module Make (RPCM : RPCM) = struct
       let t = Attribute_type.type1 at in
       Raw.delattr lb ub (Attribute_type.(id (Ex at)))
 		  (List.map (fun v -> Value.Ex (t, v)) vs)
+
+    let encode_predicate = function
+      | Attribute.Present at -> Eap_present (Attribute_type.(id (Ex at)))
+      | Attribute.Eq (at, x) ->
+	let t = Attribute_type.type1 at in
+	Eap_eq (Attribute_type.(id (Ex at)), Value.Ex (t, x))
+      | Attribute.Leq (at, x) ->
+	let t = Attribute_type.type1 at in
+	Eap_leq (Attribute_type.(id (Ex at)), Value.Ex (t, x))
+      | Attribute.Geq (at, x) ->
+	let t = Attribute_type.type1 at in
+	Eap_geq (Attribute_type.(id (Ex at)), Value.Ex (t, x))
+
+    let asub e p =
+      Raw.asub e (encode_predicate p) >|= Set.of_ordered_elements
+    let asuper e p =
+      Raw.asuper e (encode_predicate p) >|= Set.of_ordered_elements
 
     let asub_eq e at av =
       let t = Attribute_type.type1 at in

@@ -15,6 +15,7 @@
  *)
 
 open Subsocia_common
+open Subsocia_rpc_types
 
 module Attribute_type = struct
   external of_name : string -> (int32 * Type.t0) option = ""
@@ -71,6 +72,8 @@ module Entity = struct
   external setattr : int32 -> int32 -> int32 -> Value.t0 list -> unit=""
   external addattr : int32 -> int32 -> int32 -> Value.t0 list -> unit=""
   external delattr : int32 -> int32 -> int32 -> Value.t0 list -> unit=""
+  external asub : int32 -> encoded_attribute_predicate -> int32 list = ""
+  external asuper : int32 -> encoded_attribute_predicate -> int32 list = ""
   external asub_eq : int32 -> int32 -> Value.t0 -> int32 list = ""
   external asuper_eq : int32 -> int32 -> Value.t0 -> int32 list = ""
   external asub_get : int32 -> int32 -> (int32 * Value.t0) list = ""

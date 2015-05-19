@@ -29,6 +29,7 @@ Library "subsocia"
     Subsocia_version
   InternalModules:
     Subsocia_rpc_primitives,
+    Subsocia_rpc_types,
     Subsocia_lexer,
     Subsocia_parser,
     Subsocia_prereq
