@@ -168,16 +168,6 @@ module Q = struct
        WHERE NOT EXISTS \
 	(SELECT 0 FROM @inclusion WHERE superentity_id = entity_id)"
 
-  let e_dsub =
-    q "SELECT entity_id FROM @entity JOIN @inclusion \
-			  ON entity_id = subentity_id \
-       WHERE superentity_id = ?"
-
-  let e_dsuper =
-    q "SELECT entity_id FROM @entity JOIN @inclusion \
-			  ON entity_id = superentity_id \
-       WHERE subentity_id = ?"
-
   let e_select_precedes =
     q "WITH RECURSIVE successors(entity_id) AS ( \
 	  SELECT i.superentity_id AS entity_id \
