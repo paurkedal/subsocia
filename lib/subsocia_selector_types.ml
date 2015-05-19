@@ -21,6 +21,8 @@ type 'a adjacency = Dsub | Dsuper | Asub of 'a | Asuper of 'a
 type attribute_predicate =
   | Attribute_present of string
   | Attribute_eq of string * string
+  | Attribute_leq of string * string
+  | Attribute_geq of string * string
 
 type selector =
   | Select_with of selector * selector

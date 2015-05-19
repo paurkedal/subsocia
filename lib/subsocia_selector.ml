@@ -39,13 +39,13 @@ let p_equal = 2
 let p_disj = 3
 let p_conj = 4
 
-let bprint_attr dir buf p k v =
+let bprint_attr dir op buf p k v =
   if p > p_equal then Buffer.add_char buf '{';
   Buffer.add_string buf k;
-  Buffer.add_char buf '=';
+  Buffer.add_string buf op;
   if String.exists is_reserved v then begin
     Buffer.add_char buf '{';
-    if dir = `Succ then Buffer.add_char buf succ_char;
+    if dir = `Asuper then Buffer.add_char buf succ_char;
     Buffer.add_string buf v;
     Buffer.add_char buf '}'
   end else
@@ -60,9 +60,17 @@ let rec bprint_selector buf p = function
     bprint_selector buf p_slash s1;
     if p > p_slash then Buffer.add_char buf '}'
   | Select_adjacent (Asub (Attribute_eq (k, v))) ->
-    bprint_attr `Pred buf p k v
+    bprint_attr `Asub "=" buf p k v
   | Select_adjacent (Asuper (Attribute_eq (k, v))) ->
-    bprint_attr `Succ buf p k v
+    bprint_attr `Asuper "=" buf p k v
+  | Select_adjacent (Asub (Attribute_leq (k, v))) ->
+    bprint_attr `Asub "<=" buf p k v
+  | Select_adjacent (Asuper (Attribute_leq (k, v))) ->
+    bprint_attr `Asuper "<=" buf p k v
+  | Select_adjacent (Asub (Attribute_geq (k, v))) ->
+    bprint_attr `Asub ">=" buf p k v
+  | Select_adjacent (Asuper (Attribute_geq (k, v))) ->
+    bprint_attr `Asuper ">=" buf p k v
   | Select_adjacent (Asub (Attribute_present k)) ->
     if p > p_equal then Buffer.add_char buf '{';
     Buffer.add_string buf k;
@@ -112,6 +120,20 @@ module Selector_utils (C : Subsocia_intf.S) = struct
     | None -> Lwt.fail (Failure ("No attribute type is named " ^ an))
     | Some at -> Lwt.return at
 
+  let entype_ap = function
+    | Attribute_present an ->
+      req_at an >|= fun (C.Attribute_type.Ex at) ->
+      C.Attribute.Present at
+    | Attribute_eq (an, s) ->
+      req_at an >|= fun (C.Attribute_type.Ex at) ->
+      C.Attribute.Eq (at, Value.typed_of_string (C.Attribute_type.type1 at) s)
+    | Attribute_leq (an, s) ->
+      req_at an >|= fun (C.Attribute_type.Ex at) ->
+      C.Attribute.Leq (at, Value.typed_of_string (C.Attribute_type.type1 at) s)
+    | Attribute_geq (an, s) ->
+      req_at an >|= fun (C.Attribute_type.Ex at) ->
+      C.Attribute.Geq (at, Value.typed_of_string (C.Attribute_type.type1 at) s)
+
   let rec select_from = function
     | Select_with (selA, selB) -> fun es ->
       select_from selA es >>= select_from selB
@@ -123,37 +145,15 @@ module Selector_utils (C : Subsocia_intf.S) = struct
       lwt esA = select_from selA es in
       lwt esB = select_from selB es in
       Lwt.return (C.Entity.Set.inter esA esB)
-    | Select_adjacent (Asub (Attribute_eq (an, v))) -> fun es ->
-      lwt (C.Attribute_type.Ex at) = req_at an in
-      let t = C.Attribute_type.type1 at in
-      let x = Value.typed_of_string t v in
+    | Select_adjacent (Asub p) -> fun es ->
+      lwt p = entype_ap p in
       C.Entity.Set.fold_s
-	(fun e1 acc -> C.Entity.asub_eq e1 at x >|= C.Entity.Set.union acc)
+	(fun e1 acc -> C.Entity.asub e1 p >|= C.Entity.Set.union acc)
 	es C.Entity.Set.empty
-    | Select_adjacent (Asuper (Attribute_eq (an, v))) -> fun es ->
-      lwt (C.Attribute_type.Ex at) = req_at an in
-      let t = C.Attribute_type.type1 at in
-      let x = Value.typed_of_string t v in
+    | Select_adjacent (Asuper p) -> fun es ->
+      lwt p = entype_ap p in
       C.Entity.Set.fold_s
-	(fun e1 acc -> C.Entity.asuper_eq e1 at x >|= C.Entity.Set.union acc)
-	es C.Entity.Set.empty
-    | Select_adjacent (Asub (Attribute_present an)) -> fun es ->
-      lwt (C.Attribute_type.Ex at) = req_at an in
-      C.Entity.Set.fold_s
-	(fun e1 acc ->
-	  lwt m = C.Entity.asub_get e1 at in
-	  let s = C.Entity.Map.fold (fun e _ -> C.Entity.Set.add e) m
-				    C.Entity.Set.empty in
-	  Lwt.return (C.Entity.Set.union s acc))
-	es C.Entity.Set.empty
-    | Select_adjacent (Asuper (Attribute_present an)) -> fun es ->
-      lwt (C.Attribute_type.Ex at) = req_at an in
-      C.Entity.Set.fold_s
-	(fun e1 acc ->
-	  lwt m = C.Entity.asuper_get e1 at in
-	  let s = C.Entity.Map.fold (fun e _ -> C.Entity.Set.add e) m
-				    C.Entity.Set.empty in
-	  Lwt.return (C.Entity.Set.union s acc))
+	(fun e1 acc -> C.Entity.asuper e1 p >|= C.Entity.Set.union acc)
 	es C.Entity.Set.empty
     | Select_type (s, etn) -> fun es ->
       lwt et = match_lwt C.Entity_type.of_name etn with

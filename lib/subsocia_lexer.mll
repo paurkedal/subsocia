@@ -73,6 +73,8 @@ and lex = parse
   | "!<" { ADDINCL }
   | "?<" { DELINCL }
   | '=' { EQ }
+  | "<=" { LEQ }
+  | ">=" { GEQ }
   | "={" { EQ_VERB (lex_literal (Buffer.create 80) 0 lexbuf) }
   | '"' { lex_string (Buffer.create 80) lexbuf }
   | "#" { TOP }

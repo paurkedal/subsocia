@@ -30,7 +30,7 @@ let parse_error msg =
 %token EOF CREATE MODIFY DELETE
 %token AT_CREATE AT_DELETE ET_CREATE ET_MODIFY ET_DELETE
 %token DELINCL ADDINCL ADDATTR DELATTR SETATTR
-%token EQ SLASH COLON TOP MINUS PLUS COMMA LBRACE RBRACE UNDERSCORE
+%token EQ LEQ GEQ SLASH COLON TOP MINUS PLUS COMMA LBRACE RBRACE UNDERSCORE
 %token<string> EQ_VERB STR STRING AUX_STRING AUX_SELECTOR
 %token<int32> ID
 
@@ -116,9 +116,13 @@ attribute:
   | STR EQ STR { Select_adjacent (Asub (Attribute_eq ($1, $3))) }
   | STR EQ_VERB { Select_adjacent (Asub (Attribute_eq ($1, $2))) }
   | STR EQ UNDERSCORE { Select_adjacent (Asub (Attribute_present $1)) }
+  | STR LEQ STR { Select_adjacent (Asub (Attribute_leq ($1, $3))) }
+  | STR GEQ STR { Select_adjacent (Asub (Attribute_geq ($1, $3))) }
   | MINUS STR EQ STR { Select_adjacent (Asuper (Attribute_eq ($2, $4))) }
   | MINUS STR EQ_VERB { Select_adjacent (Asuper (Attribute_eq ($2, $3))) }
   | MINUS STR EQ UNDERSCORE { Select_adjacent (Asuper (Attribute_present $2)) }
+  | MINUS STR LEQ STR { Select_adjacent (Asuper (Attribute_leq ($2, $4))) }
+  | MINUS STR GEQ STR { Select_adjacent (Asuper (Attribute_geq ($2, $4))) }
   ;
 disjunction:
     disjunction_case { $1 }
