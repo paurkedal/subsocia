@@ -170,11 +170,15 @@ module Server_impl = struct
     let top (module C : Subsocia_intf.S) () = C.Entity.top >|= C.Entity.id
     let minimums (module C : Subsocia_intf.S) () =
       C.Entity.minimums () >|= C.Entity.Set.elements *> List.map C.Entity.id
-    let dsub (module C : Subsocia_intf.S) e_id =
-      C.Entity.of_id e_id >>= C.Entity.dsub >|=
+    let dsub (module C : Subsocia_intf.S) et_id e_id =
+      lwt et = Pwt_option.map_s C.Entity_type.of_id et_id in
+      lwt e = C.Entity.of_id e_id in
+      C.Entity.dsub ?et e >|=
       C.Entity.Set.elements *> List.map C.Entity.id
-    let dsuper (module C : Subsocia_intf.S) e_id =
-      C.Entity.of_id e_id >>= C.Entity.dsuper >|=
+    let dsuper (module C : Subsocia_intf.S) et_id e_id =
+      lwt et = Pwt_option.map_s C.Entity_type.of_id et_id in
+      lwt e = C.Entity.of_id e_id in
+      C.Entity.dsuper ?et e >|=
       C.Entity.Set.elements *> List.map C.Entity.id
     let is_sub (module C : Subsocia_intf.S) lb_id ub_id =
       lwt lb = C.Entity.of_id lb_id in

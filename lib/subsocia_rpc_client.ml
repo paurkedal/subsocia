@@ -149,8 +149,8 @@ module Make (RPCM : RPCM) = struct
     let type_members et = Raw.type_members et >|= Set.of_ordered_elements
     let top = Raw.top ()
     let minimums () = Raw.minimums () >|= Set.of_ordered_elements
-    let dsub e = Raw.dsub e >|= Set.of_ordered_elements
-    let dsuper e = Raw.dsuper e >|= Set.of_ordered_elements
+    let dsub ?et e = Raw.dsub et e >|= Set.of_ordered_elements
+    let dsuper ?et e = Raw.dsuper et e >|= Set.of_ordered_elements
 
     let getattr lb ub at =
       let t1 = Attribute_type.type1 at in

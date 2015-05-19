@@ -148,10 +148,19 @@ module Q = struct
 
   (* Entites *)
 
-  let e_dsuper =
+  let e_dsuper_any =
     q "SELECT superentity_id FROM @inclusion WHERE subentity_id = ?"
-  let e_dsub =
+  let e_dsub_any =
     q "SELECT subentity_id FROM @inclusion WHERE superentity_id = ?"
+
+  let e_dsuper_typed =
+    q "SELECT entity_id \
+       FROM @inclusion JOIN @entity ON superentity_id = entity_id \
+       WHERE subentity_id = ? AND entity_type_id = ?"
+  let e_dsub_typed =
+    q "SELECT entity_id \
+       FROM @inclusion JOIN @entity ON subentity_id = entity_id \
+       WHERE superentity_id = ? AND entity_type_id = ?"
 
   let e_type = q "SELECT entity_type_id FROM @entity WHERE entity_id = ?"
   let e_rank = q "SELECT entity_rank FROM @entity WHERE entity_id = ?"
@@ -609,15 +618,31 @@ let rec make uri_or_conn = (module struct
       let add tup = Set.add (C.Tuple.int32 0 tup) in
       C.fold Q.e_minimums add [||] Set.empty
 
-    let dsub, dsub_cache = memo_1lwt @@ fun e ->
+    let dsub_any, dsub_any_cache = memo_1lwt @@ fun e ->
       with_db @@ fun (module C) ->
       let add tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_dsub add C.Param.([|int32 e|]) Set.empty
+      C.fold Q.e_dsub_any add C.Param.([|int32 e|]) Set.empty
 
-    let dsuper, dsuper_cache = memo_1lwt @@ fun e ->
+    let dsuper_any, dsuper_any_cache = memo_1lwt @@ fun e ->
       with_db @@ fun (module C) ->
       let add tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_dsuper add C.Param.([|int32 e|]) Set.empty
+      C.fold Q.e_dsuper_any add C.Param.([|int32 e|]) Set.empty
+
+    let dsub_typed, dsub_typed_cache = memo_2lwt @@ fun (et, e) ->
+      with_db @@ fun (module C) ->
+      let add tup = Set.add (C.Tuple.int32 0 tup) in
+      C.fold Q.e_dsub_typed add C.Param.([|int32 e; int32 et|]) Set.empty
+
+    let dsuper_typed, dsuper_typed_cache = memo_2lwt @@ fun (et, e) ->
+      with_db @@ fun (module C) ->
+      let add tup = Set.add (C.Tuple.int32 0 tup) in
+      C.fold Q.e_dsuper_typed add C.Param.([|int32 e; int32 et|]) Set.empty
+
+    let dsub ?et e =
+      match et with None -> dsub_any e | Some et -> dsub_typed et e
+
+    let dsuper ?et e =
+      match et with None -> dsuper_any e | Some et -> dsuper_typed et e
 
     let create ?access entity_type =
       with_db @@ fun (module C) ->
@@ -636,7 +661,8 @@ let rec make uri_or_conn = (module struct
       with_db @@ fun (module C) ->
       C.exec Q.e_delete_entity C.Param.([|int32 e|]) >|= fun () ->
       Cache.clear minimums_cache;
-      Cache.clear dsub_cache
+      Cache.clear dsub_any_cache;
+      Cache.clear dsub_typed_cache
 
     let is_sub subentity superentity =
       if subentity = superentity then Lwt.return_true else
@@ -654,8 +680,10 @@ let rec make uri_or_conn = (module struct
 
     let clear_inclusion_caches () =
       Cache.clear minimums_cache;
-      Cache.clear dsub_cache;
-      Cache.clear dsuper_cache;
+      Cache.clear dsub_any_cache;
+      Cache.clear dsub_typed_cache;
+      Cache.clear dsuper_any_cache;
+      Cache.clear dsuper_typed_cache;
       Cache.clear inclusion_cache
 
     type ptuple =

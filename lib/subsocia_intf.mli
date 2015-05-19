@@ -121,10 +121,10 @@ module type ENTITY = sig
   val top : t Lwt.t
   val minimums : unit -> Set.t Lwt.t
 
-  val dsub : t -> Set.t Lwt.t
+  val dsub : ?et: Entity_type.t -> t -> Set.t Lwt.t
   (** [dsub e] fetches the direct subentities of [e]. *)
 
-  val dsuper : t -> Set.t Lwt.t
+  val dsuper : ?et: Entity_type.t -> t -> Set.t Lwt.t
   (** [dsuper e] fetches the direct superentities of [e]. *)
 
   val is_sub : t -> t -> bool Lwt.t
