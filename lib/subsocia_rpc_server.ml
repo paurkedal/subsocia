@@ -38,6 +38,11 @@ module Utils (C : Subsocia_intf.S) = struct
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id e_id in
       let x = Value.coerce (C.Attribute_type.type1 at) av in
       Lwt.return (C.Attribute.Geq (at, x))
+    | Eap_between (e_id, av0, av1) ->
+      lwt C.Attribute_type.Ex at = C.Attribute_type.of_id e_id in
+      let x0 = Value.coerce (C.Attribute_type.type1 at) av0 in
+      let x1 = Value.coerce (C.Attribute_type.type1 at) av1 in
+      Lwt.return (C.Attribute.Between (at, x0, x1))
 end
 
 module Server_impl = struct

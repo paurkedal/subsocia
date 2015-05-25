@@ -69,6 +69,7 @@ module Make (RPCM : RPCM) = struct
       | Eq : 'a Attribute_type.t1 * 'a -> predicate
       | Leq : 'a Attribute_type.t1 * 'a -> predicate
       | Geq : 'a Attribute_type.t1 * 'a -> predicate
+      | Between : 'a Attribute_type.t1 * 'a * 'a -> predicate
   end
 
   module Entity_type = struct
@@ -189,6 +190,10 @@ module Make (RPCM : RPCM) = struct
       | Attribute.Geq (at, x) ->
 	let t = Attribute_type.type1 at in
 	Eap_geq (Attribute_type.(id (Ex at)), Value.Ex (t, x))
+      | Attribute.Between (at, x0, x1) ->
+	let t = Attribute_type.type1 at in
+	Eap_between (Attribute_type.(id (Ex at)),
+		     Value.Ex (t, x0), Value.Ex (t, x1))
 
     let asub e p =
       Raw.asub e (encode_predicate p) >|= Set.of_ordered_elements

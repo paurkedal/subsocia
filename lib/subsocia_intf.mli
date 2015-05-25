@@ -46,6 +46,7 @@ module type ATTRIBUTE = sig
     | Eq : 'a Attribute_type.t1 * 'a -> predicate
     | Leq : 'a Attribute_type.t1 * 'a -> predicate
     | Geq : 'a Attribute_type.t1 * 'a -> predicate
+    | Between : 'a Attribute_type.t1 * 'a * 'a -> predicate
 end
 
 module type ENTITY_TYPE = sig

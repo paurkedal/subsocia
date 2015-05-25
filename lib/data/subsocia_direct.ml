@@ -32,6 +32,8 @@ let attribution_grade = fetch_grade
 
 let schema_prefix = ref "subsocia."
 
+let int_of_bool x = if x then 1 else 0
+
 let format_query sql = Caqti_query.prepare_fun @@ fun lang ->
   let buf = Buffer.create (String.length sql) in
   let conv =
@@ -271,6 +273,24 @@ module Q = struct
     q("SELECT superentity_id FROM @integer_attribution \
        WHERE subentity_id = ? AND attribute_type_id = ? AND value "^op^" ?")
 
+  let e_asub2_between_text =
+    q "SELECT subentity_id FROM @text_attribution \
+       WHERE superentity_id = ? AND attribute_type_id = ? \
+	 AND value >= ? AND value < ?"
+  let e_asub2_between_integer =
+    q "SELECT subentity_id FROM @integer_attribution \
+       WHERE superentity_id = ? AND attribute_type_id = ? \
+	 AND value >= ? AND value < ?"
+
+  let e_asuper2_between_text =
+    q "SELECT superentity_id FROM @text_attribution \
+       WHERE subentity_id = ? AND attribute_type_id = ? \
+	 AND value >= ? AND value < ?"
+  let e_asuper2_between_integer =
+    q "SELECT superentity_id FROM @integer_attribution \
+       WHERE subentity_id = ? AND attribute_type_id = ? \
+	 AND value >= ? AND value < ?"
+
   let e_asub_get_text =
     q "SELECT subentity_id, value FROM @text_attribution \
        WHERE superentity_id = ? AND attribute_type_id = ?"
@@ -468,6 +488,7 @@ let rec make uri_or_conn = (module struct
       | Eq : 'a Attribute_type.t1 * 'a -> predicate
       | Leq : 'a Attribute_type.t1 * 'a -> predicate
       | Geq : 'a Attribute_type.t1 * 'a -> predicate
+      | Between : 'a Attribute_type.t1 * 'a * 'a -> predicate
   end
 
   module Entity_type = struct
@@ -774,7 +795,28 @@ let rec make uri_or_conn = (module struct
       | Type.Int -> asub1_integer op e at.at_id
       | Type.String -> asub1_text op e at.at_id
 
-    let asub_eq at e = asub1 Q.ap1_eq at e
+    let asub2_between_integer, asub2_between_integer_cache =
+      memo_4lwt @@ fun (e, at_id, x0, x1) ->
+      with_db @@ fun (module C : CONNECTION) ->
+      let f tup = Set.add (C.Tuple.int32 0 tup) in
+      C.fold Q.e_asub2_between_integer f
+	     C.Param.[|int32 e; int32 at_id; int x0; int x1|] Set.empty
+
+    let asub2_between_text, asub2_between_text_cache =
+      memo_4lwt @@ fun (e, at_id, x0, x1) ->
+      with_db @@ fun (module C : CONNECTION) ->
+      let f tup = Set.add (C.Tuple.int32 0 tup) in
+      C.fold Q.e_asub2_between_text f
+	     C.Param.[|int32 e; int32 at_id; text x0; text x1|] Set.empty
+
+    let asub2_between (type a) e (at : a Attribute_type.t1)
+	: a -> a -> Set.t Lwt.t =
+      let open Attribute_type in
+      match type1 at with
+      | Type.Bool -> fun x0 x1 ->
+	asub2_between_integer e at.at_id (int_of_bool x0) (int_of_bool x1)
+      | Type.Int -> asub2_between_integer e at.at_id
+      | Type.String -> asub2_between_text e at.at_id
 
     let asub e = function
       | Attribute.Present at ->
@@ -786,6 +828,9 @@ let rec make uri_or_conn = (module struct
       | Attribute.Eq (at, x) -> asub1 Q.ap1_eq e at x
       | Attribute.Leq (at, x) -> asub1 Q.ap1_leq e at x
       | Attribute.Geq (at, x) -> asub1 Q.ap1_geq e at x
+      | Attribute.Between (at, x0, x1) -> asub2_between e at x0 x1
+
+    let asub_eq at e = asub1 Q.ap1_eq at e
 
     let asuper_present_integer, asuper_present_integer_cache =
       memo_2lwt @@ fun (e, at_id) ->
@@ -822,6 +867,29 @@ let rec make uri_or_conn = (module struct
       | Type.Int -> asuper1_integer op e at.at_id
       | Type.String -> asuper1_text op e at.at_id
 
+    let asuper2_between_integer, asuper2_between_integer_cache =
+      memo_4lwt @@ fun (e, at_id, x0, x1) ->
+      with_db @@ fun (module C : CONNECTION) ->
+      let f tup = Set.add (C.Tuple.int32 0 tup) in
+      C.fold Q.e_asuper2_between_integer f
+	     C.Param.[|int32 e; int32 at_id; int x0; int x1|] Set.empty
+
+    let asuper2_between_text, asuper2_between_text_cache =
+      memo_4lwt @@ fun (e, at_id, x0, x1) ->
+      with_db @@ fun (module C : CONNECTION) ->
+      let f tup = Set.add (C.Tuple.int32 0 tup) in
+      C.fold Q.e_asuper2_between_text f
+	     C.Param.[|int32 e; int32 at_id; text x0; text x1|] Set.empty
+
+    let asuper2_between (type a) e (at : a Attribute_type.t1)
+	: a -> a -> Set.t Lwt.t =
+      let open Attribute_type in
+      match type1 at with
+      | Type.Bool -> fun x0 x1 ->
+	asuper2_between_integer e at.at_id (int_of_bool x0) (int_of_bool x1)
+      | Type.Int -> asuper2_between_integer e at.at_id
+      | Type.String -> asuper2_between_text e at.at_id
+
     let asuper_eq at e = asuper1 Q.ap1_eq at e
 
     let asuper e = function
@@ -834,6 +902,7 @@ let rec make uri_or_conn = (module struct
       | Attribute.Eq (at, x) -> asuper1 Q.ap1_eq e at x
       | Attribute.Leq (at, x) -> asuper1 Q.ap1_leq e at x
       | Attribute.Geq (at, x) -> asuper1 Q.ap1_geq e at x
+      | Attribute.Between (at, x0, x1) -> asuper2_between e at x0 x1
 
     let asub_get_integer, asub_get_integer_cache =
       memo_2lwt @@ fun (e, at_id) ->
@@ -901,6 +970,8 @@ let rec make uri_or_conn = (module struct
       Cache.clear asuper_present_integer_cache;
       Cache.clear asub1_integer_cache;
       Cache.clear asuper1_integer_cache;
+      Cache.clear asub2_between_integer_cache;
+      Cache.clear asuper2_between_integer_cache;
       Cache.clear asub_get_integer_cache;
       Cache.clear asuper_get_integer_cache
 
@@ -910,6 +981,8 @@ let rec make uri_or_conn = (module struct
       Cache.clear asuper_present_text_cache;
       Cache.clear asub1_text_cache;
       Cache.clear asuper1_text_cache;
+      Cache.clear asub2_between_text_cache;
+      Cache.clear asuper2_between_text_cache;
       Cache.clear asub_get_text_cache;
       Cache.clear asuper_get_text_cache
 
