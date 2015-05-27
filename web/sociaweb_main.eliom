@@ -34,7 +34,8 @@
   open Sociaweb_request
   open Subsocia_connection
 
-  let listing ?(cls = []) frags = F.p ~a:[F.a_class cls] (List.map F.span frags)
+  let listing ?(cls = []) frags =
+    F.div ~a:[F.a_class cls] (List.map F.span frags)
 
   let ordered_entities ~cri es =
     let amend_name e =
