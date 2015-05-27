@@ -89,7 +89,6 @@ Library "subsocia-web-server"
   FindlibName: web-server
   Modules:
     server/Sociaweb_auth,
-    server/Sociaweb_content,
     server/Sociaweb_request
   BuildDepends: eliom.server, prime, subsocia, subsocia.data
   ByteOpt: -thread
@@ -101,6 +100,7 @@ Library "subsocia-web-module"
   FindlibParent: subsocia
   FindlibName: web-module
   Modules:
+    server/Sociaweb_content,
     server/Sociaweb_main,
     server/Sociaweb_registration,
     server/Sociaweb_restapi,

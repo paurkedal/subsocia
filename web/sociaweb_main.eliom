@@ -62,22 +62,18 @@
     Entity.relax_dsub lb ub
   let unconstrain_c = auth_sf Json.t<int32 * int32> relax_dsub
 
-  let render_neigh ~cri ent =
-    let id = Entity.id ent in
-    lwt name = Entity.display_name ~langs:cri.cri_langs ent in
-    Lwt.return [F.a ~service:entity_service [F.pcdata name] id]
+  let neighbour_link ~cri ent =
+    entity_link ~langs:cri.cri_langs ent >|= fun x -> [x]
 
-  let render_neigh_remove ~cri focus succ =
-    lwt can_edit = Entity.can_edit_entity cri.cri_operator succ in
+  let neighbour_with_remove ~cri focus dsuper =
+    lwt can_edit = Entity.can_edit_entity cri.cri_operator dsuper in
     let focus_id = Entity.id focus in
-    let succ_id = Entity.id succ in
-    lwt name = Entity.display_name ~langs:cri.cri_langs succ in
-    let link = F.a ~service:entity_service [F.pcdata name] succ_id in
+    let dsuper_id = Entity.id dsuper in
+    lwt link = entity_link ~langs:cri.cri_langs dsuper in
     if can_edit then begin
       let on_remove = {{fun _ ->
 	Eliom_lib.debug "Removing.";
-	Lwt.async @@ fun () ->
-	%unconstrain_c (%focus_id, %succ_id)
+	Lwt.async (fun () -> %unconstrain_c (%focus_id, %dsuper_id))
       }} in
       Lwt.return [
 	link; F.pcdata " ";
@@ -86,17 +82,15 @@
     end else
       Lwt.return [link]
 
-  let render_neigh_add ~cri focus succ =
-    lwt can_edit = Entity.can_edit_entity cri.cri_operator succ in
+  let neighbour_with_add ~cri focus dsuper =
+    lwt can_edit = Entity.can_edit_entity cri.cri_operator dsuper in
     let focus_id = Entity.id focus in
-    let succ_id = Entity.id succ in
-    lwt name = Entity.display_name ~langs:cri.cri_langs succ in
-    let link = F.a ~service:entity_service [F.pcdata name] succ_id in
+    let dsuper_id = Entity.id dsuper in
+    lwt link = entity_link ~langs:cri.cri_langs dsuper in
     if can_edit then begin
       let on_add = {{fun _ ->
 	Eliom_lib.debug "Adding.";
-	Lwt.async @@ fun () ->
-	%constrain_c (%focus_id, %succ_id)
+	Lwt.async (fun () -> %constrain_c (%focus_id, %dsuper_id))
       }} in
       Lwt.return [
 	link; F.pcdata " ";
@@ -141,14 +135,14 @@
        else Some (F.tr [F.td []; F.th [F.pcdata ub_name]] :: attr_trs))
 
   let render_dsuper ~cri ~enable_edit ent =
-    let render_succ =
-      if enable_edit then render_neigh_remove ent
-		     else render_neigh in
+    let neighbour =
+      if enable_edit then neighbour_with_remove ent
+		     else neighbour_link in
     lwt dsupers = Entity.dsuper ent in
     let dsupers' = Entity.Set.elements dsupers in
-    lwt succ_frags = Lwt_list.map_s (render_succ ~cri) dsupers' in
-    let succs_view = multicol ~cls:["succ1"] succ_frags in
-    lwt succs_add =
+    lwt dsuper_frags = Lwt_list.map_s (neighbour ~cri) dsupers' in
+    let dsuper_block = multicol ~cls:["dsuper1"] dsuper_frags in
+    lwt dsuper_add_block =
       if not enable_edit then Lwt.return_none else
       let operator = cri.cri_operator in
       lwt csupers = Entity.candidate_dsupers ent in
@@ -159,24 +153,24 @@
 	Lwt.return_none
       else
 	let csupers = Entity.Set.elements csupers in
-	lwt csupers = Lwt_list.map_s (render_neigh_add ~cri ent) csupers in
-	Lwt.return (Some (multicol ~cls:["candidate"; "succ1"] csupers)) in
+	lwt csupers = Lwt_list.map_s (neighbour_with_add ~cri ent) csupers in
+	Lwt.return (Some (multicol ~cls:["candidate"; "dsuper1"] csupers)) in
     Lwt.return @@
-      match succs_add with
+      match dsuper_add_block with
       | None ->
 	F.table ~a:[F.a_class ["layout"]]
 	  [F.tr [F.th [F.pcdata "Member of"]];
-	   F.tr [F.td [succs_view]]]
-      | Some succs_add ->
+	   F.tr [F.td [dsuper_block]]]
+      | Some dsuper_add_block ->
 	F.table ~a:[F.a_class ["layout"]]
 	  [F.tr [F.th [F.pcdata "Member of"]; F.th [F.pcdata "Not member of"]];
-	   F.tr [F.td [succs_view]; F.td [succs_add]]]
+	   F.tr [F.td [dsuper_block]; F.td [dsuper_add_block]]]
 
   let render_browser ~cri ?(enable_edit = true) ent =
     let open Html5 in
     lwt dsub = Entity.dsub ent in
     let dsub' = Entity.Set.elements dsub in
-    lwt pred_frags = Lwt_list.map_s (render_neigh ~cri) dsub' in
+    lwt dsub_frags = Lwt_list.map_s (neighbour_link ~cri) dsub' in
     lwt name = Entity.display_name ~langs:cri.cri_langs ent in
     lwt ubs = upwards_closure ent in
     let attr_aux ub acc =
@@ -191,7 +185,7 @@
       F.div ~a:[F.a_class ["focus"; "box-top"]] [F.pcdata name];
       F.div ~a:[F.a_class ["focus"; "box-middle"; "content"]] [attr_table];
       F.div ~a:[F.a_class ["focus"; "box-bottom"; "content"]] [
-	multicol ~cls:["pred1"] pred_frags;
+	multicol ~cls:["dsub1"] dsub_frags;
       ];
     ]
 }}

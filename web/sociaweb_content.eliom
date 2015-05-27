@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,11 +15,14 @@
  *)
 
 {shared{
-  open Eliom_content
+  open Eliom_content.Html5
+  open Sociaweb_services
   open Unprime_list
 }}
 
 {server{
+  open Subsocia_connection
+
 (*
   let client_node_lwt (m : [`Div] Html5.elt Lwt.t client_value) =
     let ph_el = Html5.D.div [] in
@@ -32,20 +35,24 @@
     }};
     ph_el
 *)
+
+  let entity_link ~langs ent =
+    let id = Entity.id ent in
+    lwt name = Entity.display_name ~langs ent in
+    Lwt.return (F.a ~service:entity_service [F.pcdata name] id)
 }}
 
 {shared{
 
   let multicol ?(m = 4) ?(cls = []) items =
-    let open Html5.F in
     let items = Array.of_list items in
     let l = Array.length items in
     let n = (l + m - 1) / m in
     let mktr i =
-      let mktd j = td (if i + j * n < l then items.(i + j * n) else []) in
-      tr (List.sample mktd m) in
+      let mktd j = F.td (if i + j * n < l then items.(i + j * n) else []) in
+      F.tr (List.sample mktd m) in
     match List.sample mktr n with
-    | [] -> div ~a:[a_class ("multicol" :: "empty" :: cls)] []
-    | trs -> table ~a:[a_class ("multicol" :: cls)] trs
+    | [] -> F.div ~a:[F.a_class ("multicol" :: "empty" :: cls)] []
+    | trs -> F.table ~a:[F.a_class ("multicol" :: cls)] trs
 
 }}
