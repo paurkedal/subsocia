@@ -49,6 +49,17 @@ module Make (Base : Subsocia_intf.S) = struct
 	let tn = Type.string_of_t0 (Attribute_type.type0 at0) in
 	let tn' = Type.string_of_t1 t in
 	_fail "Wrong type for %s : %s, expected %s." an tn tn'
+
+    let t0_of_name atn =
+      match_lwt Base.Attribute_type.of_name atn with
+      | Some at -> Lwt.return at
+      | None -> _fail "Missing required attribute type %s" atn
+
+    let t1_of_name vt atn =
+      lwt at0 = t0_of_name atn in
+      match coerce vt at0 with
+      | None -> _fail "%s must be a boolean valued attribute type" atn
+      | Some at -> Lwt.return at
   end
 
   module Attribute = Base.Attribute
@@ -62,16 +73,7 @@ module Make (Base : Subsocia_intf.S) = struct
       | Some et -> Lwt.return et
       | None -> _fail "Missing required entity type %s" etn
 
-    let _at atn =
-      match_lwt Base.Attribute_type.of_name atn with
-      | Some at -> Lwt.return at
-      | None -> _fail "Missing required attribute type %s" atn
-
-    let _at_string atn =
-      lwt at0 = _at atn in
-      match Attribute_type.coerce Type.String at0 with
-      | None -> _fail "%s must be a string attribute type" atn
-      | Some at -> Lwt.return at
+    let _at_string = Attribute_type.t1_of_name Type.String
 
     (* Predefined attribute types. *)
     let at_unique_name = _at_string "unique_name"
@@ -221,14 +223,14 @@ module Make (Base : Subsocia_intf.S) = struct
     module Super = Transitive (Dsuper)
     module Sub = Transitive (Dsub)
 
-    let has_role role subj obj =
+    let has_role_for_entity role subj obj =
       lwt access_base = access obj in
       lwt at_role = Const.at_role in
       lwt access_groups = asub_eq access_base at_role role in
       Entity.Set.exists_s (Entity.is_sub subj) access_groups
 
-    let can_view = has_role "user"
-    let can_edit = has_role "admin"
+    let can_view_entity = has_role_for_entity "user"
+    let can_edit_entity = has_role_for_entity "admin"
 
     let path_candidates = [
       ["unique_name"];
@@ -353,5 +355,8 @@ module Make (Base : Subsocia_intf.S) = struct
 	(Lwt.return Entity.Set.empty)
 
     let precedes = Entity.is_sub
+    let has_role = has_role_for_entity
+    let can_edit = can_edit_entity
+    let can_view = can_view_entity
   end
 end

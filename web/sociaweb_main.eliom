@@ -36,13 +36,13 @@
 
   let entity_for_view ~operator entity_id =
     lwt entity = Entity.of_id entity_id in
-    match_lwt Entity.can_view operator entity with
+    match_lwt Entity.can_view_entity operator entity with
     | true -> Lwt.return entity
     | false -> http_error 403 "Not authorized for this entity."
 
   let entity_for_edit ~operator entity_id =
     lwt entity = Entity.of_id entity_id in
-    match_lwt Entity.can_edit operator entity with
+    match_lwt Entity.can_edit_entity operator entity with
     | true -> Lwt.return entity
     | false -> http_error 403 "Not authorized for editing this entity."
 
@@ -68,7 +68,7 @@
     Lwt.return [F.a ~service:entity_service [F.pcdata name] id]
 
   let render_neigh_remove ~cri focus succ =
-    lwt can_edit = Entity.can_edit cri.cri_operator succ in
+    lwt can_edit = Entity.can_edit_entity cri.cri_operator succ in
     let focus_id = Entity.id focus in
     let succ_id = Entity.id succ in
     lwt name = Entity.display_name ~langs:cri.cri_langs succ in
@@ -87,7 +87,7 @@
       Lwt.return [link]
 
   let render_neigh_add ~cri focus succ =
-    lwt can_edit = Entity.can_edit cri.cri_operator succ in
+    lwt can_edit = Entity.can_edit_entity cri.cri_operator succ in
     let focus_id = Entity.id focus in
     let succ_id = Entity.id succ in
     lwt name = Entity.display_name ~langs:cri.cri_langs succ in
@@ -153,7 +153,8 @@
       let operator = cri.cri_operator in
       lwt csupers = Entity.candidate_dsupers ent in
       let csupers = Entity.Set.compl dsupers csupers in
-      lwt csupers = Entity.Set.filter_s (Entity.can_edit operator) csupers in
+      lwt csupers = Entity.Set.filter_s (Entity.can_edit_entity operator)
+					csupers in
       if Entity.Set.is_empty csupers then
 	Lwt.return_none
       else

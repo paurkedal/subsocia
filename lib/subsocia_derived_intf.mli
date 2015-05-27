@@ -57,6 +57,8 @@ module type S = sig
 	and module Map = Base.Attribute_type.Map
 
     val coerce : 'a Type.t1 -> t0 -> 'a t1 option
+    val t0_of_name : string -> t0 Lwt.t
+    val t1_of_name : 'a Type.t1 -> string -> 'a t1 Lwt.t
   end
 
   module Entity_type :
@@ -92,15 +94,21 @@ module type S = sig
 
     val paths : t -> selector list Lwt.t
 
-    val has_role : string -> t -> t -> bool Lwt.t
-    val can_view : t -> t -> bool Lwt.t
-    val can_edit : t -> t -> bool Lwt.t
+    val has_role_for_entity : string -> t -> t -> bool Lwt.t
+    val can_view_entity : t -> t -> bool Lwt.t
+    val can_edit_entity : t -> t -> bool Lwt.t
 
     val display_name : langs: lang list -> t -> string Lwt.t
     val candidate_dsupers : t -> Set.t Lwt.t
 
     val precedes : t -> t -> bool Lwt.t
-    (** @deprecated Use is_sub. *)
+      [@@ocaml.deprecated "Renamed to is_sub"]
+    val has_role : string -> t -> t -> bool Lwt.t
+      [@@ocaml.deprecated "Renamed to has_role_for_entity"]
+    val can_view : t -> t -> bool Lwt.t
+      [@@ocaml.deprecated "Renamed to can_view_entity"]
+    val can_edit : t -> t -> bool Lwt.t
+      [@@ocaml.deprecated "Renamed to can_edit_entity"]
   end
 
   module Const : sig
@@ -109,6 +117,7 @@ module type S = sig
     val at_first_name : string Attribute_type.t1 Lwt.t
     val at_last_name : string Attribute_type.t1 Lwt.t
     val at_email : string Attribute_type.t1 Lwt.t
+    val at_role : string Attribute_type.t1 Lwt.t
 
     val et_unit : Entity_type.t Lwt.t
     val et_access_group : Entity_type.t Lwt.t
