@@ -34,6 +34,8 @@
   open Sociaweb_request
   open Subsocia_connection
 
+  let listing ?(cls = []) frags = F.p ~a:[F.a_class cls] (List.map F.span frags)
+
   let entity_for_view ~operator entity_id =
     lwt entity = Entity.of_id entity_id in
     match_lwt Entity.can_view_entity operator entity with
@@ -141,7 +143,7 @@
     lwt dsupers = Entity.dsuper ent in
     let dsupers' = Entity.Set.elements dsupers in
     lwt dsuper_frags = Lwt_list.map_s (neighbour ~cri) dsupers' in
-    let dsuper_block = multicol ~cls:["dsuper1"] dsuper_frags in
+    let dsuper_block = listing ~cls:["dsuper1"] dsuper_frags in
     lwt dsuper_add_block =
       if not enable_edit then Lwt.return_none else
       let operator = cri.cri_operator in
@@ -154,7 +156,7 @@
       else
 	let csupers = Entity.Set.elements csupers in
 	lwt csupers = Lwt_list.map_s (neighbour_with_add ~cri ent) csupers in
-	Lwt.return (Some (multicol ~cls:["candidate"; "dsuper1"] csupers)) in
+	Lwt.return (Some (listing ~cls:["candidate"; "dsuper1"] csupers)) in
     Lwt.return @@
       match dsuper_add_block with
       | None ->
@@ -185,7 +187,7 @@
       F.div ~a:[F.a_class ["focus"; "box-top"]] [F.pcdata name];
       F.div ~a:[F.a_class ["focus"; "box-middle"; "content"]] [attr_table];
       F.div ~a:[F.a_class ["focus"; "box-bottom"; "content"]] [
-	multicol ~cls:["dsub1"] dsub_frags;
+	listing ~cls:["dsub1"] dsub_frags;
       ];
     ]
 }}

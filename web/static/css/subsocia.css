@@ -21,12 +21,10 @@ table.layout table.multicol { margin: 0; }
 .box-top { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 .box-bottom { border-top-left-radius: 0; border-top-right-radius: 0; }
 
-table.dsuper1 { margin: 1mm 0; }
-
-table.dsuper1, table.dsub1 {
-	empty-cells: hide;
-}
-table.dsuper1 td, table.dsub1 td {
+.dsuper1 { margin: 1mm 0; }
+.dsuper1, .dsub1 { empty-cells: hide; }
+.dsuper1 span, .dsub1 span { display: inline-block; margin: 0.3mm; }
+.dsuper1 td, .dsuper1 span, .dsub1 td, .dsub1 span {
 	border: solid thin;
 	border-radius: 2mm;
 	padding: 0 1.5mm;
@@ -36,17 +34,21 @@ table.dsuper1 td, table.dsub1 td {
 table.assoc td:first-child { text-align: right; padding-right: 2mm; }
 
 /* Color scheme */
-table.dsuper1 td { color: #fff; background-color: #000; border-color: #000; }
+.dsuper1 td, .dsuper1 span
+		{ color: #fff; background-color: #000; border-color: #000; }
 .dsuper1 a	{ color: #fff; }
 .focus		{ color: #fff; background-color: #333; border-color: #333; }
 .focus.content	{ color: #000; background-color: #eee; }
-table.dsub1 td	{ color: #fff; background-color: #666; border-color: #666; }
+.dsub1 td, .dsub1 span
+		{ color: #fff; background-color: #666; border-color: #666; }
 .dsub1 a	{ color: #fff; }
-table.dsub2 td	{ color: #fff; background-color: #888; border-color: #888; }
+.dsub2 td, .dsub2 span
+		{ color: #fff; background-color: #888; border-color: #888; }
 .dsub2 a	{ color: #fff; }
 
-table.dsuper1.candidate td { background-color: #bbb; border: dashed thin #000; }
-table.dsuper1.candidate td a { color: #000; }
+.dsuper1.candidate td,
+.dsuper1.candidate span { background-color: #bbb; border: dashed thin #000; }
+.dsuper1.candidate a { color: #000; }
 
 table.dsuper1 button {
 	padding: 0.3mm;
