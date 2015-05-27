@@ -36,6 +36,14 @@
 
   let listing ?(cls = []) frags = F.p ~a:[F.a_class cls] (List.map F.span frags)
 
+  let ordered_entities ~cri es =
+    let amend_name e =
+      lwt name = Entity.display_name ~langs:cri.cri_langs e in
+      Lwt.return (name, e) in
+    lwt es = Lwt_list.map_s amend_name (Entity.Set.elements es) in
+    let es = List.sort (fun (s0, _) (s1, _) -> compare s0 s1) es in
+    Lwt.return (List.map snd es)
+
   let entity_for_view ~operator entity_id =
     lwt entity = Entity.of_id entity_id in
     match_lwt Entity.can_view_entity operator entity with
@@ -141,7 +149,7 @@
       if enable_edit then neighbour_with_remove ent
 		     else neighbour_link in
     lwt dsupers = Entity.dsuper ent in
-    let dsupers' = Entity.Set.elements dsupers in
+    lwt dsupers' = ordered_entities ~cri dsupers in
     lwt dsuper_frags = Lwt_list.map_s (neighbour ~cri) dsupers' in
     let dsuper_block = listing ~cls:["dsuper1"] dsuper_frags in
     lwt dsuper_add_block =
@@ -154,7 +162,7 @@
       if Entity.Set.is_empty csupers then
 	Lwt.return_none
       else
-	let csupers = Entity.Set.elements csupers in
+	lwt csupers = ordered_entities ~cri csupers in
 	lwt csupers = Lwt_list.map_s (neighbour_with_add ~cri ent) csupers in
 	Lwt.return (Some (listing ~cls:["candidate"; "dsuper1"] csupers)) in
     Lwt.return @@
@@ -171,7 +179,7 @@
   let render_browser ~cri ?(enable_edit = true) ent =
     let open Html5 in
     lwt dsub = Entity.dsub ent in
-    let dsub' = Entity.Set.elements dsub in
+    lwt dsub' = ordered_entities ~cri dsub in
     lwt dsub_frags = Lwt_list.map_s (neighbour_link ~cri) dsub' in
     lwt name = Entity.display_name ~langs:cri.cri_langs ent in
     lwt ubs = upwards_closure ent in
