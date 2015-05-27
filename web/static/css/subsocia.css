@@ -23,12 +23,13 @@ table.layout table.multicol { margin: 0; }
 
 .dsuper1 { margin: 1mm 0; }
 .dsuper1, .dsub1 { empty-cells: hide; }
-.dsuper1 span, .dsub1 span { display: inline-block; margin: 0.3mm; }
+.dsuper1 span, .dsub1 span { display: inline-block; margin: 0.5mm; }
 .dsuper1 td, .dsuper1 span, .dsub1 td, .dsub1 span {
 	border: solid thin;
 	border-radius: 2mm;
 	padding: 0 1.5mm;
 }
+.dsub1 { padding-top: 3mm; padding-bottom: 1mm; }
 .focus { padding: 0 1mm; }
 
 table.assoc td:first-child { text-align: right; padding-right: 2mm; }
