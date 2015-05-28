@@ -152,7 +152,7 @@
     lwt dsupers = Entity.dsuper ent in
     lwt dsupers' = ordered_entities ~cri dsupers in
     lwt dsuper_frags = Lwt_list.map_s (neighbour ~cri) dsupers' in
-    let dsuper_block = listing ~cls:["dsuper1"] dsuper_frags in
+    let dsuper_block = listing ~cls:["soc-dsuper1"] dsuper_frags in
     lwt dsuper_add_block =
       if not enable_edit then Lwt.return_none else
       let operator = cri.cri_operator in
@@ -165,15 +165,15 @@
       else
 	lwt csupers = ordered_entities ~cri csupers in
 	lwt csupers = Lwt_list.map_s (neighbour_with_add ~cri ent) csupers in
-	Lwt.return (Some (listing ~cls:["candidate"; "dsuper1"] csupers)) in
+	Lwt.return (Some (listing ~cls:["soc-dsuper1"; "candidate"] csupers)) in
     Lwt.return @@
       match dsuper_add_block with
       | None ->
-	F.table ~a:[F.a_class ["layout"]]
+	F.table ~a:[F.a_class ["soc-layout"]]
 	  [F.tr [F.th [F.pcdata "Member of"]];
 	   F.tr [F.td [dsuper_block]]]
       | Some dsuper_add_block ->
-	F.table ~a:[F.a_class ["layout"]]
+	F.table ~a:[F.a_class ["soc-layout"]]
 	  [F.tr [F.th [F.pcdata "Member of"]; F.th [F.pcdata "Not member of"]];
 	   F.tr [F.td [dsuper_block]; F.td [dsuper_add_block]]]
 
@@ -188,16 +188,16 @@
       render_attribution ~cri ent ub
 	>|= function None -> acc | Some trs -> trs :: acc in
     lwt attr_trss = Entity.Set.fold_s attr_aux ubs [] in
-    let attr_table = F.table ~a:[F.a_class ["assoc"]]
+    let attr_table = F.table ~a:[F.a_class ["soc-assoc"]]
 			     (List.flatten attr_trss) in
     lwt dsuper_frag = render_dsuper ~cri ~enable_edit ent in
-    Lwt.return @@ F.div ~a:[F.a_class ["entity-browser"]] [
+    Lwt.return @@ F.div ~a:[F.a_class ["soc-entity-browser"]] [
       dsuper_frag;
-      F.div ~a:[F.a_class ["focus"; "box-top"]] [F.pcdata name];
-      F.div ~a:[F.a_class ["focus"; "box-middle"; "content"]] [attr_table];
-      F.div ~a:[F.a_class ["focus"; "box-bottom"; "content"]] [
-	listing ~cls:["dsub1"] dsub_frags;
-      ];
+      F.div ~a:[F.a_class ["soc-box"; "focus"; "top"]] [F.pcdata name];
+      F.div ~a:[F.a_class ["soc-box"; "focus"; "middle"; "content"]]
+	    [attr_table];
+      F.div ~a:[F.a_class ["soc-box"; "focus"; "bottom"; "content"]]
+	    [listing ~cls:["soc-dsub1"] dsub_frags];
     ]
 }}
 
