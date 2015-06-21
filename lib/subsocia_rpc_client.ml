@@ -71,6 +71,7 @@ module Make (RPCM : RPCM) = struct
       | Geq : 'a Attribute_type.t1 * 'a -> predicate
       | Between : 'a Attribute_type.t1 * 'a * 'a -> predicate
       | Search : string Attribute_type.t1 * string -> predicate
+      | Search_fts : string -> predicate
   end
 
   module Entity_type = struct
@@ -197,6 +198,8 @@ module Make (RPCM : RPCM) = struct
 		     Value.Ex (t, x0), Value.Ex (t, x1))
       | Attribute.Search (at, x) ->
 	Eap_search (Attribute_type.(id (Ex at)), x)
+      | Attribute.Search_fts x ->
+	Eap_search_fts x
 
     let asub e p =
       Raw.asub e (encode_predicate p) >|= Set.of_ordered_elements

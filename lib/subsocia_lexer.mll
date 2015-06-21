@@ -65,7 +65,7 @@ and lex = parse
   | '%' (identifier as idr)
     { match idr with
       | "access" -> AUX_SELECTOR idr
-      | "display" -> AUX_STRING idr
+      | "display" | "tsconfig" -> AUX_STRING idr
       | _ -> lexical_error lexbuf idr; raise Parsing.Parse_error }
   | '!' { ADDATTR }
   | '?' { DELATTR }

@@ -14,5 +14,6 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-type re = string
-type fts = string
+type t = Subsocia_internal.fts
+
+let tsquery s = s

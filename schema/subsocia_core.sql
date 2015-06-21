@@ -33,7 +33,8 @@ CREATE TABLE subsocia.inclusion_type (
 CREATE TABLE subsocia.attribute_type (
   attribute_type_id SERIAL PRIMARY KEY,
   attribute_name text UNIQUE NOT NULL,
-  value_type text NOT NULL
+  value_type text NOT NULL,
+  fts_config regconfig
 );
 CREATE TABLE subsocia.attribution_type (
   subentity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
@@ -71,3 +72,11 @@ CREATE TABLE subsocia.text_attribution (
   value text NOT NULL,
   PRIMARY KEY (superentity_id, subentity_id, attribute_type_id, value)
 );
+CREATE TABLE subsocia.text_attribution_fts (
+  subentity_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
+  superentity_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
+  fts_config regconfig NOT NULL,
+  fts_vector tsvector NOT NULL,
+  PRIMARY KEY (subentity_id, superentity_id, fts_config)
+);
+CREATE INDEX ON subsocia.text_attribution_fts USING gin(fts_vector);

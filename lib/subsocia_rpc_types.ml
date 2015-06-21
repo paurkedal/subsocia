@@ -23,4 +23,5 @@ type encoded_attribute_predicate =
   | Eap_geq of int32 * Value.t0
   | Eap_between of int32 * Value.t0 * Value.t0
   | Eap_search of int32 * string
+  | Eap_search_fts of string
   with rpc

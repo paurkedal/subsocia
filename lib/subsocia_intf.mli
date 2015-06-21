@@ -48,6 +48,7 @@ module type ATTRIBUTE = sig
     | Geq : 'a Attribute_type.t1 * 'a -> predicate
     | Between : 'a Attribute_type.t1 * 'a * 'a -> predicate
     | Search : string Attribute_type.t1 * Subsocia_re.t -> predicate
+    | Search_fts : Subsocia_fts.t -> predicate
 end
 
 module type ENTITY_TYPE = sig

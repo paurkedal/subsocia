@@ -19,6 +19,7 @@ Library "subsocia"
     Subsocia_common,
     Subsocia_derived,
     Subsocia_derived_intf,
+    Subsocia_fts,
     Subsocia_intf,
     Subsocia_re,
     Subsocia_rpc_client,

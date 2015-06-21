@@ -45,9 +45,12 @@ module Utils (C : Subsocia_intf.S) = struct
       Lwt.return (C.Attribute.Between (at, x0, x1))
     | Eap_search (e_id, av) ->
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id e_id in
-      match C.Attribute_type.type1 at with
+      begin match C.Attribute_type.type1 at with
       | Type.String -> Lwt.return (C.Attribute.Search (at, av))
       | _ -> assert false
+      end
+    | Eap_search_fts av ->
+      Lwt.return (C.Attribute.Search_fts av)
 end
 
 module Server_impl = struct

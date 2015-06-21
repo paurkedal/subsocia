@@ -20,6 +20,7 @@ open Pwt_infix
 open Subsocia_common
 open Subsocia_prereq
 open Unprime
+open Unprime_char
 open Unprime_list
 open Unprime_option
 
@@ -36,23 +37,46 @@ let int_of_bool x = if x then 1 else 0
 
 let format_query sql = Caqti_query.prepare_fun @@ fun lang ->
   let buf = Buffer.create (String.length sql) in
-  let conv =
-    match lang with
-    | `Pgsql ->
-      let n = ref 0 in
-      begin function
-      | '?' -> n := succ !n; Printf.bprintf buf "$%d" !n
-      | '@' -> Buffer.add_string buf !schema_prefix
+  let n = String.length sql in
+  begin match lang with
+  | `Pgsql ->
+    let p = ref 0 in
+    for i = 0 to n - 1 do
+      match sql.[i] with
+      | '?' -> incr p; Printf.bprintf buf "$%d" !p
+      | '@' when i + 1 < n && Char.is_alpha sql.[i + 1] ->
+	Buffer.add_string buf !schema_prefix
       | ch -> Buffer.add_char buf ch
-      end
-    | `Sqlite ->
-      begin function
-      | '@' -> ()
+    done
+  | `Sqlite ->
+    for i = 0 to n - 1 do
+      match sql.[i] with
+      | '@' when i + 1 < n && Char.is_alpha sql.[i + 1] -> ()
       | ch -> Buffer.add_char buf ch
-      end
-    | _ -> raise Caqti_query.Missing_query_string in
-  String.iter conv sql;
+    done
+  | _ -> raise Caqti_query.Missing_query_string
+  end;
   Buffer.contents buf
+
+(* TODO: Read custom mapping from a configuration file. These are only the
+ * currently shipped catalogs. *)
+let tsconfig_of_lang2 = function
+  | "da" -> "danish"
+  | "en" -> "english"
+  | "fi" -> "finish"
+  | "fr" -> "frensh"
+  | "de" -> "german"
+  | "hu" -> "hungarian"
+  | "it" -> "italian"
+  | "nb" | "nn" | "no" -> "norwegian"
+  | "nl" -> "dutch"
+  | "pt" -> "portugese"
+  | "ro" -> "romanian"
+  | "ru" -> "russian"
+  | "es" -> "spanish"
+  | "sv" -> "swedish"
+  | "tr" -> "turkish"
+  | _ -> "simple"
 
 module type CONNECTION_POOL = sig
   val pool : (module Caqti_lwt.CONNECTION) Caqti_lwt.Pool.t
@@ -78,8 +102,8 @@ module Q = struct
     q "SELECT attribute_type_id, value_type FROM @attribute_type \
        WHERE attribute_name = ?"
   let at_create =
-    q "INSERT INTO @attribute_type (attribute_name, value_type) \
-       VALUES (?, ?) RETURNING attribute_type_id"
+    q "INSERT INTO @attribute_type (attribute_name, value_type, fts_config) \
+       VALUES (?, ?, ?) RETURNING attribute_type_id"
   let at_delete =
     q "DELETE FROM @attribute_type WHERE attribute_type_id = ?"
 
@@ -300,6 +324,13 @@ module Q = struct
        WHERE subentity_id = ? AND attribute_type_id = ? \
 	 AND value SIMILAR TO ?"
 
+  let e_asub1_search_fts =
+    q "SELECT subentity_id FROM @text_attribution_fts \
+       WHERE superentity_id = ? AND fts_vector @@ to_tsquery(fts_config, ?)"
+  let e_asuper1_search_fts =
+    q "SELECT superentity_id FROM @text_attribution_fts \
+       WHERE subentity_id = ? AND fts_vector @@ to_tsquery(fts_config, ?)"
+
   let e_asub_get_text =
     q "SELECT subentity_id, value FROM @text_attribution \
        WHERE superentity_id = ? AND attribute_type_id = ?"
@@ -313,6 +344,19 @@ module Q = struct
   let e_asuper_get_integer =
     q "SELECT superentity_id, value FROM @integer_attribution \
        WHERE subentity_id = ? AND attribute_type_id = ?"
+
+  let fts_clear =
+    q "DELETE FROM subsocia.text_attribution_fts \
+       WHERE subentity_id = ? AND superentity_id = ?"
+  let fts_insert =
+    q "INSERT INTO subsocia.text_attribution_fts \
+       SELECT a.subentity_id, a.superentity_id, at.fts_config, \
+	      to_tsvector(at.fts_config, string_agg(value, '$')) \
+       FROM subsocia.text_attribution AS a \
+	 NATURAL JOIN subsocia.attribute_type AS at \
+       WHERE NOT at.fts_config IS NULL \
+	 AND a.subentity_id = ? AND a.superentity_id = ? \
+       GROUP BY a.subentity_id, a.superentity_id, at.fts_config"
 end
 
 module type CACHE = sig
@@ -480,9 +524,17 @@ let rec make uri_or_conn = (module struct
       end
 
     let create vt at_name =
+      let fts =
+	match vt with
+	| Type.Ex Type.String ->
+	  let len = String.length at_name in
+	  if len < 3 || at_name.[len - 3] <> '.' then Some "simple" else
+	  Some (tsconfig_of_lang2 (String.sub at_name (len - 2) 2))
+	| _ -> None in
       with_db @@ fun ((module C : CONNECTION) as conn) ->
       C.find Q.at_create C.Tuple.(int32 0)
-	     C.Param.([|text at_name; text (Type.string_of_t0 vt)|])
+	     C.Param.([|text at_name; text (Type.string_of_t0 vt);
+			option text fts|])
 	>>= of_id' ~conn
 
     let delete (Ex at) =
@@ -499,6 +551,7 @@ let rec make uri_or_conn = (module struct
       | Geq : 'a Attribute_type.t1 * 'a -> predicate
       | Between : 'a Attribute_type.t1 * 'a * 'a -> predicate
       | Search : string Attribute_type.t1 * string -> predicate
+      | Search_fts : string -> predicate
   end
 
   module Entity_type = struct
@@ -835,6 +888,12 @@ let rec make uri_or_conn = (module struct
       C.fold Q.e_asub1_search f
 	     C.Param.[|int32 e; int32 at_id; text x|] Set.empty
 
+    let asub1_search_fts, asub1_search_fts_cache =
+      memo_2lwt @@ fun (e, x) ->
+      with_db @@ fun (module C : CONNECTION) ->
+      let f tup = Set.add (C.Tuple.int32 0 tup) in
+      C.fold Q.e_asub1_search_fts f C.Param.[|int32 e; text x|] Set.empty
+
     let asub e = function
       | Attribute.Present at ->
 	begin match Attribute_type.type1 at with
@@ -848,6 +907,7 @@ let rec make uri_or_conn = (module struct
       | Attribute.Between (at, x0, x1) -> asub2_between e at x0 x1
       | Attribute.Search (at, x) ->
 	asub1_search e (Attribute_type.(id (Ex at))) x
+      | Attribute.Search_fts x -> asub1_search_fts e x
 
     let asub_eq at e = asub1 Q.ap1_eq at e
 
@@ -916,6 +976,12 @@ let rec make uri_or_conn = (module struct
       C.fold Q.e_asuper1_search f
 	     C.Param.[|int32 e; int32 at_id; text x|] Set.empty
 
+    let asuper1_search_fts, asuper1_search_fts_cache =
+      memo_2lwt @@ fun (e, x) ->
+      with_db @@ fun (module C : CONNECTION) ->
+      let f tup = Set.add (C.Tuple.int32 0 tup) in
+      C.fold Q.e_asuper1_search_fts f C.Param.[|int32 e; text x|] Set.empty
+
     let asuper_eq at e = asuper1 Q.ap1_eq at e
 
     let asuper e = function
@@ -931,6 +997,7 @@ let rec make uri_or_conn = (module struct
       | Attribute.Between (at, x0, x1) -> asuper2_between e at x0 x1
       | Attribute.Search (at, x) ->
 	asuper1_search e Attribute_type.(id (Ex at)) x
+      | Attribute.Search_fts x -> asuper1_search_fts e x
 
     let asub_get_integer, asub_get_integer_cache =
       memo_2lwt @@ fun (e, at_id) ->
@@ -1013,6 +1080,8 @@ let rec make uri_or_conn = (module struct
       Cache.clear asuper2_between_text_cache;
       Cache.clear asub1_search_cache;
       Cache.clear asuper1_search_cache;
+      Cache.clear asub1_search_fts_cache;
+      Cache.clear asuper1_search_fts_cache;
       Cache.clear asub_get_text_cache;
       Cache.clear asuper_get_text_cache
 
@@ -1087,6 +1156,17 @@ let rec make uri_or_conn = (module struct
       if subentity_rank > superentity_rank + 1 then Lwt.return_unit
 					       else lower_rank subentity
 
+    let post_attribute_update (type a) (module C : CONNECTION)
+			      e e' (at : a Attribute_type.t1) =
+      clear_attr_caches at;
+      emit_changed e `Asuper;
+      emit_changed e' `Asub;
+      match at.Attribute_type.at_value_type with
+      | Type.String ->
+	C.exec Q.fts_clear C.Param.[|int32 e; int32 e'|] >>
+	C.exec Q.fts_insert C.Param.[|int32 e; int32 e'|]
+      | _ -> Lwt.return_unit
+
     let addattr' (type a) e e' (at : a Attribute_type.t1) (xs : a list) =
       with_db @@ fun (module C : CONNECTION) ->
       let aux q conv =
@@ -1096,11 +1176,13 @@ let rec make uri_or_conn = (module struct
 			       int32 at.Attribute_type.at_id; conv x|]) in
 	    C.exec q p)
 	  xs in
-      match at.Attribute_type.at_value_type with
+      begin match at.Attribute_type.at_value_type with
       | Type.Bool -> aux Q.e_insert_integer_attribution
 		     (fun x -> C.Param.int (if x then 1 else 0))
       | Type.Int -> aux Q.e_insert_integer_attribution C.Param.int
       | Type.String -> aux Q.e_insert_text_attribution C.Param.text
+      end >>
+      post_attribute_update (module C) e e' at
 
     let check_mult e e' at =
       lwt et = type_ e in
@@ -1129,11 +1211,7 @@ let rec make uri_or_conn = (module struct
 	      (fun x -> if Hashtbl.mem ht x then false else
 			(Hashtbl.add ht x (); true)) xs in
       if xs = [] then Lwt.return_unit else
-      addattr' e e' at xs >|=
-      fun () ->
-	clear_attr_caches at;
-	emit_changed e `Asuper;
-	emit_changed e' `Asub
+      addattr' e e' at xs
 
     let delattr' (type a) e e' (at : a Attribute_type.t1) (xs : a list) =
       with_db @@ fun (module C : CONNECTION) ->
@@ -1144,11 +1222,13 @@ let rec make uri_or_conn = (module struct
 			       int32 at.Attribute_type.at_id; conv x|]) in
 	    C.exec q p)
 	  xs in
-      match at.Attribute_type.at_value_type with
+      begin match at.Attribute_type.at_value_type with
       | Type.Bool -> aux Q.e_delete_integer_attribution
 		     (fun x -> C.Param.int (if x then 1 else 0))
       | Type.Int -> aux Q.e_delete_integer_attribution C.Param.int
       | Type.String -> aux Q.e_delete_text_attribution C.Param.text
+      end >>
+      post_attribute_update (module C) e e' at
 
     let delattr (type a) e e' (at : a Attribute_type.t1) (xs : a list) =
       lwt xs_pres = getattr e e' at in
@@ -1159,11 +1239,7 @@ let rec make uri_or_conn = (module struct
 	  (fun x -> if not (Hashtbl.mem ht x) then false else
 		    (Hashtbl.remove ht x; true)) xs in
       if xs = [] then Lwt.return_unit else
-      delattr' e e' at xs >|=
-      fun () ->
-	clear_attr_caches at;
-	emit_changed e `Asuper;
-	emit_changed e' `Asub
+      delattr' e e' at xs
 
     let setattr (type a) e e' (at : a Attribute_type.t1) (xs : a list) =
       begin match_lwt check_mult e e' at with
@@ -1186,11 +1262,7 @@ let rec make uri_or_conn = (module struct
       let xs_del =
 	Hashtbl.fold (fun x keep acc -> if keep then acc else x :: acc) ht [] in
       (if xs_del = [] then Lwt.return_unit else delattr' e e' at xs_del) >>
-      (if xs_ins = [] then Lwt.return_unit else addattr' e e' at xs_ins) >|=
-      fun () ->
-	clear_attr_caches at;
-	emit_changed e `Asuper;
-	emit_changed e' `Asub
+      (if xs_ins = [] then Lwt.return_unit else addattr' e e' at xs_ins)
 
   end
 
