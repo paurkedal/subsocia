@@ -216,6 +216,9 @@ module Make (RPCM : RPCM) = struct
       Raw.asuper_eq e (Attribute_type.(id (Ex at))) (Value.Ex (t, av))
 	>|= Set.of_ordered_elements
 
+    let asub_fts = Raw.asub_fts
+    let asuper_fts = Raw.asuper_fts
+
     let asub_get e at =
       let t = Attribute_type.type1 at in
       Raw.asub_get e (Attribute_type.(id (Ex at))) >|= fun bindings ->

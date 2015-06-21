@@ -172,6 +172,16 @@ module type ENTITY = sig
   (** [asuper_eq e at v] are the attribution superentities of [e] along [at]
       loosing the value [v]. *)
 
+  val asub_fts : limit: int -> t -> Subsocia_fts.t -> (t * float) list Lwt.t
+  (** [asub_fts e q] are relevance-weighted subentities along text attributes
+      matching a full-text search for [q], ordered by relevance.
+      @param limit The maximum number of entities to return. *)
+
+  val asuper_fts : limit: int -> t -> Subsocia_fts.t -> (t * float) list Lwt.t
+  (** [asuper_fts e q] are relevance-weighted superentities along text
+      attributes matching a full-text search for [q], ordered by relevance.
+      @param limit The maximum number of entities to return. *)
+
   val asub_get : t -> 'a Attribute_type.t1 -> 'a Values.t Map.t Lwt.t
   (** [asub_get e at] is a map of [at]-values indexed by attribution
       subentities of [e] which gain those values along [at]. *)

@@ -331,6 +331,18 @@ module Q = struct
     q "SELECT superentity_id FROM @text_attribution_fts \
        WHERE subentity_id = ? AND fts_vector @@ to_tsquery(fts_config, ?)"
 
+  (* TODO: Filter r > 0 or custom cutoff. *)
+  let e_asub_fts =
+    q "SELECT subentity_id, \
+	      ts_rank(fts_vector, to_tsquery(fts_config, ?)) AS r \
+       FROM @text_attribution_fts \
+       WHERE superentity_id = ? ORDER BY r DESC LIMIT ?"
+  let e_asuper_fts =
+    q "SELECT superentity_id, \
+	      ts_rank(fts_vector, to_tsquery(fts_config, ?)) AS r \
+       FROM @text_attribution_fts \
+       WHERE subentity_id = ? ORDER BY r DESC LIMIT ?"
+
   let e_asub_get_text =
     q "SELECT subentity_id, value FROM @text_attribution \
        WHERE superentity_id = ? AND attribute_type_id = ?"
@@ -999,6 +1011,22 @@ let rec make uri_or_conn = (module struct
 	asuper1_search e Attribute_type.(id (Ex at)) x
       | Attribute.Search_fts x -> asuper1_search_fts e x
 
+    let asub_fts, asub_fts_cache =
+      memo_3lwt @@ fun (limit, e, fts) ->
+      with_db @@ fun (module C : CONNECTION) ->
+      let f tup = List.push C.Tuple.(int32 0 tup, float 1 tup) in
+      C.fold Q.e_asub_fts f C.Param.[|text fts; int32 e; int limit|] []
+	>|= List.rev
+    let asub_fts ~limit = asub_fts limit
+
+    let asuper_fts, asuper_fts_cache =
+      memo_3lwt @@ fun (limit, e, fts) ->
+      with_db @@ fun (module C : CONNECTION) ->
+      let f tup = List.push C.Tuple.(int32 0 tup, float 1 tup) in
+      C.fold Q.e_asuper_fts f C.Param.[|text fts; int32 e; int limit|] []
+	>|= List.rev
+    let asuper_fts ~limit = asuper_fts limit
+
     let asub_get_integer, asub_get_integer_cache =
       memo_2lwt @@ fun (e, at_id) ->
       with_db @@ fun (module C : CONNECTION) ->
@@ -1082,6 +1110,8 @@ let rec make uri_or_conn = (module struct
       Cache.clear asuper1_search_cache;
       Cache.clear asub1_search_fts_cache;
       Cache.clear asuper1_search_fts_cache;
+      Cache.clear asub_fts_cache;
+      Cache.clear asuper_fts_cache;
       Cache.clear asub_get_text_cache;
       Cache.clear asuper_get_text_cache
 
