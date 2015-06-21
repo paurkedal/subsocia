@@ -14,13 +14,16 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Subsocia_common
+(** Regular expression style patterns
 
-type encoded_attribute_predicate =
-  | Eap_present of int32
-  | Eap_eq of int32 * Value.t0
-  | Eap_leq of int32 * Value.t0
-  | Eap_geq of int32 * Value.t0
-  | Eap_between of int32 * Value.t0 * Value.t0
-  | Eap_search of int32 * string
-  with rpc
+    This is used for matching text attributes.
+
+    Currently this is just a stub to allow future refinement without breaking
+    backwards compatibility.  In the future we may need to translate the
+    result to different regular expression implementations for different
+    RDBMs, and we may want to provide an `ocaml-re`-like interface. *)
+
+type t = Subsocia_internal.re
+
+val similar : string -> t
+(** [similar s] matches the same strings as SQL:1999 `SIMILAR TO s`. *)

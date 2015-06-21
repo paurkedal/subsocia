@@ -43,6 +43,11 @@ module Utils (C : Subsocia_intf.S) = struct
       let x0 = Value.coerce (C.Attribute_type.type1 at) av0 in
       let x1 = Value.coerce (C.Attribute_type.type1 at) av1 in
       Lwt.return (C.Attribute.Between (at, x0, x1))
+    | Eap_search (e_id, av) ->
+      lwt C.Attribute_type.Ex at = C.Attribute_type.of_id e_id in
+      match C.Attribute_type.type1 at with
+      | Type.String -> Lwt.return (C.Attribute.Search (at, av))
+      | _ -> assert false
 end
 
 module Server_impl = struct

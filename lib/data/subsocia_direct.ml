@@ -291,6 +291,15 @@ module Q = struct
        WHERE subentity_id = ? AND attribute_type_id = ? \
 	 AND value >= ? AND value < ?"
 
+  let e_asub1_search =
+    q "SELECT subentity_id FROM @text_attribution \
+       WHERE superentity_id = ? AND attribute_type_id = ? \
+	 AND value SIMILAR TO ?"
+  let e_asuper1_search =
+    q "SELECT superentity_id FROM @text_attribution \
+       WHERE subentity_id = ? AND attribute_type_id = ? \
+	 AND value SIMILAR TO ?"
+
   let e_asub_get_text =
     q "SELECT subentity_id, value FROM @text_attribution \
        WHERE superentity_id = ? AND attribute_type_id = ?"
@@ -489,6 +498,7 @@ let rec make uri_or_conn = (module struct
       | Leq : 'a Attribute_type.t1 * 'a -> predicate
       | Geq : 'a Attribute_type.t1 * 'a -> predicate
       | Between : 'a Attribute_type.t1 * 'a * 'a -> predicate
+      | Search : string Attribute_type.t1 * string -> predicate
   end
 
   module Entity_type = struct
@@ -818,6 +828,13 @@ let rec make uri_or_conn = (module struct
       | Type.Int -> asub2_between_integer e at.at_id
       | Type.String -> asub2_between_text e at.at_id
 
+    let asub1_search, asub1_search_cache =
+      memo_3lwt @@ fun (e, at_id, x) ->
+      with_db @@ fun (module C : CONNECTION) ->
+      let f tup = Set.add (C.Tuple.int32 0 tup) in
+      C.fold Q.e_asub1_search f
+	     C.Param.[|int32 e; int32 at_id; text x|] Set.empty
+
     let asub e = function
       | Attribute.Present at ->
 	begin match Attribute_type.type1 at with
@@ -829,6 +846,8 @@ let rec make uri_or_conn = (module struct
       | Attribute.Leq (at, x) -> asub1 Q.ap1_leq e at x
       | Attribute.Geq (at, x) -> asub1 Q.ap1_geq e at x
       | Attribute.Between (at, x0, x1) -> asub2_between e at x0 x1
+      | Attribute.Search (at, x) ->
+	asub1_search e (Attribute_type.(id (Ex at))) x
 
     let asub_eq at e = asub1 Q.ap1_eq at e
 
@@ -890,6 +909,13 @@ let rec make uri_or_conn = (module struct
       | Type.Int -> asuper2_between_integer e at.at_id
       | Type.String -> asuper2_between_text e at.at_id
 
+    let asuper1_search, asuper1_search_cache =
+      memo_3lwt @@ fun (e, at_id, x) ->
+      with_db @@ fun (module C : CONNECTION) ->
+      let f tup = Set.add (C.Tuple.int32 0 tup) in
+      C.fold Q.e_asuper1_search f
+	     C.Param.[|int32 e; int32 at_id; text x|] Set.empty
+
     let asuper_eq at e = asuper1 Q.ap1_eq at e
 
     let asuper e = function
@@ -903,6 +929,8 @@ let rec make uri_or_conn = (module struct
       | Attribute.Leq (at, x) -> asuper1 Q.ap1_leq e at x
       | Attribute.Geq (at, x) -> asuper1 Q.ap1_geq e at x
       | Attribute.Between (at, x0, x1) -> asuper2_between e at x0 x1
+      | Attribute.Search (at, x) ->
+	asuper1_search e Attribute_type.(id (Ex at)) x
 
     let asub_get_integer, asub_get_integer_cache =
       memo_2lwt @@ fun (e, at_id) ->
@@ -983,6 +1011,8 @@ let rec make uri_or_conn = (module struct
       Cache.clear asuper1_text_cache;
       Cache.clear asub2_between_text_cache;
       Cache.clear asuper2_between_text_cache;
+      Cache.clear asub1_search_cache;
+      Cache.clear asuper1_search_cache;
       Cache.clear asub_get_text_cache;
       Cache.clear asuper_get_text_cache
 
