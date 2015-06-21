@@ -18,56 +18,56 @@ CREATE SCHEMA subsocia;
 -- Types
 
 CREATE TABLE subsocia.entity_type (
-    entity_type_id SERIAL PRIMARY KEY,
-    entity_type_name text UNIQUE NOT NULL,
-    entity_name_tmpl text NOT NULL DEFAULT ('${unique_name}')
+  entity_type_id SERIAL PRIMARY KEY,
+  entity_type_name text UNIQUE NOT NULL,
+  entity_name_tmpl text NOT NULL DEFAULT ('${unique_name}')
 );
 CREATE TABLE subsocia.inclusion_type (
-    subentity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
-    superentity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
-    subentity_multiplicity smallint NOT NULL,
-    superentity_multiplicity smallint NOT NULL,
-    PRIMARY KEY (subentity_type_id, superentity_type_id)
+  subentity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
+  superentity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
+  subentity_multiplicity smallint NOT NULL,
+  superentity_multiplicity smallint NOT NULL,
+  PRIMARY KEY (subentity_type_id, superentity_type_id)
 );
 
 CREATE TABLE subsocia.attribute_type (
-    attribute_type_id SERIAL PRIMARY KEY,
-    attribute_name text UNIQUE NOT NULL,
-    value_type text NOT NULL
+  attribute_type_id SERIAL PRIMARY KEY,
+  attribute_name text UNIQUE NOT NULL,
+  value_type text NOT NULL
 );
 CREATE TABLE subsocia.attribution_type (
-    subentity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
-    superentity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
-    attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
-    attribute_multiplicity smallint NOT NULL,
-    PRIMARY KEY (attribute_type_id, subentity_type_id, superentity_type_id)
+  subentity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
+  superentity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
+  attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
+  attribute_multiplicity smallint NOT NULL,
+  PRIMARY KEY (attribute_type_id, subentity_type_id, superentity_type_id)
 );
 
 -- Objects
 
 CREATE TABLE subsocia.entity (
-    entity_id SERIAL PRIMARY KEY,
-    entity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
-    entity_rank smallint NOT NULL DEFAULT 0,
-    access_id integer REFERENCES subsocia.entity
+  entity_id SERIAL PRIMARY KEY,
+  entity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
+  entity_rank smallint NOT NULL DEFAULT 0,
+  access_id integer REFERENCES subsocia.entity
 );
 CREATE TABLE subsocia.inclusion (
-    subentity_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
-    superentity_id integer NOT NULL REFERENCES subsocia.entity,
-    is_subsumed boolean NOT NULL DEFAULT false,
-    PRIMARY KEY (superentity_id, subentity_id)
+  subentity_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
+  superentity_id integer NOT NULL REFERENCES subsocia.entity,
+  is_subsumed boolean NOT NULL DEFAULT false,
+  PRIMARY KEY (superentity_id, subentity_id)
 );
 CREATE TABLE subsocia.integer_attribution (
-    subentity_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
-    superentity_id integer NOT NULL REFERENCES subsocia.entity,
-    attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
-    value integer NOT NULL,
-    PRIMARY KEY (superentity_id, subentity_id, attribute_type_id, value)
+  subentity_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
+  superentity_id integer NOT NULL REFERENCES subsocia.entity,
+  attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
+  value integer NOT NULL,
+  PRIMARY KEY (superentity_id, subentity_id, attribute_type_id, value)
 );
 CREATE TABLE subsocia.text_attribution (
-    subentity_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
-    superentity_id integer NOT NULL REFERENCES subsocia.entity,
-    attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
-    value text NOT NULL,
-    PRIMARY KEY (superentity_id, subentity_id, attribute_type_id, value)
+  subentity_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
+  superentity_id integer NOT NULL REFERENCES subsocia.entity,
+  attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
+  value text NOT NULL,
+  PRIMARY KEY (superentity_id, subentity_id, attribute_type_id, value)
 );
