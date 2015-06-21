@@ -333,15 +333,33 @@ module Q = struct
 
   (* TODO: Filter r > 0 or custom cutoff. *)
   let e_asub_fts =
-    q "SELECT subentity_id, \
-	      ts_rank(fts_vector, to_tsquery(fts_config, ?)) AS r \
-       FROM @text_attribution_fts \
-       WHERE superentity_id = ? ORDER BY r DESC LIMIT ?"
+    q "SELECT * FROM
+	(SELECT subentity_id, \
+		ts_rank(fts_vector, to_tsquery(fts_config, ?)) AS r \
+	 FROM @text_attribution_fts WHERE superentity_id = ? \
+	 ORDER BY r DESC) AS sq
+       WHERE r > ?"
   let e_asuper_fts =
-    q "SELECT superentity_id, \
-	      ts_rank(fts_vector, to_tsquery(fts_config, ?)) AS r \
-       FROM @text_attribution_fts \
-       WHERE subentity_id = ? ORDER BY r DESC LIMIT ?"
+    q "SELECT * FROM
+	(SELECT superentity_id, \
+		ts_rank(fts_vector, to_tsquery(fts_config, ?)) AS r \
+	 FROM @text_attribution_fts WHERE subentity_id = ? \
+	 ORDER BY r DESC) AS sq
+       WHERE r > ?"
+  let e_asub_fts_limit =
+    q "SELECT * FROM
+	(SELECT subentity_id, \
+		ts_rank(fts_vector, to_tsquery(fts_config, ?)) AS r \
+	 FROM @text_attribution_fts WHERE superentity_id = ? \
+	 ORDER BY r DESC LIMIT ?) AS sq
+       WHERE r > ?"
+  let e_asuper_fts_limit =
+    q "SELECT * FROM
+	(SELECT superentity_id, \
+		ts_rank(fts_vector, to_tsquery(fts_config, ?)) AS r \
+	 FROM @text_attribution_fts WHERE subentity_id = ? \
+	 ORDER BY r DESC LIMIT ?) AS sq
+       WHERE r > ?"
 
   let e_asub_get_text =
     q "SELECT subentity_id, value FROM @text_attribution \
@@ -1012,20 +1030,32 @@ let rec make uri_or_conn = (module struct
       | Attribute.Search_fts x -> asuper1_search_fts e x
 
     let asub_fts, asub_fts_cache =
-      memo_3lwt @@ fun (limit, e, fts) ->
+      memo_4lwt @@ fun (cutoff, limit, e, fts) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = List.push C.Tuple.(int32 0 tup, float 1 tup) in
-      C.fold Q.e_asub_fts f C.Param.[|text fts; int32 e; int limit|] []
-	>|= List.rev
-    let asub_fts ~limit = asub_fts limit
+      begin match limit with
+      | None ->
+	C.fold Q.e_asub_fts f
+	       C.Param.[|text fts; int32 e; float cutoff|] []
+      | Some limit ->
+	C.fold Q.e_asub_fts_limit f
+	       C.Param.[|text fts; int32 e; int limit; float cutoff|] []
+      end >|= List.rev
+    let asub_fts ?(cutoff = 0.0) ?limit = asub_fts cutoff limit
 
     let asuper_fts, asuper_fts_cache =
-      memo_3lwt @@ fun (limit, e, fts) ->
+      memo_4lwt @@ fun (cutoff, limit, e, fts) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = List.push C.Tuple.(int32 0 tup, float 1 tup) in
-      C.fold Q.e_asuper_fts f C.Param.[|text fts; int32 e; int limit|] []
-	>|= List.rev
-    let asuper_fts ~limit = asuper_fts limit
+      begin match limit with
+      | None ->
+	C.fold Q.e_asuper_fts f
+	       C.Param.[|text fts; int32 e; float cutoff|] []
+      | Some limit ->
+	C.fold Q.e_asuper_fts_limit f
+	       C.Param.[|text fts; int32 e; int limit; float cutoff|] []
+      end >|= List.rev
+    let asuper_fts ?(cutoff = 0.0) ?limit = asuper_fts cutoff limit
 
     let asub_get_integer, asub_get_integer_cache =
       memo_2lwt @@ fun (e, at_id) ->

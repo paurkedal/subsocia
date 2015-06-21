@@ -273,14 +273,14 @@ module Server_impl = struct
       C.Entity.asuper_eq e at (Value.coerce t v) >|=
       C.Entity.Set.elements *> List.map C.Entity.id
 
-    let asub_fts (module C : Subsocia_intf.S) ~limit e_id fts =
+    let asub_fts (module C : Subsocia_intf.S) ?cutoff ?limit e_id fts =
       lwt e = C.Entity.of_id e_id in
-      C.Entity.asub_fts ~limit e fts >|=
+      C.Entity.asub_fts ?cutoff ?limit e fts >|=
       List.map (fun (e, w) -> (C.Entity.id e, w))
 
-    let asuper_fts (module C : Subsocia_intf.S) ~limit e_id fts =
+    let asuper_fts (module C : Subsocia_intf.S) ?cutoff ?limit e_id fts =
       lwt e = C.Entity.of_id e_id in
-      C.Entity.asuper_fts ~limit e fts >|=
+      C.Entity.asuper_fts ?cutoff ?limit e fts >|=
       List.map (fun (e, w) -> (C.Entity.id e, w))
 
     let asub_get (module C : Subsocia_intf.S) e_id at_id =

@@ -76,8 +76,10 @@ module Entity = struct
   external asuper : int32 -> encoded_attribute_predicate -> int32 list = ""
   external asub_eq : int32 -> int32 -> Value.t0 -> int32 list = ""
   external asuper_eq : int32 -> int32 -> Value.t0 -> int32 list = ""
-  external asub_fts : limit: int -> int32 -> string -> (int32 * float) list = ""
-  external asuper_fts : limit: int -> int32 -> string -> (int32 * float) list = ""
+  external asub_fts : ?cutoff: float -> ?limit: int -> int32 -> string ->
+		      (int32 * float) list = ""
+  external asuper_fts : ?cutoff: float -> ?limit: int -> int32 -> string ->
+			(int32 * float) list = ""
   external asub_get : int32 -> int32 -> (int32 * Value.t0) list = ""
   external asuper_get : int32 -> int32 -> (int32 * Value.t0) list = ""
   external force_dsub : int32 -> int32 -> unit = ""
