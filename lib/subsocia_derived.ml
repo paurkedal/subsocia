@@ -320,7 +320,7 @@ module Make (Base : Subsocia_intf.S) = struct
       | None -> raise_lwt Not_found
       | Some s -> Lwt.return s
 
-    let display_name ~langs e =
+    let display_name ?(langs = []) e =
       let aux tmpl =
 	try_lwt
 	  let buf = Buffer.create 80 in
