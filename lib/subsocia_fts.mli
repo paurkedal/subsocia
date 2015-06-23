@@ -14,6 +14,14 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+(** Full-text search patterns
+
+    This is used for matching text attributes.
+
+    This module is a stub to allow future refinement without breaking
+    backwards compatibility. *)
+
 type t = Subsocia_internal.fts
 
 val tsquery : string -> t
+(** Currently passed directly to PostgrSQL's `to_tsquery`. *)
