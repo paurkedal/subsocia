@@ -82,7 +82,7 @@ Document api
   InstallDir: $htmldir/html
   BuildTools+: ocamldoc
   XOCamlbuildPath: lib
-  XOCamlbuildLibraries: subsocia
+  XOCamlbuildLibraries: subsocia, subsocia.data
   DataFiles: COPYING ($docdir), COPYING.LESSER ($docdir)
 
 Library "subsocia-web-server"

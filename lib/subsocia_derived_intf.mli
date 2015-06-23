@@ -61,6 +61,9 @@ module type S = sig
     val t1_of_name : 'a Type.t1 -> string -> 'a t1 Lwt.t
   end
 
+  module Attribute :
+    ATTRIBUTE with module Attribute_type := Base.Attribute_type
+
   module Entity_type :
     ENTITY_TYPE with module Attribute_type := Base.Attribute_type
 		 and type t = Base.Entity_type.t

@@ -14,6 +14,12 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-include Subsocia_derived_intf.S
+module type S = sig
+  include Subsocia_derived_intf.S
 
-val entity_changed : Entity.t -> [`Dsub | `Dsuper | `Asub | `Asuper] React.E.t
+  val entity_changed : Entity.t -> [`Dsub | `Dsuper | `Asub | `Asuper] React.E.t
+end
+
+val connect : Uri.t -> (module S)
+
+include S

@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,10 +14,19 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-let subsocia_uri = Uri.of_string Subsocia_config.database_uri#get
-let subsocia_connection = Subsocia_direct.connect subsocia_uri
+module type S = sig
+  include Subsocia_derived_intf.S
 
-module Base = (val subsocia_connection)
-include Subsocia_derived.Make (Base)
-include Subsocia_selector.Selector_utils (Base)
-let entity_changed = Base.entity_changed
+  val entity_changed : Entity.t -> [`Dsub | `Dsuper | `Asub | `Asuper] React.E.t
+end
+
+let connect uri = (module struct
+  module Base = (val Subsocia_direct.connect uri)
+  include Subsocia_derived.Make (Base)
+  include Subsocia_selector.Selector_utils (Base)
+  let entity_changed = Base.entity_changed
+end : S)
+
+let subsocia_uri = Uri.of_string Subsocia_config.database_uri#get
+
+include (val connect subsocia_uri)
