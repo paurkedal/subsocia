@@ -58,6 +58,8 @@ let format_query sql = Caqti_query.prepare_fun @@ fun lang ->
   end;
   Buffer.contents buf
 
+let format_query_f fmt = Printf.ksprintf format_query fmt
+
 (* TODO: Read custom mapping from a configuration file. These are only the
  * currently shipped catalogs. *)
 let tsconfig_of_lang2 = function
@@ -331,35 +333,38 @@ module Q = struct
     q "SELECT superentity_id FROM @text_attribution_fts \
        WHERE subentity_id = ? AND fts_vector @@ to_tsquery(fts_config, ?)"
 
-  (* TODO: Filter r > 0 or custom cutoff. *)
-  let e_asub_fts =
-    q "SELECT * FROM
+  let _asub_fts with_et with_limit =
+    format_query_f
+      "SELECT * FROM
 	(SELECT subentity_id, \
 		ts_rank(fts_vector, to_tsquery(fts_config, ?)) AS r \
-	 FROM @text_attribution_fts WHERE superentity_id = ? \
-	 ORDER BY r DESC) AS sq
+	 FROM @text_attribution_fts%s WHERE superentity_id = ?%s \
+	 ORDER BY r DESC%s) AS sq
        WHERE r > ?"
-  let e_asuper_fts =
-    q "SELECT * FROM
+      (if with_et then " JOIN @entity ON subentity_id = entity_id" else "")
+      (if with_et then " AND entity_type_id = ?" else "")
+      (if with_limit then " LIMIT ?" else "")
+
+  let _asuper_fts with_et with_limit =
+    format_query_f
+      "SELECT * FROM
 	(SELECT superentity_id, \
 		ts_rank(fts_vector, to_tsquery(fts_config, ?)) AS r \
-	 FROM @text_attribution_fts WHERE subentity_id = ? \
-	 ORDER BY r DESC) AS sq
+	 FROM @text_attribution_fts%s WHERE subentity_id = ?%s \
+	 ORDER BY r DESC%s) AS sq
        WHERE r > ?"
-  let e_asub_fts_limit =
-    q "SELECT * FROM
-	(SELECT subentity_id, \
-		ts_rank(fts_vector, to_tsquery(fts_config, ?)) AS r \
-	 FROM @text_attribution_fts WHERE superentity_id = ? \
-	 ORDER BY r DESC LIMIT ?) AS sq
-       WHERE r > ?"
-  let e_asuper_fts_limit =
-    q "SELECT * FROM
-	(SELECT superentity_id, \
-		ts_rank(fts_vector, to_tsquery(fts_config, ?)) AS r \
-	 FROM @text_attribution_fts WHERE subentity_id = ? \
-	 ORDER BY r DESC LIMIT ?) AS sq
-       WHERE r > ?"
+      (if with_et then " JOIN @entity ON superentity_id = entity_id" else "")
+      (if with_et then " AND entity_type_id = ?" else "")
+      (if with_limit then " LIMIT ?" else "")
+
+  let e_asub_fts		= _asub_fts   false false
+  let e_asuper_fts		= _asuper_fts false false
+  let e_asub_fts_limit		= _asub_fts   false true
+  let e_asuper_fts_limit	= _asuper_fts false true
+  let e_asub_fts_et		= _asub_fts   true false
+  let e_asuper_fts_et		= _asuper_fts true false
+  let e_asub_fts_et_limit	= _asub_fts   true true
+  let e_asuper_fts_et_limit	= _asuper_fts true true
 
   let e_asub_get_text =
     q "SELECT subentity_id, value FROM @text_attribution \
@@ -449,6 +454,8 @@ let memo_2lwt f = let g, c = memo_1lwt f in (fun x0 x1 -> g (x0, x1)), c
 let memo_3lwt f = let g, c = memo_1lwt f in (fun x0 x1 x2 -> g (x0, x1, x2)), c
 let memo_4lwt f = let g, c = memo_1lwt f in
 		  (fun x0 x1 x2 x3 -> g (x0, x1, x2, x3)), c
+let memo_5lwt f = let g, c = memo_1lwt f in
+		  (fun x0 x1 x2 x3 x4 -> g (x0, x1, x2, x3, x4)), c
 
 module Base = struct
   type attribute_type_id = int32
@@ -1030,32 +1037,48 @@ let rec make uri_or_conn = (module struct
       | Attribute.Search_fts x -> asuper1_search_fts e x
 
     let asub_fts, asub_fts_cache =
-      memo_4lwt @@ fun (cutoff, limit, e, fts) ->
+      memo_5lwt @@ fun (et, cutoff, limit, e, fts) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = List.push C.Tuple.(int32 0 tup, float 1 tup) in
-      begin match limit with
-      | None ->
+      begin match et, limit with
+      | None, None ->
 	C.fold Q.e_asub_fts f
 	       C.Param.[|text fts; int32 e; float cutoff|] []
-      | Some limit ->
+      | None, Some limit ->
 	C.fold Q.e_asub_fts_limit f
 	       C.Param.[|text fts; int32 e; int limit; float cutoff|] []
+      | Some et, None ->
+	C.fold Q.e_asub_fts_et f
+	       C.Param.[|text fts; int32 e; int32 et; float cutoff|] []
+      | Some et, Some limit ->
+	C.fold Q.e_asub_fts_et_limit f
+	       C.Param.[|text fts; int32 e; int32 et; int limit; float cutoff|]
+	       []
       end >|= List.rev
-    let asub_fts ?(cutoff = 0.0) ?limit = asub_fts cutoff limit
+    let asub_fts ?entity_type ?(cutoff = 0.0) ?limit =
+      asub_fts entity_type cutoff limit
 
     let asuper_fts, asuper_fts_cache =
-      memo_4lwt @@ fun (cutoff, limit, e, fts) ->
+      memo_5lwt @@ fun (et, cutoff, limit, e, fts) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = List.push C.Tuple.(int32 0 tup, float 1 tup) in
-      begin match limit with
-      | None ->
+      begin match et, limit with
+      | None, None ->
 	C.fold Q.e_asuper_fts f
 	       C.Param.[|text fts; int32 e; float cutoff|] []
-      | Some limit ->
+      | None, Some limit ->
 	C.fold Q.e_asuper_fts_limit f
 	       C.Param.[|text fts; int32 e; int limit; float cutoff|] []
+      | Some et, None ->
+	C.fold Q.e_asuper_fts f
+	       C.Param.[|text fts; int32 e; int32 et; float cutoff|] []
+      | Some et, Some limit ->
+	C.fold Q.e_asuper_fts_limit f
+	       C.Param.[|text fts; int32 e; int32 et; int limit; float cutoff|]
+	       []
       end >|= List.rev
-    let asuper_fts ?(cutoff = 0.0) ?limit = asuper_fts cutoff limit
+    let asuper_fts ?entity_type ?(cutoff = 0.0) ?limit =
+      asuper_fts entity_type cutoff limit
 
     let asub_get_integer, asub_get_integer_cache =
       memo_2lwt @@ fun (e, at_id) ->
