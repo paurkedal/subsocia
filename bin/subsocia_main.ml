@@ -451,6 +451,30 @@ let search_t =
 		   info ~docv:"PATH" []) in
   Term.(pure search $ sel_t)
 
+let fts q limit cutoff = run @@ fun (module C) ->
+  let module U = Entity_utils (C) in
+  lwt e_top = C.Entity.top in
+  lwt es = C.Entity.asub_fts ?limit ?cutoff e_top (Subsocia_fts.tsquery q) in
+  let show (e, rank) =
+    lwt name = U.Entity.display_name ~langs e in
+    lwt et = C.Entity.type_ e in
+    lwt etn = C.Entity_type.name et in
+    Lwt_io.printlf "%8.3g %s : %s" rank name etn in
+  Lwt_list.iter_s show es >>
+  Lwt.return (if es = [] then 1 else 0)
+
+let fts_t =
+  let doc = "The query string as accepted by PostgrSQL's to_tsquery." in
+  let q_t = Arg.(required & pos 0 (some string) None &
+		 info ~docv:"TSQUERY" ~doc []) in
+  let doc = "Only show the first LIMIT highest ranked results." in
+  let limit_t = Arg.(value & opt (some int) None &
+		     info ~docv:"LIMIT" ~doc ["limit"]) in
+  let doc = "Exclude results rank CUTOFF and below." in
+  let cutoff_t = Arg.(value & opt (some float) None &
+		      info ~docv:"CUTOFF" ~doc ["cutoff"]) in
+  Term.(pure fts $ q_t $ limit_t $ cutoff_t)
+
 let create etn dsuper aselectors = run0 @@ fun (module C) ->
   let module U = Entity_utils (C) in
   lwt et =
@@ -586,6 +610,9 @@ let subcommands = [
   search_t, Term.info ~docs:e_scn
     ~doc:"List entities matching a selector."
     "search";
+  fts_t, Term.info ~docs:e_scn
+    ~doc:"Full-text search."
+    "fts";
   create_t, Term.info ~docs:e_scn
     ~doc:"Create an entity."
     "create";
