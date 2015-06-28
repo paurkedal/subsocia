@@ -19,6 +19,7 @@ CREATE TABLE subsocia.global_integer (
   global_name varchar(80) NOT NULL,
   global_value integer NOT NULL
 );
+INSERT INTO subsocia.global_integer VALUES ('schema_version', 0);
 
 -- Types
 
