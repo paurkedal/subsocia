@@ -429,6 +429,11 @@ module Entity_utils (C : Subsocia_intf.S) = struct
       | `One (C.Attribute.Ex (at, av)) -> Entity.delattr e e_ctx at [av]
       | `All (Attribute_type.Ex at) -> Entity.setattr e e_ctx at [])
       attrs
+
+  let entity_type_of_arg etn =
+    match_lwt C.Entity_type.of_name etn with
+    | None -> Lwt.fail (Failure ("No entity type has name " ^ etn))
+    | Some et -> Lwt.return et
 end
 
 let search sel = run @@ fun (module C) ->
@@ -451,10 +456,13 @@ let search_t =
 		   info ~docv:"PATH" []) in
   Term.(pure search $ sel_t)
 
-let fts q limit cutoff = run @@ fun (module C) ->
+let fts q etn super limit cutoff = run @@ fun (module C) ->
   let module U = Entity_utils (C) in
   lwt e_top = C.Entity.top in
-  lwt es = C.Entity.asub_fts ?limit ?cutoff e_top (Subsocia_fts.tsquery q) in
+  lwt entity_type = Pwt_option.map_s U.entity_type_of_arg etn in
+  lwt super = Pwt_option.map_s U.Entity.select_one super in
+  lwt es = C.Entity.asub_fts ?entity_type ?super ?limit ?cutoff e_top
+			     (Subsocia_fts.tsquery q) in
   let show (e, rank) =
     lwt name = U.Entity.display_name ~langs e in
     lwt et = C.Entity.type_ e in
@@ -467,20 +475,23 @@ let fts_t =
   let doc = "The query string as accepted by PostgrSQL's to_tsquery." in
   let q_t = Arg.(required & pos 0 (some string) None &
 		 info ~docv:"TSQUERY" ~doc []) in
+  let doc = "Restrict the result to the entities of TYPE." in
+  let et_t = Arg.(value & opt (some string) None &
+		  info ~docv:"TYPE" ~doc ["t"]) in
+  let doc = "Restrict the result to subentities of SUPER." in
+  let super_t = Arg.(value & opt (some selector_conv) None &
+		     info ~docv:"SUPER" ~doc ["s"]) in
   let doc = "Only show the first LIMIT highest ranked results." in
   let limit_t = Arg.(value & opt (some int) None &
 		     info ~docv:"LIMIT" ~doc ["limit"]) in
   let doc = "Exclude results rank CUTOFF and below." in
   let cutoff_t = Arg.(value & opt (some float) None &
 		      info ~docv:"CUTOFF" ~doc ["cutoff"]) in
-  Term.(pure fts $ q_t $ limit_t $ cutoff_t)
+  Term.(pure fts $ q_t $ et_t $ super_t $ limit_t $ cutoff_t)
 
 let create etn dsuper aselectors = run0 @@ fun (module C) ->
   let module U = Entity_utils (C) in
-  lwt et =
-    match_lwt C.Entity_type.of_name etn with
-    | None -> Lwt.fail (Failure ("No entity type has name " ^ etn))
-    | Some et -> Lwt.return et in
+  lwt et = U.entity_type_of_arg etn in
   lwt aselectors = Lwt_list.map_p U.lookup_aselector aselectors in
   lwt dsuper = Lwt_list.map_p U.Entity.select_one dsuper in
   lwt e = C.Entity.create et in

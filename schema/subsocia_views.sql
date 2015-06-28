@@ -14,7 +14,7 @@
 -- along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 CREATE OR REPLACE VIEW
-  subsocia.inclusion_closure (subentity_id, superentity_id)
+  subsocia.transitive_inclusion (subentity_id, superentity_id)
 AS
   WITH RECURSIVE inclusion_closure AS
     (
@@ -24,5 +24,21 @@ AS
       SELECT acc.subentity_id, i.superentity_id
 	FROM inclusion_closure AS acc JOIN subsocia.inclusion AS i
 	  ON acc.superentity_id = i.subentity_id
+       WHERE not is_subsumed
+    )
+  SELECT * FROM inclusion_closure;
+
+CREATE OR REPLACE VIEW
+  subsocia.transitive_reflexive_inclusion (subentity_id, superentity_id)
+AS
+  WITH RECURSIVE inclusion_closure AS
+    (
+      SELECT entity_id AS subentity_id, entity_id AS superentity_id
+	FROM subsocia.entity
+    UNION
+      SELECT acc.subentity_id, i.superentity_id
+	FROM inclusion_closure AS acc JOIN subsocia.inclusion AS i
+	  ON acc.superentity_id = i.subentity_id
+       WHERE not is_subsumed
     )
   SELECT * FROM inclusion_closure;

@@ -172,21 +172,23 @@ module type ENTITY = sig
   (** [asuper_eq e at v] are the attribution superentities of [e] along [at]
       loosing the value [v]. *)
 
-  val asub_fts : ?entity_type: Entity_type.t ->
+  val asub_fts : ?entity_type: Entity_type.t -> ?super: t ->
 		 ?cutoff: float -> ?limit: int ->
 		 t -> Subsocia_fts.t -> (t * float) list Lwt.t
   (** [asub_fts e q] are relevance-weighted subentities along text attributes
       matching a full-text search for [q], ordered by relevance.
       @param entity_type Only include entities of this type if specified.
+      @param super Restrict the result to entities strictly below [super].
       @param limit The maximum number of entities to return. Default no limit.
       @param cutoff Results with [rank <= cutoff] are excluded. Default 0.0. *)
 
-  val asuper_fts : ?entity_type: Entity_type.t ->
+  val asuper_fts : ?entity_type: Entity_type.t -> ?super: t ->
 		   ?cutoff: float -> ?limit: int ->
 		   t -> Subsocia_fts.t -> (t * float) list Lwt.t
   (** [asuper_fts e q] are relevance-weighted superentities along text
       attributes matching a full-text search for [q], ordered by relevance.
       @param entity_type Only include entities of this type if specified.
+      @param super Restrict the result to entities strictly below [super].
       @param limit The maximum number of entities to return. Default no limit.
       @param cutoff Results with [rank <= cutoff] are excluded. Default 0.0. *)
 

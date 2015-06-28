@@ -274,17 +274,19 @@ module Server_impl = struct
       C.Entity.Set.elements *> List.map C.Entity.id
 
     let asub_fts (module C : Subsocia_intf.S)
-		 ?entity_type ?cutoff ?limit e_id fts =
+		 ?entity_type ?super ?cutoff ?limit e_id fts =
       lwt e = C.Entity.of_id e_id in
       lwt entity_type = Pwt_option.map_s C.Entity_type.of_id entity_type in
-      C.Entity.asub_fts ?entity_type ?cutoff ?limit e fts >|=
+      lwt super = Pwt_option.map_s C.Entity.of_id super in
+      C.Entity.asub_fts ?entity_type ?super ?cutoff ?limit e fts >|=
       List.map (fun (e, w) -> (C.Entity.id e, w))
 
     let asuper_fts (module C : Subsocia_intf.S)
-		   ?entity_type ?cutoff ?limit e_id fts =
+		   ?entity_type ?super ?cutoff ?limit e_id fts =
       lwt e = C.Entity.of_id e_id in
       lwt entity_type = Pwt_option.map_s C.Entity_type.of_id entity_type in
-      C.Entity.asuper_fts ?entity_type ?cutoff ?limit e fts >|=
+      lwt super = Pwt_option.map_s C.Entity.of_id super in
+      C.Entity.asuper_fts ?entity_type ?super ?cutoff ?limit e fts >|=
       List.map (fun (e, w) -> (C.Entity.id e, w))
 
     let asub_get (module C : Subsocia_intf.S) e_id at_id =
