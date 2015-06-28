@@ -15,6 +15,11 @@
 
 CREATE SCHEMA subsocia;
 
+CREATE TABLE subsocia.global_integer (
+  global_name varchar(80) NOT NULL,
+  global_value integer NOT NULL
+);
+
 -- Types
 
 CREATE TABLE subsocia.entity_type (

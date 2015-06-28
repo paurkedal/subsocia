@@ -106,7 +106,7 @@ let disable_transaction_t =
 
 (* Database Commands *)
 
-let sql_schemas = ["subsocia_core.sql"]
+let sql_schemas = ["subsocia_tables.sql"; "subsocia_views.sql"]
 let subsocia_schemas = ["subsocia_core.sscm"]
 let schema_dir =
   try Sys.getenv "SUBSOCIA_SCHEMA_DIR"
