@@ -502,17 +502,30 @@ module Base = struct
   end
 end
 
-let rec make uri_or_conn = (module struct
+let rec make connection_param = (module struct
 
   include Base
 
   let inclusion_cache = Cache.create ~cache_metric 61
 
+  let wrap_transaction f (module C : CONNECTION) =
+    C.exec Q.begin_ [||] >>
+    begin try_lwt
+      lwt r = f (module C : CONNECTION) in
+      C.exec Q.commit [||] >>
+      Lwt.return r
+    with exc ->
+      Lwt_log.debug_f "Raised in transaction: %s" (Printexc.to_string exc) >>
+      C.exec Q.rollback [||] >>
+      Lwt.fail exc
+    end
+
   type with_db = {
-    with_db : 'a. ((module Caqti_lwt.CONNECTION) -> 'a Lwt.t) -> 'a Lwt.t;
+    with_db : 'a. transaction: bool ->
+	      ((module Caqti_lwt.CONNECTION) -> 'a Lwt.t) -> 'a Lwt.t;
   }
   let with_db =
-    match uri_or_conn with
+    match connection_param with
     | `Uri uri ->
       let pool =
 	let connect () = Caqti_lwt.connect uri in
@@ -520,26 +533,24 @@ let rec make uri_or_conn = (module struct
 	let validate (module C : CONNECTION) = C.validate () in
 	let check (module C : CONNECTION) = C.check in
 	Caqti_lwt.Pool.create ~validate ~check connect disconnect in
-      {with_db = fun f -> Caqti_lwt.Pool.use f pool}
-    | `Connection conn ->
+      let with_db ~transaction f =
+	if transaction then Caqti_lwt.Pool.use (wrap_transaction f) pool
+		       else Caqti_lwt.Pool.use f pool in
+      {with_db}
+    | `Transaction conn ->
       let lock = Lwt_mutex.create () in
-      {with_db = fun f -> Lwt_mutex.with_lock lock (fun () -> f conn)}
-  let with_db ?conn f =
+      let with_db ~transaction f =
+	Lwt_mutex.with_lock lock (fun () -> f conn) in
+      {with_db}
+  let with_db ?conn ?(transaction = false) f =
     match conn with
-    | None -> with_db.with_db f
+    | None -> with_db.with_db ~transaction f
     | Some conn -> f conn
 
   let transaction f =
     with_db @@ fun ((module C : CONNECTION) as conn) ->
-    C.exec Q.begin_ [||] >>= fun () ->
-    try_lwt
-      let module C' = (val make (`Connection conn) : S) in
-      lwt r = f (module C' : Subsocia_intf.S) in
-      C.exec Q.commit [||] >>
-      Lwt.return r
-    with exc ->
-      Lwt_log.debug_f "Raised in transaction: %s" (Printexc.to_string exc) >>
-      C.exec Q.rollback [||] >> Lwt.fail exc
+    let module C' = (val make (`Transaction conn) : S) in
+    f (module C' : Subsocia_intf.S)
 
   module Attribute_type = struct
     include Attribute_type_base
@@ -1304,8 +1315,8 @@ let rec make uri_or_conn = (module struct
 	C.exec Q.fts_insert C.Param.[|int32 e; int32 e'|]
       | _ -> Lwt.return_unit
 
-    let addattr' (type a) e e' (at : a Attribute_type.t1) (xs : a list) =
-      with_db @@ fun (module C : CONNECTION) ->
+    let addattr' (module C : CONNECTION)
+		 (type a) e e' (at : a Attribute_type.t1) (xs : a list) =
       let aux q conv =
 	Lwt_list.iter_s
 	  (fun x ->
@@ -1348,10 +1359,10 @@ let rec make uri_or_conn = (module struct
 	      (fun x -> if Hashtbl.mem ht x then false else
 			(Hashtbl.add ht x (); true)) xs in
       if xs = [] then Lwt.return_unit else
-      addattr' e e' at xs
+      with_db ~transaction:true (fun conn -> addattr' conn e e' at xs)
 
-    let delattr' (type a) e e' (at : a Attribute_type.t1) (xs : a list) =
-      with_db @@ fun (module C : CONNECTION) ->
+    let delattr' (module C : CONNECTION)
+		 (type a) e e' (at : a Attribute_type.t1) (xs : a list) =
       let aux q conv =
 	Lwt_list.iter_s
 	  (fun x ->
@@ -1376,7 +1387,7 @@ let rec make uri_or_conn = (module struct
 	  (fun x -> if not (Hashtbl.mem ht x) then false else
 		    (Hashtbl.remove ht x; true)) xs in
       if xs = [] then Lwt.return_unit else
-      delattr' e e' at xs
+      with_db ~transaction:true (fun conn -> delattr' conn e e' at xs)
 
     let setattr (type a) e e' (at : a Attribute_type.t1) (xs : a list) =
       begin match_lwt check_mult e e' at with
@@ -1398,8 +1409,10 @@ let rec make uri_or_conn = (module struct
 	  xs in
       let xs_del =
 	Hashtbl.fold (fun x keep acc -> if keep then acc else x :: acc) ht [] in
-      (if xs_del = [] then Lwt.return_unit else delattr' e e' at xs_del) >>
-      (if xs_ins = [] then Lwt.return_unit else addattr' e e' at xs_ins)
+      with_db ~transaction:true begin fun c ->
+	(if xs_del = [] then Lwt.return_unit else delattr' c e e' at xs_del) >>
+	(if xs_ins = [] then Lwt.return_unit else addattr' c e e' at xs_ins)
+      end
 
   end
 
