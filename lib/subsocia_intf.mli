@@ -65,11 +65,24 @@ module type ENTITY_TYPE = sig
   val of_id : int32 -> t Lwt.t
   val id : t -> int32
   val display_name : langs: lang list -> ?pl: bool -> t -> string Lwt.t
+
   val create : string -> t Lwt.t
+  (** [create name] creates an entity type named [name]. *)
+
   val delete : t -> unit Lwt.t
+  (** [delete et] attempts to delete [et].  This will fail if there currently
+      exists entities of this kind. *)
+
   val all : unit -> Set.t Lwt.t
+  (** [all ()] is the set of all entity types. *)
+
   val entity_name_tmpl : t -> string Lwt.t
+  (** [entity_name_tmpl et] is used to derive the display name for entities of
+      type [et]. *)
+
   val set_entity_name_tmpl : t -> string -> unit Lwt.t
+  (** [set_entity_name_tmpl et tmpl] sets the template returned by
+      {!entity_name_tmpl}. *)
 
   val can_dsub : t -> t -> (Multiplicity.t * Multiplicity.t) option Lwt.t
   (** [can_dsub et et'] is the corresponding multiplicities if entities of
@@ -95,14 +108,29 @@ module type ENTITY_TYPE = sig
 
   val disallow_dsub : t -> t -> unit Lwt.t
   (** After [disallow_dsub et et'], entities of type [et] can no longer be
-      direct subentities of entities of type [et']. *)
+      direct subentities of entities of type [et'].  Current inclusions of
+      this kind will remain until cleaned up, but algorithms are free to
+      disregard them. *)
 
   val can_asub : t -> t -> 'a Attribute_type.t1 -> Multiplicity.t option Lwt.t
+  (** [can_asub et et' at] is the allowed multiplicity of attributes of type
+      [at] from [et] to [et'], or [None] if disallowed. *)
+
   val can_asub_byattr : t -> t -> Multiplicity.t Attribute_type.Map.t Lwt.t
+  (** [can_asub_byattr et et'] is a map from allowed attributes from [et] to
+      [et'] to the corresponding multiplicity. *)
+
   val asub_elements :
     unit -> (t * t * Attribute_type.t0 * Multiplicity.t) list Lwt.t
+
   val allow_asub : t -> t -> Attribute_type.t0 -> Multiplicity.t -> unit Lwt.t
+  (** [allow_asub et et' at m] decleares that [at] is allowed with
+      multiplicity [m] from [et] to [et']. *)
+
   val disallow_asub : t -> t -> Attribute_type.t0 -> unit Lwt.t
+  (** [disallow_asub et et' at] declares that [at] is no longer allowed from
+      [et] to [et'].  Current attributions of this type will remain until
+      cleaned up, but algorithms are free to disregard them. *)
 end
 
 module type ENTITY = sig
