@@ -160,6 +160,58 @@ let db_init disable_transaction = run0 @@ fun (module C) ->
 
 let db_init_t = Term.(pure db_init $ disable_transaction_t)
 
+let get_schema_version_q = Subsocia_direct.format_query
+  "SELECT global_value FROM @global_integer \
+   WHERE global_name = 'schema_version'"
+let get_schema_version (module C : Caqti_lwt.CONNECTION) =
+  C.find get_schema_version_q C.Tuple.(int 0) [||]
+
+let string_of_query_info = function
+  | `Oneshot s -> String.trim s
+  | `Prepared (_, s) -> String.trim s
+
+let db_upgrade () = Lwt_main.run begin
+  let uri = Uri.of_string Subsocia_config.database_uri#get in
+  lwt c = Caqti_lwt.connect uri in
+  let module C : Caqti_lwt.CONNECTION = (val c) in
+  lwt db_schema_version = get_schema_version c in
+  let have_error = ref false in
+  for_lwt v = db_schema_version to Subsocia_version.schema_version - 1 do
+    let fp = Filename.concat Subsocia_version.schema_upgrade_dir
+			     (sprintf "from-%d.sql" v) in
+    if !have_error then
+      Lwt_io.printlf "Skipped: %s" fp
+    else begin
+      try_lwt
+	load_sql c fp >>
+	Lwt_io.printlf "Updated: %s" fp
+      with
+      | Caqti.Execute_failed (_, qi, msg) ->
+	have_error := true;
+	Lwt_io.printlf "Failed: %s" fp >>
+	Lwt_io.printlf "<<- %s" (string_of_query_info qi) >>
+	Lwt_io.printlf "->> %s" (String.trim msg)
+      | exc ->
+	have_error := true;
+	Lwt_io.printlf "Failed: %s" fp >>
+	Lwt_io.printlf "Exception: %s" (Printexc.to_string exc)
+    end
+  done >>
+  if !have_error then
+    Lwt_io.printf "\n\
+      You may need to inspect the database and schema and apply the failed\n\
+      update manually.  Make sure also include the the update of the\n\
+      'schema_version' in the global_integer table.\n\n\
+      If this looks like a bug, please file an issue at\n%s.\n"
+      Subsocia_version.issues_url >>
+    Lwt.return 69
+  else
+    Lwt_io.printlf "All updates succeeded." >>
+    Lwt.return 0
+end
+
+let db_upgrade_t = Term.(pure db_upgrade $ pure ())
+
 (* Entity Types *)
 
 let et_create etn = run0 @@ fun (module C) ->
@@ -574,6 +626,10 @@ let subcommands = [
   db_init_t, Term.info ~docs:db_scn
     ~doc:"Initialize the database."
     "db-init";
+  db_upgrade_t, Term.info ~docs:db_scn
+    ~doc:(sprintf "Upgrade the database to the current schema version (%d)."
+		  Subsocia_version.schema_version)
+    "db-upgrade";
   et_list_t, Term.info ~docs:et_scn
     ~doc:"List entity types."
     "et-list";
