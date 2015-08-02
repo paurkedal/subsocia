@@ -128,67 +128,60 @@ module Q = struct
     q "UPDATE @entity_type SET entity_name_tmpl = ? WHERE entity_type_id = ?"
 
   let et_can_dsub =
-    q "SELECT subentity_multiplicity, superentity_multiplicity \
+    q "SELECT dsub_mult, dsuper_mult \
        FROM @inclusion_type \
-       WHERE subentity_type_id = ? AND superentity_type_id = ?"
+       WHERE dsub_type_id = ? AND dsuper_type_id = ?"
   let et_dsub =
-    q "SELECT subentity_type_id, \
-	      subentity_multiplicity, superentity_multiplicity \
-       FROM @inclusion_type WHERE superentity_type_id = ?"
+    q "SELECT dsub_type_id, dsub_mult, dsuper_mult \
+       FROM @inclusion_type WHERE dsuper_type_id = ?"
   let et_dsuper =
-    q "SELECT superentity_type_id, \
-	      subentity_multiplicity, superentity_multiplicity \
-       FROM @inclusion_type WHERE subentity_type_id = ?"
+    q "SELECT dsuper_type_id, dsub_mult, dsuper_mult \
+       FROM @inclusion_type WHERE dsub_type_id = ?"
   let et_dsub_elements =
-    q "SELECT subentity_type_id, superentity_type_id, \
-	      subentity_multiplicity, superentity_multiplicity \
+    q "SELECT dsub_type_id, dsuper_type_id, dsub_mult, dsuper_mult \
        FROM @inclusion_type"
   let et_allow_dsub =
     q "INSERT INTO @inclusion_type \
-	(subentity_multiplicity, superentity_multiplicity, \
-	 subentity_type_id, superentity_type_id) \
+	(dsub_mult, dsuper_mult, dsub_type_id, dsuper_type_id) \
        VALUES (?, ?, ?, ?)"
   let et_disallow_dsub =
     q "DELETE FROM @inclusion_type \
-       WHERE subentity_type_id = ? AND superentity_type_id = ?"
+       WHERE dsub_type_id = ? AND dsuper_type_id = ?"
 
   let et_can_asub_byattr =
-    q "SELECT attribute_type_id, attribute_multiplicity \
+    q "SELECT attribute_type_id, attribute_mult \
        FROM @attribution_type \
-       WHERE subentity_type_id = ? AND superentity_type_id = ?"
+       WHERE asub_type_id = ? AND asuper_type_id = ?"
   let et_can_asub =
-    q "SELECT attribute_multiplicity FROM @attribution_type \
-       WHERE subentity_type_id = ? AND superentity_type_id = ? \
+    q "SELECT attribute_mult FROM @attribution_type \
+       WHERE asub_type_id = ? AND asuper_type_id = ? \
 	 AND attribute_type_id = ?"
   let et_asub_elements =
-    q "SELECT subentity_type_id, superentity_type_id, \
-	      attribute_type_id, attribute_multiplicity \
+    q "SELECT asub_type_id, asuper_type_id, attribute_type_id, attribute_mult \
        FROM @attribution_type"
   let et_allow_asub =
     q "INSERT INTO @attribution_type \
-	(subentity_type_id, superentity_type_id, \
-	 attribute_type_id, attribute_multiplicity) \
+	(asub_type_id, asuper_type_id, attribute_type_id, attribute_mult) \
        VALUES (?, ?, ?, ?)"
   let et_disallow_asub =
     q "DELETE FROM @attribution_type \
-       WHERE subentity_type_id = ? AND superentity_type_id = ? \
-	 AND attribute_type_id = ?"
+       WHERE asub_type_id = ? AND asuper_type_id = ? AND attribute_type_id = ?"
 
   (* Entites *)
 
   let e_dsuper_any =
-    q "SELECT superentity_id FROM @inclusion WHERE subentity_id = ?"
+    q "SELECT dsuper_id FROM @inclusion WHERE dsub_id = ?"
   let e_dsub_any =
-    q "SELECT subentity_id FROM @inclusion WHERE superentity_id = ?"
+    q "SELECT dsub_id FROM @inclusion WHERE dsuper_id = ?"
 
   let e_dsuper_typed =
     q "SELECT entity_id \
-       FROM @inclusion JOIN @entity ON superentity_id = entity_id \
-       WHERE subentity_id = ? AND entity_type_id = ?"
+       FROM @inclusion JOIN @entity ON dsuper_id = entity_id \
+       WHERE dsub_id = ? AND entity_type_id = ?"
   let e_dsub_typed =
     q "SELECT entity_id \
-       FROM @inclusion JOIN @entity ON subentity_id = entity_id \
-       WHERE superentity_id = ? AND entity_type_id = ?"
+       FROM @inclusion JOIN @entity ON dsub_id = entity_id \
+       WHERE dsuper_id = ? AND entity_type_id = ?"
 
   let e_type = q "SELECT entity_type_id FROM @entity WHERE entity_id = ?"
   let e_rank = q "SELECT entity_rank FROM @entity WHERE entity_id = ?"
@@ -203,21 +196,21 @@ module Q = struct
   let e_minimums =
     q "SELECT entity_id FROM @entity \
        WHERE NOT EXISTS \
-	(SELECT 0 FROM @inclusion WHERE superentity_id = entity_id)"
+	(SELECT 0 FROM @inclusion WHERE dsuper_id = entity_id)"
 
   let e_select_precedes =
     q "WITH RECURSIVE successors(entity_id) AS ( \
-	  SELECT i.superentity_id AS entity_id \
+	  SELECT i.dsuper_id AS entity_id \
 	  FROM @inclusion i \
-	  JOIN @entity e ON e.entity_id = i.superentity_id \
+	  JOIN @entity e ON e.entity_id = i.dsuper_id \
 	  WHERE i.is_subsumed = false \
 	    AND e.entity_rank >= ? \
-	    AND i.subentity_id = ? \
+	    AND i.dsub_id = ? \
 	UNION \
-	  SELECT i.superentity_id \
+	  SELECT i.dsuper_id \
 	  FROM @inclusion i \
-	  JOIN @entity e ON e.entity_id = i.superentity_id \
-	  JOIN successors c ON i.subentity_id = c.entity_id \
+	  JOIN @entity e ON e.entity_id = i.dsuper_id \
+	  JOIN successors c ON i.dsub_id = c.entity_id \
 	  WHERE i.is_subsumed = false \
 	    AND e.entity_rank >= ? \
        ) \
@@ -234,36 +227,36 @@ module Q = struct
     q "DELETE FROM @entity WHERE entity_id = ?"
 
   let e_maybe_insert_inclusion =
-    q "INSERT INTO @inclusion (subentity_id, superentity_id) SELECT ?, ? \
+    q "INSERT INTO @inclusion (dsub_id, dsuper_id) SELECT ?, ? \
        WHERE NOT EXISTS (SELECT 0 FROM @inclusion \
-			 WHERE subentity_id = ? AND superentity_id = ?)"
+			 WHERE dsub_id = ? AND dsuper_id = ?)"
 
   let e_delete_inclusion =
-    q "DELETE FROM @inclusion WHERE subentity_id = ? AND superentity_id = ?"
+    q "DELETE FROM @inclusion WHERE dsub_id = ? AND dsuper_id = ?"
 
   let e_select_text_attribution =
     q "SELECT value FROM @text_attribution \
-       WHERE subentity_id = ? AND superentity_id = ? AND attribute_type_id = ?"
+       WHERE asub_id = ? AND asuper_id = ? AND attribute_type_id = ?"
   let e_select_integer_attribution =
     q "SELECT value FROM @integer_attribution \
-       WHERE subentity_id = ? AND superentity_id = ? AND attribute_type_id = ?"
+       WHERE asub_id = ? AND asuper_id = ? AND attribute_type_id = ?"
 
   let e_insert_text_attribution =
     q "INSERT INTO @text_attribution \
-	(subentity_id, superentity_id, attribute_type_id, value) \
+	(asub_id, asuper_id, attribute_type_id, value) \
        VALUES (?, ?, ?, ?)"
   let e_insert_integer_attribution =
     q "INSERT INTO @integer_attribution \
-	(subentity_id, superentity_id, attribute_type_id, value) \
+	(asub_id, asuper_id, attribute_type_id, value) \
        VALUES (?, ?, ?, ?)"
 
   let e_delete_text_attribution =
     q "DELETE FROM @text_attribution \
-       WHERE subentity_id = ? AND superentity_id = ? \
+       WHERE asub_id = ? AND asuper_id = ? \
 	 AND attribute_type_id = ? AND value = ?"
   let e_delete_integer_attribution =
     q "DELETE FROM @text_attribution \
-       WHERE subentity_id = ? AND superentity_id = ? \
+       WHERE asub_id = ? AND asuper_id = ? \
 	 AND attribute_type_id = ? AND value = ?"
 
   let ap1_ops = [|"="; "<="; ">="|]
@@ -272,78 +265,78 @@ module Q = struct
   let ap1_geq = 2
 
   let e_asub_present_text =
-    q("SELECT subentity_id FROM @text_attribution \
-       WHERE superentity_id = ? AND attribute_type_id = ?")
+    q("SELECT asub_id FROM @text_attribution \
+       WHERE asuper_id = ? AND attribute_type_id = ?")
   let e_asub_present_integer =
-    q("SELECT subentity_id FROM @integer_attribution \
-       WHERE superentity_id = ? AND attribute_type_id = ?")
+    q("SELECT asub_id FROM @integer_attribution \
+       WHERE asuper_id = ? AND attribute_type_id = ?")
 
   let e_asuper_present_text =
-    q("SELECT superentity_id FROM @text_attribution \
-       WHERE subentity_id = ? AND attribute_type_id = ?")
+    q("SELECT asuper_id FROM @text_attribution \
+       WHERE asub_id = ? AND attribute_type_id = ?")
   let e_asuper_present_integer =
-    q("SELECT superentity_id FROM @integer_attribution \
-       WHERE subentity_id = ? AND attribute_type_id = ?")
+    q("SELECT asuper_id FROM @integer_attribution \
+       WHERE asub_id = ? AND attribute_type_id = ?")
 
   let e_asub1_text = ap1_ops |> Array.map @@ fun op ->
-    q("SELECT subentity_id FROM @text_attribution \
-       WHERE superentity_id = ? AND attribute_type_id = ? AND value "^op^" ?")
+    q("SELECT asub_id FROM @text_attribution \
+       WHERE asuper_id = ? AND attribute_type_id = ? AND value "^op^" ?")
   let e_asub1_integer = ap1_ops |> Array.map @@ fun op ->
-    q("SELECT subentity_id FROM @integer_attribution \
-       WHERE superentity_id = ? AND attribute_type_id = ? AND value "^op^" ?")
+    q("SELECT asub_id FROM @integer_attribution \
+       WHERE asuper_id = ? AND attribute_type_id = ? AND value "^op^" ?")
 
   let e_asuper1_text = ap1_ops |> Array.map @@ fun op ->
-    q("SELECT superentity_id FROM @text_attribution \
-       WHERE subentity_id = ? AND attribute_type_id = ? AND value "^op^" ?")
+    q("SELECT asuper_id FROM @text_attribution \
+       WHERE asub_id = ? AND attribute_type_id = ? AND value "^op^" ?")
   let e_asuper1_integer = ap1_ops |> Array.map @@ fun op ->
-    q("SELECT superentity_id FROM @integer_attribution \
-       WHERE subentity_id = ? AND attribute_type_id = ? AND value "^op^" ?")
+    q("SELECT asuper_id FROM @integer_attribution \
+       WHERE asub_id = ? AND attribute_type_id = ? AND value "^op^" ?")
 
   let e_asub2_between_text =
-    q "SELECT subentity_id FROM @text_attribution \
-       WHERE superentity_id = ? AND attribute_type_id = ? \
+    q "SELECT asub_id FROM @text_attribution \
+       WHERE asuper_id = ? AND attribute_type_id = ? \
 	 AND value >= ? AND value < ?"
   let e_asub2_between_integer =
-    q "SELECT subentity_id FROM @integer_attribution \
-       WHERE superentity_id = ? AND attribute_type_id = ? \
+    q "SELECT asub_id FROM @integer_attribution \
+       WHERE asuper_id = ? AND attribute_type_id = ? \
 	 AND value >= ? AND value < ?"
 
   let e_asuper2_between_text =
-    q "SELECT superentity_id FROM @text_attribution \
-       WHERE subentity_id = ? AND attribute_type_id = ? \
+    q "SELECT asuper_id FROM @text_attribution \
+       WHERE asub_id = ? AND attribute_type_id = ? \
 	 AND value >= ? AND value < ?"
   let e_asuper2_between_integer =
-    q "SELECT superentity_id FROM @integer_attribution \
-       WHERE subentity_id = ? AND attribute_type_id = ? \
+    q "SELECT asuper_id FROM @integer_attribution \
+       WHERE asub_id = ? AND attribute_type_id = ? \
 	 AND value >= ? AND value < ?"
 
   let e_asub1_search =
-    q "SELECT subentity_id FROM @text_attribution \
-       WHERE superentity_id = ? AND attribute_type_id = ? \
+    q "SELECT asub_id FROM @text_attribution \
+       WHERE asuper_id = ? AND attribute_type_id = ? \
 	 AND value SIMILAR TO ?"
   let e_asuper1_search =
-    q "SELECT superentity_id FROM @text_attribution \
-       WHERE subentity_id = ? AND attribute_type_id = ? \
+    q "SELECT asuper_id FROM @text_attribution \
+       WHERE asub_id = ? AND attribute_type_id = ? \
 	 AND value SIMILAR TO ?"
 
   let e_asub1_search_fts =
-    q "SELECT subentity_id FROM @text_attribution_fts \
-       WHERE superentity_id = ? AND fts_vector @@ to_tsquery(fts_config, ?)"
+    q "SELECT asub_id FROM @text_attribution_fts \
+       WHERE asuper_id = ? AND fts_vector @@ to_tsquery(fts_config, ?)"
   let e_asuper1_search_fts =
-    q "SELECT superentity_id FROM @text_attribution_fts \
-       WHERE subentity_id = ? AND fts_vector @@ to_tsquery(fts_config, ?)"
+    q "SELECT asuper_id FROM @text_attribution_fts \
+       WHERE asub_id = ? AND fts_vector @@ to_tsquery(fts_config, ?)"
 
   let _asub_fts with_et with_super with_limit =
     format_query_f
       "SELECT * FROM
-	(SELECT a.subentity_id, \
+	(SELECT a.asub_id, \
 		ts_rank(fts_vector, to_tsquery(fts_config, ?)) AS r \
-	 FROM @text_attribution_fts AS a%s%s WHERE a.superentity_id = ?%s%s \
+	 FROM @text_attribution_fts AS a%s%s WHERE a.asuper_id = ?%s%s \
 	 ORDER BY r DESC%s) AS sq
        WHERE r > ?"
-      (if with_et then " JOIN @entity ON a.subentity_id = entity_id" else "")
+      (if with_et then " JOIN @entity ON a.asub_id = entity_id" else "")
       (if with_super then " JOIN @transitive_reflexive_inclusion AS c \
-			      ON c.subentity_id = a.subentity_id" else "")
+			      ON c.subentity_id = a.asub_id" else "")
       (if with_et then " AND entity_type_id = ?" else "")
       (if with_super then " AND c.superentity_id = ?" else "")
       (if with_limit then " LIMIT ?" else "")
@@ -351,14 +344,14 @@ module Q = struct
   let _asuper_fts with_et with_super with_limit =
     format_query_f
       "SELECT * FROM
-	(SELECT a.superentity_id, \
+	(SELECT a.asuper_id, \
 		ts_rank(fts_vector, to_tsquery(fts_config, ?)) AS r \
-	 FROM @text_attribution_fts AS a%s%s WHERE a.subentity_id = ?%s%s \
+	 FROM @text_attribution_fts AS a%s%s WHERE a.asub_id = ?%s%s \
 	 ORDER BY r DESC%s) AS sq
        WHERE r > ?"
-      (if with_et then " JOIN @entity ON a.superentity_id = entity_id" else "")
+      (if with_et then " JOIN @entity ON a.asuper_id = entity_id" else "")
       (if with_super then " JOIN @transitive_reflexive_inclusion AS c \
-			      ON c.subentity_id = a.superentity_id" else "")
+			      ON c.subentity_id = a.asuper_id" else "")
       (if with_et then " AND entity_type_id = ?" else "")
       (if with_super then " AND c.superentity_id = ?" else "")
       (if with_limit then " LIMIT ?" else "")
@@ -381,31 +374,31 @@ module Q = struct
   let e_asuper_fts_et_super_limit=_asuper_fts true  true  true
 
   let e_asub_get_text =
-    q "SELECT subentity_id, value FROM @text_attribution \
-       WHERE superentity_id = ? AND attribute_type_id = ?"
+    q "SELECT asub_id, value FROM @text_attribution \
+       WHERE asuper_id = ? AND attribute_type_id = ?"
   let e_asub_get_integer =
-    q "SELECT subentity_id, value FROM @integer_attribution \
-       WHERE superentity_id = ? AND attribute_type_id = ?"
+    q "SELECT asub_id, value FROM @integer_attribution \
+       WHERE asuper_id = ? AND attribute_type_id = ?"
 
   let e_asuper_get_text =
-    q "SELECT superentity_id, value FROM @text_attribution \
-       WHERE subentity_id = ? AND attribute_type_id = ?"
+    q "SELECT asuper_id, value FROM @text_attribution \
+       WHERE asub_id = ? AND attribute_type_id = ?"
   let e_asuper_get_integer =
-    q "SELECT superentity_id, value FROM @integer_attribution \
-       WHERE subentity_id = ? AND attribute_type_id = ?"
+    q "SELECT asuper_id, value FROM @integer_attribution \
+       WHERE asub_id = ? AND attribute_type_id = ?"
 
   let fts_clear =
     q "DELETE FROM subsocia.text_attribution_fts \
-       WHERE subentity_id = ? AND superentity_id = ?"
+       WHERE asub_id = ? AND asuper_id = ?"
   let fts_insert =
     q "INSERT INTO subsocia.text_attribution_fts \
-       SELECT a.subentity_id, a.superentity_id, at.fts_config, \
+       SELECT a.asub_id, a.asuper_id, at.fts_config, \
 	      to_tsvector(at.fts_config, string_agg(value, '$')) \
        FROM subsocia.text_attribution AS a \
 	 NATURAL JOIN subsocia.attribute_type AS at \
        WHERE NOT at.fts_config IS NULL \
-	 AND a.subentity_id = ? AND a.superentity_id = ? \
-       GROUP BY a.subentity_id, a.superentity_id, at.fts_config"
+	 AND a.asub_id = ? AND a.asuper_id = ? \
+       GROUP BY a.asub_id, a.asuper_id, at.fts_config"
 end
 
 module type CACHE = sig

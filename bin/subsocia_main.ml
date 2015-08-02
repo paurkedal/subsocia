@@ -175,27 +175,25 @@ let db_upgrade () = Lwt_main.run begin
   let module C : Caqti_lwt.CONNECTION = (val c) in
   lwt db_schema_version = get_schema_version c in
   let have_error = ref false in
+  let load fp =
+    if !have_error then Lwt_io.printlf "Skipped: %s" fp else
+    try_lwt
+      load_sql c fp >>
+      Lwt_io.printlf "Updated: %s" fp
+    with
+    | Caqti.Execute_failed (_, qi, msg) ->
+      have_error := true;
+      Lwt_io.printlf "Failed: %s" fp >>
+      Lwt_io.printlf "<<- %s" (string_of_query_info qi) >>
+      Lwt_io.printlf "->> %s" (String.trim msg)
+    | exc ->
+      have_error := true;
+      Lwt_io.printlf "Failed: %s" fp >>
+      Lwt_io.printlf "Exception: %s" (Printexc.to_string exc) in
   for_lwt v = db_schema_version to schema_version - 1 do
-    let fp = Filename.concat schema_upgrade_dir (sprintf "from-%d.sql" v) in
-    if !have_error then
-      Lwt_io.printlf "Skipped: %s" fp
-    else begin
-      try_lwt
-	load_sql c fp >>
-	Lwt_io.printlf "Updated: %s" fp
-      with
-      | Caqti.Execute_failed (_, qi, msg) ->
-	have_error := true;
-	Lwt_io.printlf "Failed: %s" fp >>
-	Lwt_io.printlf "<<- %s" (string_of_query_info qi) >>
-	Lwt_io.printlf "->> %s" (String.trim msg)
-      | exc ->
-	have_error := true;
-	Lwt_io.printlf "Failed: %s" fp >>
-	Lwt_io.printlf "Exception: %s" (Printexc.to_string exc)
-    end
+    load (Filename.concat schema_upgrade_dir (sprintf "from-%d.sql" v))
   done >>
-  Lwt_list.iter_s (load_sql c *< Filename.concat schema_dir)
+  Lwt_list.iter_s (load *< Filename.concat schema_dir)
 		  idempotent_sql_schemas >>
   if !have_error then
     Lwt_io.printf "\n\

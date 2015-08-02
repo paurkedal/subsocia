@@ -1,4 +1,4 @@
--- Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+-- Copyright (C) 2014--2015  Petter A. Urkedal <paurkedal@gmail.com>
 --
 -- This library is free software; you can redistribute it and/or modify it
 -- under the terms of the GNU Lesser General Public License as published by
@@ -16,10 +16,11 @@
 CREATE SCHEMA subsocia;
 
 CREATE TABLE subsocia.global_integer (
-  global_name varchar(80) NOT NULL,
+  global_name varchar(80) PRIMARY KEY,
   global_value integer NOT NULL
 );
-INSERT INTO subsocia.global_integer VALUES ('schema_version', 0);
+-- NB: Also update lib/subsocia_version.ml.ab.
+INSERT INTO subsocia.global_integer VALUES ('schema_version', 1);
 
 -- Types
 
@@ -29,11 +30,11 @@ CREATE TABLE subsocia.entity_type (
   entity_name_tmpl text NOT NULL DEFAULT ('${unique_name}')
 );
 CREATE TABLE subsocia.inclusion_type (
-  subentity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
-  superentity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
-  subentity_multiplicity smallint NOT NULL,
-  superentity_multiplicity smallint NOT NULL,
-  PRIMARY KEY (subentity_type_id, superentity_type_id)
+  dsub_type_id integer NOT NULL REFERENCES subsocia.entity_type,
+  dsub_mult smallint NOT NULL,
+  dsuper_type_id integer NOT NULL REFERENCES subsocia.entity_type,
+  dsuper_mult smallint NOT NULL,
+  PRIMARY KEY (dsub_type_id, dsuper_type_id)
 );
 
 CREATE TABLE subsocia.attribute_type (
@@ -43,11 +44,11 @@ CREATE TABLE subsocia.attribute_type (
   fts_config regconfig
 );
 CREATE TABLE subsocia.attribution_type (
-  subentity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
-  superentity_type_id integer NOT NULL REFERENCES subsocia.entity_type,
+  asub_type_id integer NOT NULL REFERENCES subsocia.entity_type,
+  asuper_type_id integer NOT NULL REFERENCES subsocia.entity_type,
   attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
-  attribute_multiplicity smallint NOT NULL,
-  PRIMARY KEY (attribute_type_id, subentity_type_id, superentity_type_id)
+  attribute_mult smallint NOT NULL,
+  PRIMARY KEY (attribute_type_id, asub_type_id, asuper_type_id)
 );
 
 -- Objects
@@ -59,30 +60,30 @@ CREATE TABLE subsocia.entity (
   access_id integer REFERENCES subsocia.entity
 );
 CREATE TABLE subsocia.inclusion (
-  subentity_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
-  superentity_id integer NOT NULL REFERENCES subsocia.entity,
+  dsub_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
+  dsuper_id integer NOT NULL REFERENCES subsocia.entity,
   is_subsumed boolean NOT NULL DEFAULT false,
-  PRIMARY KEY (superentity_id, subentity_id)
+  PRIMARY KEY (dsub_id, dsuper_id)
 );
 CREATE TABLE subsocia.integer_attribution (
-  subentity_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
-  superentity_id integer NOT NULL REFERENCES subsocia.entity,
+  asub_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
+  asuper_id integer NOT NULL REFERENCES subsocia.entity,
   attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
   value integer NOT NULL,
-  PRIMARY KEY (superentity_id, subentity_id, attribute_type_id, value)
+  PRIMARY KEY (asub_id, asuper_id, attribute_type_id, value)
 );
 CREATE TABLE subsocia.text_attribution (
-  subentity_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
-  superentity_id integer NOT NULL REFERENCES subsocia.entity,
+  asub_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
+  asuper_id integer NOT NULL REFERENCES subsocia.entity,
   attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
   value text NOT NULL,
-  PRIMARY KEY (superentity_id, subentity_id, attribute_type_id, value)
+  PRIMARY KEY (asub_id, asuper_id, attribute_type_id, value)
 );
 CREATE TABLE subsocia.text_attribution_fts (
-  subentity_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
-  superentity_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
+  asub_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
+  asuper_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
   fts_config regconfig NOT NULL,
   fts_vector tsvector NOT NULL,
-  PRIMARY KEY (subentity_id, superentity_id, fts_config)
+  PRIMARY KEY (asub_id, asuper_id, fts_config)
 );
 CREATE INDEX ON subsocia.text_attribution_fts USING gin(fts_vector);

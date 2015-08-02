@@ -13,32 +13,31 @@
 -- You should have received a copy of the GNU Lesser General Public License
 -- along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
-CREATE OR REPLACE VIEW
-  subsocia.transitive_inclusion (subentity_id, superentity_id)
-AS
+DROP VIEW IF EXISTS subsocia.transitive_inclusion;
+DROP VIEW IF EXISTS subsocia.transitive_reflexive_inclusion;
+
+CREATE VIEW subsocia.transitive_inclusion (tsub_id, tsuper_id) AS
   WITH RECURSIVE inclusion_closure AS
     (
-      SELECT subentity_id, superentity_id
+      SELECT dsub_id AS tsub_id, dsuper_id AS tsuper_id
 	FROM subsocia.inclusion WHERE not is_subsumed
     UNION
-      SELECT acc.subentity_id, i.superentity_id
+      SELECT acc.tsub_id, i.dsuper_id AS tsuper_id
 	FROM inclusion_closure AS acc JOIN subsocia.inclusion AS i
-	  ON acc.superentity_id = i.subentity_id
+	  ON acc.tsuper_id = i.dsub_id
        WHERE not is_subsumed
     )
   SELECT * FROM inclusion_closure;
 
-CREATE OR REPLACE VIEW
-  subsocia.transitive_reflexive_inclusion (subentity_id, superentity_id)
-AS
+CREATE VIEW subsocia.transitive_reflexive_inclusion (tsub_id, tsuper_id) AS
   WITH RECURSIVE inclusion_closure AS
     (
-      SELECT entity_id AS subentity_id, entity_id AS superentity_id
+      SELECT entity_id AS tsub_id, entity_id AS tsuper_id
 	FROM subsocia.entity
     UNION
-      SELECT acc.subentity_id, i.superentity_id
+      SELECT acc.tsub_id, i.dsuper_id AS tsuper_id
 	FROM inclusion_closure AS acc JOIN subsocia.inclusion AS i
-	  ON acc.superentity_id = i.subentity_id
+	  ON acc.tsuper_id = i.dsub_id
        WHERE not is_subsumed
     )
   SELECT * FROM inclusion_closure;

@@ -166,6 +166,15 @@ module type ENTITY = sig
   val dsuper : ?et: Entity_type.t -> t -> Set.t Lwt.t
   (** [dsuper e] fetches the direct superentities of [e]. *)
 
+  val force_dsub : t -> t -> unit Lwt.t
+  (** [force_dsub e e'] forces an inclusion of [e] in [e'].
+      @raise Invalid_argument if [e'] is included in [e]. *)
+
+  val relax_dsub : t -> t -> unit Lwt.t
+  (** [relax_dsub e e'] relaxes an inclusion of [e] in [e']. Only a direct
+      inclusion is relaxed. [e] may still be included in [e'] though a set of
+      intermediate inclusions after this call. *)
+
   val is_sub : t -> t -> bool Lwt.t
   (** [is_sub e e'] holds iff [e] is a subentity of [e']. *)
 
@@ -227,15 +236,6 @@ module type ENTITY = sig
   val asuper_get : t -> 'a Attribute_type.t1 -> 'a Values.t Map.t Lwt.t
   (** [asuper_get e at] is a map of [at]-values indexed by attribution
       superentities of [e] which loose those values along [at]. *)
-
-  val force_dsub : t -> t -> unit Lwt.t
-  (** [force_dsub e e'] forces an inclusion of [e] in [e'].
-      @raise Invalid_argument if [e'] is included in [e]. *)
-
-  val relax_dsub : t -> t -> unit Lwt.t
-  (** [relax_dsub e e'] relaxes an inclusion of [e] in [e']. Only a direct
-      inclusion is relaxed. [e] may still be included in [e'] though a set of
-      intermediate inclusions after this call. *)
 end
 
 module type S = sig
