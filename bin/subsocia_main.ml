@@ -20,6 +20,7 @@ open Printf
 open Pwt_infix
 open Subsocia_common
 open Subsocia_selector
+open Subsocia_version
 open Unprime
 open Unprime_option
 open Unprime_string
@@ -106,11 +107,9 @@ let disable_transaction_t =
 
 (* Database Commands *)
 
-let sql_schemas = ["subsocia_tables.sql"; "subsocia_views.sql"]
-let subsocia_schemas = ["subsocia_core.sscm"]
 let schema_dir =
   try Sys.getenv "SUBSOCIA_SCHEMA_DIR"
-  with Not_found -> Subsocia_version.schema_dir
+  with Not_found -> schema_dir
 
 let db_schema do_dir =
   Lwt_main.run begin
@@ -120,7 +119,7 @@ let db_schema do_dir =
       Lwt_list.iter_s
 	(fun schema ->
 	  Lwt_io.printl (Filename.concat schema_dir schema))
-	sql_schemas
+	(upgradable_sql_schemas @ idempotent_sql_schemas)
   end; 0
 
 let db_schema_t =
@@ -146,7 +145,7 @@ let db_init disable_transaction = run0 @@ fun (module C) ->
       let fp = Filename.concat schema_dir fn in
       Lwt_log.info_f "Loading %s." fp >>
       load_sql cc fp)
-    sql_schemas >>
+    (upgradable_sql_schemas @ idempotent_sql_schemas) >>
   Lwt_list.iter_s
     (fun fn ->
       let fp = Filename.concat schema_dir fn in
@@ -176,9 +175,8 @@ let db_upgrade () = Lwt_main.run begin
   let module C : Caqti_lwt.CONNECTION = (val c) in
   lwt db_schema_version = get_schema_version c in
   let have_error = ref false in
-  for_lwt v = db_schema_version to Subsocia_version.schema_version - 1 do
-    let fp = Filename.concat Subsocia_version.schema_upgrade_dir
-			     (sprintf "from-%d.sql" v) in
+  for_lwt v = db_schema_version to schema_version - 1 do
+    let fp = Filename.concat schema_upgrade_dir (sprintf "from-%d.sql" v) in
     if !have_error then
       Lwt_io.printlf "Skipped: %s" fp
     else begin
@@ -197,13 +195,15 @@ let db_upgrade () = Lwt_main.run begin
 	Lwt_io.printlf "Exception: %s" (Printexc.to_string exc)
     end
   done >>
+  Lwt_list.iter_s (load_sql c *< Filename.concat schema_dir)
+		  idempotent_sql_schemas >>
   if !have_error then
     Lwt_io.printf "\n\
       You may need to inspect the database and schema and apply the failed\n\
       update manually.  Make sure also include the the update of the\n\
       'schema_version' in the global_integer table.\n\n\
       If this looks like a bug, please file an issue at\n%s.\n"
-      Subsocia_version.issues_url >>
+      issues_url >>
     Lwt.return 69
   else
     Lwt_io.printlf "All updates succeeded." >>
@@ -628,7 +628,7 @@ let subcommands = [
     "db-init";
   db_upgrade_t, Term.info ~docs:db_scn
     ~doc:(sprintf "Upgrade the database to the current schema version (%d)."
-		  Subsocia_version.schema_version)
+		  schema_version)
     "db-upgrade";
   et_list_t, Term.info ~docs:et_scn
     ~doc:"List entity types."

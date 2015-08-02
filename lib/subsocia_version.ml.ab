@@ -23,6 +23,10 @@ let schema_version = 0 (* NB: Also update schema/subsocia_tables.sql. *)
 let schema_dir = Filename.concat pkg_datadir "schema"
 let schema_upgrade_dir = Filename.concat schema_dir "upgrade"
 
+let upgradable_sql_schemas = ["subsocia_tables.sql"]
+let idempotent_sql_schemas = ["subsocia_views.sql"]
+let subsocia_schemas = ["subsocia_core.sscm"]
+
 let static_dir = Filename.concat pkg_datadir "static"
 
 let issues_url = "https://github.com/paurkedal/subsocia/issues"

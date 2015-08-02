@@ -23,6 +23,10 @@ val schema_version : int
 val schema_dir : string
 val schema_upgrade_dir : string
 
+val upgradable_sql_schemas : string list
+val idempotent_sql_schemas : string list
+val subsocia_schemas : string list
+
 val static_dir : string
 
 val issues_url : string
