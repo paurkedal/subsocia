@@ -561,7 +561,7 @@ let rec make connection_param = (module struct
     let of_id', of_id_cache = Cache.memo_lwt_conn @@ fun ?conn at_id ->
       with_db ?conn @@ fun (module C : CONNECTION) ->
       C.find Q.at_by_id
-	     C.Tuple.(fun tup -> text 0 tup, text 1 tup)
+	     C.Tuple.(fun tup -> string 0 tup, string 1 tup)
 	     C.Param.([|int32 at_id|]) >|= fun (at_name, value_type) ->
       let Type.Ex at_value_type = Type.of_string value_type in
       Beacon.embed attribute_type_grade @@ fun at_beacon ->
@@ -572,8 +572,8 @@ let rec make connection_param = (module struct
     let of_name, of_name_cache = memo_1lwt @@ fun at_name ->
       with_db @@ fun (module C : CONNECTION) ->
       C.find_opt Q.at_by_name
-		 C.Tuple.(fun tup -> int32 0 tup, text 1 tup)
-		 C.Param.([|text at_name|]) >|=
+		 C.Tuple.(fun tup -> int32 0 tup, string 1 tup)
+		 C.Param.([|string at_name|]) >|=
       Option.map begin fun (at_id, value_type) ->
 	let Type.Ex at_value_type = Type.of_string value_type in
 	Beacon.embed attribute_type_grade @@ fun at_beacon ->
@@ -590,8 +590,8 @@ let rec make connection_param = (module struct
 	| _ -> None in
       with_db @@ fun ((module C : CONNECTION) as conn) ->
       C.find Q.at_create C.Tuple.(int32 0)
-	     C.Param.([|text at_name; text (Type.string_of_t0 vt);
-			option text fts|])
+	     C.Param.([|string at_name; string (Type.string_of_t0 vt);
+			option string fts|])
 	>>= of_id' ~conn
 
     let delete (Ex at) =
@@ -626,16 +626,16 @@ let rec make connection_param = (module struct
       memo_1lwt @@ fun name ->
       with_db @@ fun (module C) ->
       C.find_opt Q.et_id_of_name
-		 C.Tuple.(int32 0) C.Param.([|text name|])
+		 C.Tuple.(int32 0) C.Param.([|string name|])
 
     let name, name_cache =
       memo_1lwt @@ fun et ->
       with_db @@ fun (module C) ->
-      C.find Q.et_name_of_id C.Tuple.(text 0) C.Param.([|int32 et|])
+      C.find Q.et_name_of_id C.Tuple.(string 0) C.Param.([|int32 et|])
 
     let create etn =
       with_db @@ fun (module C) ->
-      C.find Q.et_create C.Tuple.(int32 0) C.Param.([|text etn|])
+      C.find Q.et_create C.Tuple.(int32 0) C.Param.([|string etn|])
 
     let delete et =
       with_db @@ fun (module C) ->
@@ -648,11 +648,11 @@ let rec make connection_param = (module struct
 
     let entity_name_tmpl, entity_name_tmpl_cache = memo_1lwt @@ fun et ->
       with_db @@ fun (module C) ->
-      C.find Q.et_entity_name_tmpl C.Tuple.(text 0) C.Param.([|int32 et|])
+      C.find Q.et_entity_name_tmpl C.Tuple.(string 0) C.Param.([|int32 et|])
 
     let set_entity_name_tmpl et name =
       with_db @@ fun (module C) ->
-      C.exec Q.et_set_entity_name_tmpl C.Param.([|text name; int32 et|])
+      C.exec Q.et_set_entity_name_tmpl C.Param.([|string name; int32 et|])
 
     let can_dsub, can_dsub_cache =
       memo_2lwt @@ fun (et0, et1) ->
@@ -868,7 +868,7 @@ let rec make connection_param = (module struct
       memo_3lwt @@ fun (e, e', at_id) ->
       with_db @@ fun (module C : CONNECTION) ->
       C.fold Q.e_select_text_attribution
-	     C.Tuple.(fun tup -> Values.add (text 0 tup))
+	     C.Tuple.(fun tup -> Values.add (string 0 tup))
 	     C.Param.([|int32 e; int32 e'; int32 at_id|])
 	     (Values.empty Type.String)
 
@@ -905,7 +905,7 @@ let rec make connection_param = (module struct
       memo_4lwt @@ fun (op, e, at_id, x) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asub1_text.(op) f C.Param.([|int32 e; int32 at_id; text x|])
+      C.fold Q.e_asub1_text.(op) f C.Param.([|int32 e; int32 at_id; string x|])
 	     Set.empty
 
     let asub1 op (type a) e (at : a Attribute_type.t1) : a -> Set.t Lwt.t =
@@ -927,7 +927,7 @@ let rec make connection_param = (module struct
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = Set.add (C.Tuple.int32 0 tup) in
       C.fold Q.e_asub2_between_text f
-	     C.Param.[|int32 e; int32 at_id; text x0; text x1|] Set.empty
+	     C.Param.[|int32 e; int32 at_id; string x0; string x1|] Set.empty
 
     let asub2_between (type a) e (at : a Attribute_type.t1)
 	: a -> a -> Set.t Lwt.t =
@@ -943,13 +943,13 @@ let rec make connection_param = (module struct
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = Set.add (C.Tuple.int32 0 tup) in
       C.fold Q.e_asub1_search f
-	     C.Param.[|int32 e; int32 at_id; text x|] Set.empty
+	     C.Param.[|int32 e; int32 at_id; string x|] Set.empty
 
     let asub1_search_fts, asub1_search_fts_cache =
       memo_2lwt @@ fun (e, x) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asub1_search_fts f C.Param.[|int32 e; text x|] Set.empty
+      C.fold Q.e_asub1_search_fts f C.Param.[|int32 e; string x|] Set.empty
 
     let asub e = function
       | Attribute.Present at ->
@@ -986,14 +986,16 @@ let rec make connection_param = (module struct
       memo_4lwt @@ fun (op, e, at_id, x) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asuper1_integer.(op) f C.Param.([|int32 e; int32 at_id; int x|])
+      C.fold Q.e_asuper1_integer.(op) f
+	     C.Param.([|int32 e; int32 at_id; int x|])
 	     Set.empty
 
     let asuper1_text, asuper1_text_cache =
       memo_4lwt @@ fun (op, e, at_id, x) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asuper1_text.(op) f C.Param.([|int32 e; int32 at_id; text x|])
+      C.fold Q.e_asuper1_text.(op) f
+	     C.Param.([|int32 e; int32 at_id; string x|])
 	     Set.empty
 
     let asuper1 op (type a) e (at : a Attribute_type.t1) : a -> Set.t Lwt.t =
@@ -1015,7 +1017,7 @@ let rec make connection_param = (module struct
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = Set.add (C.Tuple.int32 0 tup) in
       C.fold Q.e_asuper2_between_text f
-	     C.Param.[|int32 e; int32 at_id; text x0; text x1|] Set.empty
+	     C.Param.[|int32 e; int32 at_id; string x0; string x1|] Set.empty
 
     let asuper2_between (type a) e (at : a Attribute_type.t1)
 	: a -> a -> Set.t Lwt.t =
@@ -1031,13 +1033,13 @@ let rec make connection_param = (module struct
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = Set.add (C.Tuple.int32 0 tup) in
       C.fold Q.e_asuper1_search f
-	     C.Param.[|int32 e; int32 at_id; text x|] Set.empty
+	     C.Param.[|int32 e; int32 at_id; string x|] Set.empty
 
     let asuper1_search_fts, asuper1_search_fts_cache =
       memo_2lwt @@ fun (e, x) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asuper1_search_fts f C.Param.[|int32 e; text x|] Set.empty
+      C.fold Q.e_asuper1_search_fts f C.Param.[|int32 e; string x|] Set.empty
 
     let asuper_eq at e = asuper1 Q.ap1_eq at e
 
@@ -1063,35 +1065,35 @@ let rec make connection_param = (module struct
       begin match et, super, limit with
       | None, None, None ->
 	C.fold Q.e_asub_fts f
-	       C.Param.[|text fts; int32 e;
+	       C.Param.[|string fts; int32 e;
 			 float cutoff|] []
       | None, None, Some limit ->
 	C.fold Q.e_asub_fts_limit f
-	       C.Param.[|text fts; int32 e; int limit;
+	       C.Param.[|string fts; int32 e; int limit;
 			 float cutoff|] []
       | None, Some s, None ->
 	C.fold Q.e_asub_fts_super f
-	       C.Param.[|text fts; int32 e; int32 s;
+	       C.Param.[|string fts; int32 e; int32 s;
 			 float cutoff|] []
       | None, Some s, Some limit ->
 	C.fold Q.e_asub_fts_super_limit f
-	       C.Param.[|text fts; int32 e; int32 s; int limit;
+	       C.Param.[|string fts; int32 e; int32 s; int limit;
 			 float cutoff|] []
       | Some et, None, None ->
 	C.fold Q.e_asub_fts_et f
-	       C.Param.[|text fts; int32 e; int32 et;
+	       C.Param.[|string fts; int32 e; int32 et;
 			 float cutoff|] []
       | Some et, None, Some limit ->
 	C.fold Q.e_asub_fts_et_limit f
-	       C.Param.[|text fts; int32 e; int32 et; int limit;
+	       C.Param.[|string fts; int32 e; int32 et; int limit;
 			 float cutoff|] []
       | Some et, Some s, None ->
 	C.fold Q.e_asub_fts_et_super f
-	       C.Param.[|text fts; int32 e; int32 et; int32 s;
+	       C.Param.[|string fts; int32 e; int32 et; int32 s;
 			 float cutoff|] []
       | Some et, Some s, Some limit ->
 	C.fold Q.e_asub_fts_et_super_limit f
-	       C.Param.[|text fts; int32 e; int32 et; int32 s; int limit;
+	       C.Param.[|string fts; int32 e; int32 et; int32 s; int limit;
 			 float cutoff|] []
       end >|= List.rev
     let asub_fts ?entity_type ?super ?(cutoff = 0.0) ?limit =
@@ -1104,35 +1106,35 @@ let rec make connection_param = (module struct
       begin match et, super, limit with
       | None, None, None ->
 	C.fold Q.e_asuper_fts f
-	       C.Param.[|text fts; int32 e;
+	       C.Param.[|string fts; int32 e;
 			 float cutoff|] []
       | None, None, Some limit ->
 	C.fold Q.e_asuper_fts_limit f
-	       C.Param.[|text fts; int32 e; int limit;
+	       C.Param.[|string fts; int32 e; int limit;
 			 float cutoff|] []
       | None, Some s, None ->
 	C.fold Q.e_asuper_fts_super f
-	       C.Param.[|text fts; int32 e; int32 s;
+	       C.Param.[|string fts; int32 e; int32 s;
 			 float cutoff|] []
       | None, Some s, Some limit ->
 	C.fold Q.e_asuper_fts_super_limit f
-	       C.Param.[|text fts; int32 e; int32 s; int limit;
+	       C.Param.[|string fts; int32 e; int32 s; int limit;
 			float cutoff|] []
       | Some et, None, None ->
 	C.fold Q.e_asuper_fts f
-	       C.Param.[|text fts; int32 e; int32 et;
+	       C.Param.[|string fts; int32 e; int32 et;
 			 float cutoff|] []
       | Some et, None, Some limit ->
 	C.fold Q.e_asuper_fts_limit f
-	       C.Param.[|text fts; int32 e; int32 et; int limit;
+	       C.Param.[|string fts; int32 e; int32 et; int limit;
 			 float cutoff|] []
       | Some et, Some s, None ->
 	C.fold Q.e_asuper_fts_super f
-	       C.Param.[|text fts; int32 e; int32 et; int32 s;
+	       C.Param.[|string fts; int32 e; int32 et; int32 s;
 			 float cutoff|] []
       | Some et, Some s, Some limit ->
 	C.fold Q.e_asuper_fts_super_limit f
-	       C.Param.[|text fts; int32 e; int32 et; int32 s; int limit;
+	       C.Param.[|string fts; int32 e; int32 et; int32 s; int limit;
 			 float cutoff|] []
       end >|= List.rev
     let asuper_fts ?entity_type ?super ?(cutoff = 0.0) ?limit =
@@ -1152,7 +1154,7 @@ let rec make connection_param = (module struct
       memo_2lwt @@ fun (e, at_id) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup m =
-	let e', v = C.Tuple.(int32 0 tup, text 1 tup) in
+	let e', v = C.Tuple.(int32 0 tup, string 1 tup) in
 	let vs = try Map.find e' m with Not_found -> Values.empty Type.String in
 	Map.add e' (Values.add v vs) m in
       C.fold Q.e_asub_get_text f C.Param.([|int32 e; int32 at_id|]) Map.empty
@@ -1182,7 +1184,7 @@ let rec make connection_param = (module struct
       memo_2lwt @@ fun (e, at_id) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup m =
-	let e', v = C.Tuple.(int32 0 tup, text 1 tup) in
+	let e', v = C.Tuple.(int32 0 tup, string 1 tup) in
 	let vs = try Map.find e' m with Not_found -> Values.empty Type.String in
 	Map.add e' (Values.add v vs) m in
       C.fold Q.e_asuper_get_text f C.Param.([|int32 e; int32 at_id|]) Map.empty
@@ -1321,7 +1323,7 @@ let rec make connection_param = (module struct
       | Type.Bool -> aux Q.e_insert_integer_attribution
 		     (fun x -> C.Param.int (if x then 1 else 0))
       | Type.Int -> aux Q.e_insert_integer_attribution C.Param.int
-      | Type.String -> aux Q.e_insert_text_attribution C.Param.text
+      | Type.String -> aux Q.e_insert_text_attribution C.Param.string
       end >>
       post_attribute_update (module C) e e' at
 
@@ -1367,7 +1369,7 @@ let rec make connection_param = (module struct
       | Type.Bool -> aux Q.e_delete_integer_attribution
 		     (fun x -> C.Param.int (if x then 1 else 0))
       | Type.Int -> aux Q.e_delete_integer_attribution C.Param.int
-      | Type.String -> aux Q.e_delete_text_attribution C.Param.text
+      | Type.String -> aux Q.e_delete_text_attribution C.Param.string
       end >>
       post_attribute_update (module C) e e' at
 
