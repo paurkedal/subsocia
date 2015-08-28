@@ -20,7 +20,7 @@ CREATE TABLE subsocia.global_integer (
   global_value integer NOT NULL
 );
 -- NB: Also update lib/subsocia_version.ml.ab.
-INSERT INTO subsocia.global_integer VALUES ('schema_version', 1);
+INSERT INTO subsocia.global_integer VALUES ('schema_version', 2);
 
 -- Types
 
@@ -41,7 +41,7 @@ CREATE TABLE subsocia.attribute_type (
   attribute_type_id SERIAL PRIMARY KEY,
   attribute_name text UNIQUE NOT NULL,
   value_type text NOT NULL,
-  fts_config regconfig
+  fts_config text
 );
 CREATE TABLE subsocia.attribution_type (
   asub_type_id integer NOT NULL REFERENCES subsocia.entity_type,
@@ -82,7 +82,7 @@ CREATE TABLE subsocia.text_attribution (
 CREATE TABLE subsocia.text_attribution_fts (
   asub_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
   asuper_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
-  fts_config regconfig NOT NULL,
+  fts_config text NOT NULL,
   fts_vector tsvector NOT NULL,
   PRIMARY KEY (asub_id, asuper_id, fts_config)
 );

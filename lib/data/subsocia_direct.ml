@@ -321,16 +321,18 @@ module Q = struct
 
   let e_asub1_search_fts =
     q "SELECT asub_id FROM @text_attribution_fts \
-       WHERE asuper_id = ? AND fts_vector @@ to_tsquery(fts_config, ?)"
+       WHERE asuper_id = ? \
+	 AND fts_vector @@ to_tsquery(fts_config::regconfig, ?)"
   let e_asuper1_search_fts =
     q "SELECT asuper_id FROM @text_attribution_fts \
-       WHERE asub_id = ? AND fts_vector @@ to_tsquery(fts_config, ?)"
+       WHERE asub_id = ? \
+	 AND fts_vector @@ to_tsquery(fts_config::regconfig, ?)"
 
   let _asub_fts with_et with_super with_limit =
     format_query_f
       "SELECT * FROM
 	(SELECT a.asub_id, \
-		ts_rank(fts_vector, to_tsquery(fts_config, ?)) AS r \
+		ts_rank(fts_vector, to_tsquery(fts_config::regconfig, ?)) AS r \
 	 FROM @text_attribution_fts AS a%s%s WHERE a.asuper_id = ?%s%s \
 	 ORDER BY r DESC%s) AS sq
        WHERE r > ?"
@@ -345,7 +347,7 @@ module Q = struct
     format_query_f
       "SELECT * FROM
 	(SELECT a.asuper_id, \
-		ts_rank(fts_vector, to_tsquery(fts_config, ?)) AS r \
+		ts_rank(fts_vector, to_tsquery(fts_config::regconfig, ?)) AS r \
 	 FROM @text_attribution_fts AS a%s%s WHERE a.asub_id = ?%s%s \
 	 ORDER BY r DESC%s) AS sq
        WHERE r > ?"
@@ -393,7 +395,7 @@ module Q = struct
   let fts_insert =
     q "INSERT INTO subsocia.text_attribution_fts \
        SELECT a.asub_id, a.asuper_id, at.fts_config, \
-	      to_tsvector(at.fts_config, string_agg(value, '$')) \
+	      to_tsvector(at.fts_config::regconfig, string_agg(value, '$')) \
        FROM subsocia.text_attribution AS a \
 	 NATURAL JOIN subsocia.attribute_type AS at \
        WHERE NOT at.fts_config IS NULL \
