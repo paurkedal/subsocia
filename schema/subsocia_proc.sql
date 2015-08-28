@@ -1,4 +1,4 @@
--- Copyright (C) 2014  Petter Urkedal <paurkedal@gmail.com>
+-- Copyright (C) 2014--2015  Petter A. Urkedal <paurkedal@gmail.com>
 --
 -- This library is free software; you can redistribute it and/or modify it
 -- under the terms of the GNU Lesser General Public License as published by
@@ -139,5 +139,19 @@ BEGIN
   sup_rank := (SELECT entity_rank FROM subsocia.entity
 	       WHERE entity_id = sup_id);
   PERFORM subsocia.compress_rank(sup_id, sup_rank);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION subsocia.reindex_fts() RETURNS void AS
+$$
+BEGIN
+  DELETE FROM subsocia.text_attribution_fts;
+  INSERT INTO subsocia.text_attribution_fts
+    SELECT a.asub_id, a.asuper_id, at.fts_config,
+	   to_tsvector(at.fts_config::regconfig, string_agg(value, '$'))
+    FROM subsocia.text_attribution AS a NATURAL JOIN
+	 subsocia.attribute_type AS at
+    WHERE NOT at.fts_config IS NULL
+    GROUP BY a.asub_id, a.asuper_id, at.fts_config;
 END;
 $$ LANGUAGE plpgsql;
