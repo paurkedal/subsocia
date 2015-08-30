@@ -21,6 +21,8 @@ DELETE FROM subsocia.global_integer
 ALTER TABLE subsocia.attribute_type ALTER COLUMN fts_config TYPE text;
 ALTER TABLE subsocia.text_attribution_fts ALTER COLUMN fts_config TYPE text;
 
+DROP FUNCTION IF EXISTS subsocia.subsumed_by(integer, integer);
+
 ----
 INSERT INTO subsocia.global_integer (global_name, global_value)
   VALUES ('schema_version', 2);

@@ -19,15 +19,13 @@ $$
 BEGIN
   RETURN QUERY
     WITH RECURSIVE ub(entity_id) AS (
-	SELECT superentity_id AS entity_id
-	FROM subsocia.inclusion
-	WHERE is_subsumed = false AND subentity_id = start_id
+	SELECT start_id AS entity_id
       UNION
-	SELECT superentity_id AS entity_id
-	FROM ub u JOIN subsocia.inclusion ON subentity_id = u.entity_id
+	SELECT dsuper_id AS entity_id
+	FROM ub JOIN subsocia.inclusion ON dsub_id = ub.entity_id
 	WHERE is_subsumed = false
     )
-    SELECT u.entity_id FROM ub u;
+    SELECT ub.entity_id FROM ub;
 END
 $$ LANGUAGE plpgsql;
 
@@ -37,29 +35,25 @@ $$
 BEGIN
   RETURN QUERY
     WITH RECURSIVE lb(entity_id) AS (
-	SELECT subentity_id AS entity_id
-	FROM subsocia.inclusion
-	WHERE is_subsumed = false AND superentity_id = start_id
+	SELECT start_id AS entity_id
       UNION
-	SELECT subentity_id AS entity_id
-	FROM lb l JOIN subsocia.inclusion ON superentity_id = l.entity_id
+	SELECT dsub_id AS entity_id
+	FROM lb JOIN subsocia.inclusion ON dsuper_id = lb.entity_id
 	WHERE is_subsumed = false
     )
-    SELECT l.entity_id FROM lb l;
+    SELECT lb.entity_id FROM lb;
 END
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION subsocia.subsumed_by(sub_id integer, sup_id integer)
-  RETURNS TABLE (subentity_id integer, superentity_id integer) AS
+CREATE OR REPLACE FUNCTION subsocia.subsumed(sub_id integer, super_id integer)
+  RETURNS TABLE (dsub_id integer, dsuper_id integer) AS
 $$
 BEGIN
   RETURN QUERY
-    SELECT i.subentity_id, i.superentity_id
-    FROM subsocia.inclusion i
-    JOIN subsocia.lower_bounds(sub_id) AS l
-      ON i.subentity_id = sub_id OR i.subentity_id = l.entity_id
-    JOIN subsocia.upper_bounds(sup_id) AS u
-      ON i.superentity_id = sup_id OR i.superentity_id = u.entity_id;
+    SELECT i.dsub_id, i.dsuper_id
+    FROM subsocia.inclusion AS i
+    JOIN subsocia.upper_bounds(super_id) AS ub ON i.dsuper_id = ub.entity_id
+    JOIN subsocia.lower_bounds(sub_id) AS lb ON i.dsub_id = lb.entity_id;
 END
 $$ LANGUAGE plpgsql;
 
