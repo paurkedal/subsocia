@@ -293,28 +293,39 @@ module Q = struct
 	    SELECT 1 FROM acc WHERE acc.id = i.dsuper_id \
 	  )"
 
-  let e_select_text_attribution =
-    q "SELECT value FROM @text_attribution \
+  let e_select_attribution_bool =
+    q "SELECT value FROM @attribution_bool \
        WHERE asub_id = ? AND asuper_id = ? AND attribute_type_id = ?"
-  let e_select_integer_attribution =
-    q "SELECT value FROM @integer_attribution \
+  let e_select_attribution_int =
+    q "SELECT value FROM @attribution_int \
+       WHERE asub_id = ? AND asuper_id = ? AND attribute_type_id = ?"
+  let e_select_attribution_string =
+    q "SELECT value FROM @attribution_string \
        WHERE asub_id = ? AND asuper_id = ? AND attribute_type_id = ?"
 
-  let e_insert_text_attribution =
-    q "INSERT INTO @text_attribution \
+  let e_insert_attribution_bool =
+    q "INSERT INTO @attribution_bool \
 	(asub_id, asuper_id, attribute_type_id, value) \
        VALUES (?, ?, ?, ?)"
-  let e_insert_integer_attribution =
-    q "INSERT INTO @integer_attribution \
+  let e_insert_attribution_int =
+    q "INSERT INTO @attribution_int \
+	(asub_id, asuper_id, attribute_type_id, value) \
+       VALUES (?, ?, ?, ?)"
+  let e_insert_attribution_string =
+    q "INSERT INTO @attribution_string \
 	(asub_id, asuper_id, attribute_type_id, value) \
        VALUES (?, ?, ?, ?)"
 
-  let e_delete_text_attribution =
-    q "DELETE FROM @text_attribution \
+  let e_delete_attribution_bool =
+    q "DELETE FROM @attribution_bool \
        WHERE asub_id = ? AND asuper_id = ? \
 	 AND attribute_type_id = ? AND value = ?"
-  let e_delete_integer_attribution =
-    q "DELETE FROM @text_attribution \
+  let e_delete_attribution_int =
+    q "DELETE FROM @attribution_int \
+       WHERE asub_id = ? AND asuper_id = ? \
+	 AND attribute_type_id = ? AND value = ?"
+  let e_delete_attribution_string =
+    q "DELETE FROM @attribution_string \
        WHERE asub_id = ? AND asuper_id = ? \
 	 AND attribute_type_id = ? AND value = ?"
 
@@ -323,67 +334,79 @@ module Q = struct
   let ap1_leq = 1
   let ap1_geq = 2
 
-  let e_asub_present_text =
-    q("SELECT asub_id FROM @text_attribution \
+  let e_asub_present_bool =
+    q("SELECT asub_id FROM @attribution_bool \
        WHERE asuper_id = ? AND attribute_type_id = ?")
-  let e_asub_present_integer =
-    q("SELECT asub_id FROM @integer_attribution \
+  let e_asub_present_int =
+    q("SELECT asub_id FROM @attribution_int \
+       WHERE asuper_id = ? AND attribute_type_id = ?")
+  let e_asub_present_string =
+    q("SELECT asub_id FROM @attribution_string \
        WHERE asuper_id = ? AND attribute_type_id = ?")
 
-  let e_asuper_present_text =
-    q("SELECT asuper_id FROM @text_attribution \
+  let e_asuper_present_bool =
+    q("SELECT asuper_id FROM @attribution_bool \
        WHERE asub_id = ? AND attribute_type_id = ?")
-  let e_asuper_present_integer =
-    q("SELECT asuper_id FROM @integer_attribution \
+  let e_asuper_present_int =
+    q("SELECT asuper_id FROM @attribution_int \
+       WHERE asub_id = ? AND attribute_type_id = ?")
+  let e_asuper_present_string =
+    q("SELECT asuper_id FROM @attribution_string \
        WHERE asub_id = ? AND attribute_type_id = ?")
 
-  let e_asub1_text = ap1_ops |> Array.map @@ fun op ->
-    q("SELECT asub_id FROM @text_attribution \
+  let e_asub1_bool = ap1_ops |> Array.map @@ fun op ->
+    q("SELECT asub_id FROM @attribution_bool \
        WHERE asuper_id = ? AND attribute_type_id = ? AND value "^op^" ?")
-  let e_asub1_integer = ap1_ops |> Array.map @@ fun op ->
-    q("SELECT asub_id FROM @integer_attribution \
+  let e_asub1_int = ap1_ops |> Array.map @@ fun op ->
+    q("SELECT asub_id FROM @attribution_int \
+       WHERE asuper_id = ? AND attribute_type_id = ? AND value "^op^" ?")
+  let e_asub1_string = ap1_ops |> Array.map @@ fun op ->
+    q("SELECT asub_id FROM @attribution_string \
        WHERE asuper_id = ? AND attribute_type_id = ? AND value "^op^" ?")
 
-  let e_asuper1_text = ap1_ops |> Array.map @@ fun op ->
-    q("SELECT asuper_id FROM @text_attribution \
+  let e_asuper1_bool = ap1_ops |> Array.map @@ fun op ->
+    q("SELECT asuper_id FROM @attribution_bool \
        WHERE asub_id = ? AND attribute_type_id = ? AND value "^op^" ?")
-  let e_asuper1_integer = ap1_ops |> Array.map @@ fun op ->
-    q("SELECT asuper_id FROM @integer_attribution \
+  let e_asuper1_int = ap1_ops |> Array.map @@ fun op ->
+    q("SELECT asuper_id FROM @attribution_int \
+       WHERE asub_id = ? AND attribute_type_id = ? AND value "^op^" ?")
+  let e_asuper1_string = ap1_ops |> Array.map @@ fun op ->
+    q("SELECT asuper_id FROM @attribution_string \
        WHERE asub_id = ? AND attribute_type_id = ? AND value "^op^" ?")
 
-  let e_asub2_between_text =
-    q "SELECT asub_id FROM @text_attribution \
+  let e_asub2_between_int =
+    q "SELECT asub_id FROM @attribution_int \
        WHERE asuper_id = ? AND attribute_type_id = ? \
 	 AND value >= ? AND value < ?"
-  let e_asub2_between_integer =
-    q "SELECT asub_id FROM @integer_attribution \
+  let e_asub2_between_string =
+    q "SELECT asub_id FROM @attribution_string \
        WHERE asuper_id = ? AND attribute_type_id = ? \
 	 AND value >= ? AND value < ?"
 
-  let e_asuper2_between_text =
-    q "SELECT asuper_id FROM @text_attribution \
+  let e_asuper2_between_int =
+    q "SELECT asuper_id FROM @attribution_int \
        WHERE asub_id = ? AND attribute_type_id = ? \
 	 AND value >= ? AND value < ?"
-  let e_asuper2_between_integer =
-    q "SELECT asuper_id FROM @integer_attribution \
+  let e_asuper2_between_string =
+    q "SELECT asuper_id FROM @attribution_string \
        WHERE asub_id = ? AND attribute_type_id = ? \
 	 AND value >= ? AND value < ?"
 
   let e_asub1_search =
-    q "SELECT asub_id FROM @text_attribution \
+    q "SELECT asub_id FROM @attribution_string \
        WHERE asuper_id = ? AND attribute_type_id = ? \
 	 AND value SIMILAR TO ?"
   let e_asuper1_search =
-    q "SELECT asuper_id FROM @text_attribution \
+    q "SELECT asuper_id FROM @attribution_string \
        WHERE asub_id = ? AND attribute_type_id = ? \
 	 AND value SIMILAR TO ?"
 
   let e_asub1_search_fts =
-    q "SELECT asub_id FROM @text_attribution_fts \
+    q "SELECT asub_id FROM @attribution_string_fts \
        WHERE asuper_id = ? \
 	 AND fts_vector @@ to_tsquery(fts_config::regconfig, ?)"
   let e_asuper1_search_fts =
-    q "SELECT asuper_id FROM @text_attribution_fts \
+    q "SELECT asuper_id FROM @attribution_string_fts \
        WHERE asub_id = ? \
 	 AND fts_vector @@ to_tsquery(fts_config::regconfig, ?)"
 
@@ -392,7 +415,7 @@ module Q = struct
       "SELECT * FROM
 	(SELECT a.asub_id, \
 		ts_rank(fts_vector, to_tsquery(fts_config::regconfig, ?)) AS r \
-	 FROM @text_attribution_fts AS a%s%s WHERE a.asuper_id = ?%s%s \
+	 FROM @attribution_string_fts AS a%s%s WHERE a.asuper_id = ?%s%s \
 	 ORDER BY r DESC%s) AS sq
        WHERE r > ?"
       (if with_et then " JOIN @entity ON a.asub_id = entity_id" else "")
@@ -407,7 +430,7 @@ module Q = struct
       "SELECT * FROM
 	(SELECT a.asuper_id, \
 		ts_rank(fts_vector, to_tsquery(fts_config::regconfig, ?)) AS r \
-	 FROM @text_attribution_fts AS a%s%s WHERE a.asub_id = ?%s%s \
+	 FROM @attribution_string_fts AS a%s%s WHERE a.asub_id = ?%s%s \
 	 ORDER BY r DESC%s) AS sq
        WHERE r > ?"
       (if with_et then " JOIN @entity ON a.asuper_id = entity_id" else "")
@@ -434,28 +457,34 @@ module Q = struct
   let e_asub_fts_et_super_limit	= _asub_fts   true  true  true
   let e_asuper_fts_et_super_limit=_asuper_fts true  true  true
 
-  let e_asub_get_text =
-    q "SELECT asub_id, value FROM @text_attribution \
+  let e_asub_get_bool =
+    q "SELECT asub_id, value FROM @attribution_bool \
        WHERE asuper_id = ? AND attribute_type_id = ?"
-  let e_asub_get_integer =
-    q "SELECT asub_id, value FROM @integer_attribution \
+  let e_asub_get_int =
+    q "SELECT asub_id, value FROM @attribution_int \
+       WHERE asuper_id = ? AND attribute_type_id = ?"
+  let e_asub_get_string =
+    q "SELECT asub_id, value FROM @attribution_string \
        WHERE asuper_id = ? AND attribute_type_id = ?"
 
-  let e_asuper_get_text =
-    q "SELECT asuper_id, value FROM @text_attribution \
+  let e_asuper_get_bool =
+    q "SELECT asuper_id, value FROM @attribution_bool \
        WHERE asub_id = ? AND attribute_type_id = ?"
-  let e_asuper_get_integer =
-    q "SELECT asuper_id, value FROM @integer_attribution \
+  let e_asuper_get_int =
+    q "SELECT asuper_id, value FROM @attribution_int \
+       WHERE asub_id = ? AND attribute_type_id = ?"
+  let e_asuper_get_string =
+    q "SELECT asuper_id, value FROM @attribution_string \
        WHERE asub_id = ? AND attribute_type_id = ?"
 
   let fts_clear =
-    q "DELETE FROM subsocia.text_attribution_fts \
+    q "DELETE FROM subsocia.attribution_string_fts \
        WHERE asub_id = ? AND asuper_id = ?"
   let fts_insert =
-    q "INSERT INTO subsocia.text_attribution_fts \
+    q "INSERT INTO subsocia.attribution_string_fts \
        SELECT a.asub_id, a.asuper_id, at.fts_config, \
 	      to_tsvector(at.fts_config::regconfig, string_agg(value, '$')) \
-       FROM subsocia.text_attribution AS a \
+       FROM subsocia.attribution_string AS a \
 	 NATURAL JOIN subsocia.attribute_type AS at \
        WHERE NOT at.fts_config IS NULL \
 	 AND a.asub_id = ? AND a.asuper_id = ? \
@@ -917,87 +946,111 @@ let rec make connection_param = (module struct
     type ptuple =
       Ptuple : (module Caqti_sigs.TUPLE with type t = 't) * 't -> ptuple
 
-    let getattr_integer, getattr_integer_cache =
+    let getattr_bool, getattr_bool_cache =
       memo_3lwt @@ fun (e, e', at_id) ->
       with_db @@ fun (module C : CONNECTION) ->
-      C.fold Q.e_select_integer_attribution
+      C.fold Q.e_select_attribution_bool
+	     C.Tuple.(fun tup -> Values.add (bool 0 tup))
+	     C.Param.([|int32 e; int32 e'; int32 at_id|])
+	     (Values.empty Type.Bool)
+
+    let getattr_int, getattr_int_cache =
+      memo_3lwt @@ fun (e, e', at_id) ->
+      with_db @@ fun (module C : CONNECTION) ->
+      C.fold Q.e_select_attribution_int
 	     C.Tuple.(fun tup -> Values.add (int 0 tup))
 	     C.Param.([|int32 e; int32 e'; int32 at_id|])
 	     (Values.empty Type.Int)
 
-    let getattr_text, getattr_text_cache =
+    let getattr_string, getattr_string_cache =
       memo_3lwt @@ fun (e, e', at_id) ->
       with_db @@ fun (module C : CONNECTION) ->
-      C.fold Q.e_select_text_attribution
+      C.fold Q.e_select_attribution_string
 	     C.Tuple.(fun tup -> Values.add (string 0 tup))
 	     C.Param.([|int32 e; int32 e'; int32 at_id|])
 	     (Values.empty Type.String)
 
     let getattr (type a) e e' (at : a Attribute_type.t1) : a Values.t Lwt.t =
       match Attribute_type.type1 at with
-      | Type.Bool ->
-	getattr_integer e e' at.Attribute_type.at_id >|= fun s ->
-	Values.fold (Values.add *< (<>) 0) s (Values.empty Type.Bool)
-      | Type.Int -> getattr_integer e e' at.Attribute_type.at_id
-      | Type.String -> getattr_text e e' at.Attribute_type.at_id
+      | Type.Bool -> getattr_bool e e' at.Attribute_type.at_id
+      | Type.Int -> getattr_int e e' at.Attribute_type.at_id
+      | Type.String -> getattr_string e e' at.Attribute_type.at_id
 
-    let asub_present_integer, asub_present_integer_cache =
+    let asub_present_bool, asub_present_bool_cache =
       memo_2lwt @@ fun (e, at_id) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asub_present_integer f C.Param.([|int32 e; int32 at_id|])
+      C.fold Q.e_asub_present_bool f C.Param.([|int32 e; int32 at_id|])
 	     Set.empty
 
-    let asub_present_text, asub_present_text_cache =
+    let asub_present_int, asub_present_int_cache =
       memo_2lwt @@ fun (e, at_id) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asub_present_text f C.Param.([|int32 e; int32 at_id|])
+      C.fold Q.e_asub_present_int f C.Param.([|int32 e; int32 at_id|])
 	     Set.empty
 
-    let asub1_integer, asub1_integer_cache =
+    let asub_present_string, asub_present_string_cache =
+      memo_2lwt @@ fun (e, at_id) ->
+      with_db @@ fun (module C : CONNECTION) ->
+      let f tup = Set.add (C.Tuple.int32 0 tup) in
+      C.fold Q.e_asub_present_string f C.Param.([|int32 e; int32 at_id|])
+	     Set.empty
+
+    let asub1_bool, asub1_bool_cache =
       memo_4lwt @@ fun (op, e, at_id, x) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asub1_integer.(op) f C.Param.([|int32 e; int32 at_id; int x|])
+      C.fold Q.e_asub1_bool.(op) f
+	     C.Param.([|int32 e; int32 at_id; bool x|])
 	     Set.empty
 
-    let asub1_text, asub1_text_cache =
+    let asub1_int, asub1_int_cache =
       memo_4lwt @@ fun (op, e, at_id, x) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asub1_text.(op) f C.Param.([|int32 e; int32 at_id; string x|])
+      C.fold Q.e_asub1_int.(op) f
+	     C.Param.([|int32 e; int32 at_id; int x|])
+	     Set.empty
+
+    let asub1_string, asub1_string_cache =
+      memo_4lwt @@ fun (op, e, at_id, x) ->
+      with_db @@ fun (module C : CONNECTION) ->
+      let f tup = Set.add (C.Tuple.int32 0 tup) in
+      C.fold Q.e_asub1_string.(op) f
+	     C.Param.([|int32 e; int32 at_id; string x|])
 	     Set.empty
 
     let asub1 op (type a) e (at : a Attribute_type.t1) : a -> Set.t Lwt.t =
       let open Attribute_type in
       match type1 at with
-      | Type.Bool -> fun x -> asub1_integer op e at.at_id (if x then 1 else 0)
-      | Type.Int -> asub1_integer op e at.at_id
-      | Type.String -> asub1_text op e at.at_id
+      | Type.Bool -> asub1_bool op e at.at_id
+      | Type.Int -> asub1_int op e at.at_id
+      | Type.String -> asub1_string op e at.at_id
 
-    let asub2_between_integer, asub2_between_integer_cache =
+    let asub2_between_int, asub2_between_int_cache =
       memo_4lwt @@ fun (e, at_id, x0, x1) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asub2_between_integer f
+      C.fold Q.e_asub2_between_int f
 	     C.Param.[|int32 e; int32 at_id; int x0; int x1|] Set.empty
 
-    let asub2_between_text, asub2_between_text_cache =
+    let asub2_between_string, asub2_between_string_cache =
       memo_4lwt @@ fun (e, at_id, x0, x1) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asub2_between_text f
+      C.fold Q.e_asub2_between_string f
 	     C.Param.[|int32 e; int32 at_id; string x0; string x1|] Set.empty
 
     let asub2_between (type a) e (at : a Attribute_type.t1)
 	: a -> a -> Set.t Lwt.t =
-      let open Attribute_type in
-      match type1 at with
+      match Attribute_type.type1 at with
       | Type.Bool -> fun x0 x1 ->
-	asub2_between_integer e at.at_id (int_of_bool x0) (int_of_bool x1)
-      | Type.Int -> asub2_between_integer e at.at_id
-      | Type.String -> asub2_between_text e at.at_id
+	if x0 = x1 then asub1_bool Q.ap1_eq e at.Attribute_type.at_id x0 else
+	if x0 < x1 then asub_present_bool e at.Attribute_type.at_id else
+	Lwt.return Set.empty
+      | Type.Int -> asub2_between_int e at.Attribute_type.at_id
+      | Type.String -> asub2_between_string e at.Attribute_type.at_id
 
     let asub1_search, asub1_search_cache =
       memo_3lwt @@ fun (e, at_id, x) ->
@@ -1015,9 +1068,9 @@ let rec make connection_param = (module struct
     let asub e = function
       | Attribute.Present at ->
 	begin match Attribute_type.type1 at with
-	| Type.Bool -> asub_present_integer e at.Attribute_type.at_id
-	| Type.Int -> asub_present_integer e at.Attribute_type.at_id
-	| Type.String -> asub_present_text e at.Attribute_type.at_id
+	| Type.Bool -> asub_present_bool e at.Attribute_type.at_id
+	| Type.Int -> asub_present_int e at.Attribute_type.at_id
+	| Type.String -> asub_present_string e at.Attribute_type.at_id
 	end
       | Attribute.Eq (at, x) -> asub1 Q.ap1_eq e at x
       | Attribute.Leq (at, x) -> asub1 Q.ap1_leq e at x
@@ -1029,65 +1082,81 @@ let rec make connection_param = (module struct
 
     let asub_eq at e = asub1 Q.ap1_eq at e
 
-    let asuper_present_integer, asuper_present_integer_cache =
+    let asuper_present_bool, asuper_present_bool_cache =
       memo_2lwt @@ fun (e, at_id) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asuper_present_integer f C.Param.([|int32 e; int32 at_id|])
+      C.fold Q.e_asuper_present_bool f C.Param.([|int32 e; int32 at_id|])
 	     Set.empty
 
-    let asuper_present_text, asuper_present_text_cache =
+    let asuper_present_int, asuper_present_int_cache =
       memo_2lwt @@ fun (e, at_id) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asuper_present_text f C.Param.([|int32 e; int32 at_id|])
+      C.fold Q.e_asuper_present_int f C.Param.([|int32 e; int32 at_id|])
 	     Set.empty
 
-    let asuper1_integer, asuper1_integer_cache =
+    let asuper_present_string, asuper_present_string_cache =
+      memo_2lwt @@ fun (e, at_id) ->
+      with_db @@ fun (module C : CONNECTION) ->
+      let f tup = Set.add (C.Tuple.int32 0 tup) in
+      C.fold Q.e_asuper_present_string f C.Param.([|int32 e; int32 at_id|])
+	     Set.empty
+
+    let asuper1_bool, asuper1_bool_cache =
       memo_4lwt @@ fun (op, e, at_id, x) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asuper1_integer.(op) f
+      C.fold Q.e_asuper1_bool.(op) f
+	     C.Param.([|int32 e; int32 at_id; bool x|])
+	     Set.empty
+
+    let asuper1_int, asuper1_int_cache =
+      memo_4lwt @@ fun (op, e, at_id, x) ->
+      with_db @@ fun (module C : CONNECTION) ->
+      let f tup = Set.add (C.Tuple.int32 0 tup) in
+      C.fold Q.e_asuper1_int.(op) f
 	     C.Param.([|int32 e; int32 at_id; int x|])
 	     Set.empty
 
-    let asuper1_text, asuper1_text_cache =
+    let asuper1_string, asuper1_string_cache =
       memo_4lwt @@ fun (op, e, at_id, x) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asuper1_text.(op) f
+      C.fold Q.e_asuper1_string.(op) f
 	     C.Param.([|int32 e; int32 at_id; string x|])
 	     Set.empty
 
     let asuper1 op (type a) e (at : a Attribute_type.t1) : a -> Set.t Lwt.t =
       let open Attribute_type in
       match type1 at with
-      | Type.Bool -> fun x -> asuper1_integer op e at.at_id (if x then 1 else 0)
-      | Type.Int -> asuper1_integer op e at.at_id
-      | Type.String -> asuper1_text op e at.at_id
+      | Type.Bool -> asuper1_bool op e at.at_id
+      | Type.Int -> asuper1_int op e at.at_id
+      | Type.String -> asuper1_string op e at.at_id
 
-    let asuper2_between_integer, asuper2_between_integer_cache =
+    let asuper2_between_int, asuper2_between_int_cache =
       memo_4lwt @@ fun (e, at_id, x0, x1) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asuper2_between_integer f
+      C.fold Q.e_asuper2_between_int f
 	     C.Param.[|int32 e; int32 at_id; int x0; int x1|] Set.empty
 
-    let asuper2_between_text, asuper2_between_text_cache =
+    let asuper2_between_string, asuper2_between_string_cache =
       memo_4lwt @@ fun (e, at_id, x0, x1) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asuper2_between_text f
+      C.fold Q.e_asuper2_between_string f
 	     C.Param.[|int32 e; int32 at_id; string x0; string x1|] Set.empty
 
     let asuper2_between (type a) e (at : a Attribute_type.t1)
 	: a -> a -> Set.t Lwt.t =
-      let open Attribute_type in
-      match type1 at with
+      match Attribute_type.type1 at with
       | Type.Bool -> fun x0 x1 ->
-	asuper2_between_integer e at.at_id (int_of_bool x0) (int_of_bool x1)
-      | Type.Int -> asuper2_between_integer e at.at_id
-      | Type.String -> asuper2_between_text e at.at_id
+	if x0 = x1 then asuper1_bool Q.ap1_eq e at.Attribute_type.at_id x0 else
+	if x0 < x1 then asuper_present_bool e at.Attribute_type.at_id else
+	Lwt.return Set.empty
+      | Type.Int -> asuper2_between_int e at.Attribute_type.at_id
+      | Type.String -> asuper2_between_string e at.Attribute_type.at_id
 
     let asuper1_search, asuper1_search_cache =
       memo_3lwt @@ fun (e, at_id, x) ->
@@ -1107,9 +1176,9 @@ let rec make connection_param = (module struct
     let asuper e = function
       | Attribute.Present at ->
 	begin match Attribute_type.type1 at with
-	| Type.Bool -> asuper_present_integer e at.Attribute_type.at_id
-	| Type.Int -> asuper_present_integer e at.Attribute_type.at_id
-	| Type.String -> asuper_present_text e at.Attribute_type.at_id
+	| Type.Bool -> asuper_present_bool e at.Attribute_type.at_id
+	| Type.Int -> asuper_present_int e at.Attribute_type.at_id
+	| Type.String -> asuper_present_string e at.Attribute_type.at_id
 	end
       | Attribute.Eq (at, x) -> asuper1 Q.ap1_eq e at x
       | Attribute.Leq (at, x) -> asuper1 Q.ap1_leq e at x
@@ -1201,99 +1270,121 @@ let rec make connection_param = (module struct
     let asuper_fts ?entity_type ?super ?(cutoff = 0.0) ?limit =
       asuper_fts entity_type super cutoff limit
 
-    let asub_get_integer, asub_get_integer_cache =
+    let asub_get_bool, asub_get_bool_cache =
+      memo_2lwt @@ fun (e, at_id) ->
+      with_db @@ fun (module C : CONNECTION) ->
+      let f tup m =
+	let e', v = C.Tuple.(int32 0 tup, bool 1 tup) in
+	let vs = try Map.find e' m with Not_found -> Values.empty Type.Bool in
+	Map.add e' (Values.add v vs) m in
+      C.fold Q.e_asub_get_bool f C.Param.([|int32 e; int32 at_id|])
+	     Map.empty
+
+    let asub_get_int, asub_get_int_cache =
       memo_2lwt @@ fun (e, at_id) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup m =
 	let e', v = C.Tuple.(int32 0 tup, int 1 tup) in
 	let vs = try Map.find e' m with Not_found -> Values.empty Type.Int in
 	Map.add e' (Values.add v vs) m in
-      C.fold Q.e_asub_get_integer f C.Param.([|int32 e; int32 at_id|])
+      C.fold Q.e_asub_get_int f C.Param.([|int32 e; int32 at_id|])
 	     Map.empty
 
-    let asub_get_text, asub_get_text_cache =
+    let asub_get_string, asub_get_string_cache =
       memo_2lwt @@ fun (e, at_id) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup m =
 	let e', v = C.Tuple.(int32 0 tup, string 1 tup) in
 	let vs = try Map.find e' m with Not_found -> Values.empty Type.String in
 	Map.add e' (Values.add v vs) m in
-      C.fold Q.e_asub_get_text f C.Param.([|int32 e; int32 at_id|]) Map.empty
+      C.fold Q.e_asub_get_string f C.Param.([|int32 e; int32 at_id|]) Map.empty
 
     let asub_get (type a) e (at : a Attribute_type.t1)
 	  : a Values.t Map.t Lwt.t =
       match Attribute_type.type1 at with
-      | Type.Bool ->
-	lwt m = asub_get_integer e at.Attribute_type.at_id in
-	let t = Attribute_type.type1 at in
-	let aux vs = Values.fold (Values.add *< ((<>) 0)) vs (Values.empty t) in
-	Lwt.return (Map.map aux m)
-      | Type.Int -> asub_get_integer e at.Attribute_type.at_id
-      | Type.String -> asub_get_text e at.Attribute_type.at_id
+      | Type.Bool -> asub_get_bool e at.Attribute_type.at_id
+      | Type.Int -> asub_get_int e at.Attribute_type.at_id
+      | Type.String -> asub_get_string e at.Attribute_type.at_id
 
-    let asuper_get_integer, asuper_get_integer_cache =
+    let asuper_get_bool, asuper_get_bool_cache =
+      memo_2lwt @@ fun (e, at_id) ->
+      with_db @@ fun (module C : CONNECTION) ->
+      let f tup m =
+	let e', v = C.Tuple.(int32 0 tup, bool 1 tup) in
+	let vs = try Map.find e' m with Not_found -> Values.empty Type.Bool in
+	Map.add e' (Values.add v vs) m in
+      C.fold Q.e_asuper_get_bool f C.Param.([|int32 e; int32 at_id|])
+	     Map.empty
+
+    let asuper_get_int, asuper_get_int_cache =
       memo_2lwt @@ fun (e, at_id) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup m =
 	let e', v = C.Tuple.(int32 0 tup, int 1 tup) in
 	let vs = try Map.find e' m with Not_found -> Values.empty Type.Int in
 	Map.add e' (Values.add v vs) m in
-      C.fold Q.e_asuper_get_integer f C.Param.([|int32 e; int32 at_id|])
+      C.fold Q.e_asuper_get_int f C.Param.([|int32 e; int32 at_id|])
 	     Map.empty
 
-    let asuper_get_text, asuper_get_text_cache =
+    let asuper_get_string, asuper_get_string_cache =
       memo_2lwt @@ fun (e, at_id) ->
       with_db @@ fun (module C : CONNECTION) ->
       let f tup m =
 	let e', v = C.Tuple.(int32 0 tup, string 1 tup) in
 	let vs = try Map.find e' m with Not_found -> Values.empty Type.String in
 	Map.add e' (Values.add v vs) m in
-      C.fold Q.e_asuper_get_text f C.Param.([|int32 e; int32 at_id|]) Map.empty
+      C.fold Q.e_asuper_get_string f C.Param.([|int32 e; int32 at_id|])
+	     Map.empty
 
     let asuper_get (type a) e (at : a Attribute_type.t1)
 	  : a Values.t Map.t Lwt.t =
       match Attribute_type.type1 at with
-      | Type.Bool ->
-	lwt m = asuper_get_integer e at.Attribute_type.at_id in
-	let t = Attribute_type.type1 at in
-	let aux vs = Values.fold (Values.add *< ((<>) 0)) vs (Values.empty t) in
-	Lwt.return (Map.map aux m)
-      | Type.Int -> asuper_get_integer e at.Attribute_type.at_id
-      | Type.String -> asuper_get_text e at.Attribute_type.at_id
+      | Type.Bool -> asuper_get_bool e at.Attribute_type.at_id
+      | Type.Int -> asuper_get_int e at.Attribute_type.at_id
+      | Type.String -> asuper_get_string e at.Attribute_type.at_id
 
-    let clear_integer_caches () =
-      Cache.clear getattr_integer_cache;
-      Cache.clear asub_present_integer_cache;
-      Cache.clear asuper_present_integer_cache;
-      Cache.clear asub1_integer_cache;
-      Cache.clear asuper1_integer_cache;
-      Cache.clear asub2_between_integer_cache;
-      Cache.clear asuper2_between_integer_cache;
-      Cache.clear asub_get_integer_cache;
-      Cache.clear asuper_get_integer_cache
+    let clear_bool_caches () =
+      Cache.clear getattr_bool_cache;
+      Cache.clear asub_present_bool_cache;
+      Cache.clear asuper_present_bool_cache;
+      Cache.clear asub1_bool_cache;
+      Cache.clear asuper1_bool_cache;
+      Cache.clear asub_get_bool_cache;
+      Cache.clear asuper_get_bool_cache
 
-    let clear_text_caches () =
-      Cache.clear getattr_text_cache;
-      Cache.clear asub_present_text_cache;
-      Cache.clear asuper_present_text_cache;
-      Cache.clear asub1_text_cache;
-      Cache.clear asuper1_text_cache;
-      Cache.clear asub2_between_text_cache;
-      Cache.clear asuper2_between_text_cache;
+    let clear_int_caches () =
+      Cache.clear getattr_int_cache;
+      Cache.clear asub_present_int_cache;
+      Cache.clear asuper_present_int_cache;
+      Cache.clear asub1_int_cache;
+      Cache.clear asuper1_int_cache;
+      Cache.clear asub2_between_int_cache;
+      Cache.clear asuper2_between_int_cache;
+      Cache.clear asub_get_int_cache;
+      Cache.clear asuper_get_int_cache
+
+    let clear_string_caches () =
+      Cache.clear getattr_string_cache;
+      Cache.clear asub_present_string_cache;
+      Cache.clear asuper_present_string_cache;
+      Cache.clear asub1_string_cache;
+      Cache.clear asuper1_string_cache;
+      Cache.clear asub2_between_string_cache;
+      Cache.clear asuper2_between_string_cache;
       Cache.clear asub1_search_cache;
       Cache.clear asuper1_search_cache;
       Cache.clear asub1_search_fts_cache;
       Cache.clear asuper1_search_fts_cache;
       Cache.clear asub_fts_cache;
       Cache.clear asuper_fts_cache;
-      Cache.clear asub_get_text_cache;
-      Cache.clear asuper_get_text_cache
+      Cache.clear asub_get_string_cache;
+      Cache.clear asuper_get_string_cache
 
     let clear_attr_caches (type a) (at : a Attribute_type.t1) : unit =
       match Attribute_type.type1 at with
-      | Type.Bool -> clear_integer_caches ()
-      | Type.Int -> clear_integer_caches ()
-      | Type.String -> clear_text_caches ()
+      | Type.Bool -> clear_bool_caches ()
+      | Type.Int -> clear_int_caches ()
+      | Type.String -> clear_string_caches ()
 
     (* Modifying Functions *)
 
@@ -1389,10 +1480,10 @@ let rec make connection_param = (module struct
 	    C.exec q p)
 	  xs in
       begin match at.Attribute_type.at_value_type with
-      | Type.Bool -> aux Q.e_insert_integer_attribution
+      | Type.Bool -> aux Q.e_insert_attribution_int
 		     (fun x -> C.Param.int (if x then 1 else 0))
-      | Type.Int -> aux Q.e_insert_integer_attribution C.Param.int
-      | Type.String -> aux Q.e_insert_text_attribution C.Param.string
+      | Type.Int -> aux Q.e_insert_attribution_int C.Param.int
+      | Type.String -> aux Q.e_insert_attribution_string C.Param.string
       end >>
       post_attribute_update (module C) e e' at
 
@@ -1435,10 +1526,10 @@ let rec make connection_param = (module struct
 	    C.exec q p)
 	  xs in
       begin match at.Attribute_type.at_value_type with
-      | Type.Bool -> aux Q.e_delete_integer_attribution
+      | Type.Bool -> aux Q.e_delete_attribution_int
 		     (fun x -> C.Param.int (if x then 1 else 0))
-      | Type.Int -> aux Q.e_delete_integer_attribution C.Param.int
-      | Type.String -> aux Q.e_delete_text_attribution C.Param.string
+      | Type.Int -> aux Q.e_delete_attribution_int C.Param.int
+      | Type.String -> aux Q.e_delete_attribution_string C.Param.string
       end >>
       post_attribute_update (module C) e e' at
 

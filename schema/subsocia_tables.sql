@@ -65,25 +65,32 @@ CREATE TABLE subsocia.inclusion (
   is_subsumed boolean NOT NULL DEFAULT false,
   PRIMARY KEY (dsub_id, dsuper_id)
 );
-CREATE TABLE subsocia.integer_attribution (
+CREATE TABLE subsocia.attribution_bool (
+  asub_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
+  asuper_id integer NOT NULL REFERENCES subsocia.entity,
+  attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
+  value boolean NOT NULL,
+  PRIMARY KEY (asub_id, asuper_id, attribute_type_id, value)
+);
+CREATE TABLE subsocia.attribution_int (
   asub_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
   asuper_id integer NOT NULL REFERENCES subsocia.entity,
   attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
   value integer NOT NULL,
   PRIMARY KEY (asub_id, asuper_id, attribute_type_id, value)
 );
-CREATE TABLE subsocia.text_attribution (
+CREATE TABLE subsocia.attribution_string (
   asub_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
   asuper_id integer NOT NULL REFERENCES subsocia.entity,
   attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
   value text NOT NULL,
   PRIMARY KEY (asub_id, asuper_id, attribute_type_id, value)
 );
-CREATE TABLE subsocia.text_attribution_fts (
+CREATE TABLE subsocia.attribution_string_fts (
   asub_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
   asuper_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
   fts_config text NOT NULL,
   fts_vector tsvector NOT NULL,
   PRIMARY KEY (asub_id, asuper_id, fts_config)
 );
-CREATE INDEX ON subsocia.text_attribution_fts USING gin(fts_vector);
+CREATE INDEX ON subsocia.attribution_string_fts USING gin(fts_vector);

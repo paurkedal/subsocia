@@ -139,11 +139,11 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION subsocia.reindex_fts() RETURNS void AS
 $$
 BEGIN
-  DELETE FROM subsocia.text_attribution_fts;
-  INSERT INTO subsocia.text_attribution_fts
+  DELETE FROM subsocia.attribution_string_fts;
+  INSERT INTO subsocia.attribution_string_fts
     SELECT a.asub_id, a.asuper_id, at.fts_config,
 	   to_tsvector(at.fts_config::regconfig, string_agg(value, '$'))
-    FROM subsocia.text_attribution AS a NATURAL JOIN
+    FROM subsocia.attribution_string AS a NATURAL JOIN
 	 subsocia.attribute_type AS at
     WHERE NOT at.fts_config IS NULL
     GROUP BY a.asub_id, a.asuper_id, at.fts_config;
