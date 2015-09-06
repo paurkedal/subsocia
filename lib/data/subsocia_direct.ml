@@ -1360,10 +1360,8 @@ let rec make connection_param = (module struct
       lwt superentity_rank = rank superentity in
       raise_rank (max subentity_rank (superentity_rank + 1)) subentity >>
       with_db (force_dsub' subentity superentity)
-      (* TODO: Update is_subsumed. *)
 
     let relax_dsub subentity superentity =
-      (* TODO: Update is_subsumed. *)
       with_db (relax_dsub' subentity superentity) >>
       lwt subentity_rank = rank subentity in
       lwt superentity_rank = rank superentity in
