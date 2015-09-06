@@ -53,6 +53,22 @@ module type ATTRIBUTE_TYPE = sig
 		       the new version is available as delete'"]
 end
 
+module type ATTRIBUTE_UNIQUENESS = sig
+  module Attribute_type : ATTRIBUTE_TYPE
+  type t
+
+  module Set : SET with type elt = t
+  module Map : MAP with type key = t
+
+  val of_id : int32 -> t Lwt.t
+  val id : t -> int32
+  val force : Attribute_type.Set.t -> t Lwt.t
+  val relax : t -> unit Lwt.t
+  val find : Attribute_type.Set.t -> t option Lwt.t
+  val affecting : 'a Attribute_type.t -> Set.t Lwt.t
+  val affected : t -> Attribute_type.Set.t Lwt.t
+end
+
 module type ATTRIBUTE = sig
   module Attribute_type : ATTRIBUTE_TYPE
 
@@ -269,6 +285,8 @@ end
 
 module type S = sig
   module Attribute_type : ATTRIBUTE_TYPE
+  module Attribute_uniqueness : ATTRIBUTE_UNIQUENESS
+    with module Attribute_type := Attribute_type
   module Attribute : ATTRIBUTE with module Attribute_type := Attribute_type
   module Entity_type : ENTITY_TYPE with module Attribute_type := Attribute_type
   module Entity : ENTITY with module Attribute_type := Attribute_type

@@ -47,16 +47,18 @@ module Make (RPCM : RPCM) = struct
     module Set = Prime_enumset.Make_monadic (Comparable) (Lwt)
     module Map = Prime_enummap.Make_monadic (Comparable) (Lwt)
 
-    let of_name at_name =
-      Raw.of_name at_name >|=
-      Option.map @@ fun (at_id, Type.Ex at_type) -> Ex {at_id; at_name; at_type}
-
     let of_id at_id =
       lwt at_name, Type.Ex at_type = Raw.of_id at_id in
       Lwt.return (Ex {at_id; at_name; at_type})
-
     let id (Ex at) = at.at_id
     let id' at = at.at_id
+
+    let decode_set s = List.map (fun (Ex {at_id}) -> at_id) (Set.elements s)
+    let encode_set ids = Lwt_list.map_s of_id ids >|= Set.of_ordered_elements
+
+    let of_name at_name =
+      Raw.of_name at_name >|=
+      Option.map @@ fun (at_id, Type.Ex at_type) -> Ex {at_id; at_name; at_type}
     let name (Ex at) = Lwt.return at.at_name
     let name' at = Lwt.return at.at_name
     let value_type at = at.at_type
@@ -71,6 +73,25 @@ module Make (RPCM : RPCM) = struct
     let type1 = value_type
     let create (Type.Ex vt) name = create' vt name >|= fun at -> Ex at
     let delete (Ex at) = delete' at
+  end
+
+  module Attribute_uniqueness = struct
+    module Raw = Raw.Attribute_uniqueness
+    type t = int32
+
+    module Set = Int32_set
+    module Map = Int32_map
+
+    let of_id = Lwt.return
+    let id u = u
+
+    let encode_set ids = Lwt_list.map_s of_id ids >|= Set.of_ordered_elements
+
+    let force s = Raw.force (Attribute_type.decode_set s)
+    let relax u = Raw.relax u
+    let find s = Raw.find (Attribute_type.decode_set s)
+    let affecting at = Raw.affecting (Attribute_type.id' at) >>= encode_set
+    let affected u = Raw.affected u >>= Attribute_type.encode_set
   end
 
   module Attribute = struct

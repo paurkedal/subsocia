@@ -87,6 +87,36 @@ module Server_impl = struct
       C.Attribute_type.delete' at
   end
 
+  module Attribute_uniqueness = struct
+
+    let force (module C : Subsocia_intf.S) s =
+      Lwt_list.map_s C.Attribute_type.of_id s >>=
+      C.Attribute_type.Set.of_ordered_elements *>
+      C.Attribute_uniqueness.force >|=
+      C.Attribute_uniqueness.id
+
+    let relax (module C : Subsocia_intf.S) u =
+      C.Attribute_uniqueness.(of_id u >>= relax)
+
+    let find (module C : Subsocia_intf.S) s =
+      Lwt_list.map_s C.Attribute_type.of_id s >>=
+      C.Attribute_type.Set.of_ordered_elements *>
+      C.Attribute_uniqueness.find >|=
+      Option.map C.Attribute_uniqueness.id
+
+    let affecting (module C : Subsocia_intf.S) at_id =
+      lwt C.Attribute_type.Ex at = C.Attribute_type.of_id at_id in
+      C.Attribute_uniqueness.affecting at >|=
+      C.Attribute_uniqueness.Set.elements *> List.map C.Attribute_uniqueness.id
+
+    let affected (module C : Subsocia_intf.S) u =
+      C.Attribute_uniqueness.of_id u >>=
+      C.Attribute_uniqueness.affected >|=
+      C.Attribute_type.Set.elements *>
+      List.map (fun (C.Attribute_type.Ex at) -> C.Attribute_type.id' at)
+
+  end
+
   module Entity_type = struct
 
     let of_name (module C : Subsocia_intf.S) name =

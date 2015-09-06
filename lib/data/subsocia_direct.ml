@@ -95,7 +95,7 @@ module Q = struct
   let commit   = prepare_sql "COMMIT"
   let rollback = prepare_sql "ROLLBACK"
 
-  (* Attribute key *)
+  (* Attribute Type *)
 
   let at_by_id =
     q "SELECT attribute_name, value_type FROM @attribute_type \
@@ -108,6 +108,33 @@ module Q = struct
        VALUES (?, ?, ?) RETURNING attribute_type_id"
   let at_delete =
     q "DELETE FROM @attribute_type WHERE attribute_type_id = ?"
+
+  (* Attribute Uniqueness *)
+
+  let au_affected =
+    q "SELECT attribute_type_id FROM @attribute_uniqueness \
+       WHERE attribute_uniqueness_id = ? ORDER BY attribute_type_id"
+  let au_affecting =
+    q "SELECT attribute_uniqueness_id FROM @attribute_uniqueness \
+       WHERE attribute_type_id = ?"
+  let au_force =
+    let ht = Hashtbl.create 7 in
+    fun n ->
+      assert (n > 0);
+      try Hashtbl.find ht n with
+      | Not_found ->
+	let buf = Buffer.create 512 in
+	Buffer.add_string buf
+	  "INSERT INTO @attribute_uniqueness SELECT au_id, at_id \
+	   FROM (SELECT nextval('subsocia.attribute_uniqueness_id_seq')) \
+		     AS seq(au_id) CROSS JOIN (VALUES (?), ";
+	for i = 1 to n - 1 do Buffer.add_string buf ", (?)" done;
+	Buffer.add_string buf ") AS ats(at_id) RETURNING au_id";
+	let query = q (Buffer.contents buf) in
+	Hashtbl.add ht n query;
+	query
+  let au_relax =
+    q "DELETE FROM @attribute_uniqueness WHERE attribute_uniqueness_id = ?"
 
   (* Entity types *)
 
@@ -706,6 +733,59 @@ let rec make connection_param = (module struct
 
     (**/**)
     let delete (Ex at) = delete' at
+  end
+
+  module Attribute_uniqueness = struct
+    type t = int32
+
+    module Set = Int32_set
+    module Map = Int32_map
+
+    let of_id = Lwt.return
+    let id au = au
+
+    let affecting', affecting_cache = memo_1lwt @@ fun at_id ->
+      with_db @@ fun (module C : CONNECTION) ->
+      C.fold Q.au_affecting C.Tuple.(fun t -> Set.add (int32 0 t))
+	     C.Param.[|int32 at_id|] Set.empty
+
+    let affecting at = affecting' (Attribute_type.id' at)
+
+    let affected, affected_cache = memo_1lwt @@ fun au ->
+      begin
+	with_db @@ fun (module C : CONNECTION) ->
+	C.fold Q.au_affected C.Tuple.(fun t -> List.push (int32 0 t))
+	       C.Param.[|int32 au|] []
+      end >>= Lwt_list.rev_map_s Attribute_type.of_id >|=
+	      Attribute_type.Set.of_ordered_elements
+
+    let find atset =
+      let Attribute_type.Ex at = Attribute_type.Set.min_elt atset in
+      affecting at >>=
+      Set.filter_s (fun au -> affected au >|= Attribute_type.Set.equal atset)
+	>|= fun auset ->
+      match Set.cardinal auset with
+      | 0 -> None
+      | 1 -> Some (Set.min_elt auset)
+      | _ -> assert false
+
+    let force atset =
+      let ats = Attribute_type.Set.elements atset in
+      begin
+	with_db @@ fun (module C : CONNECTION) ->
+	C.find (Q.au_force (Attribute_type.Set.cardinal atset))
+	       C.Tuple.(int32 0)
+	       (Array.map (C.Param.int32 *< Attribute_type.id)
+			  (Array.of_list ats))
+      end >|= fun au ->
+      Cache.clear affecting_cache;
+      au
+
+    let relax au =
+      with_db @@ fun (module C : CONNECTION) ->
+      C.exec Q.au_relax C.Param.[|int32 au|] >|= fun () ->
+      Cache.remove affected_cache au;
+      Cache.clear affecting_cache
   end
 
   module Attribute = struct

@@ -43,6 +43,12 @@ CREATE TABLE subsocia.attribute_type (
   value_type text NOT NULL,
   fts_config text
 );
+CREATE SEQUENCE subsocia.attribute_uniqueness_id_seq;
+CREATE TABLE subsocia.attribute_uniqueness (
+  attribute_uniqueness_id integer NOT NULL,
+  attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
+  PRIMARY KEY (attribute_uniqueness_id, attribute_type_id)
+);
 CREATE TABLE subsocia.attribution_type (
   asub_type_id integer NOT NULL REFERENCES subsocia.entity_type,
   asuper_type_id integer NOT NULL REFERENCES subsocia.entity_type,

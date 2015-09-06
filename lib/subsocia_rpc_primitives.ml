@@ -24,6 +24,14 @@ module Attribute_type = struct
   external delete : int32 -> unit = ""
 end
 
+module Attribute_uniqueness = struct
+  external force : int32 list -> int32 = ""
+  external relax : int32 -> unit = ""
+  external find : int32 list -> int32 option = ""
+  external affecting : int32 -> int32 list = ""
+  external affected : int32 -> int32 list = ""
+end
+
 module Entity_type = struct
   external of_name : string -> int32 option = ""
   external name : int32 -> string = ""
