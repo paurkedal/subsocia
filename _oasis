@@ -75,7 +75,8 @@ Library "subsocia-data"
   DataFiles:
     ../../schema/subsocia_tables.sql ($datadir/subsocia/schema),
     ../../schema/subsocia_views.sql ($datadir/subsocia/schema),
-    ../../schema/subsocia_core.sscm ($datadir/subsocia/schema)
+    ../../schema/subsocia_core.sscm ($datadir/subsocia/schema),
+    ../../schema/upgrade/*.sql ($datadir/subsocia/schema/upgrade)
 
 Document api
   Title: Subsocia API Reference
