@@ -47,7 +47,7 @@ Library "subsocia"
 
 Executable "subsocia"
   Path: bin
-  MainIs: subsocia_main.ml
+  MainIs: command.ml
   BuildDepends:
     cmdliner,
     subsocia,
