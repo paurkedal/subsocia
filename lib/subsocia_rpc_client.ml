@@ -16,6 +16,7 @@
 
 open Pwt_infix
 open Subsocia_common
+open Subsocia_prereq
 open Subsocia_rpc_types
 open Unprime
 open Unprime_list
@@ -24,8 +25,20 @@ open Unprime_option
 module type RPCM = Subsocia_rpc_primitives.RPCM with type 'a t = 'a Lwt.t
 
 module Attribute_type_base = struct
-  type 'a t1 = {at_id : int32; at_name : string; at_type : 'a Type.t1}
-  type t0 = Ex : 'a t1 -> t0
+  type 'a t = {at_id : int32; at_name : string; at_type : 'a Type.t}
+  type ex = Ex : 'a t -> ex
+
+  let coerce : type a. a Type.t -> ex -> a t = fun vt (Ex at) ->
+    match vt, at.at_type with
+    | Type.Bool, Type.Bool -> at
+    | Type.Int, Type.Int -> at
+    | Type.String, Type.String -> at
+    | _, _ ->
+      invalid_arg_f "Attribute_type.coerce: Attempt to coerce %s to %s."
+		    (Type.to_string at.at_type) (Type.to_string vt)
+
+  (**/**)
+  type 'a t1 = 'a t
 end
 
 module Make (RPCM : RPCM) = struct
@@ -37,7 +50,7 @@ module Make (RPCM : RPCM) = struct
     include Attribute_type_base
 
     module Comparable = struct
-      type t = t0
+      type t = ex
       let compare (Ex a) (Ex b) = compare a.at_id b.at_id
     end
     module Set = Prime_enumset.Make_monadic (Comparable) (Lwt)
@@ -52,26 +65,36 @@ module Make (RPCM : RPCM) = struct
       Lwt.return (Ex {at_id; at_name; at_type})
 
     let id (Ex at) = at.at_id
+    let id' at = at.at_id
     let name (Ex at) = Lwt.return at.at_name
+    let name' at = Lwt.return at.at_name
+    let value_type at = at.at_type
+    let create' vt at_name =
+      Raw.create (Type.Ex vt) at_name >|= fun at_id ->
+      {at_id; at_name; at_type = vt}
+    let delete' at = Raw.delete at.at_id
+
+    (**/**)
+    type t0 = ex
     let type0 (Ex at) = Type.Ex at.at_type
-    let type1 at = at.at_type
-    let create vt at_name =
-      Raw.create vt at_name >|= fun at_id ->
-      let Type.Ex at_type = vt in
-      Ex {at_id; at_name; at_type}
-    let delete (Ex at) = Raw.delete at.at_id
+    let type1 = value_type
+    let create (Type.Ex vt) name = create' vt name >|= fun at -> Ex at
+    let delete (Ex at) = delete' at
   end
 
   module Attribute = struct
-    type t0 = Ex : 'a Attribute_type.t1 * 'a -> t0
+    type ex = Ex : 'a Attribute_type.t * 'a -> ex
     type predicate =
-      | Present : 'a Attribute_type.t1 -> predicate
-      | Eq : 'a Attribute_type.t1 * 'a -> predicate
-      | Leq : 'a Attribute_type.t1 * 'a -> predicate
-      | Geq : 'a Attribute_type.t1 * 'a -> predicate
-      | Between : 'a Attribute_type.t1 * 'a * 'a -> predicate
-      | Search : string Attribute_type.t1 * string -> predicate
+      | Present : 'a Attribute_type.t -> predicate
+      | Eq : 'a Attribute_type.t * 'a -> predicate
+      | Leq : 'a Attribute_type.t * 'a -> predicate
+      | Geq : 'a Attribute_type.t * 'a -> predicate
+      | Between : 'a Attribute_type.t * 'a * 'a -> predicate
+      | Search : string Attribute_type.t * string -> predicate
       | Search_fts : string -> predicate
+
+    (**/**)
+    type t0 = ex
   end
 
   module Entity_type = struct
@@ -162,38 +185,38 @@ module Make (RPCM : RPCM) = struct
     let dsuper ?et e = Raw.dsuper et e >|= Set.of_ordered_elements
 
     let getattr lb ub at =
-      let t1 = Attribute_type.type1 at in
+      let t1 = Attribute_type.value_type at in
       Raw.getattr lb ub (Attribute_type.(id (Ex at))) >|=
       List.map (Value.coerce t1) *> Values.of_ordered_elements t1
 
     let setattr lb ub at vs =
-      let t = Attribute_type.type1 at in
+      let t = Attribute_type.value_type at in
       Raw.setattr lb ub (Attribute_type.(id (Ex at)))
 		  (List.map (fun v -> Value.Ex (t, v)) vs)
 
     let addattr lb ub at vs =
-      let t = Attribute_type.type1 at in
+      let t = Attribute_type.value_type at in
       Raw.addattr lb ub (Attribute_type.(id (Ex at)))
 		  (List.map (fun v -> Value.Ex (t, v)) vs)
 
     let delattr lb ub at vs =
-      let t = Attribute_type.type1 at in
+      let t = Attribute_type.value_type at in
       Raw.delattr lb ub (Attribute_type.(id (Ex at)))
 		  (List.map (fun v -> Value.Ex (t, v)) vs)
 
     let encode_predicate = function
       | Attribute.Present at -> Eap_present (Attribute_type.(id (Ex at)))
       | Attribute.Eq (at, x) ->
-	let t = Attribute_type.type1 at in
+	let t = Attribute_type.value_type at in
 	Eap_eq (Attribute_type.(id (Ex at)), Value.Ex (t, x))
       | Attribute.Leq (at, x) ->
-	let t = Attribute_type.type1 at in
+	let t = Attribute_type.value_type at in
 	Eap_leq (Attribute_type.(id (Ex at)), Value.Ex (t, x))
       | Attribute.Geq (at, x) ->
-	let t = Attribute_type.type1 at in
+	let t = Attribute_type.value_type at in
 	Eap_geq (Attribute_type.(id (Ex at)), Value.Ex (t, x))
       | Attribute.Between (at, x0, x1) ->
-	let t = Attribute_type.type1 at in
+	let t = Attribute_type.value_type at in
 	Eap_between (Attribute_type.(id (Ex at)),
 		     Value.Ex (t, x0), Value.Ex (t, x1))
       | Attribute.Search (at, x) ->
@@ -207,12 +230,12 @@ module Make (RPCM : RPCM) = struct
       Raw.asuper e (encode_predicate p) >|= Set.of_ordered_elements
 
     let asub_eq e at av =
-      let t = Attribute_type.type1 at in
+      let t = Attribute_type.value_type at in
       Raw.asub_eq e (Attribute_type.(id (Ex at))) (Value.Ex (t, av))
 	>|= Set.of_ordered_elements
 
     let asuper_eq e at av =
-      let t = Attribute_type.type1 at in
+      let t = Attribute_type.value_type at in
       Raw.asuper_eq e (Attribute_type.(id (Ex at))) (Value.Ex (t, av))
 	>|= Set.of_ordered_elements
 
@@ -220,7 +243,7 @@ module Make (RPCM : RPCM) = struct
     let asuper_fts = Raw.asuper_fts
 
     let asub_get e at =
-      let t = Attribute_type.type1 at in
+      let t = Attribute_type.value_type at in
       Raw.asub_get e (Attribute_type.(id (Ex at))) >|= fun bindings ->
       List.fold
 	(fun (e, v) m ->
@@ -229,7 +252,7 @@ module Make (RPCM : RPCM) = struct
 	bindings Map.empty
 
     let asuper_get e at =
-      let t = Attribute_type.type1 at in
+      let t = Attribute_type.value_type at in
       Raw.asuper_get e (Attribute_type.(id (Ex at))) >|= fun bindings ->
       List.fold
 	(fun (e, v) m ->

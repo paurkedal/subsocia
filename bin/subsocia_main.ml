@@ -38,8 +38,8 @@ let invalid_arg_f fmt = ksprintf invalid_arg fmt
 
 let value_type_parser s =
   try `Ok (Type.of_string s) with Invalid_argument msg -> `Error msg
-let value_type_printer fmtr vt =
-  Format.pp_print_string fmtr (Type.string_of_t0 vt)
+let value_type_printer fmtr (Type.Ex vt) =
+  Format.pp_print_string fmtr (Type.to_string vt)
 let value_type_conv = value_type_parser, value_type_printer
 
 let multiplicity_parser s =
@@ -356,9 +356,9 @@ let in_list_t =
 
 (* Attributes *)
 
-let at_create vt atn = run0 @@ fun (module C) ->
-  C.Attribute_type.create vt atn >>= fun at ->
-  Lwt_log.info_f "Created attribute type #%ld %s." (C.Attribute_type.id at) atn
+let at_create (Type.Ex vt) atn = run0 @@ fun (module C) ->
+  C.Attribute_type.create' vt atn >>= fun at ->
+  Lwt_log.info_f "Created attribute type #%ld %s." (C.Attribute_type.id' at) atn
 
 let at_create_t =
   let vt_t = Arg.(required & pos 1 (some value_type_conv) None &
@@ -369,10 +369,10 @@ let at_create_t =
 
 let at_delete atn = run @@ fun (module C) ->
   match_lwt C.Attribute_type.of_name atn with
-  | Some at ->
-    C.Attribute_type.delete at >>
+  | Some (C.Attribute_type.Ex at) ->
+    C.Attribute_type.delete' at >>
     Lwt_log.info_f "Delete attribute type #%ld %s."
-		   (C.Attribute_type.id at) atn >>
+		   (C.Attribute_type.id' at) atn >>
     Lwt.return 0
   | None ->
     Lwt_log.error_f "No attribute type is named %s." atn >>
@@ -421,8 +421,8 @@ let an_disallow_t =
 
 let an_list () = run0 @@ fun (module C) ->
   C.Entity_type.asub_elements () >>=
-  Lwt_list.map_s @@ fun (et0, et1, at, mu) ->
-  lwt atn = C.Attribute_type.name at in
+  Lwt_list.map_s @@ fun (et0, et1, C.Attribute_type.Ex at, mu) ->
+  lwt atn = C.Attribute_type.name' at in
   lwt etn0 = C.Entity_type.name et0 in
   lwt etn1 = C.Entity_type.name et1 in
   Lwt_io.printlf "%s %s %s %s" (Multiplicity.to_string mu) atn etn0 etn1
@@ -442,7 +442,7 @@ module Entity_utils (C : Subsocia_intf.S) = struct
       | Some at -> Lwt.return at in
     match vs_opt with
     | Some vs ->
-      let t = Attribute_type.type1 at in
+      let t = Attribute_type.value_type at in
       let v = Value.typed_of_string t vs in
       Lwt.return (`One (C.Attribute.Ex (at, v)))
     | None ->

@@ -87,7 +87,7 @@ let _ =
 	match_lwt Attribute_type.of_name an with
 	| None -> Lwt.return_none
 	| Some (Attribute_type.Ex at) ->
-	  let vt = Attribute_type.type1 at in
+	  let vt = Attribute_type.value_type at in
 	  lwt vs = Entity.getattr user top at in
 	  let vs = Values.elements vs in
 	  Lwt.return (Some (an, List.map (Value.typed_to_poly vt) vs)) in

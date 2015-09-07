@@ -124,12 +124,11 @@
     lwt ubt = Entity.type_ ub in
     lwt attrs = Entity_type.can_asub_byattr lbt ubt in
     let attrs' = Attribute_type.Map.bindings attrs in
-    let render_tr (at, mu) =
-      lwt an = Attribute_type.name at in
+    let render_tr (Attribute_type.Ex at, mu) =
+      lwt an = Attribute_type.name' at in
       lwt value_frag =
-	let Attribute_type.Ex at1 = at in
-	let t1 = Attribute_type.type1 at1 in
-	Entity.getattr lb ub at1 >|= fun vs ->
+	let t1 = Attribute_type.value_type at in
+	Entity.getattr lb ub at >|= fun vs ->
 	match List.map (Value.typed_to_string t1) (Values.elements vs) with
 	| [] -> [F.span ~a:[F.a_class ["none"]] [F.pcdata "-"]]
 	| strs -> [F.pcdata (String.concat ", " strs)] in

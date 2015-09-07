@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -41,45 +41,54 @@ end
 
 module Type : sig
 
-  type 'a t1 =
-    | Bool : bool t1
-    | Int : int t1
-    | String : string t1
+  type 'a t =
+    | Bool : bool t
+    | Int : int t
+    | String : string t
 
-  type t0 = Ex : 'a t1 -> t0
+  type ex = Ex : 'a t -> ex
 
-  val string_of_t0 : t0 -> string
-  val string_of_t1 : 'a t1 -> string
-  val of_string : string -> t0
+  val to_string : 'a t -> string
+  val of_string : string -> ex
 
-  val rpc_of_t0 : t0 -> Rpc.t
-  val t0_of_rpc : Rpc.t -> t0
+  val rpc_of_ex : ex -> Rpc.t
+  val ex_of_rpc : Rpc.t -> ex
+
+  (**/**)
+  type 'a t1 = 'a t	[@@ocaml.deprecated "Renamed to t"]
+  type t0 = ex		[@@ocaml.deprecated "Renamed to ex"]
+  val string_of_t1 : 'a t -> string [@@ocaml.deprecated "Renamed to to_string"]
+  val string_of_t0 : ex -> string [@@ocaml.deprecated "Use to_string"]
+  val rpc_of_t0 : ex -> Rpc.t [@@ocaml.deprecated "Renamed to rpc_of_ex"]
+  val t0_of_rpc : Rpc.t -> ex [@@ocaml.deprecated "Renamed to ex_of_rpc"]
 end
 
 module Value : sig
-  type t0 = Ex : 'a Type.t1 * 'a -> t0
+  type ex = Ex : 'a Type.t * 'a -> ex
 
-  val typed_to_string : 'a Type.t1 -> 'a -> string
-  val typed_of_string : 'a Type.t1 -> string -> 'a
+  val typed_to_string : 'a Type.t -> 'a -> string
+  val typed_of_string : 'a Type.t -> string -> 'a
 
-  val to_string : t0 -> string
-(*
-  val of_string : string -> t0
-*)
+  val to_string : ex -> string
 
-  val coerce : 'a Type.t1 -> t0 -> 'a
+  val coerce : 'a Type.t -> ex -> 'a
 
-  val typed_to_poly : 'a Type.t1 -> 'a ->
+  val typed_to_poly : 'a Type.t -> 'a ->
 		      [> `Bool of bool | `Int of int | `String of string]
 
-  val rpc_of_t0 : t0 -> Rpc.t
-  val t0_of_rpc : Rpc.t -> t0
+  val rpc_of_ex : ex -> Rpc.t
+  val ex_of_rpc : Rpc.t -> ex
+
+  (**/**)
+  type t0 = ex			[@@ocaml.deprecated "Renamed to ex"]
+  val rpc_of_t0 : ex -> Rpc.t	[@@ocaml.deprecated "Renamed to rpc_of_ex"]
+  val t0_of_rpc : Rpc.t -> ex	[@@ocaml.deprecated "Renamed to ex_of_rpc"]
 end
 
 module Values : sig
   type 'a t
 
-  val empty : 'a Type.t1 -> 'a t
+  val empty : 'a Type.t -> 'a t
   val is_empty : 'a t -> bool
   val add : 'a -> 'a t -> 'a t
   val remove : 'a -> 'a t -> 'a t
@@ -96,7 +105,7 @@ module Values : sig
   val union : 'a t -> 'a t -> 'a t
   val inter : 'a t -> 'a t -> 'a t
   val elements : 'a t -> 'a list
-  val of_ordered_elements : 'a Type.t1 -> 'a list -> 'a t
+  val of_ordered_elements : 'a Type.t -> 'a list -> 'a t
 end
 
 module Int_set : SET with type elt = int

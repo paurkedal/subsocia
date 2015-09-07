@@ -31,9 +31,9 @@ module Make (Base : Subsocia_intf.S) = struct
   module Attribute_type = struct
     include Base.Attribute_type
 
-    let coerce (type a) (t : a Type.t1) at0 : a Attribute_type.t1 option =
+    let coerce (type a) (t : a Type.t) at0 : a Attribute_type.t option =
       let Attribute_type.Ex at1 = at0 in
-      match t, Attribute_type.type1 at1, at1 with
+      match t, Attribute_type.value_type at1, at1 with
       | Type.Bool, Type.Bool, at -> Some at
       | Type.Bool, _, _ -> None
       | Type.Int, Type.Int, at -> Some at
@@ -41,25 +41,30 @@ module Make (Base : Subsocia_intf.S) = struct
       | Type.String, Type.String, at -> Some at
       | Type.String, _, _ -> None
 
-    let coerce_lwt (type a) (t : a Type.t1) at0 : a Attribute_type.t1 Lwt.t =
+    let coerce_lwt (type a) (t : a Type.t) (Ex at1 as at0)
+	: a Attribute_type.t Lwt.t =
       match coerce t at0 with
       | Some at -> Lwt.return at
       | None ->
-	lwt an = Attribute_type.name at0 in
-	let tn = Type.string_of_t0 (Attribute_type.type0 at0) in
-	let tn' = Type.string_of_t1 t in
+	lwt an = Attribute_type.name' at1 in
+	let tn = Type.to_string (Attribute_type.value_type at1) in
+	let tn' = Type.to_string t in
 	_fail "Wrong type for %s : %s, expected %s." an tn tn'
 
-    let t0_of_name atn =
+    let required atn =
       match_lwt Base.Attribute_type.of_name atn with
       | Some at -> Lwt.return at
       | None -> _fail "Missing required attribute type %s" atn
 
-    let t1_of_name vt atn =
-      lwt at0 = t0_of_name atn in
+    let typed_required vt atn =
+      lwt at0 = required atn in
       match coerce vt at0 with
-      | None -> _fail "%s must be a boolean valued attribute type" atn
+      | None -> _fail "Required attribute %s must have type %s"
+		      atn (Type.to_string vt)
       | Some at -> Lwt.return at
+
+    let t0_of_name = required
+    let t1_of_name = typed_required
   end
 
   module Attribute = Base.Attribute
@@ -115,14 +120,14 @@ module Make (Base : Subsocia_intf.S) = struct
       let n = Values.cardinal vs in
       if n = 0 then Lwt.return_none else
       if n = 1 then Lwt.return (Some (Values.min_elt vs)) else
-      lwt an = Attribute_type.(name (Ex at)) in
+      lwt an = Attribute_type.name' at in
       _fail "Multiple matches for attribute %s" an
 
     let getattr_one e e' at =
       lwt vs = getattr e e' at in
       let n = Values.cardinal vs in
       if n = 1 then Lwt.return (Values.min_elt vs) else
-      lwt an = Attribute_type.(name (Ex at)) in
+      lwt an = Attribute_type.name' at in
       if n = 0 then _fail "No matches for attribute %s" an
 	       else _fail "Multiple matches for attribute %s" an
 
@@ -248,16 +253,16 @@ module Make (Base : Subsocia_intf.S) = struct
 	  |> List.flatten |> Option.some in
 
       let add_conj e ps ats =
-	let select_attr (type a) an (at : a Attribute_type.t1) : a -> selector =
-	  match Attribute_type.type1 at with
+	let select_attr (type a) an (at : a Attribute_type.t) : a -> selector =
+	  match Attribute_type.value_type at with
 	  | Type.Bool -> fun v ->
 	    Select_adjacent (Asub (Attribute_eq (an, string_of_bool v)))
 	  | Type.Int -> fun v ->
 	    Select_adjacent (Asub (Attribute_eq (an, string_of_int v)))
 	  | Type.String -> fun v ->
 	    Select_adjacent (Asub (Attribute_eq (an, v))) in
-	let attr_by_succ (Attribute_type.Ex at as at0) =
-	  lwt an = Attribute_type.name at0 in
+	let attr_by_succ (Attribute_type.Ex at) =
+	  lwt an = Attribute_type.name' at in
 	  let attr vs = Values.elements vs |> List.map (select_attr an at) in
 	  Entity.asuper_get e at >|= Entity.Map.map attr in
 	match_lwt Lwt_list.map_s attr_by_succ ats with

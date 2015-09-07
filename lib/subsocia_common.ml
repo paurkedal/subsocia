@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -70,19 +70,17 @@ end
 
 module Type = struct
 
-  type 'a t1 =
-    | Bool : bool t1
-    | Int : int t1
-    | String : string t1
+  type 'a t =
+    | Bool : bool t
+    | Int : int t
+    | String : string t
 
-  type t0 = Ex : 'a t1 -> t0
+  type ex = Ex : 'a t -> ex
 
-  let string_of_t1 : type a. a t1 -> string = function
+  let to_string : type a. a t -> string = function
     | Bool -> "bool"
     | Int -> "int"
     | String -> "string"
-
-  let string_of_t0 (Ex t) = string_of_t1 t
 
   let of_string = function
     | "bool" -> Ex Bool
@@ -90,21 +88,28 @@ module Type = struct
     | "string" -> Ex String
     | _ -> invalid_arg "Type.of_string"
 
-  let rpc_of_t0 t = Rpc.rpc_of_string (string_of_t0 t)
-  let t0_of_rpc r = of_string (Rpc.string_of_rpc r)
+  let rpc_of_ex (Ex t) = Rpc.rpc_of_string (to_string t)
+  let ex_of_rpc r = of_string (Rpc.string_of_rpc r)
 
+  (**/**)
+  type 'a t1 = 'a t
+  type t0 = ex
+  let string_of_t0 (Ex t) = to_string t
+  let string_of_t1 = to_string
+  let rpc_of_t0 = rpc_of_ex
+  let t0_of_rpc = ex_of_rpc
 end
 
 module Value = struct
-  type t0 = Ex : 'a Type.t1 * 'a -> t0
+  type ex = Ex : 'a Type.t * 'a -> ex
 
-  let typed_to_string : type a. a Type.t1 -> a -> string =
+  let typed_to_string : type a. a Type.t -> a -> string =
     function
     | Type.Bool -> (function true -> "true" | false -> "false")
     | Type.Int -> string_of_int
     | Type.String -> fun s -> s
 
-  let typed_of_string : type a. a Type.t1 -> string -> a =
+  let typed_of_string : type a. a Type.t -> string -> a =
     function
     | Type.Bool -> (function "true" -> true | "false" -> false
 			   | _ -> invalid_arg "Value.Typed_of_string")
@@ -113,31 +118,36 @@ module Value = struct
 
   let to_string (Ex (t, v)) = typed_to_string t v
 
-  let coerce : type a. a Type.t1 -> t0 -> a = fun t v ->
+  let coerce : type a. a Type.t -> ex -> a = fun t v ->
     match t, v with
     | Type.Bool, (Ex (Type.Bool, x)) -> x
     | Type.Int, (Ex (Type.Int, x)) -> x
     | Type.String, (Ex (Type.String, x)) -> x
     | _ -> invalid_arg "Subsocia_common.Value.coerce: Type error."
 
-  let typed_to_poly : type a. a Type.t1 -> a ->
+  let typed_to_poly : type a. a Type.t -> a ->
 		      [> `Bool of bool | `Int of int | `String of string] =
     function
     | Type.Bool -> fun x -> `Bool x
     | Type.Int -> fun x -> `Int x
     | Type.String -> fun x -> `String x
 
-  let rpc_of_t0 = function
+  let rpc_of_ex = function
     | Ex (Type.Bool, x) -> Rpc.rpc_of_bool x
     | Ex (Type.Int, x) -> Rpc.rpc_of_int x
     | Ex (Type.String, x) -> Rpc.rpc_of_string x
 
-  let t0_of_rpc rpc =
+  let ex_of_rpc rpc =
     match Rpc.t_of_rpc rpc with
     | Rpc.Bool x -> Ex (Type.Bool, x)
     | Rpc.Int x -> Ex (Type.Int, Int64.to_int x)
     | Rpc.String x -> Ex (Type.String, x)
     | _ -> failwith "Value.t0_of_rpc: Protocol error."
+
+  (**/**)
+  type t0 = ex
+  let t0_of_rpc = ex_of_rpc
+  let rpc_of_t0 = rpc_of_ex
 end
 
 module Bool_compare = struct type t = bool let compare = compare end
@@ -152,13 +162,13 @@ module Values = struct
   type 'a t =
     T : (module Prime_enumset.S with type elt = 'a and type t = 'b) * 'b -> 'a t
 
-  let impl : type a. a Type.t1 -> (module Prime_enumset.S with type elt = a) =
+  let impl : type a. a Type.t -> (module Prime_enumset.S with type elt = a) =
     function
     | Type.Bool ->   (module Bool_set)
     | Type.Int ->    (module Int_set)
     | Type.String -> (module String_set)
 
-  let empty : type a. a Type.t1 -> a t = fun t ->
+  let empty : type a. a Type.t -> a t = fun t ->
     let module S = (val impl t) in
     T ((module S), S.empty)
 
@@ -181,7 +191,7 @@ module Values = struct
     T ((module SB), SB.filter (fun x -> SA.contains x sA) sB)
   let elements (type a) (T ((module S), s) : a t) = S.elements s
 
-  let of_ordered_elements : type a. a Type.t1 -> a list -> a t = fun t s ->
+  let of_ordered_elements : type a. a Type.t -> a list -> a t = fun t s ->
     let module S = (val impl t) in
     T ((module S), S.of_ordered_elements s)
 end

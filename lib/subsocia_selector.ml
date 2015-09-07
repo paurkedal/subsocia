@@ -126,13 +126,13 @@ module Selector_utils (C : Subsocia_intf.S) = struct
       C.Attribute.Present at
     | Attribute_eq (an, s) ->
       req_at an >|= fun (C.Attribute_type.Ex at) ->
-      C.Attribute.Eq (at, Value.typed_of_string (C.Attribute_type.type1 at) s)
+      C.Attribute.Eq (at, Value.typed_of_string (C.Attribute_type.value_type at) s)
     | Attribute_leq (an, s) ->
       req_at an >|= fun (C.Attribute_type.Ex at) ->
-      C.Attribute.Leq (at, Value.typed_of_string (C.Attribute_type.type1 at) s)
+      C.Attribute.Leq (at, Value.typed_of_string (C.Attribute_type.value_type at) s)
     | Attribute_geq (an, s) ->
       req_at an >|= fun (C.Attribute_type.Ex at) ->
-      C.Attribute.Geq (at, Value.typed_of_string (C.Attribute_type.type1 at) s)
+      C.Attribute.Geq (at, Value.typed_of_string (C.Attribute_type.value_type at) s)
 
   let rec select_from = function
     | Select_with (selA, selB) -> fun es ->

@@ -50,15 +50,21 @@ module type S = sig
   open Base
 
   module Attribute_type : sig
-    type 'a t1 = 'a Base.Attribute_type.t1
-    type t0 = Base.Attribute_type.t0 = Ex : 'a t1 -> t0
+    type 'a t = 'a Base.Attribute_type.t
+    type ex = Base.Attribute_type.ex = Ex : 'a t -> ex
     include ATTRIBUTE_TYPE
-       with type 'a t1 := 'a t1 and type t0 := t0
+       with type 'a t := 'a t and type ex := ex
 	and module Map = Base.Attribute_type.Map
 
-    val coerce : 'a Type.t1 -> t0 -> 'a t1 option
-    val t0_of_name : string -> t0 Lwt.t
-    val t1_of_name : 'a Type.t1 -> string -> 'a t1 Lwt.t
+    val coerce : 'a Type.t -> ex -> 'a t option
+    val required : string -> ex Lwt.t
+    val typed_required : 'a Type.t -> string -> 'a t Lwt.t
+
+    (**/**)
+    val t0_of_name : string -> ex Lwt.t
+    [@@ocaml.deprecated "Renamed to required"]
+    val t1_of_name : 'a Type.t -> string -> 'a t Lwt.t
+    [@@ocaml.deprecated "Renamed to typed_required"]
   end
 
   module Attribute :
@@ -85,8 +91,8 @@ module type S = sig
     val select_opt : selector -> t option Lwt.t
     val select_one : selector -> t Lwt.t
 
-    val getattr_opt : t -> t -> 'a Attribute_type.t1 -> 'a option Lwt.t
-    val getattr_one : t -> t -> 'a Attribute_type.t1 -> 'a Lwt.t
+    val getattr_opt : t -> t -> 'a Attribute_type.t -> 'a option Lwt.t
+    val getattr_one : t -> t -> 'a Attribute_type.t -> 'a Lwt.t
 
     val of_unique_name : ?super: t -> string -> t option Lwt.t
 
@@ -115,12 +121,12 @@ module type S = sig
   end
 
   module Const : sig
-    val at_unique_name : string Attribute_type.t1 Lwt.t
-    val at_proper_name : string Attribute_type.t1 Lwt.t
-    val at_first_name : string Attribute_type.t1 Lwt.t
-    val at_last_name : string Attribute_type.t1 Lwt.t
-    val at_email : string Attribute_type.t1 Lwt.t
-    val at_role : string Attribute_type.t1 Lwt.t
+    val at_unique_name : string Attribute_type.t Lwt.t
+    val at_proper_name : string Attribute_type.t Lwt.t
+    val at_first_name : string Attribute_type.t Lwt.t
+    val at_last_name : string Attribute_type.t Lwt.t
+    val at_email : string Attribute_type.t Lwt.t
+    val at_role : string Attribute_type.t Lwt.t
 
     val et_unit : Entity_type.t Lwt.t
     val et_access_group : Entity_type.t Lwt.t

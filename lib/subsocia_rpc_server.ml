@@ -28,24 +28,24 @@ module Utils (C : Subsocia_intf.S) = struct
       Lwt.return (C.Attribute.Present at)
     | Eap_eq (e_id, av) ->
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id e_id in
-      let x = Value.coerce (C.Attribute_type.type1 at) av in
+      let x = Value.coerce (C.Attribute_type.value_type at) av in
       Lwt.return (C.Attribute.Eq (at, x))
     | Eap_leq (e_id, av) ->
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id e_id in
-      let x = Value.coerce (C.Attribute_type.type1 at) av in
+      let x = Value.coerce (C.Attribute_type.value_type at) av in
       Lwt.return (C.Attribute.Leq (at, x))
     | Eap_geq (e_id, av) ->
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id e_id in
-      let x = Value.coerce (C.Attribute_type.type1 at) av in
+      let x = Value.coerce (C.Attribute_type.value_type at) av in
       Lwt.return (C.Attribute.Geq (at, x))
     | Eap_between (e_id, av0, av1) ->
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id e_id in
-      let x0 = Value.coerce (C.Attribute_type.type1 at) av0 in
-      let x1 = Value.coerce (C.Attribute_type.type1 at) av1 in
+      let x0 = Value.coerce (C.Attribute_type.value_type at) av0 in
+      let x1 = Value.coerce (C.Attribute_type.value_type at) av1 in
       Lwt.return (C.Attribute.Between (at, x0, x1))
     | Eap_search (e_id, av) ->
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id e_id in
-      begin match C.Attribute_type.type1 at with
+      begin match C.Attribute_type.value_type at with
       | Type.String -> Lwt.return (C.Attribute.Search (at, av))
       | _ -> assert false
       end
@@ -66,20 +66,21 @@ module Server_impl = struct
   module Attribute_type = struct
 
     let of_name (module C : Subsocia_intf.S) name =
-      C.Attribute_type.of_name name >|= Option.map @@ fun at ->
-      C.Attribute_type.id at, C.Attribute_type.type0 at
+      C.Attribute_type.of_name name >|=
+      Option.map @@ fun (C.Attribute_type.Ex at) ->
+	C.Attribute_type.id' at, Type.Ex (C.Attribute_type.value_type at)
 
     let of_id (module C : Subsocia_intf.S) id =
-      lwt at = C.Attribute_type.of_id id in
-      lwt name = C.Attribute_type.name at in
-      Lwt.return (name, C.Attribute_type.type0 at)
+      lwt C.Attribute_type.Ex at = C.Attribute_type.of_id id in
+      lwt name = C.Attribute_type.name' at in
+      Lwt.return (name, Type.Ex (C.Attribute_type.value_type at))
 
-    let create (module C : Subsocia_intf.S) vt name =
-      C.Attribute_type.create vt name >|= C.Attribute_type.id
+    let create (module C : Subsocia_intf.S) (Type.Ex vt) name =
+      C.Attribute_type.create' vt name >|= C.Attribute_type.id'
 
     let delete (module C : Subsocia_intf.S) id =
-      lwt at = C.Attribute_type.of_id id in
-      C.Attribute_type.delete at
+      lwt C.Attribute_type.Ex at = C.Attribute_type.of_id id in
+      C.Attribute_type.delete' at
   end
 
   module Entity_type = struct
@@ -151,13 +152,13 @@ module Server_impl = struct
       lwt ub = C.Entity_type.of_id ub_id in
       C.Entity_type.can_asub_byattr lb ub >|=
       C.Attribute_type.Map.bindings *>
-      List.map (fun (at, mu) -> C.Attribute_type.id at, mu)
+      List.map (fun (C.Attribute_type.Ex at, mu) -> C.Attribute_type.id' at, mu)
 
     let asub_elements (module C : Subsocia_intf.S) () =
       C.Entity_type.asub_elements () >|=
-      List.map (fun (et0, et1, at, mu) ->
+      List.map (fun (et0, et1, C.Attribute_type.Ex at, mu) ->
 		  (C.Entity_type.id et0, C.Entity_type.id et1,
-		   C.Attribute_type.id at, mu))
+		   C.Attribute_type.id' at, mu))
 
     let allow_asub (module C : Subsocia_intf.S) et0 et1 at mu =
       lwt et0 = C.Entity_type.of_id et0 in
@@ -224,27 +225,27 @@ module Server_impl = struct
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id at_id in
       C.Entity.getattr lb ub at >|=
       Values.elements *>
-      List.map (fun v -> Value.Ex (C.Attribute_type.type1 at, v))
+      List.map (fun v -> Value.Ex (C.Attribute_type.value_type at, v))
 
     let setattr (module C : Subsocia_intf.S) lb_id ub_id at_id vs =
       lwt lb = C.Entity.of_id lb_id in
       lwt ub = C.Entity.of_id ub_id in
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id at_id in
-      let vs1 = List.map (Value.coerce (C.Attribute_type.type1 at)) vs in
+      let vs1 = List.map (Value.coerce (C.Attribute_type.value_type at)) vs in
       C.Entity.setattr lb ub at vs1
 
     let addattr (module C : Subsocia_intf.S) lb_id ub_id at_id vs =
       lwt lb = C.Entity.of_id lb_id in
       lwt ub = C.Entity.of_id ub_id in
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id at_id in
-      let vs1 = List.map (Value.coerce (C.Attribute_type.type1 at)) vs in
+      let vs1 = List.map (Value.coerce (C.Attribute_type.value_type at)) vs in
       C.Entity.addattr lb ub at vs1
 
     let delattr (module C : Subsocia_intf.S) lb_id ub_id at_id vs =
       lwt lb = C.Entity.of_id lb_id in
       lwt ub = C.Entity.of_id ub_id in
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id at_id in
-      let vs1 = List.map (Value.coerce (C.Attribute_type.type1 at)) vs in
+      let vs1 = List.map (Value.coerce (C.Attribute_type.value_type at)) vs in
       C.Entity.delattr lb ub at vs1
 
     let asub (module C : Subsocia_intf.S) e_id at_enc =
@@ -262,14 +263,14 @@ module Server_impl = struct
     let asub_eq (module C : Subsocia_intf.S) e_id at_id v =
       lwt e = C.Entity.of_id e_id in
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id at_id in
-      let t = C.Attribute_type.type1 at in
+      let t = C.Attribute_type.value_type at in
       C.Entity.asub_eq e at (Value.coerce t v) >|=
       C.Entity.Set.elements *> List.map C.Entity.id
 
     let asuper_eq (module C : Subsocia_intf.S) e_id at_id v =
       lwt e = C.Entity.of_id e_id in
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id at_id in
-      let t = C.Attribute_type.type1 at in
+      let t = C.Attribute_type.value_type at in
       C.Entity.asuper_eq e at (Value.coerce t v) >|=
       C.Entity.Set.elements *> List.map C.Entity.id
 
@@ -298,7 +299,7 @@ module Server_impl = struct
 	  (fun e vs ->
 	    Values.fold
 	      (fun v ->
-		let v0 = Value.Ex (C.Attribute_type.type1 at, v) in
+		let v0 = Value.Ex (C.Attribute_type.value_type at, v) in
 		List.push (C.Entity.id e, v0))
 	      vs)
 	  m []
@@ -312,7 +313,7 @@ module Server_impl = struct
 	  (fun e vs ->
 	    Values.fold
 	      (fun v ->
-		let v0 = Value.Ex (C.Attribute_type.type1 at, v) in
+		let v0 = Value.Ex (C.Attribute_type.value_type at, v) in
 		List.push (C.Entity.id e, v0))
 	      vs)
 	  m []

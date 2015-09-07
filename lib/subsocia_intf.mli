@@ -20,35 +20,56 @@ open Panograph_i18n
 open Subsocia_common
 
 module type ATTRIBUTE_TYPE = sig
-  type 'a t1
-  type t0 = Ex : 'a t1 -> t0
+  type 'a t
+  type ex = Ex : 'a t -> ex
 
-  module Set : SET with type elt = t0
-  module Map : MAP with type key = t0
+  module Set : SET with type elt = ex
+  module Map : MAP with type key = ex
 
-  val of_name : string -> t0 option Lwt.t
-  val name : t0 -> string Lwt.t
-  val of_id : int32 -> t0 Lwt.t
-  val id : t0 -> int32
-  val type0 : t0 -> Type.t0
-  val type1 : 'a t1 -> 'a Type.t1
-  val create : Type.t0 -> string -> t0 Lwt.t
-  val delete : t0 -> unit Lwt.t
+  val of_name : string -> ex option Lwt.t
+  val name' : 'a t -> string Lwt.t
+  val of_id : int32 -> ex Lwt.t
+  val id' : 'a t -> int32
+  val value_type : 'a t -> 'a Type.t
+  val create' : 'a Type.t -> string -> 'a t Lwt.t
+  val delete' : 'a t -> unit Lwt.t
+  val coerce : 'a Type.t -> ex -> 'a t
+
+  (**/**)
+  type 'a t1 = 'a t		[@@ocaml.deprecated "Renamed to t"]
+  type t0 = ex			[@@ocaml.deprecated "Renamed to ex"]
+  val type0 : ex -> Type.ex	[@@ocaml.deprecated "Use value_type"]
+  val type1 : 'a t -> 'a Type.t	[@@ocaml.deprecated "Renamed to value_type"]
+  val name : ex -> string Lwt.t
+  [@@ocaml.deprecated "The type of this function will change; \
+		       the new version is available as name'"]
+  val id : ex -> int32
+  [@@ocaml.deprecated "The type of this function will change; \
+		       the new version is available as id'"]
+  val create : Type.ex -> string -> ex Lwt.t
+  [@@ocaml.deprecated "The type of this function will change; \
+		       the new version is available as create'"]
+  val delete : ex -> unit Lwt.t
+  [@@ocaml.deprecated "The type of this function will change; \
+		       the new version is available as delete'"]
 end
 
 module type ATTRIBUTE = sig
   module Attribute_type : ATTRIBUTE_TYPE
 
-  type t0 = Ex : 'a Attribute_type.t1 * 'a -> t0
+  type ex = Ex : 'a Attribute_type.t * 'a -> ex
 
   type predicate =
-    | Present : 'a Attribute_type.t1 -> predicate
-    | Eq : 'a Attribute_type.t1 * 'a -> predicate
-    | Leq : 'a Attribute_type.t1 * 'a -> predicate
-    | Geq : 'a Attribute_type.t1 * 'a -> predicate
-    | Between : 'a Attribute_type.t1 * 'a * 'a -> predicate
-    | Search : string Attribute_type.t1 * Subsocia_re.t -> predicate
+    | Present : 'a Attribute_type.t -> predicate
+    | Eq : 'a Attribute_type.t * 'a -> predicate
+    | Leq : 'a Attribute_type.t * 'a -> predicate
+    | Geq : 'a Attribute_type.t * 'a -> predicate
+    | Between : 'a Attribute_type.t * 'a * 'a -> predicate
+    | Search : string Attribute_type.t * Subsocia_re.t -> predicate
     | Search_fts : Subsocia_fts.t -> predicate
+
+  (**/**)
+  type t0 = ex [@@ocaml.deprecated "Renamed to ex"]
 end
 
 module type ENTITY_TYPE = sig
@@ -112,7 +133,7 @@ module type ENTITY_TYPE = sig
       this kind will remain until cleaned up, but algorithms are free to
       disregard them. *)
 
-  val can_asub : t -> t -> 'a Attribute_type.t1 -> Multiplicity.t option Lwt.t
+  val can_asub : t -> t -> 'a Attribute_type.t -> Multiplicity.t option Lwt.t
   (** [can_asub et et' at] is the allowed multiplicity of attributes of type
       [at] from [et] to [et'], or [None] if disallowed. *)
 
@@ -121,13 +142,13 @@ module type ENTITY_TYPE = sig
       [et'] to the corresponding multiplicity. *)
 
   val asub_elements :
-    unit -> (t * t * Attribute_type.t0 * Multiplicity.t) list Lwt.t
+    unit -> (t * t * Attribute_type.ex * Multiplicity.t) list Lwt.t
 
-  val allow_asub : t -> t -> Attribute_type.t0 -> Multiplicity.t -> unit Lwt.t
+  val allow_asub : t -> t -> Attribute_type.ex -> Multiplicity.t -> unit Lwt.t
   (** [allow_asub et et' at m] decleares that [at] is allowed with
       multiplicity [m] from [et] to [et']. *)
 
-  val disallow_asub : t -> t -> Attribute_type.t0 -> unit Lwt.t
+  val disallow_asub : t -> t -> Attribute_type.ex -> unit Lwt.t
   (** [disallow_asub et et' at] declares that [at] is no longer allowed from
       [et] to [et'].  Current attributions of this type will remain until
       cleaned up, but algorithms are free to disregard them. *)
@@ -178,18 +199,18 @@ module type ENTITY = sig
   val is_sub : t -> t -> bool Lwt.t
   (** [is_sub e e'] holds iff [e] is a subentity of [e']. *)
 
-  val getattr : t -> t -> 'a Attribute_type.t1 -> 'a Values.t Lwt.t
+  val getattr : t -> t -> 'a Attribute_type.t -> 'a Values.t Lwt.t
   (** [getattr e e' at] fetches attributes from [e] to [e'] of type [at]. *)
 
-  val setattr : t -> t -> 'a Attribute_type.t1 -> 'a list -> unit Lwt.t
+  val setattr : t -> t -> 'a Attribute_type.t -> 'a list -> unit Lwt.t
   (** [setattr e e' at xs] replaces attributes from [e] to [e'] of type [et]
       with [xs]. *)
 
-  val addattr : t -> t -> 'a Attribute_type.t1 -> 'a list -> unit Lwt.t
+  val addattr : t -> t -> 'a Attribute_type.t -> 'a list -> unit Lwt.t
   (** [addattr e e' at xs] adds attributes [xs] of type [et] from [e] to
       [e']. *)
 
-  val delattr : t -> t -> 'a Attribute_type.t1 -> 'a list -> unit Lwt.t
+  val delattr : t -> t -> 'a Attribute_type.t -> 'a list -> unit Lwt.t
   (** [delattr e e' at] removes attributes [xs] of type [et] from [e] to
       [e']. *)
 
@@ -201,11 +222,11 @@ module type ENTITY = sig
   (** [asub e p] are the attribution superentities of [e] along attributes for
       which [p] holds. *)
 
-  val asub_eq : t -> 'a Attribute_type.t1 -> 'a -> Set.t Lwt.t
+  val asub_eq : t -> 'a Attribute_type.t -> 'a -> Set.t Lwt.t
   (** [asub_eq e at v] are the attribution subentities of [e] along [at]
       gaining the value [v]. *)
 
-  val asuper_eq : t -> 'a Attribute_type.t1 -> 'a -> Set.t Lwt.t
+  val asuper_eq : t -> 'a Attribute_type.t -> 'a -> Set.t Lwt.t
   (** [asuper_eq e at v] are the attribution superentities of [e] along [at]
       loosing the value [v]. *)
 
@@ -229,11 +250,11 @@ module type ENTITY = sig
       @param limit The maximum number of entities to return. Default no limit.
       @param cutoff Results with [rank <= cutoff] are excluded. Default 0.0. *)
 
-  val asub_get : t -> 'a Attribute_type.t1 -> 'a Values.t Map.t Lwt.t
+  val asub_get : t -> 'a Attribute_type.t -> 'a Values.t Map.t Lwt.t
   (** [asub_get e at] is a map of [at]-values indexed by attribution
       subentities of [e] which gain those values along [at]. *)
 
-  val asuper_get : t -> 'a Attribute_type.t1 -> 'a Values.t Map.t Lwt.t
+  val asuper_get : t -> 'a Attribute_type.t -> 'a Values.t Map.t Lwt.t
   (** [asuper_get e at] is a map of [at]-values indexed by attribution
       superentities of [e] which loose those values along [at]. *)
 end

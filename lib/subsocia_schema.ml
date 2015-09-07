@@ -117,7 +117,7 @@ let exec_schema (module C : Subsocia_intf.S) =
 	match_lwt C.Attribute_type.of_name an with
 	| None -> lwt_failure_f "No attribute type is named %s." an
 	| Some (C.Attribute_type.Ex at) ->
-	  let t = C.Attribute_type.type1 at in
+	  let t = C.Attribute_type.value_type at in
 	  let f = match f with `Add -> C.Entity.addattr
 			     | `Set -> C.Entity.setattr in
 	  f e e' at (List.map (Value.typed_of_string t) vs))
@@ -137,7 +137,7 @@ let exec_schema (module C : Subsocia_intf.S) =
 	  match vs_opt with
 	  | None -> C.Entity.setattr e e' at []
 	  | Some vs ->
-	    let t = C.Attribute_type.type1 at in
+	    let t = C.Attribute_type.value_type at in
 	    C.Entity.delattr e e' at (List.map (Value.typed_of_string t) vs))
       attrs in
 
@@ -159,11 +159,12 @@ let exec_schema (module C : Subsocia_intf.S) =
 
   let exec_schema_entry = function
     | `At_create (atn, tn) ->
-      let t = Type.of_string tn in
-      C.Attribute_type.create t atn >|= fun _ -> ()
+      let Type.Ex t = Type.of_string tn in
+      C.Attribute_type.create' t atn >|= fun _ -> ()
     | `At_delete atn ->
-      lwt at = C.Attribute_type.of_name atn in
-      Pwt_option.iter_s C.Attribute_type.delete at
+      C.Attribute_type.of_name atn >>=
+      Pwt_option.iter_s
+	(fun (C.Attribute_type.Ex at) -> C.Attribute_type.delete' at)
     | `Et_create (etn, allows) ->
       lwt et = C.Entity_type.create etn in
       Lwt_list.iter_s (exec_et_adjust et) allows
