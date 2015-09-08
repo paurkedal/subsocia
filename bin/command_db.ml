@@ -46,7 +46,7 @@ let db_schema_t =
 let load_sql (module C : Caqti_lwt.CONNECTION) sql =
   Lwt_io.with_file ~mode:Lwt_io.input sql @@ fun ic ->
   let rec loop () =
-    match_lwt Caqti_lwt.read_sql_statement Lwt_io.read_char_opt ic with
+    match_lwt Caqti_lwt_sql_io.read_sql_statement Lwt_io.read_char_opt ic with
     | None -> Lwt.return_unit
     | Some stmt -> C.exec (Caqti_query.oneshot_sql stmt) [||] >> loop () in
   loop ()
