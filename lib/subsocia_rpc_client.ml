@@ -28,15 +28,6 @@ module Attribute_type_base = struct
   type 'a t = {at_id : int32; at_name : string; at_type : 'a Type.t}
   type ex = Ex : 'a t -> ex
 
-  let coerce : type a. a Type.t -> ex -> a t = fun vt (Ex at) ->
-    match vt, at.at_type with
-    | Type.Bool, Type.Bool -> at
-    | Type.Int, Type.Int -> at
-    | Type.String, Type.String -> at
-    | _, _ ->
-      invalid_arg_f "Attribute_type.coerce: Attempt to coerce %s to %s."
-		    (Type.to_string at.at_type) (Type.to_string vt)
-
   (**/**)
   type 'a t1 = 'a t
 end

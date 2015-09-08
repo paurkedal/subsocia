@@ -33,7 +33,6 @@ module type ATTRIBUTE_TYPE = sig
   val value_type : 'a t -> 'a Type.t
   val create' : 'a Type.t -> string -> 'a t Lwt.t
   val delete' : 'a t -> unit Lwt.t
-  val coerce : 'a Type.t -> ex -> 'a t
 
   (**/**)
   type 'a t1 = 'a t		[@@ocaml.deprecated "Renamed to t"]

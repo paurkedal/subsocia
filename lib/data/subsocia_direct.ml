@@ -582,14 +582,12 @@ module Base = struct
 
     let value_type at = at.at_value_type
 
-    let coerce : type a. a Type.t -> ex -> a t = fun vt (Ex at) ->
+    let assert_coerce : type a. a Type.t -> ex -> a t = fun vt (Ex at) ->
       match vt, at.at_value_type with
       | Type.Bool, Type.Bool -> at
       | Type.Int, Type.Int -> at
       | Type.String, Type.String -> at
-      | _, _ ->
-	invalid_arg_f "Attribute_type.coerce: Attempt to coerce %s to %s."
-		      (Type.to_string at.at_value_type) (Type.to_string vt)
+      | _, _ -> assert false
 
     (**/**)
     type t0 = ex
@@ -698,7 +696,7 @@ let rec make connection_param = (module struct
       C.find Q.at_create C.Tuple.(int32 0)
 	     C.Param.([|string at_name; string (Type.to_string vt);
 			option string fts|])
-	>>= of_id' ~conn >|= coerce vt
+	>>= of_id' ~conn >|= assert_coerce vt
 
     let create (Type.Ex vt) name = create' vt name >|= fun at -> Ex at
 
