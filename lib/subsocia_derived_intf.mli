@@ -69,6 +69,7 @@ module type S = sig
 
   module Attribute :
     ATTRIBUTE with module Attribute_type := Base.Attribute_type
+	       and type predicate = Base.Attribute.predicate
 
   module Entity_type :
     ENTITY_TYPE with module Attribute_type := Base.Attribute_type
