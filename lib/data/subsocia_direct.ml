@@ -1046,11 +1046,10 @@ let rec make connection_param = (module struct
 	     Set.empty
 
     let asub1 op (type a) e (at : a Attribute_type.t) : a -> Set.t Lwt.t =
-      let open Attribute_type in
-      match type1 at with
-      | Type.Bool -> asub1_bool op e at.at_id
-      | Type.Int -> asub1_int op e at.at_id
-      | Type.String -> asub1_string op e at.at_id
+      match Attribute_type.value_type at with
+      | Type.Bool -> asub1_bool op e (Attribute_type.id' at)
+      | Type.Int -> asub1_int op e (Attribute_type.id' at)
+      | Type.String -> asub1_string op e (Attribute_type.id' at)
 
     let asub2_between_int, asub2_between_int_cache =
       memo_4lwt @@ fun (e, at_id, x0, x1) ->
@@ -1152,11 +1151,10 @@ let rec make connection_param = (module struct
 	     Set.empty
 
     let asuper1 op (type a) e (at : a Attribute_type.t) : a -> Set.t Lwt.t =
-      let open Attribute_type in
-      match type1 at with
-      | Type.Bool -> asuper1_bool op e at.at_id
-      | Type.Int -> asuper1_int op e at.at_id
-      | Type.String -> asuper1_string op e at.at_id
+      match Attribute_type.value_type at with
+      | Type.Bool -> asuper1_bool op e (Attribute_type.id' at)
+      | Type.Int -> asuper1_int op e (Attribute_type.id' at)
+      | Type.String -> asuper1_string op e (Attribute_type.id' at)
 
     let asuper2_between_int, asuper2_between_int_cache =
       memo_4lwt @@ fun (e, at_id, x0, x1) ->
