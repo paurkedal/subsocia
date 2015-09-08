@@ -260,6 +260,20 @@ module Server_impl = struct
       lwt p = U.decode_eap at_enc in
       C.Entity.asuper e p >|= C.Entity.Set.elements *> List.map C.Entity.id
 
+    let asub_conj (module C : Subsocia_intf.S) e_id ps_enc =
+      let module U = Utils (C) in
+      lwt e = C.Entity.of_id e_id in
+      lwt ps = Lwt_list.map_s U.decode_eap ps_enc in
+      C.Entity.asub_conj e ps
+	>|= C.Entity.Set.elements *> List.map C.Entity.id
+
+    let asuper_conj (module C : Subsocia_intf.S) e_id ps_enc =
+      let module U = Utils (C) in
+      lwt e = C.Entity.of_id e_id in
+      lwt ps = Lwt_list.map_s U.decode_eap ps_enc in
+      C.Entity.asuper_conj e ps
+	>|= C.Entity.Set.elements *> List.map C.Entity.id
+
     let asub_eq (module C : Subsocia_intf.S) e_id at_id v =
       lwt e = C.Entity.of_id e_id in
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id at_id in

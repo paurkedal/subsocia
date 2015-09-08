@@ -723,6 +723,11 @@ let rec make connection_param = (module struct
     type t0 = ex
   end
 
+  module Attribution_sql = Subsocia_attribution_sql.Make (struct
+    module Attribute_type = Attribute_type
+    module Attribute = Attribute
+  end)
+
   module Entity_type = struct
     type t = int32
 
@@ -1207,6 +1212,18 @@ let rec make connection_param = (module struct
       | Attribute.Search (at, x) ->
 	asuper1_search e Attribute_type.(id (Ex at)) x
       | Attribute.Search_fts x -> asuper1_search_fts e x
+
+    (* TODO: Cache? *)
+    let asub_conj e ps =
+      with_db @@ fun (module C : CONNECTION) ->
+      let q = Attribution_sql.select_asub_conj e ps in
+      C.fold q (fun t -> Set.add (C.Tuple.int32 0 t)) [||] Set.empty
+
+    (* TODO: Cache? *)
+    let asuper_conj e ps =
+      with_db @@ fun (module C : CONNECTION) ->
+      let q = Attribution_sql.select_asuper_conj e ps in
+      C.fold q (fun t -> Set.add (C.Tuple.int32 0 t)) [||] Set.empty
 
     let asub_fts, asub_fts_cache =
       memo_6lwt @@ fun (et, super, cutoff, limit, e, fts) ->

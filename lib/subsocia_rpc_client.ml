@@ -220,6 +220,13 @@ module Make (RPCM : RPCM) = struct
     let asuper e p =
       Raw.asuper e (encode_predicate p) >|= Set.of_ordered_elements
 
+    let asub_conj e ps =
+      Raw.asub_conj e (List.map encode_predicate ps)
+	>|= Set.of_ordered_elements
+    let asuper_conj e ps =
+      Raw.asuper_conj e (List.map encode_predicate ps)
+	>|= Set.of_ordered_elements
+
     let asub_eq e at av =
       let t = Attribute_type.value_type at in
       Raw.asub_eq e (Attribute_type.(id (Ex at))) (Value.Ex (t, av))

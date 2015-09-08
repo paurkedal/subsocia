@@ -30,6 +30,7 @@ Library "subsocia"
     Subsocia_selector_types,
     Subsocia_version
   InternalModules:
+    Subsocia_attribution_sql,
     Subsocia_internal,
     Subsocia_lexer,
     Subsocia_parser,
@@ -37,6 +38,7 @@ Library "subsocia"
     Subsocia_rpc_primitives,
     Subsocia_rpc_types
   BuildDepends:
+    caqti,
     extunix,
     lwt,
     panograph,

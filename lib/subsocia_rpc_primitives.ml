@@ -74,6 +74,10 @@ module Entity = struct
   external delattr : int32 -> int32 -> int32 -> Value.ex list -> unit=""
   external asub : int32 -> encoded_attribute_predicate -> int32 list = ""
   external asuper : int32 -> encoded_attribute_predicate -> int32 list = ""
+  external asub_conj : int32 -> encoded_attribute_predicate list ->
+		       int32 list = ""
+  external asuper_conj : int32 -> encoded_attribute_predicate list ->
+			 int32 list = ""
   external asub_eq : int32 -> int32 -> Value.ex -> int32 list = ""
   external asuper_eq : int32 -> int32 -> Value.ex -> int32 list = ""
   external asub_fts : ?entity_type: int32 -> ?super: int32 ->

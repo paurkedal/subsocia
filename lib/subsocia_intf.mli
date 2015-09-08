@@ -221,6 +221,14 @@ module type ENTITY = sig
   (** [asub e p] are the attribution superentities of [e] along attributes for
       which [p] holds. *)
 
+  val asub_conj : t -> Attribute.predicate list -> Set.t Lwt.t
+  (** [asub_conj e ps] returns the set of elements linked from [e] by at least
+      one attribute for each predicate [p] in [ps] fulfilling [p]. *)
+
+  val asuper_conj : t -> Attribute.predicate list -> Set.t Lwt.t
+  (** [asuper_conj e ps] returns the set of elements linked to [e] by at least
+      one attribute for each predicate [p] in [ps] fulfilling [p]. *)
+
   val asub_eq : t -> 'a Attribute_type.t -> 'a -> Set.t Lwt.t
   (** [asub_eq e at v] are the attribution subentities of [e] along [at]
       gaining the value [v]. *)
