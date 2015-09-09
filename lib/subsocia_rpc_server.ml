@@ -30,6 +30,10 @@ module Utils (C : Subsocia_intf.S) = struct
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id e_id in
       let x = Value.coerce (C.Attribute_type.value_type at) av in
       Lwt.return (C.Attribute.Eq (at, x))
+    | Eap_in (e_id, avs) ->
+      lwt C.Attribute_type.Ex at = C.Attribute_type.of_id e_id in
+      let xs = Values.coerce (C.Attribute_type.value_type at) avs in
+      Lwt.return (C.Attribute.In (at, xs))
     | Eap_leq (e_id, av) ->
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id e_id in
       let x = Value.coerce (C.Attribute_type.value_type at) av in

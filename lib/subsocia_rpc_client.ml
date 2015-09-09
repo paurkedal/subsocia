@@ -78,6 +78,7 @@ module Make (RPCM : RPCM) = struct
     type predicate =
       | Present : 'a Attribute_type.t -> predicate
       | Eq : 'a Attribute_type.t * 'a -> predicate
+      | In : 'a Attribute_type.t * 'a Values.t -> predicate
       | Leq : 'a Attribute_type.t * 'a -> predicate
       | Geq : 'a Attribute_type.t * 'a -> predicate
       | Between : 'a Attribute_type.t * 'a * 'a -> predicate
@@ -199,13 +200,16 @@ module Make (RPCM : RPCM) = struct
       | Attribute.Present at -> Eap_present (Attribute_type.(id (Ex at)))
       | Attribute.Eq (at, x) ->
 	let t = Attribute_type.value_type at in
-	Eap_eq (Attribute_type.(id (Ex at)), Value.Ex (t, x))
+	Eap_eq (Attribute_type.(id' at), Value.Ex (t, x))
+      | Attribute.In (at, vs) ->
+	let t = Attribute_type.value_type at in
+	Eap_in (Attribute_type.(id' at), Values.Ex (t, vs))
       | Attribute.Leq (at, x) ->
 	let t = Attribute_type.value_type at in
-	Eap_leq (Attribute_type.(id (Ex at)), Value.Ex (t, x))
+	Eap_leq (Attribute_type.(id' at), Value.Ex (t, x))
       | Attribute.Geq (at, x) ->
 	let t = Attribute_type.value_type at in
-	Eap_geq (Attribute_type.(id (Ex at)), Value.Ex (t, x))
+	Eap_geq (Attribute_type.(id' at), Value.Ex (t, x))
       | Attribute.Between (at, x0, x1) ->
 	let t = Attribute_type.value_type at in
 	Eap_between (Attribute_type.(id (Ex at)),

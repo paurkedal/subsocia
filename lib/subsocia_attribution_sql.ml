@@ -38,6 +38,7 @@ module Make (Arg : Arg) = struct
   let table_for_predicate = function
     | Attribute.Present at -> table_for_type (Attribute_type.value_type at)
     | Attribute.Eq (at, _) -> table_for_type (Attribute_type.value_type at)
+    | Attribute.In (at, _) -> table_for_type (Attribute_type.value_type at)
     | Attribute.Leq (at, _) -> table_for_type (Attribute_type.value_type at)
     | Attribute.Geq (at, _) -> table_for_type (Attribute_type.value_type at)
     | Attribute.Between(at,_,_) -> table_for_type (Attribute_type.value_type at)
@@ -78,6 +79,18 @@ module Make (Arg : Arg) = struct
       bprintf buf " AND q%d.value < " i;
       do_value at y in
 
+    let do_in i at xs =
+      assert (not (Values.is_empty xs));
+      bprintf buf "q%d.attribute_type_id = %ld AND (" i (Attribute_type.id' at);
+      let is_first = ref true in
+      Values.iter
+	(fun x ->
+	  if !is_first then is_first := false else Buffer.add_string buf " OR ";
+	  bprintf buf "q%d.value = " i;
+	  do_value at x)
+	xs;
+      Buffer.add_char buf ')' in
+
     let do_fts i x =
       bprintf buf "q%d.fts_vector @@ to_tsquery(q%d.fts_config::regconfig, "
 	      i i;
@@ -89,6 +102,7 @@ module Make (Arg : Arg) = struct
       match pred with
       | Attribute.Present at -> do_cond0 i at
       | Attribute.Eq (at, x) -> do_cond1 i "=" at x
+      | Attribute.In (at, xs) -> do_in i at xs
       | Attribute.Leq (at, x) -> do_cond1 i "<=" at x
       | Attribute.Geq (at, x) -> do_cond1 i ">=" at x
       | Attribute.Between (at, x, y) -> do_between i at x y

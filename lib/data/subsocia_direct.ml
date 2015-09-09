@@ -713,6 +713,7 @@ let rec make connection_param = (module struct
     type predicate =
       | Present : 'a Attribute_type.t -> predicate
       | Eq : 'a Attribute_type.t * 'a -> predicate
+      | In : 'a Attribute_type.t * 'a Values.t -> predicate
       | Leq : 'a Attribute_type.t * 'a -> predicate
       | Geq : 'a Attribute_type.t * 'a -> predicate
       | Between : 'a Attribute_type.t * 'a * 'a -> predicate
@@ -1003,6 +1004,18 @@ let rec make connection_param = (module struct
       | Type.Int -> getattr_int e e' at.Attribute_type.at_id
       | Type.String -> getattr_string e e' at.Attribute_type.at_id
 
+    (* TODO: Cache? *)
+    let asub_conj e ps =
+      with_db @@ fun (module C : CONNECTION) ->
+      let q = Attribution_sql.select_asub_conj e ps in
+      C.fold q (fun t -> Set.add (C.Tuple.int32 0 t)) [||] Set.empty
+
+    (* TODO: Cache? *)
+    let asuper_conj e ps =
+      with_db @@ fun (module C : CONNECTION) ->
+      let q = Attribution_sql.select_asuper_conj e ps in
+      C.fold q (fun t -> Set.add (C.Tuple.int32 0 t)) [||] Set.empty
+
     let asub_present_bool, asub_present_bool_cache =
       memo_2lwt @@ fun (e, at_id) ->
       with_db @@ fun (module C : CONNECTION) ->
@@ -1099,6 +1112,7 @@ let rec make connection_param = (module struct
 	| Type.String -> asub_present_string e at.Attribute_type.at_id
 	end
       | Attribute.Eq (at, x) -> asub1 Q.ap1_eq e at x
+      | Attribute.In _ as p -> asub_conj e [p]
       | Attribute.Leq (at, x) -> asub1 Q.ap1_leq e at x
       | Attribute.Geq (at, x) -> asub1 Q.ap1_geq e at x
       | Attribute.Between (at, x0, x1) -> asub2_between e at x0 x1
@@ -1206,24 +1220,13 @@ let rec make connection_param = (module struct
 	| Type.String -> asuper_present_string e at.Attribute_type.at_id
 	end
       | Attribute.Eq (at, x) -> asuper1 Q.ap1_eq e at x
+      | Attribute.In _ as p -> asuper_conj e [p]
       | Attribute.Leq (at, x) -> asuper1 Q.ap1_leq e at x
       | Attribute.Geq (at, x) -> asuper1 Q.ap1_geq e at x
       | Attribute.Between (at, x0, x1) -> asuper2_between e at x0 x1
       | Attribute.Search (at, x) ->
 	asuper1_search e Attribute_type.(id (Ex at)) x
       | Attribute.Search_fts x -> asuper1_search_fts e x
-
-    (* TODO: Cache? *)
-    let asub_conj e ps =
-      with_db @@ fun (module C : CONNECTION) ->
-      let q = Attribution_sql.select_asub_conj e ps in
-      C.fold q (fun t -> Set.add (C.Tuple.int32 0 t)) [||] Set.empty
-
-    (* TODO: Cache? *)
-    let asuper_conj e ps =
-      with_db @@ fun (module C : CONNECTION) ->
-      let q = Attribution_sql.select_asuper_conj e ps in
-      C.fold q (fun t -> Set.add (C.Tuple.int32 0 t)) [||] Set.empty
 
     let asub_fts, asub_fts_cache =
       memo_6lwt @@ fun (et, super, cutoff, limit, e, fts) ->

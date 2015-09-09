@@ -144,6 +144,8 @@ module Value = struct
     | Rpc.String x -> Ex (Type.String, x)
     | _ -> failwith "Value.t0_of_rpc: Protocol error."
 
+  let typed_of_rpc t rpc = coerce t (ex_of_rpc rpc)
+
   (**/**)
   type t0 = ex
   let t0_of_rpc = ex_of_rpc
@@ -161,6 +163,15 @@ module Values = struct
 
   type 'a t =
     T : (module Prime_enumset.S with type elt = 'a and type t = 'b) * 'b -> 'a t
+
+  type ex = Ex : 'a Type.t * 'a t -> ex
+
+  let coerce : type a. a Type.t -> ex -> a t = fun t ex ->
+    match t, ex with
+    | Type.Bool, Ex (Type.Bool, vs) -> vs
+    | Type.Int, Ex (Type.Int, vs) -> vs
+    | Type.String, Ex (Type.String, vs) -> vs
+    | _ -> failwith "Subsocia_common.Values.must_coerce: Type mismatch."
 
   let impl : type a. a Type.t -> (module Prime_enumset.S with type elt = a) =
     function
@@ -191,9 +202,35 @@ module Values = struct
     T ((module SB), SB.filter (fun x -> SA.contains x sA) sB)
   let elements (type a) (T ((module S), s) : a t) = S.elements s
 
+  let of_elements : type a. a Type.t -> a list -> a t = fun t xs ->
+    let module S = (val impl t) in
+    T ((module S), List.fold S.add xs S.empty)
+
   let of_ordered_elements : type a. a Type.t -> a list -> a t = fun t s ->
     let module S = (val impl t) in
     T ((module S), S.of_ordered_elements s)
+
+  let ex_of_rpc rpc =
+    let aux0 t = Ex (t, empty t) in
+    let auxn t = function
+      | Rpc.Enum evs ->
+	Ex (t, of_ordered_elements t (List.map (Value.typed_of_rpc t) evs))
+      | _ -> failwith "Subsocia_common.Values.ex_of_rpc: Protocol error." in
+    match rpc with
+    | Rpc.Enum (Rpc.Bool _ :: _) -> auxn Type.Bool rpc
+    | Rpc.Enum (Rpc.Int _ :: _) -> auxn Type.Int rpc
+    | Rpc.Enum (Rpc.String _ :: _) -> auxn Type.String rpc
+    | Rpc.String "bool" -> aux0 Type.Bool
+    | Rpc.String "int" -> aux0 Type.Int
+    | Rpc.String "string" -> aux0 Type.String
+    | _ -> failwith "Subsocia_common.Values.ex_of_rpc: Protocol Error."
+
+  let rpc_of_ex (Ex (t, vs)) =
+    if is_empty vs then Rpc.String (Type.to_string t) else
+    match t with
+    | Type.Bool -> Rpc.Enum (List.map Rpc.rpc_of_bool (elements vs))
+    | Type.Int -> Rpc.Enum (List.map Rpc.rpc_of_int (elements vs))
+    | Type.String -> Rpc.Enum (List.map Rpc.rpc_of_string (elements vs))
 end
 
 module Int32_set = Prime_enumset.Make_monadic (Int32) (Lwt)

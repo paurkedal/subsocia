@@ -61,6 +61,7 @@ module type ATTRIBUTE = sig
   type predicate =
     | Present : 'a Attribute_type.t -> predicate
     | Eq : 'a Attribute_type.t * 'a -> predicate
+    | In : 'a Attribute_type.t * 'a Values.t -> predicate
     | Leq : 'a Attribute_type.t * 'a -> predicate
     | Geq : 'a Attribute_type.t * 'a -> predicate
     | Between : 'a Attribute_type.t * 'a * 'a -> predicate

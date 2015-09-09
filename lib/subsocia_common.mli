@@ -87,6 +87,7 @@ end
 
 module Values : sig
   type 'a t
+  type ex = Ex : 'a Type.t * 'a t -> ex
 
   val empty : 'a Type.t -> 'a t
   val is_empty : 'a t -> bool
@@ -105,7 +106,13 @@ module Values : sig
   val union : 'a t -> 'a t -> 'a t
   val inter : 'a t -> 'a t -> 'a t
   val elements : 'a t -> 'a list
+  val of_elements : 'a Type.t -> 'a list -> 'a t
   val of_ordered_elements : 'a Type.t -> 'a list -> 'a t
+
+  val coerce : 'a Type.t -> ex -> 'a t
+
+  val rpc_of_ex : ex -> Rpc.t
+  val ex_of_rpc : Rpc.t -> ex
 end
 
 module Int_set : SET with type elt = int
