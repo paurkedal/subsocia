@@ -125,11 +125,14 @@ module Q = struct
       | Not_found ->
 	let buf = Buffer.create 512 in
 	Buffer.add_string buf
-	  "INSERT INTO @attribute_uniqueness SELECT au_id, at_id \
+	  "INSERT INTO @attribute_uniqueness \
+	   SELECT attribute_uniqueness_id, attribute_type_id \
 	   FROM (SELECT nextval('subsocia.attribute_uniqueness_id_seq')) \
-		     AS seq(au_id) CROSS JOIN (VALUES (?), ";
-	for i = 1 to n - 1 do Buffer.add_string buf ", (?)" done;
-	Buffer.add_string buf ") AS ats(at_id) RETURNING au_id";
+		  AS seq(attribute_uniqueness_id) \
+		CROSS JOIN (VALUES (?::int)";
+	for i = 1 to n - 1 do Buffer.add_string buf ", (?::int)" done;
+	Buffer.add_string buf
+	  ") AS ats(attribute_type_id) RETURNING attribute_type_id";
 	let query = q (Buffer.contents buf) in
 	Hashtbl.add ht n query;
 	query
@@ -741,6 +744,8 @@ let rec make connection_param = (module struct
     module Set = Int32_set
     module Map = Int32_map
 
+    exception Not_unique of Set.t
+
     let of_id = Lwt.return
     let id au = au
 
@@ -770,16 +775,19 @@ let rec make connection_param = (module struct
       | _ -> assert false
 
     let force atset =
+      (* TODO: Enforce non-duplication of constraints. *)
       let ats = Attribute_type.Set.elements atset in
       begin
 	with_db @@ fun (module C : CONNECTION) ->
-	C.find (Q.au_force (Attribute_type.Set.cardinal atset))
-	       C.Tuple.(int32 0)
+	C.fold (Q.au_force (Attribute_type.Set.cardinal atset))
+	       C.Tuple.(fun t _ -> Some (int32 0 t))
 	       (Array.map (C.Param.int32 *< Attribute_type.id)
 			  (Array.of_list ats))
-      end >|= fun au ->
+	       None
+      end >|= fun au_opt ->
+      assert (au_opt <> None);
       Cache.clear affecting_cache;
-      au
+      Option.get au_opt
 
     let relax au =
       with_db @@ fun (module C : CONNECTION) ->
@@ -1579,6 +1587,28 @@ let rec make connection_param = (module struct
       if subentity_rank > superentity_rank + 1 then Lwt.return_unit
 					       else lower_rank subentity
 
+    let check_uniqueness_for_add e e' new_at new_avs =
+      let vt = Attribute_type.value_type new_at in
+      let new_cond = Attribute.In (new_at, Values.of_elements vt new_avs) in
+      let is_violated au =
+	lwt aff_ats = Attribute_uniqueness.affected au >|=
+		      Attribute_type.Set.remove (Attribute_type.Ex new_at) in
+	try_lwt
+	  lwt conds = Lwt_list.map_s
+	    (fun (Attribute_type.Ex at) ->
+	      lwt avs = getattr e e' at in
+	      if Values.is_empty avs then Lwt.fail Not_found else
+	      Lwt.return (Attribute.In (at, avs)))
+	    (Attribute_type.Set.elements aff_ats) in
+	  asub_conj e' (new_cond :: conds) >|= not *< Set.is_empty
+	with Not_found ->
+	  Lwt.return_false in
+      lwt violated =
+	Attribute_uniqueness.affecting new_at >>=
+	Attribute_uniqueness.Set.filter_s is_violated in
+      if Attribute_uniqueness.Set.is_empty violated then Lwt.return_unit else
+      Lwt.fail (Attribute_uniqueness.Not_unique violated)
+
     let post_attribute_update (type a) (module C : CONNECTION)
 			      e e' (at : a Attribute_type.t) =
       clear_attr_caches at;
@@ -1634,6 +1664,7 @@ let rec make connection_param = (module struct
 	      (fun x -> if Hashtbl.mem ht x then false else
 			(Hashtbl.add ht x (); true)) xs in
       if xs = [] then Lwt.return_unit else
+      check_uniqueness_for_add e e' at xs >> (* FIXME: Transaction. *)
       with_db ~transaction:true (fun conn -> addattr' conn e e' at xs)
 
     let delattr' (module C : CONNECTION)
@@ -1684,6 +1715,7 @@ let rec make connection_param = (module struct
 	  xs in
       let xs_del =
 	Hashtbl.fold (fun x keep acc -> if keep then acc else x :: acc) ht [] in
+      check_uniqueness_for_add e e' at xs_ins >> (* FIXME: Transaction. *)
       with_db ~transaction:true begin fun c ->
 	(if xs_del = [] then Lwt.return_unit else delattr' c e e' at xs_del) >>
 	(if xs_ins = [] then Lwt.return_unit else addattr' c e e' at xs_ins)

@@ -12,6 +12,8 @@
 :! last_name=string
 :! email=string
 
+%unique unique_name
+
 # Entity Types
 # ------------
 

@@ -60,6 +60,8 @@ module type ATTRIBUTE_UNIQUENESS = sig
   module Set : SET with type elt = t
   module Map : MAP with type key = t
 
+  exception Not_unique of Set.t
+
   val of_id : int32 -> t Lwt.t
   val id : t -> int32
   val force : Attribute_type.Set.t -> t Lwt.t

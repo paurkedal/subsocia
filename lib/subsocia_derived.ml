@@ -67,6 +67,8 @@ module Make (Base : Subsocia_intf.S) = struct
     let t1_of_name = typed_required
   end
 
+  module Attribute_uniqueness = Base.Attribute_uniqueness
+
   module Attribute = Base.Attribute
 
   module Entity_type = Base.Entity_type

@@ -82,6 +82,8 @@ module Make (RPCM : RPCM) = struct
     module Set = Int32_set
     module Map = Int32_map
 
+    exception Not_unique of Set.t
+
     let of_id = Lwt.return
     let id u = u
 
@@ -202,15 +204,24 @@ module Make (RPCM : RPCM) = struct
       Raw.getattr lb ub (Attribute_type.(id (Ex at))) >|=
       List.map (Value.coerce t1) *> Values.of_ordered_elements t1
 
+    let check_uniqueness_error = function
+      | [] -> Lwt.return_unit
+      | ua_ids ->
+	lwt uas = Lwt_list.map_s Attribute_uniqueness.of_id ua_ids in
+	Lwt.fail (Attribute_uniqueness.Not_unique
+		    (Attribute_uniqueness.Set.of_ordered_elements uas))
+
     let setattr lb ub at vs =
       let t = Attribute_type.value_type at in
       Raw.setattr lb ub (Attribute_type.(id (Ex at)))
-		  (List.map (fun v -> Value.Ex (t, v)) vs)
+		  (List.map (fun v -> Value.Ex (t, v)) vs) >>=
+      check_uniqueness_error
 
     let addattr lb ub at vs =
       let t = Attribute_type.value_type at in
       Raw.addattr lb ub (Attribute_type.(id (Ex at)))
-		  (List.map (fun v -> Value.Ex (t, v)) vs)
+		  (List.map (fun v -> Value.Ex (t, v)) vs) >>=
+      check_uniqueness_error
 
     let delattr lb ub at vs =
       let t = Attribute_type.value_type at in

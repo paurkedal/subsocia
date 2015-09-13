@@ -261,19 +261,26 @@ module Server_impl = struct
       Values.elements *>
       List.map (fun v -> Value.Ex (C.Attribute_type.value_type at, v))
 
+    let catch_uniqueness_error (module C : Subsocia_intf.S) f =
+      try_lwt f () >> Lwt.return []
+      with C.Attribute_uniqueness.Not_unique uas ->
+	Lwt.return @@
+	  List.map C.Attribute_uniqueness.id
+		   (C.Attribute_uniqueness.Set.elements uas)
+
     let setattr (module C : Subsocia_intf.S) lb_id ub_id at_id vs =
       lwt lb = C.Entity.of_id lb_id in
       lwt ub = C.Entity.of_id ub_id in
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id at_id in
       let vs1 = List.map (Value.coerce (C.Attribute_type.value_type at)) vs in
-      C.Entity.setattr lb ub at vs1
+      catch_uniqueness_error (module C) (fun() -> C.Entity.setattr lb ub at vs1)
 
     let addattr (module C : Subsocia_intf.S) lb_id ub_id at_id vs =
       lwt lb = C.Entity.of_id lb_id in
       lwt ub = C.Entity.of_id ub_id in
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id at_id in
       let vs1 = List.map (Value.coerce (C.Attribute_type.value_type at)) vs in
-      C.Entity.addattr lb ub at vs1
+      catch_uniqueness_error (module C) (fun() -> C.Entity.addattr lb ub at vs1)
 
     let delattr (module C : Subsocia_intf.S) lb_id ub_id at_id vs =
       lwt lb = C.Entity.of_id lb_id in

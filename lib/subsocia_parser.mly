@@ -29,6 +29,7 @@ let parse_error msg =
 
 %token EOF CREATE MODIFY DELETE
 %token AT_CREATE AT_DELETE ET_CREATE ET_MODIFY ET_DELETE
+%token AU_FORCE
 %token DELINCL ADDINCL ADDATTR DELATTR SETATTR
 %token EQ LEQ GEQ SLASH COLON TOP MINUS PLUS COMMA LBRACE RBRACE UNDERSCORE
 %token<string> EQ_VERB STR STRING AUX_STRING AUX_SELECTOR
@@ -50,6 +51,7 @@ entry:
   | DELETE path { `Delete $2 }
   | AT_CREATE STR EQ STR { `At_create ($2, $4) }
   | AT_DELETE STR { `At_delete $2 }
+  | AU_FORCE nonempty_string_list { `Au_force ($2) }
   | ET_CREATE STR et_create_constraints { `Et_create ($2, List.rev $3) }
   | ET_MODIFY STR et_modify_constraints { `Et_modify ($2, List.rev $3) }
   | ET_DELETE STR { `Et_delete $2 }
@@ -93,6 +95,11 @@ modify_constraint:
   | DELATTR path { `Remove_attr $2 }
   | SETATTR path { `Set_attr $2 }
   | AUX_SELECTOR path { `Aux_selector ($1, $2) }
+  ;
+
+nonempty_string_list:
+    STR { [$1] }
+  | STR COMMA nonempty_string_list { $1 :: $3 }
   ;
 
 selector: path EOF { $1 };

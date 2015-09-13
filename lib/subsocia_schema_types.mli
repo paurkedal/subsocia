@@ -43,6 +43,7 @@ type schema_mod =
 type schema_entry =
   [ `At_create of string * string
   | `At_delete of string
+  | `Au_force of string list
   | `Et_create of string * et_allow list
   | `Et_modify of string * et_adjust list
   | `Et_delete of string

@@ -54,6 +54,7 @@ module type S = sig
     type ex = Base.Attribute_type.ex = Ex : 'a t -> ex
     include ATTRIBUTE_TYPE
        with type 'a t := 'a t and type ex := ex
+	and module Set = Base.Attribute_type.Set
 	and module Map = Base.Attribute_type.Map
 
     val coerce : 'a Type.t -> ex -> 'a t option
@@ -66,6 +67,9 @@ module type S = sig
     val t1_of_name : 'a Type.t -> string -> 'a t Lwt.t
     [@@ocaml.deprecated "Renamed to typed_required"]
   end
+
+  module Attribute_uniqueness :
+    ATTRIBUTE_UNIQUENESS with module Attribute_type := Base.Attribute_type
 
   module Attribute :
     ATTRIBUTE with module Attribute_type := Base.Attribute_type

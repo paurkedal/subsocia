@@ -18,6 +18,7 @@ open Pwt_infix
 open Subsocia_common
 open Subsocia_prereq
 open Subsocia_selector
+open Unprime_list
 
 let load_schema = Subsocia_lexer.parse_schema
 
@@ -165,6 +166,17 @@ let exec_schema (module C : Subsocia_intf.S) =
       C.Attribute_type.of_name atn >>=
       Pwt_option.iter_s
 	(fun (C.Attribute_type.Ex at) -> C.Attribute_type.delete' at)
+    | `Au_force atns ->
+      lwt ats = Lwt_list.map_s req_at atns in
+      let ats = List.fold C.Attribute_type.Set.add ats
+			  C.Attribute_type.Set.empty in
+      begin match_lwt C.Attribute_uniqueness.find ats with
+      | Some au ->
+	Lwt_log.warning_f "Already constrained by #%ld."
+			  (C.Attribute_uniqueness.id au)
+      | None ->
+	C.Attribute_uniqueness.force ats >|= ignore
+      end
     | `Et_create (etn, allows) ->
       lwt et = C.Entity_type.create etn in
       Lwt_list.iter_s (exec_et_adjust et) allows

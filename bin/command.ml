@@ -24,6 +24,7 @@ open Command_et
 open Command_in
 open Command_at
 open Command_an
+open Command_au
 open Command_e
 
 (* Entities *)
@@ -47,6 +48,7 @@ let db_scn = "DATABASE COMMANDS"
 let et_scn = "ENTITY TYPE COMMANDS"
 let in_scn = "INCLUSION COMMANDS"
 let at_scn = "ATTRIBUTE TYPE COMMANDS"
+let au_scn = "ATTRIBUTE UNIQUENESS"
 let an_scn = "ATTRIBUTION COMMANDS"
 let e_scn = "ENTITY COMMANDS"
 
@@ -88,6 +90,12 @@ let subcommands = [
   at_delete_t, Term.info ~docs:at_scn
     ~doc:"Delete an attribute type."
     "at-delete";
+  au_force_t, Term.info ~docs:au_scn
+    ~doc:"Add an attribute uniqueness constraint."
+    "au-force";
+  au_relax_t, Term.info ~docs:au_scn
+    ~doc:"Remove an attribute uniqueness constraint."
+    "au-relax";
   an_allow_t, Term.info ~docs:an_scn
     ~doc:"Allow an attribution."
     "an-allow";
