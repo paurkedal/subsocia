@@ -20,7 +20,7 @@ open Subsocia_prereq
 open Subsocia_selector
 open Unprime_list
 
-let load_schema = Subsocia_lexer.parse_schema
+let load = Subsocia_lexer.parse_schema
 
 let rec aconj_of_selector = function
   | Select_with _ | Select_union _ | Select_top | Select_id _
@@ -74,18 +74,18 @@ let dselector_of_selector = function
   | sel_att ->
     None, dconj_of_selector sel_att String_map.empty
 
-let exec_schema (module C : Subsocia_intf.S) =
-  let module Su = Selector_utils (C) in
+module Make (C : Subsocia_intf.S) = struct
+  module Su = Selector_utils (C)
 
   let req_at atn =
     match_lwt C.Attribute_type.of_name atn with
     | Some at -> Lwt.return at
-    | None -> lwt_failure_f "No attribute type is named %s." atn in
+    | None -> lwt_failure_f "No attribute type is named %s." atn
 
   let req_et etn =
     match_lwt C.Entity_type.of_name etn with
     | Some et -> Lwt.return et
-    | None -> lwt_failure_f "No entity type is named %s." etn in
+    | None -> lwt_failure_f "No entity type is named %s." etn
 
   let exec_et_adjust et = function
     | `Allow_inclusion (etn', mu, mu') ->
@@ -105,7 +105,7 @@ let exec_schema (module C : Subsocia_intf.S) =
     | `Aux_string ("display", tmpl) ->
       C.Entity_type.set_entity_name_tmpl et tmpl
     | `Aux_string (p, _) ->
-      lwt_failure_f "Entity types have no property %s." p in
+      lwt_failure_f "Entity types have no property %s." p
 
   let add_set_helper f e asel =
     let sel', attrs = aselector_of_selector asel in
@@ -122,7 +122,7 @@ let exec_schema (module C : Subsocia_intf.S) =
 	  let f = match f with `Add -> C.Entity.addattr
 			     | `Set -> C.Entity.setattr in
 	  f e e' at (List.map (Value.typed_of_string t) vs))
-      attrs in
+      attrs
 
   let del_helper e sel =
     let sel', attrs = dselector_of_selector sel in
@@ -140,7 +140,7 @@ let exec_schema (module C : Subsocia_intf.S) =
 	  | Some vs ->
 	    let t = C.Attribute_type.value_type at in
 	    C.Entity.delattr e e' at (List.map (Value.typed_of_string t) vs))
-      attrs in
+      attrs
 
   let exec_mod e = function
     | `Aux_selector ("access", sel) ->
@@ -156,7 +156,7 @@ let exec_schema (module C : Subsocia_intf.S) =
       C.Entity.relax_dsub e e'
     | `Add_attr asel -> add_set_helper `Add e asel
     | `Set_attr asel -> add_set_helper `Set e asel
-    | `Remove_attr sel' -> del_helper e sel' in
+    | `Remove_attr sel' -> del_helper e sel'
 
   let exec_schema_entry = function
     | `At_create (atn, tn) ->
@@ -203,5 +203,7 @@ let exec_schema (module C : Subsocia_intf.S) =
       Lwt_list.iter_s (exec_mod e) modl
     | `Delete sel ->
       lwt e = Su.select_one sel in
-      C.Entity.delete e in
-  Lwt_list.iter_s exec_schema_entry
+      C.Entity.delete e
+
+  let exec = Lwt_list.iter_s exec_schema_entry
+end

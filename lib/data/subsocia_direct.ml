@@ -586,17 +586,10 @@ let memo_5lwt f = let g, c = memo_1lwt f in
 let memo_6lwt f = let g, c = memo_1lwt f in
 		  (fun x0 x1 x2 x3 x4 x5 -> g (x0, x1, x2, x3, x4, x5)), c
 
-module Base = struct
-  type attribute_type_id = int32
-  type entity_type_id = int32
-  type entity_id = int32
-
-  module Id_set = Int32_set
-  module Id_map = Int32_map
-
-  module Attribute_type_base = struct
+module B = struct
+  module Attribute_type = struct
     type 'a t = {
-      at_id : attribute_type_id;
+      at_id : int32;
       at_name : string;
       at_value_type : 'a Type.t;
       at_beacon : Beacon.t;
@@ -619,73 +612,77 @@ module Base = struct
       | Type.String, Type.String -> at
       | _, _ -> assert false
 
+    module Comparable = struct
+      type t = ex
+      let compare (Ex x) (Ex y) = compare x.at_id y.at_id
+    end
+    module Map = Prime_enummap.Make_monadic (Comparable) (Lwt)
+    module Set = Prime_enumset.Make_monadic (Comparable) (Lwt)
+
     (**/**)
     type t0 = ex
     type 'a t1 = 'a t
     let type0 (Ex at) = Type.Ex at.at_value_type
     let type1 = value_type
   end
+
+  module Attribute_uniqueness = struct
+    type t = int32
+
+    module Set = Int32_set
+    module Map = Int32_map
+
+    exception Not_unique of Set.t
+  end
+
+  module Attribute = struct
+    type ex = Ex : 'a Attribute_type.t * 'a -> ex
+    type predicate =
+      | Present : 'a Attribute_type.t -> predicate
+      | Eq : 'a Attribute_type.t * 'a -> predicate
+      | In : 'a Attribute_type.t * 'a Values.t -> predicate
+      | Leq : 'a Attribute_type.t * 'a -> predicate
+      | Geq : 'a Attribute_type.t * 'a -> predicate
+      | Between : 'a Attribute_type.t * 'a * 'a -> predicate
+      | Search : string Attribute_type.t * string -> predicate
+      | Search_fts : string -> predicate
+
+    (**/**)
+    type t0 = ex
+  end
+
+  module Entity_type = struct
+    type t = int32
+
+    module Set = Int32_set
+    module Map = Int32_map
+
+    let compare = Int32.compare
+  end
+
+  module Entity = struct
+    type t = int32
+
+    module Set = Int32_set
+    module Map = Int32_map
+  end
 end
 
-let rec make connection_param = (module struct
+module type Param = sig
+ val with_db : transaction: bool ->
+	       ((module Caqti_lwt.CONNECTION) -> 'a Lwt.t) -> 'a Lwt.t
+end
 
-  include Base
-
+module Make (P : Param) = struct
   let inclusion_cache = Cache.create ~cache_metric 61
 
-  let wrap_transaction f (module C : CONNECTION) =
-    C.exec Q.begin_ [||] >>
-    begin try_lwt
-      lwt r = f (module C : CONNECTION) in
-      C.exec Q.commit [||] >>
-      Lwt.return r
-    with exc ->
-      Lwt_log.debug_f "Raised in transaction: %s" (Printexc.to_string exc) >>
-      C.exec Q.rollback [||] >>
-      Lwt.fail exc
-    end
-
-  type with_db = {
-    with_db : 'a. transaction: bool ->
-	      ((module Caqti_lwt.CONNECTION) -> 'a Lwt.t) -> 'a Lwt.t;
-  }
-  let with_db =
-    match connection_param with
-    | `Uri uri ->
-      let pool =
-	let connect () = Caqti_lwt.connect uri in
-	let disconnect (module C : CONNECTION) = C.disconnect () in
-	let validate (module C : CONNECTION) = C.validate () in
-	let check (module C : CONNECTION) = C.check in
-	Caqti_lwt.Pool.create ~validate ~check connect disconnect in
-      let with_db ~transaction f =
-	if transaction then Caqti_lwt.Pool.use (wrap_transaction f) pool
-		       else Caqti_lwt.Pool.use f pool in
-      {with_db}
-    | `Transaction conn ->
-      let lock = Lwt_mutex.create () in
-      let with_db ~transaction f =
-	Lwt_mutex.with_lock lock (fun () -> f conn) in
-      {with_db}
   let with_db ?conn ?(transaction = false) f =
     match conn with
-    | None -> with_db.with_db ~transaction f
+    | None -> P.with_db ~transaction f
     | Some conn -> f conn
 
-  let transaction f =
-    with_db @@ fun ((module C : CONNECTION) as conn) ->
-    let module C' = (val make (`Transaction conn) : S) in
-    f (module C' : Subsocia_intf.S)
-
   module Attribute_type = struct
-    include Attribute_type_base
-
-    module Comparable = struct
-      type t = t0
-      let compare (Ex x) (Ex y) = compare x.at_id y.at_id
-    end
-    module Map = Prime_enummap.Make_monadic (Comparable) (Lwt)
-    module Set = Prime_enumset.Make_monadic (Comparable) (Lwt)
+    open B.Attribute_type
 
     let id (Ex at) = at.at_id
     let id' at = at.at_id
@@ -739,12 +736,7 @@ let rec make connection_param = (module struct
   end
 
   module Attribute_uniqueness = struct
-    type t = int32
-
-    module Set = Int32_set
-    module Map = Int32_map
-
-    exception Not_unique of Set.t
+    open B.Attribute_uniqueness
 
     let of_id = Lwt.return
     let id au = au
@@ -762,12 +754,12 @@ let rec make connection_param = (module struct
 	C.fold Q.au_affected C.Tuple.(fun t -> List.push (int32 0 t))
 	       C.Param.[|int32 au|] []
       end >>= Lwt_list.rev_map_s Attribute_type.of_id >|=
-	      Attribute_type.Set.of_ordered_elements
+	      B.Attribute_type.Set.of_ordered_elements
 
     let find atset =
-      let Attribute_type.Ex at = Attribute_type.Set.min_elt atset in
+      let B.Attribute_type.Ex at = B.Attribute_type.Set.min_elt atset in
       affecting at >>=
-      Set.filter_s (fun au -> affected au >|= Attribute_type.Set.equal atset)
+      Set.filter_s (fun au -> affected au >|= B.Attribute_type.Set.equal atset)
 	>|= fun auset ->
       match Set.cardinal auset with
       | 0 -> None
@@ -776,10 +768,10 @@ let rec make connection_param = (module struct
 
     let force atset =
       (* TODO: Enforce non-duplication of constraints. *)
-      let ats = Attribute_type.Set.elements atset in
+      let ats = B.Attribute_type.Set.elements atset in
       begin
 	with_db @@ fun (module C : CONNECTION) ->
-	C.fold (Q.au_force (Attribute_type.Set.cardinal atset))
+	C.fold (Q.au_force (B.Attribute_type.Set.cardinal atset))
 	       C.Tuple.(fun t _ -> Some (int32 0 t))
 	       (Array.map (C.Param.int32 *< Attribute_type.id)
 			  (Array.of_list ats))
@@ -796,34 +788,16 @@ let rec make connection_param = (module struct
       Cache.clear affecting_cache
   end
 
-  module Attribute = struct
-    type ex = Ex : 'a Attribute_type.t * 'a -> ex
-    type predicate =
-      | Present : 'a Attribute_type.t -> predicate
-      | Eq : 'a Attribute_type.t * 'a -> predicate
-      | In : 'a Attribute_type.t * 'a Values.t -> predicate
-      | Leq : 'a Attribute_type.t * 'a -> predicate
-      | Geq : 'a Attribute_type.t * 'a -> predicate
-      | Between : 'a Attribute_type.t * 'a * 'a -> predicate
-      | Search : string Attribute_type.t * string -> predicate
-      | Search_fts : string -> predicate
-
-    (**/**)
-    type t0 = ex
-  end
-
   module Attribution_sql = Subsocia_attribution_sql.Make (struct
-    module Attribute_type = Attribute_type
-    module Attribute = Attribute
+    module Attribute_type = struct
+      include B.Attribute_type
+      include Attribute_type
+    end
+    module Attribute = B.Attribute
   end)
 
   module Entity_type = struct
-    type t = int32
-
-    module Set = Int32_set
-    module Map = Int32_map
-
-    let compare = Int32.compare
+    open B.Entity_type
 
     let of_id et = Lwt.return et
     let id et = et
@@ -909,9 +883,9 @@ let rec make connection_param = (module struct
       let aux tup at_map =
 	lwt at = Attribute_type.of_id' ~conn (C.Tuple.int32 0 tup) in
 	let mult = Multiplicity.of_int (C.Tuple.int 1 tup) in
-	Lwt.return (Attribute_type.Map.add at mult at_map) in
+	Lwt.return (B.Attribute_type.Map.add at mult at_map) in
       C.fold_s Q.et_can_asub_byattr aux C.Param.([|int32 et; int32 et'|])
-	       Attribute_type.Map.empty
+	       B.Attribute_type.Map.empty
 
     let can_asub', can_asub_cache =
       memo_3lwt @@ fun (et, et', at) ->
@@ -921,7 +895,7 @@ let rec make connection_param = (module struct
 		 C.Param.([|int32 et; int32 et'; int32 at|])
 
     let can_asub et et' at =
-      can_asub' et et' at.Attribute_type.at_id
+      can_asub' et et' at.B.Attribute_type.at_id
 
     let asub_elements () =
       with_db @@ fun ((module C) as conn) ->
@@ -932,26 +906,23 @@ let rec make connection_param = (module struct
 	(et0, et1, at, mu) :: acc in
       C.fold_s Q.et_asub_elements aux [||] []
 
-    let allow_asub et et' (Attribute_type.Ex at) mu =
+    let allow_asub et et' (B.Attribute_type.Ex at) mu =
       with_db @@ fun (module C) ->
       let mu = Multiplicity.to_int mu in
       C.exec Q.et_allow_asub
-	     C.Param.([|int32 et; int32 et'; int32 at.Attribute_type.at_id;
+	     C.Param.([|int32 et; int32 et'; int32 at.B.Attribute_type.at_id;
 			int mu|])
 
-    let disallow_asub et et' (Attribute_type.Ex at) =
+    let disallow_asub et et' (B.Attribute_type.Ex at) =
       with_db @@ fun (module C) ->
       C.exec Q.et_disallow_asub
-	     C.Param.([|int32 et; int32 et'; int32 at.Attribute_type.at_id|])
+	     C.Param.([|int32 et; int32 et'; int32 at.B.Attribute_type.at_id|])
 
     let display_name ~langs ?pl = name (* FIXME *)
   end
 
   module Entity = struct
-    type t = int32
-
-    module Set = Int32_set
-    module Map = Int32_map
+    open B.Entity
 
     let changed_event_table = Int32_event_table.create 97
     let emit_changed = Int32_event_table.emit changed_event_table
@@ -1086,11 +1057,11 @@ let rec make connection_param = (module struct
 	     C.Param.([|int32 e; int32 e'; int32 at_id|])
 	     (Values.empty Type.String)
 
-    let getattr (type a) e e' (at : a Attribute_type.t) : a Values.t Lwt.t =
-      match Attribute_type.value_type at with
-      | Type.Bool -> getattr_bool e e' at.Attribute_type.at_id
-      | Type.Int -> getattr_int e e' at.Attribute_type.at_id
-      | Type.String -> getattr_string e e' at.Attribute_type.at_id
+    let getattr (type a) e e' (at : a B.Attribute_type.t) : a Values.t Lwt.t =
+      match B.Attribute_type.value_type at with
+      | Type.Bool -> getattr_bool e e' at.B.Attribute_type.at_id
+      | Type.Int -> getattr_int e e' at.B.Attribute_type.at_id
+      | Type.String -> getattr_string e e' at.B.Attribute_type.at_id
 
     (* TODO: Cache? *)
     let asub_conj e ps =
@@ -1149,8 +1120,8 @@ let rec make connection_param = (module struct
 	     C.Param.([|int32 e; int32 at_id; string x|])
 	     Set.empty
 
-    let asub1 op (type a) e (at : a Attribute_type.t) : a -> Set.t Lwt.t =
-      match Attribute_type.value_type at with
+    let asub1 op (type a) e (at : a B.Attribute_type.t) : a -> Set.t Lwt.t =
+      match B.Attribute_type.value_type at with
       | Type.Bool -> asub1_bool op e (Attribute_type.id' at)
       | Type.Int -> asub1_int op e (Attribute_type.id' at)
       | Type.String -> asub1_string op e (Attribute_type.id' at)
@@ -1169,15 +1140,15 @@ let rec make connection_param = (module struct
       C.fold Q.e_asub2_between_string f
 	     C.Param.[|int32 e; int32 at_id; string x0; string x1|] Set.empty
 
-    let asub2_between (type a) e (at : a Attribute_type.t)
+    let asub2_between (type a) e (at : a B.Attribute_type.t)
 	: a -> a -> Set.t Lwt.t =
-      match Attribute_type.value_type at with
+      match B.Attribute_type.value_type at with
       | Type.Bool -> fun x0 x1 ->
-	if x0 = x1 then asub1_bool Q.ap1_eq e at.Attribute_type.at_id x0 else
-	if x0 < x1 then asub_present_bool e at.Attribute_type.at_id else
+	if x0 = x1 then asub1_bool Q.ap1_eq e at.B.Attribute_type.at_id x0 else
+	if x0 < x1 then asub_present_bool e at.B.Attribute_type.at_id else
 	Lwt.return Set.empty
-      | Type.Int -> asub2_between_int e at.Attribute_type.at_id
-      | Type.String -> asub2_between_string e at.Attribute_type.at_id
+      | Type.Int -> asub2_between_int e at.B.Attribute_type.at_id
+      | Type.String -> asub2_between_string e at.B.Attribute_type.at_id
 
     let asub1_search, asub1_search_cache =
       memo_3lwt @@ fun (e, at_id, x) ->
@@ -1193,20 +1164,20 @@ let rec make connection_param = (module struct
       C.fold Q.e_asub1_search_fts f C.Param.[|int32 e; string x|] Set.empty
 
     let asub e = function
-      | Attribute.Present at ->
-	begin match Attribute_type.value_type at with
-	| Type.Bool -> asub_present_bool e at.Attribute_type.at_id
-	| Type.Int -> asub_present_int e at.Attribute_type.at_id
-	| Type.String -> asub_present_string e at.Attribute_type.at_id
+      | B.Attribute.Present at ->
+	begin match B.Attribute_type.value_type at with
+	| Type.Bool -> asub_present_bool e at.B.Attribute_type.at_id
+	| Type.Int -> asub_present_int e at.B.Attribute_type.at_id
+	| Type.String -> asub_present_string e at.B.Attribute_type.at_id
 	end
-      | Attribute.Eq (at, x) -> asub1 Q.ap1_eq e at x
-      | Attribute.In _ as p -> asub_conj e [p]
-      | Attribute.Leq (at, x) -> asub1 Q.ap1_leq e at x
-      | Attribute.Geq (at, x) -> asub1 Q.ap1_geq e at x
-      | Attribute.Between (at, x0, x1) -> asub2_between e at x0 x1
-      | Attribute.Search (at, x) ->
-	asub1_search e (Attribute_type.(id (Ex at))) x
-      | Attribute.Search_fts x -> asub1_search_fts e x
+      | B.Attribute.Eq (at, x) -> asub1 Q.ap1_eq e at x
+      | B.Attribute.In _ as p -> asub_conj e [p]
+      | B.Attribute.Leq (at, x) -> asub1 Q.ap1_leq e at x
+      | B.Attribute.Geq (at, x) -> asub1 Q.ap1_geq e at x
+      | B.Attribute.Between (at, x0, x1) -> asub2_between e at x0 x1
+      | B.Attribute.Search (at, x) ->
+	asub1_search e (Attribute_type.id' at) x
+      | B.Attribute.Search_fts x -> asub1_search_fts e x
 
     let asub_eq at e = asub1 Q.ap1_eq at e
 
@@ -1255,8 +1226,8 @@ let rec make connection_param = (module struct
 	     C.Param.([|int32 e; int32 at_id; string x|])
 	     Set.empty
 
-    let asuper1 op (type a) e (at : a Attribute_type.t) : a -> Set.t Lwt.t =
-      match Attribute_type.value_type at with
+    let asuper1 op (type a) e (at : a B.Attribute_type.t) : a -> Set.t Lwt.t =
+      match B.Attribute_type.value_type at with
       | Type.Bool -> asuper1_bool op e (Attribute_type.id' at)
       | Type.Int -> asuper1_int op e (Attribute_type.id' at)
       | Type.String -> asuper1_string op e (Attribute_type.id' at)
@@ -1275,15 +1246,15 @@ let rec make connection_param = (module struct
       C.fold Q.e_asuper2_between_string f
 	     C.Param.[|int32 e; int32 at_id; string x0; string x1|] Set.empty
 
-    let asuper2_between (type a) e (at : a Attribute_type.t)
+    let asuper2_between (type a) e (at : a B.Attribute_type.t)
 	: a -> a -> Set.t Lwt.t =
-      match Attribute_type.value_type at with
+      match B.Attribute_type.value_type at with
       | Type.Bool -> fun x0 x1 ->
-	if x0 = x1 then asuper1_bool Q.ap1_eq e at.Attribute_type.at_id x0 else
-	if x0 < x1 then asuper_present_bool e at.Attribute_type.at_id else
+	if x0 = x1 then asuper1_bool Q.ap1_eq e at.B.Attribute_type.at_id x0 else
+	if x0 < x1 then asuper_present_bool e at.B.Attribute_type.at_id else
 	Lwt.return Set.empty
-      | Type.Int -> asuper2_between_int e at.Attribute_type.at_id
-      | Type.String -> asuper2_between_string e at.Attribute_type.at_id
+      | Type.Int -> asuper2_between_int e at.B.Attribute_type.at_id
+      | Type.String -> asuper2_between_string e at.B.Attribute_type.at_id
 
     let asuper1_search, asuper1_search_cache =
       memo_3lwt @@ fun (e, at_id, x) ->
@@ -1301,20 +1272,20 @@ let rec make connection_param = (module struct
     let asuper_eq at e = asuper1 Q.ap1_eq at e
 
     let asuper e = function
-      | Attribute.Present at ->
-	begin match Attribute_type.value_type at with
-	| Type.Bool -> asuper_present_bool e at.Attribute_type.at_id
-	| Type.Int -> asuper_present_int e at.Attribute_type.at_id
-	| Type.String -> asuper_present_string e at.Attribute_type.at_id
+      | B.Attribute.Present at ->
+	begin match B.Attribute_type.value_type at with
+	| Type.Bool -> asuper_present_bool e at.B.Attribute_type.at_id
+	| Type.Int -> asuper_present_int e at.B.Attribute_type.at_id
+	| Type.String -> asuper_present_string e at.B.Attribute_type.at_id
 	end
-      | Attribute.Eq (at, x) -> asuper1 Q.ap1_eq e at x
-      | Attribute.In _ as p -> asuper_conj e [p]
-      | Attribute.Leq (at, x) -> asuper1 Q.ap1_leq e at x
-      | Attribute.Geq (at, x) -> asuper1 Q.ap1_geq e at x
-      | Attribute.Between (at, x0, x1) -> asuper2_between e at x0 x1
-      | Attribute.Search (at, x) ->
-	asuper1_search e Attribute_type.(id (Ex at)) x
-      | Attribute.Search_fts x -> asuper1_search_fts e x
+      | B.Attribute.Eq (at, x) -> asuper1 Q.ap1_eq e at x
+      | B.Attribute.In _ as p -> asuper_conj e [p]
+      | B.Attribute.Leq (at, x) -> asuper1 Q.ap1_leq e at x
+      | B.Attribute.Geq (at, x) -> asuper1 Q.ap1_geq e at x
+      | B.Attribute.Between (at, x0, x1) -> asuper2_between e at x0 x1
+      | B.Attribute.Search (at, x) ->
+	asuper1_search e (Attribute_type.id' at) x
+      | B.Attribute.Search_fts x -> asuper1_search_fts e x
 
     let asub_fts, asub_fts_cache =
       memo_6lwt @@ fun (et, super, cutoff, limit, e, fts) ->
@@ -1427,12 +1398,12 @@ let rec make connection_param = (module struct
 	Map.add e' (Values.add v vs) m in
       C.fold Q.e_asub_get_string f C.Param.([|int32 e; int32 at_id|]) Map.empty
 
-    let asub_get (type a) e (at : a Attribute_type.t)
+    let asub_get (type a) e (at : a B.Attribute_type.t)
 	  : a Values.t Map.t Lwt.t =
-      match Attribute_type.value_type at with
-      | Type.Bool -> asub_get_bool e at.Attribute_type.at_id
-      | Type.Int -> asub_get_int e at.Attribute_type.at_id
-      | Type.String -> asub_get_string e at.Attribute_type.at_id
+      match B.Attribute_type.value_type at with
+      | Type.Bool -> asub_get_bool e at.B.Attribute_type.at_id
+      | Type.Int -> asub_get_int e at.B.Attribute_type.at_id
+      | Type.String -> asub_get_string e at.B.Attribute_type.at_id
 
     let asuper_get_bool, asuper_get_bool_cache =
       memo_2lwt @@ fun (e, at_id) ->
@@ -1464,12 +1435,12 @@ let rec make connection_param = (module struct
       C.fold Q.e_asuper_get_string f C.Param.([|int32 e; int32 at_id|])
 	     Map.empty
 
-    let asuper_get (type a) e (at : a Attribute_type.t)
+    let asuper_get (type a) e (at : a B.Attribute_type.t)
 	  : a Values.t Map.t Lwt.t =
-      match Attribute_type.value_type at with
-      | Type.Bool -> asuper_get_bool e at.Attribute_type.at_id
-      | Type.Int -> asuper_get_int e at.Attribute_type.at_id
-      | Type.String -> asuper_get_string e at.Attribute_type.at_id
+      match B.Attribute_type.value_type at with
+      | Type.Bool -> asuper_get_bool e at.B.Attribute_type.at_id
+      | Type.Int -> asuper_get_int e at.B.Attribute_type.at_id
+      | Type.String -> asuper_get_string e at.B.Attribute_type.at_id
 
     let clear_bool_caches () =
       Cache.clear getattr_bool_cache;
@@ -1508,8 +1479,8 @@ let rec make connection_param = (module struct
       Cache.clear asub_get_string_cache;
       Cache.clear asuper_get_string_cache
 
-    let clear_attr_caches (type a) (at : a Attribute_type.t) : unit =
-      match Attribute_type.value_type at with
+    let clear_attr_caches (type a) (at : a B.Attribute_type.t) : unit =
+      match B.Attribute_type.value_type at with
       | Type.Bool -> clear_bool_caches ()
       | Type.Int -> clear_int_caches ()
       | Type.String -> clear_string_caches ()
@@ -1588,48 +1559,48 @@ let rec make connection_param = (module struct
 					       else lower_rank subentity
 
     let check_uniqueness_for_add e e' new_at new_avs =
-      let vt = Attribute_type.value_type new_at in
-      let new_cond = Attribute.In (new_at, Values.of_elements vt new_avs) in
+      let vt = B.Attribute_type.value_type new_at in
+      let new_cond = B.Attribute.In (new_at, Values.of_elements vt new_avs) in
       let is_violated au =
 	lwt aff_ats = Attribute_uniqueness.affected au >|=
-		      Attribute_type.Set.remove (Attribute_type.Ex new_at) in
+		      B.Attribute_type.Set.remove (B.Attribute_type.Ex new_at) in
 	try_lwt
 	  lwt conds = Lwt_list.map_s
-	    (fun (Attribute_type.Ex at) ->
+	    (fun (B.Attribute_type.Ex at) ->
 	      lwt avs = getattr e e' at in
 	      if Values.is_empty avs then Lwt.fail Not_found else
-	      Lwt.return (Attribute.In (at, avs)))
-	    (Attribute_type.Set.elements aff_ats) in
+	      Lwt.return (B.Attribute.In (at, avs)))
+	    (B.Attribute_type.Set.elements aff_ats) in
 	  asub_conj e' (new_cond :: conds) >|= not *< Set.is_empty
 	with Not_found ->
 	  Lwt.return_false in
       lwt violated =
 	Attribute_uniqueness.affecting new_at >>=
-	Attribute_uniqueness.Set.filter_s is_violated in
-      if Attribute_uniqueness.Set.is_empty violated then Lwt.return_unit else
-      Lwt.fail (Attribute_uniqueness.Not_unique violated)
+	B.Attribute_uniqueness.Set.filter_s is_violated in
+      if B.Attribute_uniqueness.Set.is_empty violated then Lwt.return_unit else
+      Lwt.fail (B.Attribute_uniqueness.Not_unique violated)
 
     let post_attribute_update (type a) (module C : CONNECTION)
-			      e e' (at : a Attribute_type.t) =
+			      e e' (at : a B.Attribute_type.t) =
       clear_attr_caches at;
       emit_changed e `Asuper;
       emit_changed e' `Asub;
-      match at.Attribute_type.at_value_type with
+      match at.B.Attribute_type.at_value_type with
       | Type.String ->
 	C.exec Q.fts_clear C.Param.[|int32 e; int32 e'|] >>
 	C.exec Q.fts_insert C.Param.[|int32 e; int32 e'|]
       | _ -> Lwt.return_unit
 
     let addattr' (module C : CONNECTION)
-		 (type a) e e' (at : a Attribute_type.t) (xs : a list) =
+		 (type a) e e' (at : a B.Attribute_type.t) (xs : a list) =
       let aux q conv =
 	Lwt_list.iter_s
 	  (fun x ->
 	    let p = C.Param.([|int32 e; int32 e';
-			       int32 at.Attribute_type.at_id; conv x|]) in
+			       int32 at.B.Attribute_type.at_id; conv x|]) in
 	    C.exec q p)
 	  xs in
-      begin match at.Attribute_type.at_value_type with
+      begin match at.B.Attribute_type.at_value_type with
       | Type.Bool -> aux Q.e_insert_attribution_int
 		     (fun x -> C.Param.int (if x then 1 else 0))
       | Type.Int -> aux Q.e_insert_attribution_int C.Param.int
@@ -1645,10 +1616,10 @@ let rec make connection_param = (module struct
 	lwt etn = Entity_type.name et in
 	lwt etn' = Entity_type.name et' in
 	lwt_failure_f "addattr: %s is not allowed from %s to %s."
-		      at.Attribute_type.at_name etn etn'
+		      at.B.Attribute_type.at_name etn etn'
       | Some mu -> Lwt.return mu
 
-    let addattr (type a) e e' (at : a Attribute_type.t) (xs : a list) =
+    let addattr (type a) e e' (at : a B.Attribute_type.t) (xs : a list) =
       lwt xs_pres = getattr e e' at in
       lwt xs =
 	match_lwt check_mult e e' at with
@@ -1668,15 +1639,15 @@ let rec make connection_param = (module struct
       with_db ~transaction:true (fun conn -> addattr' conn e e' at xs)
 
     let delattr' (module C : CONNECTION)
-		 (type a) e e' (at : a Attribute_type.t) (xs : a list) =
+		 (type a) e e' (at : a B.Attribute_type.t) (xs : a list) =
       let aux q conv =
 	Lwt_list.iter_s
 	  (fun x ->
 	    let p = C.Param.([|int32 e; int32 e';
-			       int32 at.Attribute_type.at_id; conv x|]) in
+			       int32 at.B.Attribute_type.at_id; conv x|]) in
 	    C.exec q p)
 	  xs in
-      begin match at.Attribute_type.at_value_type with
+      begin match at.B.Attribute_type.at_value_type with
       | Type.Bool -> aux Q.e_delete_attribution_int
 		     (fun x -> C.Param.int (if x then 1 else 0))
       | Type.Int -> aux Q.e_delete_attribution_int C.Param.int
@@ -1684,7 +1655,7 @@ let rec make connection_param = (module struct
       end >>
       post_attribute_update (module C) e e' at
 
-    let delattr (type a) e e' (at : a Attribute_type.t) (xs : a list) =
+    let delattr (type a) e e' (at : a B.Attribute_type.t) (xs : a list) =
       lwt xs_pres = getattr e e' at in
       let xs =
 	let ht = Hashtbl.create 7 in
@@ -1695,7 +1666,7 @@ let rec make connection_param = (module struct
       if xs = [] then Lwt.return_unit else
       with_db ~transaction:true (fun conn -> delattr' conn e e' at xs)
 
-    let setattr (type a) e e' (at : a Attribute_type.t) (xs : a list) =
+    let setattr (type a) e e' (at : a B.Attribute_type.t) (xs : a list) =
       begin match_lwt check_mult e e' at with
       | Multiplicity.May1 | Multiplicity.Must1 ->
 	if List.length xs <= 1 then Lwt.return_unit else
@@ -1723,8 +1694,94 @@ let rec make connection_param = (module struct
 
   end
 
-  let entity_changed = Int32_event_table.event Entity.changed_event_table
+end
 
-end : S)
+let connect uri =
+  (module struct
+    module M = Make (struct
+      let wrap_transaction f (module C : CONNECTION) =
+	C.exec Q.begin_ [||] >>
+	begin try_lwt
+	  lwt r = f (module C : CONNECTION) in
+	  C.exec Q.commit [||] >>
+	  Lwt.return r
+	with exc ->
+	  Lwt_log.debug_f "Raised in transaction: %s" (Printexc.to_string exc) >>
+	  C.exec Q.rollback [||] >>
+	  Lwt.fail exc
+	end
 
-let connect uri = make (`Uri uri)
+      let pool =
+	let connect () = Caqti_lwt.connect uri in
+	let disconnect (module C : CONNECTION) = C.disconnect () in
+	let validate (module C : CONNECTION) = C.validate () in
+	let check (module C : CONNECTION) = C.check in
+	Caqti_lwt.Pool.create ~validate ~check connect disconnect
+
+      let with_db ~transaction f =
+	if transaction then Caqti_lwt.Pool.use (wrap_transaction f) pool
+		       else Caqti_lwt.Pool.use f pool
+    end)
+
+    module Attribute_type = struct
+      include B.Attribute_type
+      include M.Attribute_type
+    end
+    module Attribute_uniqueness = struct
+      include B.Attribute_uniqueness
+      include M.Attribute_uniqueness
+    end
+    module Attribute = B.Attribute
+    module Entity_type = struct
+      include B.Entity_type
+      include M.Entity_type
+    end
+    module Entity = struct
+      include B.Entity
+      include M.Entity
+    end
+
+    module type T = Subsocia_intf.S
+      with type 'a Attribute_type.t = 'a Attribute_type.t
+       and type Attribute_type.ex = Attribute_type.ex
+       and type Attribute_type.Set.t = Attribute_type.Set.t
+       and type 'a Attribute_type.Map.t = 'a Attribute_type.Map.t
+       and type Attribute.ex = Attribute.ex
+       and type Attribute.predicate = Attribute.predicate
+       and type Entity_type.t = Entity_type.t
+       and type Entity_type.Set.t = Entity_type.Set.t
+       and type 'a Entity_type.Map.t = 'a Entity_type.Map.t
+       and type Entity.t = Entity.t
+       and type Entity.Set.t = Entity.Set.t
+       and type 'a Entity.Map.t = 'a Entity.Map.t
+
+    let transaction f =
+      M.with_db @@ fun ((module C : CONNECTION) as conn) ->
+      let module C' = struct
+	module M = Make (struct
+	  let lock = Lwt_mutex.create ()
+	  let with_db ~transaction f =
+	    Lwt_mutex.with_lock lock (fun () -> f conn)
+	end)
+	module Attribute_type = struct
+	  include B.Attribute_type
+	  include M.Attribute_type
+	end
+	module Attribute_uniqueness = struct
+	  include B.Attribute_uniqueness
+	  include M.Attribute_uniqueness
+	end
+	module Attribute = B.Attribute
+	module Entity_type = struct
+	  include B.Entity_type
+	  include M.Entity_type
+	end
+	module Entity = struct
+	  include B.Entity
+	  include M.Entity
+	end
+      end in
+      f (module C' : T)
+
+    let entity_changed = Int32_event_table.event Entity.changed_event_table
+  end : S)

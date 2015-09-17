@@ -30,12 +30,16 @@ open Command_e
 (* Entities *)
 
 let load schema_path disable_transaction =
-  let schema = Subsocia_schema.load_schema schema_path in
+  let schema = Subsocia_schema.load schema_path in
   run0 @@ fun (module C) ->
   if disable_transaction then
-    Subsocia_schema.exec_schema (module C) schema
+    let module Schema = Subsocia_schema.Make (C) in
+    Schema.exec schema
   else
-    C.transaction @@ (fun conn -> Subsocia_schema.exec_schema conn schema)
+    C.transaction @@
+      (fun (module C) ->
+	let module Schema = Subsocia_schema.Make (C) in
+	Schema.exec schema)
 
 let load_t =
   let schema_t = Arg.(required & pos 0 (some file) None &

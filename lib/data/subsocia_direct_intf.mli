@@ -19,5 +19,19 @@ module type S = sig
 
   val entity_changed : Entity.t -> [`Dsub | `Dsuper | `Asub | `Asuper] React.E.t
 
-  val transaction : ((module Subsocia_intf.S) -> unit Lwt.t) -> unit Lwt.t
+  module type T = Subsocia_intf.S
+    with type 'a Attribute_type.t = 'a Attribute_type.t
+     and type Attribute_type.ex = Attribute_type.ex
+     and type Attribute_type.Set.t = Attribute_type.Set.t
+     and type 'a Attribute_type.Map.t = 'a Attribute_type.Map.t
+     and type Attribute.ex = Attribute.ex
+     and type Attribute.predicate = Attribute.predicate
+     and type Entity_type.t = Entity_type.t
+     and type Entity_type.Set.t = Entity_type.Set.t
+     and type 'a Entity_type.Map.t = 'a Entity_type.Map.t
+     and type Entity.t = Entity.t
+     and type Entity.Set.t = Entity.Set.t
+     and type 'a Entity.Map.t = 'a Entity.Map.t
+
+  val transaction : ((module T) -> unit Lwt.t) -> unit Lwt.t
 end

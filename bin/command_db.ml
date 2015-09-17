@@ -64,11 +64,15 @@ let db_init disable_transaction = run0 @@ fun (module C) ->
     (fun fn ->
       let fp = Filename.concat schema_dir fn in
       Lwt_log.info_f "Loading %s." fp >>
-      let schema = Subsocia_schema.load_schema fp in
+      let schema = Subsocia_schema.load fp in
       if disable_transaction then
-	Subsocia_schema.exec_schema (module C) schema
+	let module Schema = Subsocia_schema.Make (C) in
+	Schema.exec schema
       else
-	C.transaction @@ (fun conn -> Subsocia_schema.exec_schema conn schema))
+	C.transaction @@
+	  (fun (module C) ->
+	    let module Schema = Subsocia_schema.Make (C) in
+	    Schema.exec schema))
     subsocia_schemas
 
 let db_init_t = Term.(pure db_init $ disable_transaction_t)
