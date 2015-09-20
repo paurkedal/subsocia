@@ -300,7 +300,7 @@ module Make (Base : Subsocia_intf.S) = struct
 	with Not_found -> []
       end
 
-    let rec display_name_var ~langs e spec =
+    let rec display_name_var ~context ~langs e spec =
       lwt e_top = Entity.top in
 
       let aux ?tn an =
@@ -313,11 +313,14 @@ module Make (Base : Subsocia_intf.S) = struct
 	    Entity.asuper_get e at >>=
 	    Base.Entity.Map.search_s
 	      (fun e' vs ->
-		match_lwt display_name_tmpl ~langs e' with
-		| None ->
-		  Lwt.return_none
-		| Some name ->
-		  Lwt.return (Some (name ^ " / " ^ Values.min_elt vs)))
+		if Entity.Set.contains e' context then
+		  Lwt.return (Some (Values.min_elt vs))
+		else
+		  match_lwt display_name_tmpl ~context ~langs e' with
+		  | None ->
+		    Lwt.return_none
+		  | Some name ->
+		    Lwt.return (Some (name ^ " / " ^ Values.min_elt vs)))
 	  | None ->
 	    lwt vs = Entity.getattr e e_top at in
 	    if Values.is_empty vs then Lwt.return_none
@@ -339,7 +342,7 @@ module Make (Base : Subsocia_intf.S) = struct
       | None -> Lwt.fail Not_found
       | Some s -> Lwt.return s
 
-    and display_name_tmpl ~langs e =
+    and display_name_tmpl ~context ~langs e =
       let aux tmpl =
 	try_lwt
 	  let buf = Buffer.create 80 in
@@ -347,8 +350,8 @@ module Make (Base : Subsocia_intf.S) = struct
 	  Buffer.add_substitute buf (fun v -> m := String_map.add v () !m; "")
 				tmpl;
 	  Buffer.clear buf;
-	  lwt m =
-	    String_map.mapi_s (fun v _ -> display_name_var ~langs e v) !m in
+	  lwt m = String_map.mapi_s
+		      (fun v _ -> display_name_var ~context ~langs e v) !m in
 	  Buffer.add_substitute buf (fun v -> String_map.find v m) tmpl;
 	  Lwt.return (Some (Buffer.contents buf))
 	with Not_found ->
@@ -357,8 +360,8 @@ module Make (Base : Subsocia_intf.S) = struct
       lwt tmpl = Base.Entity_type.entity_name_tmpl et in
       Pwt_list.search_s aux (Prime_string.chop_affix "|" tmpl)
 
-    let display_name ?(langs = []) e =
-      display_name_tmpl ~langs e >|=
+    let display_name ?(context = Entity.Set.empty) ?(langs = []) e =
+      display_name_tmpl ~context ~langs e >|=
       function
 	| None -> sprintf "#%ld" (Entity.id e)
 	| Some s -> s
