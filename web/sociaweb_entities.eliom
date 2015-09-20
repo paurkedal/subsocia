@@ -120,7 +120,7 @@
       let csuper_block = multicol_tds ~cls:["soc-dsuper1"] csuper_frags in
       Lwt.return @@
 	F.table ~a:[F.a_class ["soc-layout"]]
-	  [F.tr [F.th [F.pcdata "Member of"]];
+	  [F.tr [F.th [F.pcdata "Membership Management"]];
 	   F.tr [F.td [csuper_block]]]
     else
       lwt dsupers = Entity.dsuper focus in
