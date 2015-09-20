@@ -75,6 +75,7 @@ module Entity = struct
   external minimums : unit -> int32 list = ""
   external dsub : int32 option -> int32 -> int32 list = ""
   external dsuper : int32 option -> int32 -> int32 list = ""
+  external is_dsub : int32 -> int32 -> bool = ""
   external is_sub : int32 -> int32 -> bool = ""
   external getattr : int32 -> int32 -> int32 -> Value.ex list = ""
   external setattr : int32 -> int32 -> int32 -> Value.ex list -> int32 list=""

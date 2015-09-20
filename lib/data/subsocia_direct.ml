@@ -199,6 +199,9 @@ module Q = struct
 
   (* Entites *)
 
+  let e_is_dsub =
+    q "SELECT 1 FROM @inclusion WHERE dsub_id = ? AND dsuper_id = ?"
+
   let e_dsuper_any =
     q "SELECT dsuper_id FROM @inclusion WHERE dsub_id = ?"
   let e_dsub_any =
@@ -1008,6 +1011,11 @@ module Make (P : Param) = struct
       Cache.clear dsub_any_cache;
       Cache.clear dsub_typed_cache
 
+    let is_dsub, is_dsub_cache = memo_2lwt @@ fun (e, e') ->
+      with_db @@ fun (module C) ->
+      C.find_opt Q.e_is_dsub (fun _ -> ()) C.Param.[|int32 e; int32 e'|]
+	>|= (<>) None
+
     let is_sub subentity superentity =
       if subentity = superentity then Lwt.return_true else
       let k = subentity, superentity in
@@ -1024,6 +1032,7 @@ module Make (P : Param) = struct
 
     let clear_inclusion_caches () =
       Cache.clear minimums_cache;
+      Cache.clear is_dsub_cache;
       Cache.clear dsub_any_cache;
       Cache.clear dsub_typed_cache;
       Cache.clear dsuper_any_cache;

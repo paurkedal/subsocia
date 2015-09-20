@@ -294,6 +294,7 @@ module Make (RPCM : RPCM) = struct
 	  Map.add e (Values.add (Value.coerce t v) vs) m)
 	bindings Map.empty
 
+    let is_dsub = Raw.is_dsub
     let is_sub = Raw.is_sub
     let force_dsub = Raw.force_dsub
     let relax_dsub = Raw.relax_dsub

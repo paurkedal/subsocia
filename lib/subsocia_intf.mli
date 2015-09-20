@@ -214,6 +214,9 @@ module type ENTITY = sig
       inclusion is relaxed. [e] may still be included in [e'] though a set of
       intermediate inclusions after this call. *)
 
+  val is_dsub : t -> t -> bool Lwt.t
+  (** [is_dsub e e'] holds iff [e] is a direct subentity of [e']. *)
+
   val is_sub : t -> t -> bool Lwt.t
   (** [is_sub e e'] holds iff [e] is a subentity of [e']. *)
 
