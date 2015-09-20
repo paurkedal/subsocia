@@ -32,6 +32,7 @@
 {server{
   open Sociaweb_auth
   open Sociaweb_request
+  open Sociaweb_server
   open Subsocia_connection
 
   let listing ?(cls = []) frags =
@@ -45,34 +46,6 @@
     let es = List.sort (fun (s0, _) (s1, _) -> compare s0 s1) es in
     Lwt.return (List.map snd es)
 
-  let entity_for_view ~operator entity_id =
-    lwt entity = Entity.of_id entity_id in
-    match_lwt Entity.can_view_entity operator entity with
-    | true -> Lwt.return entity
-    | false -> http_error 403 "Not authorized for this entity."
-
-  let entity_for_edit ~operator entity_id =
-    lwt entity = Entity.of_id entity_id in
-    match_lwt Entity.can_edit_entity operator entity with
-    | true -> Lwt.return entity
-    | false -> http_error 403 "Not authorized for editing this entity."
-
-  let force_dsub ~operator (lb_id, ub_id) =
-    lwt ub = entity_for_edit ~operator ub_id in
-    lwt lb = entity_for_view ~operator lb_id in
-    lwt user_name = Entity.display_name ~langs:[] operator in
-    Lwt_log.info_f "%s adds inclusion #%ld ⊆ #%ld" user_name lb_id ub_id >>
-    Entity.force_dsub lb ub
-  let constrain_c = auth_sf Json.t<int32 * int32> force_dsub
-
-  let relax_dsub ~operator (lb_id, ub_id) =
-    lwt ub = entity_for_edit ~operator ub_id in
-    lwt lb = entity_for_view ~operator lb_id in
-    lwt user_name = Entity.display_name ~langs:[] operator in
-    Lwt_log.info_f "%s removes inclusion #%ld ⊆ #%ld" user_name lb_id ub_id >>
-    Entity.relax_dsub lb ub
-  let unconstrain_c = auth_sf Json.t<int32 * int32> relax_dsub
-
   let neighbour_link ~cri ent =
     entity_link ~langs:cri.cri_langs ent >|= fun x -> [x]
 
@@ -84,7 +57,7 @@
     if can_edit then begin
       let on_remove = {{fun _ ->
 	Eliom_lib.debug "Removing.";
-	Lwt.async (fun () -> %unconstrain_c (%focus_id, %dsuper_id))
+	Lwt.async (fun () -> %relax_dsub_sf (%focus_id, %dsuper_id))
       }} in
       Lwt.return [
 	link; F.pcdata " ";
@@ -101,7 +74,7 @@
     if can_edit then begin
       let on_add = {{fun _ ->
 	Eliom_lib.debug "Adding.";
-	Lwt.async (fun () -> %constrain_c (%focus_id, %dsuper_id))
+	Lwt.async (fun () -> %force_dsub_sf (%focus_id, %dsuper_id))
       }} in
       Lwt.return [
 	link; F.pcdata " ";
@@ -226,11 +199,8 @@ let self_entity_handler () () =
   let operator_id = Entity.id operator in
   Lwt.return (Eliom_service.preapply entity_service operator_id)
 
-module Main_app =
-  Eliom_registration.App (struct let application_name = "sociaweb_main" end)
-
 let () =
   Subsocia_plugin.load_web_plugins ();
   Eliom_registration.Redirection.register ~service:self_entity_service
 					  self_entity_handler;
-  Main_app.register ~service:entity_service entity_handler
+  App.register ~service:entity_service entity_handler

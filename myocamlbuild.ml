@@ -8,7 +8,7 @@ module M = Ocamlbuild_eliom.Make (struct
 end)
 
 let oasis_executables = [
-  "web/client/sociaweb_main.byte";
+  "web/client/sociaweb_app.byte";
 ]
 
 let () = mark_tag_used "tests"

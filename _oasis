@@ -107,9 +107,10 @@ Library "subsocia-web-module"
   FindlibName: web-module
   Modules:
     server/Sociaweb_content,
-    server/Sociaweb_main,
+    server/Sociaweb_entities,
     server/Sociaweb_registration,
     server/Sociaweb_restapi,
+    server/Sociaweb_server,
     server/Sociaweb_services
   BuildDepends: subsocia.web-server
   ByteOpt: -thread
@@ -124,10 +125,10 @@ Object "subsocia-web-debug-module"
   FindlibFullName: subsocia.web-debug-module
   Modules: Sociaweb_debug
 
-Executable "sociaweb_main"
+Executable "sociaweb_app"
   Path: web/client
   BuildDepends: eliom.client, prime, subsocia
-  MainIs: sociaweb_main.ml
+  MainIs: sociaweb_app.ml
   ByteOpt: -thread
   Install: false
 
