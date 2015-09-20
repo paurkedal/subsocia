@@ -200,7 +200,6 @@ let self_entity_handler () () =
   Lwt.return (Eliom_service.preapply entity_service operator_id)
 
 let () =
-  Subsocia_plugin.load_web_plugins ();
   Eliom_registration.Redirection.register ~service:self_entity_service
 					  self_entity_handler;
   App.register ~service:entity_service entity_handler

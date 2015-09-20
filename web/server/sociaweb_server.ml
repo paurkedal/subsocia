@@ -48,3 +48,5 @@ let relax_dsub ~operator (lb_id, ub_id) =
 
 let force_dsub_sf = auth_sf Json.t<int32 * int32> force_dsub
 let relax_dsub_sf = auth_sf Json.t<int32 * int32> relax_dsub
+
+let () = Subsocia_plugin.load_web_plugins ()
