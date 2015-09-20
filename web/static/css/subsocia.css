@@ -32,7 +32,10 @@ table.soc-layout table.multicol { margin: 0; }
 .soc-dsub1 { padding-top: 3mm; padding-bottom: 1mm; }
 .soc-box.focus { padding: 0 1mm; }
 
+table.soc-assoc { border-collapse: collapse; border-spacing: 0; }
+table.soc-assoc td, table.soc-assoc th { padding: 0; }
 table.soc-assoc td:first-child { text-align: right; padding-right: 2mm; }
+table.soc-assoc th { text-align: left; padding-top: 1.67ex; }
 
 /* Color scheme */
 .soc-dsuper1 td, .soc-dsuper1 span
