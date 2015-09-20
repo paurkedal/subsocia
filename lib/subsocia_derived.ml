@@ -300,34 +300,46 @@ module Make (Base : Subsocia_intf.S) = struct
 	with Not_found -> []
       end
 
-    let resolve_attr ~langs e spec =
+    let rec display_name_var ~langs e spec =
       lwt e_top = Entity.top in
 
-      let aux_plain an =
+      let aux ?tn an =
 	match_lwt Base.Attribute_type.of_name an with
 	| None -> Lwt.return_none
 	| Some at0 ->
 	  lwt at = Attribute_type.coerce_lwt Type.String at0 in
-	  lwt vs = Entity.getattr e e_top at in
-	  if Values.is_empty vs then Lwt.return_none
-				else Lwt.return (Some (Values.min_elt vs)) in
+	  match tn with
+	  | Some tn ->
+	    Entity.asuper_get e at >>=
+	    Base.Entity.Map.search_s
+	      (fun e' vs ->
+		match_lwt display_name_tmpl ~langs e' with
+		| None ->
+		  Lwt.return_none
+		| Some name ->
+		  Lwt.return (Some (name ^ " / " ^ Values.min_elt vs)))
+	  | None ->
+	    lwt vs = Entity.getattr e e_top at in
+	    if Values.is_empty vs then Lwt.return_none
+				  else Lwt.return (Some (Values.min_elt vs)) in
 
-      let aux_i18n an =
-	Pwt_list.search_s
-	  (fun lang -> aux_plain (sprintf "%s.%s" an (Lang.to_string lang)))
-	  langs in
-
-      let aux an =
-	if Prime_string.has_suffix ".+" an
-	then aux_i18n (Prime_string.slice 0 (String.length an - 2) an)
-	else aux_plain an in
-
-      let comps = Prime_string.chop_affix "|" spec in
-      match_lwt Pwt_list.search_s aux comps with
-      | None -> raise_lwt Not_found
+      let tn, an =
+	match Prime_string.cut_affix "/" spec with
+	| None -> None, spec
+	| Some (_ as tn, an) -> Some tn, an in
+      match_lwt
+	if Prime_string.has_suffix ".+" an then
+	  let an = Prime_string.slice 0 (String.length an - 2) an in
+	  Pwt_list.search_s
+	    (fun lang -> aux ?tn (sprintf "%s.%s" an (Lang.to_string lang)))
+	    langs
+	else
+	  aux ?tn an
+      with
+      | None -> Lwt.fail Not_found
       | Some s -> Lwt.return s
 
-    let display_name ?(langs = []) e =
+    and display_name_tmpl ~langs e =
       let aux tmpl =
 	try_lwt
 	  let buf = Buffer.create 80 in
@@ -335,15 +347,21 @@ module Make (Base : Subsocia_intf.S) = struct
 	  Buffer.add_substitute buf (fun v -> m := String_map.add v () !m; "")
 				tmpl;
 	  Buffer.clear buf;
-	  lwt m = String_map.mapi_s (fun v _ -> resolve_attr ~langs e v) !m in
+	  lwt m =
+	    String_map.mapi_s (fun v _ -> display_name_var ~langs e v) !m in
 	  Buffer.add_substitute buf (fun v -> String_map.find v m) tmpl;
 	  Lwt.return (Some (Buffer.contents buf))
-	with Not_found -> Lwt.return None in
+	with Not_found ->
+	  Lwt.return None in
       lwt et = Base.Entity.type_ e in
       lwt tmpl = Base.Entity_type.entity_name_tmpl et in
-      match_lwt Pwt_list.search_s aux (Prime_string.chop_affix "|" tmpl) with
-      | Some s -> Lwt.return s
-      | None -> Lwt.return @@ sprintf "# %ld" (Entity.id e)
+      Pwt_list.search_s aux (Prime_string.chop_affix "|" tmpl)
+
+    let display_name ?(langs = []) e =
+      display_name_tmpl ~langs e >|=
+      function
+	| None -> sprintf "#%ld" (Entity.id e)
+	| Some s -> s
 
     let candidate_dsupers e =
       lwt et = Entity.type_ e in
