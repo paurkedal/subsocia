@@ -44,15 +44,17 @@
 
 {shared{
 
-  let multicol ?(m = 4) ?(cls = []) items =
+  let multicol_tds ?(m = 4) ?(cls = []) items =
     let items = Array.of_list items in
     let l = Array.length items in
     let n = (l + m - 1) / m in
     let mktr i =
-      let mktd j = F.td (if i + j * n < l then items.(i + j * n) else []) in
+      let mktd j = if i + j * n < l then items.(i + j * n) else F.td [] in
       F.tr (List.sample mktd m) in
     match List.sample mktr n with
     | [] -> F.div ~a:[F.a_class ("multicol" :: "empty" :: cls)] []
     | trs -> F.table ~a:[F.a_class ("multicol" :: cls)] trs
 
+  let multicol ?m ?cls items =
+    multicol_tds ?m ?cls (List.map (fun els -> F.td els) items)
 }}

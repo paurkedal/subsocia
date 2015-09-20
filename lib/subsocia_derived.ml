@@ -366,7 +366,7 @@ module Make (Base : Subsocia_intf.S) = struct
 	| None -> sprintf "#%ld" (Entity.id e)
 	| Some s -> s
 
-    let candidate_dsupers e =
+    let candidate_dsupers ?(include_current = false) e =
       lwt et = Entity.type_ e in
       lwt ets' = Entity_type.dsuper et in
       let not_related e' =
@@ -377,7 +377,8 @@ module Make (Base : Subsocia_intf.S) = struct
 	(fun et' _ m_es ->
 	  lwt es = m_es in
 	  lwt s = Entity.type_members et' in
-	  lwt s = Entity.Set.filter_s not_related s in
+	  lwt s = if include_current then Lwt.return s
+				     else Entity.Set.filter_s not_related s in
 	  Lwt.return (Entity.Set.union s es))
 	ets'
 	(Lwt.return Entity.Set.empty)

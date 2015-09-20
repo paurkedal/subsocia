@@ -113,7 +113,7 @@ module type S = sig
     val can_edit_entity : t -> t -> bool Lwt.t
 
     val display_name : ?context: Set.t -> ?langs: lang list -> t -> string Lwt.t
-    val candidate_dsupers : t -> Set.t Lwt.t
+    val candidate_dsupers : ?include_current: bool -> t -> Set.t Lwt.t
 
     val precedes : t -> t -> bool Lwt.t
       [@@ocaml.deprecated "Renamed to is_sub"]

@@ -17,6 +17,7 @@
 {shared{
   open Eliom_content
   open Eliom_content.Html5
+  open Lwt.Infix
   open Panograph_i18n
   open Printf
   open Sociaweb_content
@@ -24,9 +25,6 @@
   open Subsocia_common
   open Unprime
   open Unprime_list
-
-  let (>>=) = Lwt.(>>=)
-  let (>|=) = Lwt.(>|=)
 }}
 
 {server{
@@ -34,9 +32,6 @@
   open Sociaweb_request
   open Sociaweb_server
   open Subsocia_connection
-
-  let listing ?(cls = []) frags =
-    F.div ~a:[F.a_class cls] (List.map F.span frags)
 
   let ordered_entities ~cri es =
     let amend_name e =
@@ -49,39 +44,33 @@
   let neighbour_link ~cri ent =
     entity_link ~langs:cri.cri_langs ent >|= fun x -> [x]
 
-  let neighbour_with_remove ~cri focus dsuper =
-    lwt can_edit = Entity.can_edit_entity cri.cri_operator dsuper in
-    let focus_id = Entity.id focus in
-    let dsuper_id = Entity.id dsuper in
-    lwt link = entity_link ~langs:cri.cri_langs dsuper in
-    if can_edit then begin
-      let on_remove = {{fun _ ->
-	Eliom_lib.debug "Removing.";
-	Lwt.async (fun () -> %relax_dsub_sf (%focus_id, %dsuper_id))
-      }} in
-      Lwt.return [
-	link; F.pcdata " ";
-	F.button ~button_type:`Button ~a:[F.a_onclick on_remove] [F.pcdata "−"];
-      ]
-    end else
-      Lwt.return [link]
-
-  let neighbour_with_add ~cri focus dsuper =
-    lwt can_edit = Entity.can_edit_entity cri.cri_operator dsuper in
-    let focus_id = Entity.id focus in
-    let dsuper_id = Entity.id dsuper in
-    lwt link = entity_link ~langs:cri.cri_langs dsuper in
-    if can_edit then begin
-      let on_add = {{fun _ ->
-	Eliom_lib.debug "Adding.";
-	Lwt.async (fun () -> %force_dsub_sf (%focus_id, %dsuper_id))
-      }} in
-      Lwt.return [
-	link; F.pcdata " ";
-	F.button ~button_type:`Button ~a:[F.a_onclick on_add] [F.pcdata "+"];
-      ]
-    end else
-      Lwt.return [link]
+  let neighbour_with_edit ~cri focus csuper =
+    lwt can_edit = Entity.can_edit_entity cri.cri_operator csuper in
+    lwt link = entity_link ~langs:cri.cri_langs csuper in
+    if not can_edit then
+      let button =
+	F.button ~button_type:`Button
+		 ~a:[F.a_disabled `Disabled; F.a_style "visibility: hidden"]
+		 [] in
+      Lwt.return (F.td [button; link])
+    else
+      let focus_id = Entity.id focus in
+      let dsuper_id = Entity.id csuper in
+      lwt is_dsuper = Entity.is_dsub focus csuper in
+      let label, handler, a =
+	if is_dsuper then
+	  let remove = {{fun _ ->
+	    Lwt.async (fun () -> %relax_dsub_sf (%focus_id, %dsuper_id))
+	  }} in
+	  ("-", remove, None)
+	else
+	  let add = {{fun _ ->
+	    Lwt.async (fun () -> %force_dsub_sf (%focus_id, %dsuper_id))
+	  }} in
+	  ("+", add, Some [F.a_class ["candidate"]]) in
+      let button = F.button ~button_type:`Button ~a:[F.a_onclick handler]
+			    [F.pcdata label] in
+      Lwt.return (F.td ?a [button; link])
 
   let rec fold_closure_from f dsucc x acc =
     lwt xs = dsucc x in
@@ -117,43 +106,36 @@
        then None
        else Some (F.tr [F.td []; F.th [F.pcdata ub_name]] :: attr_trs))
 
-  let render_dsuper ~cri ~enable_edit ent =
-    let neighbour =
-      if enable_edit then neighbour_with_remove ent
-		     else neighbour_link in
-    lwt dsupers = Entity.dsuper ent in
-    lwt dsupers' = ordered_entities ~cri dsupers in
-    lwt dsuper_frags = Lwt_list.map_s (neighbour ~cri) dsupers' in
-    let dsuper_block = listing ~cls:["soc-dsuper1"] dsuper_frags in
-    lwt dsuper_add_block =
-      if not enable_edit then Lwt.return_none else
-      let operator = cri.cri_operator in
-      lwt csupers = Entity.candidate_dsupers ent in
-      let csupers = Entity.Set.compl dsupers csupers in
-      lwt csupers = Entity.Set.filter_s (Entity.can_edit_entity operator)
+  let render_dsuper ~cri ~enable_edit focus =
+    let is_relevant csuper =
+      lwt is_dsuper = Entity.is_dsub focus csuper in
+      if is_dsuper then Lwt.return_true else
+      Entity.can_edit_entity cri.cri_operator csuper in
+    if enable_edit then
+      lwt csupers = Entity.candidate_dsupers ~include_current:true focus in
+      lwt csupers = Entity.Set.filter_s is_relevant csupers in
+      lwt csupers = ordered_entities ~cri csupers in
+      lwt csuper_frags = Lwt_list.map_s (neighbour_with_edit ~cri focus)
 					csupers in
-      if Entity.Set.is_empty csupers then
-	Lwt.return_none
-      else
-	lwt csupers = ordered_entities ~cri csupers in
-	lwt csupers = Lwt_list.map_s (neighbour_with_add ~cri ent) csupers in
-	Lwt.return (Some (listing ~cls:["soc-dsuper1"; "candidate"] csupers)) in
-    Lwt.return @@
-      match dsuper_add_block with
-      | None ->
+      let csuper_block = multicol_tds ~cls:["soc-dsuper1"] csuper_frags in
+      Lwt.return @@
+	F.table ~a:[F.a_class ["soc-layout"]]
+	  [F.tr [F.th [F.pcdata "Member of"]];
+	   F.tr [F.td [csuper_block]]]
+    else
+      lwt dsupers = Entity.dsuper focus in
+      lwt dsupers = ordered_entities ~cri dsupers in
+      lwt dsuper_frags = Lwt_list.map_s (neighbour_link ~cri) dsupers in
+      let dsuper_block = multicol ~cls:["soc-dsuper1"] dsuper_frags in
+      Lwt.return @@
 	F.table ~a:[F.a_class ["soc-layout"]]
 	  [F.tr [F.th [F.pcdata "Member of"]];
 	   F.tr [F.td [dsuper_block]]]
-      | Some dsuper_add_block ->
-	F.table ~a:[F.a_class ["soc-layout"]]
-	  [F.tr [F.th [F.pcdata "Member of"]; F.th [F.pcdata "Not member of"]];
-	   F.tr [F.td [dsuper_block]; F.td [dsuper_add_block]]]
 
   let render_browser ~cri ?(enable_edit = true) ent =
     let open Html5 in
-    lwt dsub = Entity.dsub ent in
-    lwt dsub' = ordered_entities ~cri dsub in
-    lwt dsub_frags = Lwt_list.map_s (neighbour_link ~cri) dsub' in
+    lwt dsub = Entity.dsub ent >>= ordered_entities ~cri in
+    lwt dsub_frags = Lwt_list.map_s (neighbour_link ~cri) dsub in
     lwt name = Entity.display_name ~langs:cri.cri_langs ent in
     lwt ubs = upwards_closure ent in
     let attr_aux ub acc =
@@ -169,7 +151,7 @@
       F.div ~a:[F.a_class ["soc-box"; "focus"; "middle"; "content"]]
 	    [attr_table];
       F.div ~a:[F.a_class ["soc-box"; "focus"; "bottom"; "content"]]
-	    [listing ~cls:["soc-dsub1"] dsub_frags];
+	    [multicol ~cls:["soc-dsub1"] dsub_frags];
     ]
 }}
 

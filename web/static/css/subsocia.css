@@ -11,11 +11,11 @@ table.soc-layout > tr > td { vertical-align: top; }
 table.soc-layout table.multicol { margin: 0; }
 
 .soc-entity-browser > table.soc-layout th { font-size: small; }
-.soc-entity-browser > table.soc-layout td { padding: 0; }
+.soc-entity-browser > table.soc-layout td { padding: 0 1mm; }
 .soc-entity-browser > table.soc-layout { margin-bottom: 2mm; }
 
 .soc-box.middle, .soc-box.top, .soc-box.bottom { border: solid thin; }
-.soc-box.top, .soc-box.bottom { border-radius: 2mm; min-height: 2mm; }
+.soc-box.top, .soc-box.bottom { border-radius: 1.5mm; min-height: 2mm; }
 .soc-box.middle, .soc-box.top { border-bottom: none; }
 .soc-box.middle, .soc-box.bottom { border-top: none; }
 .soc-box.top { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
@@ -26,7 +26,7 @@ table.soc-layout table.multicol { margin: 0; }
 .soc-dsuper1 span, .soc-dsub1 span { display: inline-block; margin: 0.5mm; }
 .soc-dsuper1 td, .soc-dsuper1 span, .soc-dsub1 td, .soc-dsub1 span {
 	border: solid thin;
-	border-radius: 2mm;
+	border-radius: 1.5mm;
 	padding: 0 1.5mm;
 }
 .soc-dsub1 { padding-top: 3mm; padding-bottom: 1mm; }
@@ -50,12 +50,20 @@ table.soc-assoc td:first-child { text-align: right; padding-right: 2mm; }
 .soc-dsuper1.candidate td,
 .soc-dsuper1.candidate span { background-color: #bbb; border: dashed thin #000; }
 .soc-dsuper1.candidate a { color: #000; }
+.soc-dsuper1 td.candidate { background-color: #ccc; border: dashed thin #000; }
+.soc-dsuper1 td.candidate a { color: #000; }
 
 table.soc-dsuper1 button {
-	padding: 0.3mm;
 	margin: 0;
-	border-radius: 1mm;
-	color: #fff;
+	margin-right: 0.2em;
 	border: solid thin #fff;
+	border-radius: 1mm;
+	width: 1.3em;
+	padding: 0.3mm;
+	color: #fff;
 	background-color: #07f;
+	text-align: center;
+	font-weight: bold;
+	font-style: sans-serif;
 }
+table.soc-dsuper1 button:hover { background-color: #4af; }
