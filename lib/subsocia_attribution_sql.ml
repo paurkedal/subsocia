@@ -53,8 +53,8 @@ module Make (Arg : Arg) = struct
 	bprintf buf "%s%s q%d" !schema_prefix tn i
       else
 	bprintf buf " JOIN %s%s q%d \
-			ON q%d.asub_id = q%d.asub_id \
-		       AND q%d.asuper_id = q%d.asuper_id"
+			ON q%d.output_id = q%d.output_id \
+		       AND q%d.input_id = q%d.input_id"
 		!schema_prefix tn i i (i - 1) i (i - 1) in
 
     let do_value : type a. a Attribute_type.t -> a -> unit = fun at x ->
@@ -114,16 +114,16 @@ module Make (Arg : Arg) = struct
 
   let select_asub_conj id ps =
     let buf = Buffer.create 512 in
-    Buffer.add_string buf "SELECT q0.asub_id FROM ";
+    Buffer.add_string buf "SELECT q0.output_id FROM ";
     bprint_predicate_conj buf ps;
-    bprintf buf " AND q0.asuper_id = %ld" id;
+    bprintf buf " AND q0.input_id = %ld" id;
     oneshot_sql (Buffer.contents buf)
 
   let select_asuper_conj id ps =
     let buf = Buffer.create 512 in
-    Buffer.add_string buf "SELECT q0.asuper_id FROM ";
+    Buffer.add_string buf "SELECT q0.input_id FROM ";
     bprint_predicate_conj buf ps;
-    bprintf buf " AND q0.asub_id = %ld" id;
+    bprintf buf " AND q0.output_id = %ld" id;
     oneshot_sql (Buffer.contents buf)
 
 end

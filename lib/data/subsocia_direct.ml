@@ -181,20 +181,20 @@ module Q = struct
 
   let et_can_attribute =
     q "SELECT 1 FROM @attribution_type \
-       WHERE attribute_type_id = ? AND asuper_type_id = ? AND asub_type_id = ?"
+       WHERE attribute_type_id = ? AND domain_id = ? AND codomain_id = ?"
   let et_allowed_attributes =
     q "SELECT attribute_type_id FROM @attribution_type \
-       WHERE asuper_type_id = ? AND asub_type_id = ?"
+       WHERE domain_id = ? AND codomain_id = ?"
   let et_allowed_attributions =
-    q "SELECT attribute_type_id, asuper_type_id, asub_type_id \
+    q "SELECT attribute_type_id, domain_id, codomain_id \
        FROM @attribution_type"
   let et_allow_attribution =
     q "INSERT INTO @attribution_type \
-	(attribute_type_id, asuper_type_id, asub_type_id) \
+	(attribute_type_id, domain_id, codomain_id) \
        VALUES (?, ?, ?)"
   let et_disallow_attribution =
     q "DELETE FROM @attribution_type \
-       WHERE attribute_type_id = ? AND asuper_type_id = ? AND asub_type_id = ?"
+       WHERE attribute_type_id = ? AND domain_id = ? AND codomain_id = ?"
 
   (* Entites *)
 
@@ -327,39 +327,39 @@ module Q = struct
 
   let e_select_attribution_bool =
     q "SELECT value FROM @attribution_bool \
-       WHERE asuper_id = ? AND asub_id = ? AND attribute_type_id = ?"
+       WHERE input_id = ? AND output_id = ? AND attribute_type_id = ?"
   let e_select_attribution_int =
     q "SELECT value FROM @attribution_int \
-       WHERE asuper_id = ? AND asub_id = ? AND attribute_type_id = ?"
+       WHERE input_id = ? AND output_id = ? AND attribute_type_id = ?"
   let e_select_attribution_string =
     q "SELECT value FROM @attribution_string \
-       WHERE asuper_id = ? AND asub_id = ? AND attribute_type_id = ?"
+       WHERE input_id = ? AND output_id = ? AND attribute_type_id = ?"
 
   let e_insert_attribution_bool =
     q "INSERT INTO @attribution_bool \
-	(attribute_type_id, value, asuper_id, asub_id) \
+	(attribute_type_id, value, input_id, output_id) \
        VALUES (?, ?, ?, ?)"
   let e_insert_attribution_int =
     q "INSERT INTO @attribution_int \
-	(attribute_type_id, value, asuper_id, asub_id) \
+	(attribute_type_id, value, input_id, output_id) \
        VALUES (?, ?, ?, ?)"
   let e_insert_attribution_string =
     q "INSERT INTO @attribution_string \
-	(attribute_type_id, value, asuper_id, asub_id) \
+	(attribute_type_id, value, input_id, output_id) \
        VALUES (?, ?, ?, ?)"
 
   let e_delete_attribution_bool =
     q "DELETE FROM @attribution_bool \
        WHERE attribute_type_id = ? AND value = ? \
-	 AND asuper_id = ? AND asub_id = ?"
+	 AND input_id = ? AND output_id = ?"
   let e_delete_attribution_int =
     q "DELETE FROM @attribution_int \
        WHERE attribute_type_id = ? AND value = ? \
-	 AND asuper_id = ? AND asub_id = ?"
+	 AND input_id = ? AND output_id = ?"
   let e_delete_attribution_string =
     q "DELETE FROM @attribution_string \
        WHERE attribute_type_id = ? AND value = ? \
-	 AND asuper_id = ? AND asub_id = ?"
+	 AND input_id = ? AND output_id = ?"
 
   let ap1_ops = [|"="; "<="; ">="|]
   let ap1_eq = 0
@@ -367,92 +367,92 @@ module Q = struct
   let ap1_geq = 2
 
   let e_asub_present_bool =
-    q("SELECT asub_id FROM @attribution_bool \
-       WHERE asuper_id = ? AND attribute_type_id = ?")
+    q("SELECT output_id FROM @attribution_bool \
+       WHERE input_id = ? AND attribute_type_id = ?")
   let e_asub_present_int =
-    q("SELECT asub_id FROM @attribution_int \
-       WHERE asuper_id = ? AND attribute_type_id = ?")
+    q("SELECT output_id FROM @attribution_int \
+       WHERE input_id = ? AND attribute_type_id = ?")
   let e_asub_present_string =
-    q("SELECT asub_id FROM @attribution_string \
-       WHERE asuper_id = ? AND attribute_type_id = ?")
+    q("SELECT output_id FROM @attribution_string \
+       WHERE input_id = ? AND attribute_type_id = ?")
 
   let e_asuper_present_bool =
-    q("SELECT asuper_id FROM @attribution_bool \
-       WHERE asub_id = ? AND attribute_type_id = ?")
+    q("SELECT input_id FROM @attribution_bool \
+       WHERE output_id = ? AND attribute_type_id = ?")
   let e_asuper_present_int =
-    q("SELECT asuper_id FROM @attribution_int \
-       WHERE asub_id = ? AND attribute_type_id = ?")
+    q("SELECT input_id FROM @attribution_int \
+       WHERE output_id = ? AND attribute_type_id = ?")
   let e_asuper_present_string =
-    q("SELECT asuper_id FROM @attribution_string \
-       WHERE asub_id = ? AND attribute_type_id = ?")
+    q("SELECT input_id FROM @attribution_string \
+       WHERE output_id = ? AND attribute_type_id = ?")
 
   let e_asub1_bool = ap1_ops |> Array.map @@ fun op ->
-    q("SELECT asub_id FROM @attribution_bool \
-       WHERE asuper_id = ? AND attribute_type_id = ? AND value "^op^" ?")
+    q("SELECT output_id FROM @attribution_bool \
+       WHERE input_id = ? AND attribute_type_id = ? AND value "^op^" ?")
   let e_asub1_int = ap1_ops |> Array.map @@ fun op ->
-    q("SELECT asub_id FROM @attribution_int \
-       WHERE asuper_id = ? AND attribute_type_id = ? AND value "^op^" ?")
+    q("SELECT output_id FROM @attribution_int \
+       WHERE input_id = ? AND attribute_type_id = ? AND value "^op^" ?")
   let e_asub1_string = ap1_ops |> Array.map @@ fun op ->
-    q("SELECT asub_id FROM @attribution_string \
-       WHERE asuper_id = ? AND attribute_type_id = ? AND value "^op^" ?")
+    q("SELECT output_id FROM @attribution_string \
+       WHERE input_id = ? AND attribute_type_id = ? AND value "^op^" ?")
 
   let e_asuper1_bool = ap1_ops |> Array.map @@ fun op ->
-    q("SELECT asuper_id FROM @attribution_bool \
-       WHERE asub_id = ? AND attribute_type_id = ? AND value "^op^" ?")
+    q("SELECT input_id FROM @attribution_bool \
+       WHERE output_id = ? AND attribute_type_id = ? AND value "^op^" ?")
   let e_asuper1_int = ap1_ops |> Array.map @@ fun op ->
-    q("SELECT asuper_id FROM @attribution_int \
-       WHERE asub_id = ? AND attribute_type_id = ? AND value "^op^" ?")
+    q("SELECT input_id FROM @attribution_int \
+       WHERE output_id = ? AND attribute_type_id = ? AND value "^op^" ?")
   let e_asuper1_string = ap1_ops |> Array.map @@ fun op ->
-    q("SELECT asuper_id FROM @attribution_string \
-       WHERE asub_id = ? AND attribute_type_id = ? AND value "^op^" ?")
+    q("SELECT input_id FROM @attribution_string \
+       WHERE output_id = ? AND attribute_type_id = ? AND value "^op^" ?")
 
   let e_asub2_between_int =
-    q "SELECT asub_id FROM @attribution_int \
-       WHERE asuper_id = ? AND attribute_type_id = ? \
+    q "SELECT output_id FROM @attribution_int \
+       WHERE input_id = ? AND attribute_type_id = ? \
 	 AND value >= ? AND value < ?"
   let e_asub2_between_string =
-    q "SELECT asub_id FROM @attribution_string \
-       WHERE asuper_id = ? AND attribute_type_id = ? \
+    q "SELECT output_id FROM @attribution_string \
+       WHERE input_id = ? AND attribute_type_id = ? \
 	 AND value >= ? AND value < ?"
 
   let e_asuper2_between_int =
-    q "SELECT asuper_id FROM @attribution_int \
-       WHERE asub_id = ? AND attribute_type_id = ? \
+    q "SELECT input_id FROM @attribution_int \
+       WHERE output_id = ? AND attribute_type_id = ? \
 	 AND value >= ? AND value < ?"
   let e_asuper2_between_string =
-    q "SELECT asuper_id FROM @attribution_string \
-       WHERE asub_id = ? AND attribute_type_id = ? \
+    q "SELECT input_id FROM @attribution_string \
+       WHERE output_id = ? AND attribute_type_id = ? \
 	 AND value >= ? AND value < ?"
 
   let e_asub1_search =
-    q "SELECT asub_id FROM @attribution_string \
-       WHERE asuper_id = ? AND attribute_type_id = ? \
+    q "SELECT output_id FROM @attribution_string \
+       WHERE input_id = ? AND attribute_type_id = ? \
 	 AND value SIMILAR TO ?"
   let e_asuper1_search =
-    q "SELECT asuper_id FROM @attribution_string \
-       WHERE asub_id = ? AND attribute_type_id = ? \
+    q "SELECT input_id FROM @attribution_string \
+       WHERE output_id = ? AND attribute_type_id = ? \
 	 AND value SIMILAR TO ?"
 
   let e_asub1_search_fts =
-    q "SELECT asub_id FROM @attribution_string_fts \
-       WHERE asuper_id = ? \
+    q "SELECT output_id FROM @attribution_string_fts \
+       WHERE input_id = ? \
 	 AND fts_vector @@ to_tsquery(fts_config::regconfig, ?)"
   let e_asuper1_search_fts =
-    q "SELECT asuper_id FROM @attribution_string_fts \
-       WHERE asub_id = ? \
+    q "SELECT input_id FROM @attribution_string_fts \
+       WHERE output_id = ? \
 	 AND fts_vector @@ to_tsquery(fts_config::regconfig, ?)"
 
   let _asub_fts with_et with_super with_limit =
     format_query_f
       "SELECT * FROM
-	(SELECT a.asub_id, \
+	(SELECT a.output_id, \
 		ts_rank(fts_vector, to_tsquery(fts_config::regconfig, ?)) AS r \
-	 FROM @attribution_string_fts AS a%s%s WHERE a.asuper_id = ?%s%s \
+	 FROM @attribution_string_fts AS a%s%s WHERE a.input_id = ?%s%s \
 	 ORDER BY r DESC%s) AS sq
        WHERE r > ?"
-      (if with_et then " JOIN @entity ON a.asub_id = entity_id" else "")
+      (if with_et then " JOIN @entity ON a.output_id = entity_id" else "")
       (if with_super then " JOIN @transitive_reflexive_inclusion AS c \
-			      ON c.subentity_id = a.asub_id" else "")
+			      ON c.subentity_id = a.output_id" else "")
       (if with_et then " AND entity_type_id = ?" else "")
       (if with_super then " AND c.superentity_id = ?" else "")
       (if with_limit then " LIMIT ?" else "")
@@ -460,14 +460,14 @@ module Q = struct
   let _asuper_fts with_et with_super with_limit =
     format_query_f
       "SELECT * FROM
-	(SELECT a.asuper_id, \
+	(SELECT a.input_id, \
 		ts_rank(fts_vector, to_tsquery(fts_config::regconfig, ?)) AS r \
-	 FROM @attribution_string_fts AS a%s%s WHERE a.asub_id = ?%s%s \
+	 FROM @attribution_string_fts AS a%s%s WHERE a.output_id = ?%s%s \
 	 ORDER BY r DESC%s) AS sq
        WHERE r > ?"
-      (if with_et then " JOIN @entity ON a.asuper_id = entity_id" else "")
+      (if with_et then " JOIN @entity ON a.input_id = entity_id" else "")
       (if with_super then " JOIN @transitive_reflexive_inclusion AS c \
-			      ON c.subentity_id = a.asuper_id" else "")
+			      ON c.subentity_id = a.input_id" else "")
       (if with_et then " AND entity_type_id = ?" else "")
       (if with_super then " AND c.superentity_id = ?" else "")
       (if with_limit then " LIMIT ?" else "")
@@ -490,38 +490,38 @@ module Q = struct
   let e_asuper_fts_et_super_limit=_asuper_fts true  true  true
 
   let e_mapping1_bool =
-    q "SELECT asub_id, value FROM @attribution_bool \
-       WHERE asuper_id = ? AND attribute_type_id = ?"
+    q "SELECT output_id, value FROM @attribution_bool \
+       WHERE input_id = ? AND attribute_type_id = ?"
   let e_mapping1_int =
-    q "SELECT asub_id, value FROM @attribution_int \
-       WHERE asuper_id = ? AND attribute_type_id = ?"
+    q "SELECT output_id, value FROM @attribution_int \
+       WHERE input_id = ? AND attribute_type_id = ?"
   let e_mapping1_string =
-    q "SELECT asub_id, value FROM @attribution_string \
-       WHERE asuper_id = ? AND attribute_type_id = ?"
+    q "SELECT output_id, value FROM @attribution_string \
+       WHERE input_id = ? AND attribute_type_id = ?"
 
   let e_premapping1_bool =
-    q "SELECT asuper_id, value FROM @attribution_bool \
-       WHERE asub_id = ? AND attribute_type_id = ?"
+    q "SELECT input_id, value FROM @attribution_bool \
+       WHERE output_id = ? AND attribute_type_id = ?"
   let e_premapping1_int =
-    q "SELECT asuper_id, value FROM @attribution_int \
-       WHERE asub_id = ? AND attribute_type_id = ?"
+    q "SELECT input_id, value FROM @attribution_int \
+       WHERE output_id = ? AND attribute_type_id = ?"
   let e_premapping1_string =
-    q "SELECT asuper_id, value FROM @attribution_string \
-       WHERE asub_id = ? AND attribute_type_id = ?"
+    q "SELECT input_id, value FROM @attribution_string \
+       WHERE output_id = ? AND attribute_type_id = ?"
 
   let fts_clear =
     q "DELETE FROM subsocia.attribution_string_fts \
-       WHERE asuper_id = ? AND asub_id = ?"
+       WHERE input_id = ? AND output_id = ?"
   let fts_insert =
     q "INSERT INTO subsocia.attribution_string_fts \
-		    (asuper_id, asub_id, fts_config, fts_vector) \
-       SELECT a.asuper_id, a.asub_id, at.fts_config, \
+		    (input_id, output_id, fts_config, fts_vector) \
+       SELECT a.input_id, a.output_id, at.fts_config, \
 	      to_tsvector(at.fts_config::regconfig, string_agg(value, '$')) \
        FROM subsocia.attribution_string AS a \
 	 NATURAL JOIN subsocia.attribute_type AS at \
        WHERE NOT at.fts_config IS NULL \
-	 AND a.asuper_id = ? AND a.asub_id = ? \
-       GROUP BY a.asuper_id, a.asub_id, at.fts_config"
+	 AND a.input_id = ? AND a.output_id = ? \
+       GROUP BY a.input_id, a.output_id, at.fts_config"
 end
 
 module type CACHE = sig

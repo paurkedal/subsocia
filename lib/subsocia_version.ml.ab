@@ -19,7 +19,7 @@ let pkg_datadir =
   try Unix.getenv "SUBSOCIA_DATADIR"
   with Not_found -> Filename.concat "${datadir}" "subsocia"
 
-let schema_version = 2 (* NB: Also update schema/subsocia_tables.sql. *)
+let schema_version = 3 (* NB: Also update schema/subsocia_tables.sql. *)
 let schema_dir = Filename.concat pkg_datadir "schema"
 let schema_upgrade_dir = Filename.concat schema_dir "upgrade"
 

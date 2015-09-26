@@ -20,7 +20,7 @@ CREATE TABLE subsocia.global_integer (
   global_value integer NOT NULL
 );
 -- NB: Also update lib/subsocia_version.ml.ab.
-INSERT INTO subsocia.global_integer VALUES ('schema_version', 2);
+INSERT INTO subsocia.global_integer VALUES ('schema_version', 3);
 
 -- Types
 
@@ -52,9 +52,9 @@ CREATE TABLE subsocia.attribute_uniqueness (
 );
 CREATE TABLE subsocia.attribution_type (
   attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
-  asub_type_id integer NOT NULL REFERENCES subsocia.entity_type,
-  asuper_type_id integer NOT NULL REFERENCES subsocia.entity_type,
-  PRIMARY KEY (attribute_type_id, asub_type_id, asuper_type_id)
+  domain_id integer NOT NULL REFERENCES subsocia.entity_type,
+  codomain_id integer NOT NULL REFERENCES subsocia.entity_type,
+  PRIMARY KEY (attribute_type_id, domain_id, codomain_id)
 );
 
 -- Objects
@@ -72,31 +72,31 @@ CREATE TABLE subsocia.inclusion (
   PRIMARY KEY (dsub_id, dsuper_id)
 );
 CREATE TABLE subsocia.attribution_bool (
-  asuper_id integer NOT NULL REFERENCES subsocia.entity,
-  asub_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
+  input_id integer NOT NULL REFERENCES subsocia.entity,
+  output_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
   attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
   value boolean NOT NULL,
-  PRIMARY KEY (asub_id, asuper_id, attribute_type_id, value)
+  PRIMARY KEY (input_id, output_id, attribute_type_id, value)
 );
 CREATE TABLE subsocia.attribution_int (
-  asuper_id integer NOT NULL REFERENCES subsocia.entity,
-  asub_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
+  input_id integer NOT NULL REFERENCES subsocia.entity,
+  output_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
   attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
   value integer NOT NULL,
-  PRIMARY KEY (asub_id, asuper_id, attribute_type_id, value)
+  PRIMARY KEY (input_id, output_id, attribute_type_id, value)
 );
 CREATE TABLE subsocia.attribution_string (
-  asuper_id integer NOT NULL REFERENCES subsocia.entity,
-  asub_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
+  input_id integer NOT NULL REFERENCES subsocia.entity,
+  output_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
   attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
   value text NOT NULL,
-  PRIMARY KEY (asub_id, asuper_id, attribute_type_id, value)
+  PRIMARY KEY (input_id, output_id, attribute_type_id, value)
 );
 CREATE TABLE subsocia.attribution_string_fts (
-  asuper_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
-  asub_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
+  input_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
+  output_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
   fts_config text NOT NULL,
   fts_vector tsvector NOT NULL,
-  PRIMARY KEY (asub_id, asuper_id, fts_config)
+  PRIMARY KEY (input_id, output_id, fts_config)
 );
 CREATE INDEX ON subsocia.attribution_string_fts USING gin(fts_vector);
