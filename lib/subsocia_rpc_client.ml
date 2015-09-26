@@ -25,7 +25,12 @@ open Unprime_option
 module type RPCM = Subsocia_rpc_primitives.RPCM with type 'a t = 'a Lwt.t
 
 module Attribute_type_base = struct
-  type 'a t = {at_id : int32; at_name : string; at_type : 'a Type.t}
+  type 'a t = {
+    at_id : int32;
+    at_name : string;
+    at_type : 'a Type.t;
+    at_mult : Multiplicity.t
+  }
   type ex = Ex : 'a t -> ex
 
   (**/**)
@@ -48,8 +53,8 @@ module Make (RPCM : RPCM) = struct
     module Map = Prime_enummap.Make_monadic (Comparable) (Lwt)
 
     let of_id at_id =
-      lwt at_name, Type.Ex at_type = Raw.of_id at_id in
-      Lwt.return (Ex {at_id; at_name; at_type})
+      lwt at_name, Type.Ex at_type, at_mult = Raw.of_id at_id in
+      Lwt.return (Ex {at_id; at_name; at_type; at_mult})
     let id (Ex at) = at.at_id
     let id' at = at.at_id
 
@@ -58,13 +63,15 @@ module Make (RPCM : RPCM) = struct
 
     let of_name at_name =
       Raw.of_name at_name >|=
-      Option.map @@ fun (at_id, Type.Ex at_type) -> Ex {at_id; at_name; at_type}
+      Option.map (fun (at_id, Type.Ex at_type, at_mult) ->
+		  Ex {at_id; at_name; at_type; at_mult})
     let name (Ex at) = Lwt.return at.at_name
     let name' at = Lwt.return at.at_name
     let value_type at = at.at_type
-    let create' vt at_name =
-      Raw.create (Type.Ex vt) at_name >|= fun at_id ->
-      {at_id; at_name; at_type = vt}
+    let value_mult at = at.at_mult
+    let create' ?(mult = Multiplicity.May) vt at_name =
+      Raw.create (Type.Ex vt) mult at_name >|= fun at_id ->
+      {at_id; at_name; at_type = vt; at_mult = mult}
     let delete' at = Raw.delete at.at_id
 
     (**/**)
@@ -155,24 +162,49 @@ module Make (RPCM : RPCM) = struct
     let disallow_dsub et0 et1 =
       Raw.disallow_dsub et0 et1
 
-    let can_asub lbt ubt at =
-      Raw.can_asub lbt ubt (Attribute_type.id (Attribute_type.Ex at))
+    let can_attribute at lbt ubt =
+      Raw.can_attribute (Attribute_type.id' at) lbt ubt
 
-    let can_asub_byattr lbt ubt =
-      let aux (at_id, mu) = Attribute_type.of_id at_id >|= fun at -> at, mu in
-      Raw.can_asub_byattr lbt ubt >>= Lwt_list.map_s aux >|=
-      Attribute_type.Map.of_ordered_bindings
+    let allowed_attributes lbt ubt =
+      Raw.allowed_attributes lbt ubt >>= Lwt_list.map_s Attribute_type.of_id >|=
+      Attribute_type.Set.of_ordered_elements
 
+    let allowed_attributions () =
+      let aux (at_id, et0, et1) =
+	Attribute_type.of_id at_id >|= fun at -> (at, et0, et1) in
+      Raw.allowed_attributions () >>= Lwt_list.map_s aux
+
+    let allow_attribution at et0 et1 =
+      Raw.allow_attribution at.Attribute_type.at_id et0 et1
+
+    let disallow_attribution at et0 et1 =
+      Raw.disallow_attribution at.Attribute_type.at_id et0 et1
+
+    (**/**)
+    let can_asub et1 et0 at =
+      can_attribute at et0 et1 >|= function
+      | false -> None
+      | true -> Some (Attribute_type.value_mult at)
+    let can_asub_byattr et1 et0 =
+      lwt ats = allowed_attributes et0 et1 in
+      Attribute_type.Set.fold_s
+	(fun ex_at acc ->
+	  let Attribute_type.Ex at = ex_at in
+	  let m = Attribute_type.value_mult at in
+	  Lwt.return (Attribute_type.Map.add ex_at m acc))
+	ats
+	Attribute_type.Map.empty
     let asub_elements () =
-      let aux (et0, et1, at_id, mu) =
-	Attribute_type.of_id at_id >|= fun at -> (et0, et1, at, mu) in
-      Raw.asub_elements () >>= Lwt_list.map_s aux
-
-    let allow_asub et0 et1 (Attribute_type.Ex at) mu =
-      Raw.allow_asub et0 et1 at.Attribute_type.at_id mu
-
-    let disallow_asub et0 et1 (Attribute_type.Ex at) =
-      Raw.disallow_asub et0 et1 at.Attribute_type.at_id
+      let aux (at_id, et0, et1) =
+	lwt ex_at = Attribute_type.of_id at_id in
+	let Attribute_type.Ex at = ex_at in
+	let m = Attribute_type.value_mult at in
+	Lwt.return (et1, et0, ex_at, m) in
+      Raw.allowed_attributions () >>= Lwt_list.map_s aux
+    let allow_asub et1 et0 (Attribute_type.Ex at) mu =
+      allow_attribution at et0 et1
+    let disallow_asub et1 et0 (Attribute_type.Ex at) =
+      disallow_attribution at et0 et1
   end
 
   module Entity = struct
@@ -199,10 +231,10 @@ module Make (RPCM : RPCM) = struct
     let dsub ?et e = Raw.dsub et e >|= Set.of_ordered_elements
     let dsuper ?et e = Raw.dsuper et e >|= Set.of_ordered_elements
 
-    let getattr lb ub at =
-      let t1 = Attribute_type.value_type at in
-      Raw.getattr lb ub (Attribute_type.(id (Ex at))) >|=
-      List.map (Value.coerce t1) *> Values.of_ordered_elements t1
+    let get_values at et0 et1 =
+      let vt = Attribute_type.value_type at in
+      Raw.get_values (Attribute_type.id' at) et0 et1 >|=
+      List.map (Value.coerce vt) *> Values.of_ordered_elements vt
 
     let check_uniqueness_error = function
       | [] -> Lwt.return_unit
@@ -211,22 +243,25 @@ module Make (RPCM : RPCM) = struct
 	Lwt.fail (Attribute_uniqueness.Not_unique
 		    (Attribute_uniqueness.Set.of_ordered_elements uas))
 
-    let setattr lb ub at vs =
+    let add_values at vs e0 e1 =
+      let vs = Values.elements vs in
       let t = Attribute_type.value_type at in
-      Raw.setattr lb ub (Attribute_type.(id (Ex at)))
-		  (List.map (fun v -> Value.Ex (t, v)) vs) >>=
+      Raw.add_values (Attribute_type.id' at)
+		     (List.map (fun v -> Value.Ex (t, v)) vs) e0 e1 >>=
       check_uniqueness_error
 
-    let addattr lb ub at vs =
+    let remove_values at vs e0 e1 =
+      let vs = Values.elements vs in
       let t = Attribute_type.value_type at in
-      Raw.addattr lb ub (Attribute_type.(id (Ex at)))
-		  (List.map (fun v -> Value.Ex (t, v)) vs) >>=
-      check_uniqueness_error
+      Raw.remove_values (Attribute_type.id' at)
+			(List.map (fun v -> Value.Ex (t, v)) vs) e0 e1
 
-    let delattr lb ub at vs =
+    let replace_values at vs e0 e1 =
+      let vs = Values.elements vs in
       let t = Attribute_type.value_type at in
-      Raw.delattr lb ub (Attribute_type.(id (Ex at)))
-		  (List.map (fun v -> Value.Ex (t, v)) vs)
+      Raw.replace_values (Attribute_type.id' at)
+			 (List.map (fun v -> Value.Ex (t, v)) vs) e0 e1 >>=
+      check_uniqueness_error
 
     let encode_predicate = function
       | Attribute.Present at -> Eap_present (Attribute_type.(id (Ex at)))
@@ -251,10 +286,10 @@ module Make (RPCM : RPCM) = struct
       | Attribute.Search_fts x ->
 	Eap_search_fts x
 
-    let asub e p =
-      Raw.asub e (encode_predicate p) >|= Set.of_ordered_elements
-    let asuper e p =
-      Raw.asuper e (encode_predicate p) >|= Set.of_ordered_elements
+    let image1 p e =
+      Raw.image1 (encode_predicate p) e >|= Set.of_ordered_elements
+    let preimage1 p e =
+      Raw.preimage1 (encode_predicate p) e >|= Set.of_ordered_elements
 
     let asub_conj e ps =
       Raw.asub_conj e (List.map encode_predicate ps)
@@ -263,31 +298,31 @@ module Make (RPCM : RPCM) = struct
       Raw.asuper_conj e (List.map encode_predicate ps)
 	>|= Set.of_ordered_elements
 
-    let asub_eq e at av =
+    let image1_eq at av e =
       let t = Attribute_type.value_type at in
-      Raw.asub_eq e (Attribute_type.(id (Ex at))) (Value.Ex (t, av))
+      Raw.image1_eq (Attribute_type.id' at) (Value.Ex (t, av)) e
 	>|= Set.of_ordered_elements
 
-    let asuper_eq e at av =
+    let preimage1_eq at av e =
       let t = Attribute_type.value_type at in
-      Raw.asuper_eq e (Attribute_type.(id (Ex at))) (Value.Ex (t, av))
+      Raw.preimage1_eq (Attribute_type.id' at) (Value.Ex (t, av)) e
 	>|= Set.of_ordered_elements
 
-    let asub_fts = Raw.asub_fts
-    let asuper_fts = Raw.asuper_fts
+    let image1_fts = Raw.image1_fts
+    let preimage1_fts = Raw.preimage1_fts
 
-    let asub_get e at =
+    let mapping1 at e =
       let t = Attribute_type.value_type at in
-      Raw.asub_get e (Attribute_type.(id (Ex at))) >|= fun bindings ->
+      Raw.mapping1 (Attribute_type.id' at) e >|= fun bindings ->
       List.fold
 	(fun (e, v) m ->
 	  let vs = try Map.find e m with Not_found -> Values.empty t in
 	  Map.add e (Values.add (Value.coerce t v) vs) m)
 	bindings Map.empty
 
-    let asuper_get e at =
+    let premapping1 at e =
       let t = Attribute_type.value_type at in
-      Raw.asuper_get e (Attribute_type.(id (Ex at))) >|= fun bindings ->
+      Raw.premapping1 (Attribute_type.id' at) e >|= fun bindings ->
       List.fold
 	(fun (e, v) m ->
 	  let vs = try Map.find e m with Not_found -> Values.empty t in
@@ -299,5 +334,36 @@ module Make (RPCM : RPCM) = struct
     let force_dsub = Raw.force_dsub
     let relax_dsub = Raw.relax_dsub
     let display_name ~langs e = Lwt.return ("#" ^ Int32.to_string e) (* TODO *)
+
+    (**/**)
+    let getattr e1 e0 at = get_values at e0 e1
+    let setattr e1 e0 at vs =
+      let vs = List.sort compare vs in
+      let t = Attribute_type.value_type at in
+      Raw.replace_values (Attribute_type.id' at)
+			 (List.map (fun v -> Value.Ex (t, v)) vs) e0 e1 >>=
+      check_uniqueness_error
+    let addattr e1 e0 at vs =
+      let vs = List.sort compare vs in
+      let t = Attribute_type.value_type at in
+      Raw.add_values (Attribute_type.id' at)
+		     (List.map (fun v -> Value.Ex (t, v)) vs) e0 e1 >>=
+      check_uniqueness_error
+    let delattr e1 e0 at vs =
+      let vs = List.sort compare vs in
+      let t = Attribute_type.value_type at in
+      Raw.replace_values (Attribute_type.id' at)
+			 (List.map (fun v -> Value.Ex (t, v)) vs) e0 e1 >>=
+      check_uniqueness_error
+    let asub e p = image1 p e
+    let asuper e p = preimage1 p e
+    let asub_eq e at av = image1_eq at av e
+    let asuper_eq e at av = preimage1_eq at av e
+    let asub_fts ?entity_type ?super ?cutoff ?limit e s =
+      image1_fts ?entity_type ?super ?cutoff ?limit s e
+    let asuper_fts ?entity_type ?super ?cutoff ?limit e s =
+      preimage1_fts ?entity_type ?super ?cutoff ?limit s e
+    let asub_get e at = mapping1 at e
+    let asuper_get e at = premapping1 at e
   end
 end

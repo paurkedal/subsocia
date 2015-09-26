@@ -96,6 +96,7 @@ module type S = sig
     val select_opt : selector -> t option Lwt.t
     val select_one : selector -> t Lwt.t
 
+    (* TODO: Replace and deprecate these. *)
     val getattr_opt : t -> t -> 'a Attribute_type.t -> 'a option Lwt.t
     val getattr_one : t -> t -> 'a Attribute_type.t -> 'a Lwt.t
 

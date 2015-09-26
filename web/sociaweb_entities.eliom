@@ -84,10 +84,11 @@
     let open Html5 in
     lwt lbt = Entity.type_ lb in
     lwt ubt = Entity.type_ ub in
-    lwt attrs = Entity_type.can_asub_byattr lbt ubt in
-    let attrs' = Attribute_type.Map.bindings attrs in
-    let render_tr (Attribute_type.Ex at, mu) =
+    lwt ats = Entity_type.allowed_attributes ubt lbt in
+    let ats = Attribute_type.Set.elements ats in
+    let render_tr (Attribute_type.Ex at) =
       lwt an = Attribute_type.name' at in
+      let mu = Attribute_type.value_mult at in
       lwt value_frag =
 	let t1 = Attribute_type.value_type at in
 	Entity.getattr lb ub at >|= fun vs ->
@@ -99,7 +100,7 @@
 	      F.pcdata ":"];
 	F.td value_frag;
       ] in
-    lwt attr_trs = Lwt_list.map_s render_tr attrs' in
+    lwt attr_trs = Lwt_list.map_s render_tr ats in
     lwt ub_name = Entity.display_name ~langs:cri.cri_langs ub in
     Lwt.return
       (if attr_trs = []

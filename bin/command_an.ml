@@ -24,11 +24,12 @@ let req what name = function
   | None -> Lwt.fail (Failure ("There is no " ^ what ^ " named " ^ name ^ "."))
   | Some x -> Lwt.return x
 
-let an_allow atn etn0 etn1 mu = run0 @@ fun (module C) ->
-  lwt at = C.Attribute_type.of_name atn >>= req "attribute type" atn in
+let an_allow atn etn0 etn1 = run0 @@ fun (module C) ->
+  lwt C.Attribute_type.Ex at = C.Attribute_type.of_name atn >>=
+			       req "attribute type" atn in
   lwt et0 = C.Entity_type.of_name etn0 >>= req "entity type" etn0 in
   lwt et1 = C.Entity_type.of_name etn1 >>= req "entity type" etn1 in
-  C.Entity_type.allow_asub et0 et1 at mu
+  C.Entity_type.allow_attribution at et0 et1
 
 let an_allow_t =
   let atn_t = Arg.(required & pos 0 (some string) None &
@@ -37,15 +38,14 @@ let an_allow_t =
 		    info ~docv:"SUB-TYPE" []) in
   let etn1_t = Arg.(required & pos 2 (some string) None &
 		    info ~docv:"SUPER-TYPE" []) in
-  let mu = Arg.(value & pos 3 multiplicity_conv Multiplicity.May1 &
-		info ~docv:"MULTIPLICITY" []) in
-  Term.(pure an_allow $ atn_t $ etn0_t $ etn1_t $ mu)
+  Term.(pure an_allow $ atn_t $ etn0_t $ etn1_t)
 
 let an_disallow atn etn0 etn1 = run0 @@ fun (module C) ->
-  lwt at = C.Attribute_type.of_name atn >>= req "attribute type" atn in
+  lwt C.Attribute_type.Ex at = C.Attribute_type.of_name atn >>=
+			       req "attribute type" atn in
   lwt et0 = C.Entity_type.of_name etn0 >>= req "entity type" etn0 in
   lwt et1 = C.Entity_type.of_name etn1 >>= req "entity type" etn1 in
-  C.Entity_type.disallow_asub et0 et1 at
+  C.Entity_type.disallow_attribution at et0 et1
 
 let an_disallow_t =
   let atn_t = Arg.(required & pos 0 (some string) None &
@@ -57,8 +57,9 @@ let an_disallow_t =
   Term.(pure an_disallow $ atn_t $ etn0_t $ etn1_t)
 
 let an_list () = run0 @@ fun (module C) ->
-  C.Entity_type.asub_elements () >>=
-  Lwt_list.map_s @@ fun (et0, et1, C.Attribute_type.Ex at, mu) ->
+  C.Entity_type.allowed_attributions () >>=
+  Lwt_list.map_s @@ fun (C.Attribute_type.Ex at, et0, et1) ->
+  let mu = C.Attribute_type.value_mult at in
   lwt atn = C.Attribute_type.name' at in
   lwt etn0 = C.Entity_type.name et0 in
   lwt etn1 = C.Entity_type.name et1 in

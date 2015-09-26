@@ -18,9 +18,9 @@ open Subsocia_common
 open Subsocia_rpc_types
 
 module Attribute_type = struct
-  external of_name : string -> (int32 * Type.ex) option = ""
-  external of_id : int32 -> string * Type.ex = ""
-  external create : Type.ex -> string -> int32 = ""
+  external of_name : string -> (int32 * Type.ex * Multiplicity.t) option = ""
+  external of_id : int32 -> string * Type.ex * Multiplicity.t = ""
+  external create : Type.ex -> Multiplicity.t -> string -> int32 = ""
   external delete : int32 -> unit = ""
 end
 
@@ -51,15 +51,15 @@ module Entity_type = struct
   external allow_dsub :
     Multiplicity.t -> Multiplicity.t -> int32 -> int32 -> unit = ""
   external disallow_dsub : int32 -> int32 -> unit = ""
-  external can_asub :
-    int32 -> int32 -> int32 -> Multiplicity.t option = ""
-  external can_asub_byattr :
-    int32 -> int32 -> (int32 * Multiplicity.t) list = ""
-  external asub_elements :
-    unit -> (int32 * int32 * int32 * Multiplicity.t) list = ""
-  external allow_asub :
-    int32 -> int32 -> int32 -> Multiplicity.t -> unit = ""
-  external disallow_asub :
+  external can_attribute :
+    int32 -> int32 -> int32 -> bool = ""
+  external allowed_attributes :
+    int32 -> int32 -> int32 list = ""
+  external allowed_attributions :
+    unit -> (int32 * int32 * int32) list = ""
+  external allow_attribution :
+    int32 -> int32 -> int32 -> unit = ""
+  external disallow_attribution :
     int32 -> int32 -> int32 -> unit = ""
 end
 
@@ -77,26 +77,29 @@ module Entity = struct
   external dsuper : int32 option -> int32 -> int32 list = ""
   external is_dsub : int32 -> int32 -> bool = ""
   external is_sub : int32 -> int32 -> bool = ""
-  external getattr : int32 -> int32 -> int32 -> Value.ex list = ""
-  external setattr : int32 -> int32 -> int32 -> Value.ex list -> int32 list=""
-  external addattr : int32 -> int32 -> int32 -> Value.ex list -> int32 list=""
-  external delattr : int32 -> int32 -> int32 -> Value.ex list -> unit=""
-  external asub : int32 -> encoded_attribute_predicate -> int32 list = ""
-  external asuper : int32 -> encoded_attribute_predicate -> int32 list = ""
+  external get_values : int32 -> int32 -> int32 -> Value.ex list = ""
+  external add_values : int32 -> Value.ex list ->
+			int32 -> int32 -> int32 list = ""
+  external remove_values : int32 -> Value.ex list ->
+			   int32 -> int32 -> unit = ""
+  external replace_values : int32 -> Value.ex list ->
+			    int32 -> int32 -> int32 list = ""
+  external image1 : encoded_attribute_predicate -> int32 -> int32 list = ""
+  external preimage1 : encoded_attribute_predicate -> int32 -> int32 list = ""
   external asub_conj : int32 -> encoded_attribute_predicate list ->
 		       int32 list = ""
   external asuper_conj : int32 -> encoded_attribute_predicate list ->
 			 int32 list = ""
-  external asub_eq : int32 -> int32 -> Value.ex -> int32 list = ""
-  external asuper_eq : int32 -> int32 -> Value.ex -> int32 list = ""
-  external asub_fts : ?entity_type: int32 -> ?super: int32 ->
-		      ?cutoff: float -> ?limit: int ->
-		      int32 -> string -> (int32 * float) list = ""
-  external asuper_fts : ?entity_type: int32 -> ?super: int32 ->
-			?cutoff: float -> ?limit: int ->
-			int32 -> string -> (int32 * float) list = ""
-  external asub_get : int32 -> int32 -> (int32 * Value.ex) list = ""
-  external asuper_get : int32 -> int32 -> (int32 * Value.ex) list = ""
+  external image1_eq : int32 -> Value.ex -> int32 -> int32 list = ""
+  external preimage1_eq : int32 -> Value.ex -> int32 -> int32 list = ""
+  external image1_fts :
+    ?entity_type: int32 -> ?super: int32 -> ?cutoff: float -> ?limit: int ->
+    string -> int32 -> (int32 * float) list = ""
+  external preimage1_fts :
+    ?entity_type: int32 -> ?super: int32 -> ?cutoff: float -> ?limit: int ->
+    string -> int32 -> (int32 * float) list = ""
+  external mapping1 : int32 -> int32 -> (int32 * Value.ex) list = ""
+  external premapping1 : int32 -> int32 -> (int32 * Value.ex) list = ""
   external force_dsub : int32 -> int32 -> unit = ""
   external relax_dsub : int32 -> int32 -> unit = ""
 end

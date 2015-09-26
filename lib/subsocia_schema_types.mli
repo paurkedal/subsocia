@@ -22,7 +22,7 @@ open Subsocia_selector_types
 type et_allow =
   [ `Aux_string of string * string
   | `Allow_inclusion of string * Multiplicity.t * Multiplicity.t
-  | `Allow_attribution of string * string * Multiplicity.t ]
+  | `Allow_attribution of string * string ]
 
 type et_adjust =
   [ et_allow

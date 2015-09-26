@@ -148,12 +148,12 @@ module Selector_utils (C : Subsocia_intf.S) = struct
     | Select_adjacent (Asub p) -> fun es ->
       lwt p = entype_ap p in
       C.Entity.Set.fold_s
-	(fun e1 acc -> C.Entity.asub e1 p >|= C.Entity.Set.union acc)
+	(fun e1 acc -> C.Entity.image1 p e1 >|= C.Entity.Set.union acc)
 	es C.Entity.Set.empty
     | Select_adjacent (Asuper p) -> fun es ->
       lwt p = entype_ap p in
       C.Entity.Set.fold_s
-	(fun e1 acc -> C.Entity.asuper e1 p >|= C.Entity.Set.union acc)
+	(fun e1 acc -> C.Entity.preimage1 p e1 >|= C.Entity.Set.union acc)
 	es C.Entity.Set.empty
     | Select_type (s, etn) -> fun es ->
       lwt et = match_lwt C.Entity_type.of_name etn with

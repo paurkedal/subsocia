@@ -66,12 +66,12 @@ et_modify_constraints:
   ;
 et_create_constraint:
     ADDINCL STR { `Allow_inclusion ($2, Multiplicity.May, Multiplicity.May) }
-  | ADDATTR STR SLASH STR { `Allow_attribution ($2, $4, Multiplicity.May) }
+  | ADDATTR STR SLASH STR { `Allow_attribution ($2, $4) }
   | AUX_STRING STRING { `Aux_string ($1, $2) }
   ;
 et_modify_constraint:
     ADDINCL STR { `Allow_inclusion ($2, Multiplicity.May, Multiplicity.May) }
-  | ADDATTR STR SLASH STR { `Allow_attribution ($2, $4, Multiplicity.May) }
+  | ADDATTR STR SLASH STR { `Allow_attribution ($2, $4) }
   | DELINCL STR { `Disallow_inclusion $2 }
   | DELATTR STR SLASH STR { `Disallow_attribution ($2, $4) }
   | AUX_STRING STRING { `Aux_string ($1, $2) }

@@ -31,7 +31,8 @@ module type ATTRIBUTE_TYPE = sig
   val of_id : int32 -> ex Lwt.t
   val id' : 'a t -> int32
   val value_type : 'a t -> 'a Type.t
-  val create' : 'a Type.t -> string -> 'a t Lwt.t
+  val value_mult : 'a t -> Multiplicity.t
+  val create' : ?mult: Multiplicity.t -> 'a Type.t -> string -> 'a t Lwt.t
   val delete' : 'a t -> unit Lwt.t
 
   (**/**)
@@ -151,25 +152,38 @@ module type ENTITY_TYPE = sig
       this kind will remain until cleaned up, but algorithms are free to
       disregard them. *)
 
+  val can_attribute : 'a Attribute_type.t -> t -> t -> bool Lwt.t
+  (** [can_attribute at et et'] indicates whether at attribute of type [at] is
+      allowed from [et] to [et']. *)
+
+  val allowed_attributes : t -> t -> Attribute_type.Set.t Lwt.t
+  (** [allowed_attributes et et'] is the set of attribute types allowed from
+      [et] to [et']. *)
+
+  val allowed_attributions : unit -> (Attribute_type.ex * t * t) list Lwt.t
+
+  val allow_attribution : 'a Attribute_type.t -> t -> t -> unit Lwt.t
+  (** [allow_attribution at et et'] decleares that attributes of type [at] are
+      allowed from entities of type [et] to entities of type [et']. *)
+
+  val disallow_attribution : 'a Attribute_type.t -> t -> t -> unit Lwt.t
+  (** [disallow_attribution at et et'] declares that attributes of type [at]
+      are no longer allowed from entities of type [et] to entities of type
+      [et'].  Current attributions of this type will remain until cleaned up,
+      but algorithms are free to disregard them. *)
+
+  (**/**)
   val can_asub : t -> t -> 'a Attribute_type.t -> Multiplicity.t option Lwt.t
-  (** [can_asub et et' at] is the allowed multiplicity of attributes of type
-      [at] from [et] to [et'], or [None] if disallowed. *)
-
+  [@@ocaml.deprecated "Use can_attribute, but note new argument order."]
   val can_asub_byattr : t -> t -> Multiplicity.t Attribute_type.Map.t Lwt.t
-  (** [can_asub_byattr et et'] is a map from allowed attributes from [et] to
-      [et'] to the corresponding multiplicity. *)
-
+  [@@ocaml.deprecated "Use allowed_attributes, but note new argument order."]
   val asub_elements :
     unit -> (t * t * Attribute_type.ex * Multiplicity.t) list Lwt.t
-
+  [@@ocaml.deprecated "Use allowed_attributions, but note new argument order."]
   val allow_asub : t -> t -> Attribute_type.ex -> Multiplicity.t -> unit Lwt.t
-  (** [allow_asub et et' at m] decleares that [at] is allowed with
-      multiplicity [m] from [et] to [et']. *)
-
+  [@@ocaml.deprecated "Use allow_attribution, but note new argument order."]
   val disallow_asub : t -> t -> Attribute_type.ex -> unit Lwt.t
-  (** [disallow_asub et et' at] declares that [at] is no longer allowed from
-      [et] to [et'].  Current attributions of this type will remain until
-      cleaned up, but algorithms are free to disregard them. *)
+  [@@ocaml.deprecated "Use disallow_attribution, but note new argument order."]
 end
 
 module type ENTITY = sig
@@ -220,28 +234,79 @@ module type ENTITY = sig
   val is_sub : t -> t -> bool Lwt.t
   (** [is_sub e e'] holds iff [e] is a subentity of [e']. *)
 
+  val get_values : 'a Attribute_type.t -> t -> t -> 'a Values.t Lwt.t
+  (** [get_values at e e'] are the values of attributions of type [at]
+      directed from [e] to [e']. *)
+
+  val add_values : 'a Attribute_type.t -> 'a Values.t -> t -> t -> unit Lwt.t
+  (** [add_values at xs e e'] adds attributions of type [at] with values [xs]
+      from [e] to [e']. *)
+
+  val remove_values : 'a Attribute_type.t -> 'a Values.t -> t -> t -> unit Lwt.t
+  (** [remove_values at e e'] removes values [xs] from attributions of type
+      [at] directed from [e] to [e']. *)
+
+  val replace_values : 'a Attribute_type.t -> 'a Values.t -> t -> t -> unit Lwt.t
+  (** [replace_values at xs e e'] replaces values of attributions from [e] to
+      [e'] of type [at] with [xs]. *)
+
+  val image1 : Attribute.predicate -> t -> Set.t Lwt.t
+  (** [asub p e] are the attribution subentities of [e] along attributes for
+      which [p] holds. *)
+
+  val preimage1 : Attribute.predicate -> t -> Set.t Lwt.t
+  (** [asub p e] are the attribution superentities of [e] along attributes for
+      which [p] holds. *)
+
+  val image1_eq : 'a Attribute_type.t -> 'a -> t -> Set.t Lwt.t
+  (** [image1_eq at v e] are the attribution subentities of [e] along [at]
+      gaining the value [v]. *)
+
+  val preimage1_eq : 'a Attribute_type.t -> 'a -> t -> Set.t Lwt.t
+  (** [preimage1_eq at v e] are the attribution superentities of [e] along
+      [at] loosing the value [v]. *)
+
+  val image1_fts : ?entity_type: Entity_type.t -> ?super: t ->
+		   ?cutoff: float -> ?limit: int ->
+		   Subsocia_fts.t -> t -> (t * float) list Lwt.t
+  (** [image1_fts q e] are relevance-weighted subentities along text
+      attributes matching a full-text search for [q], ordered by relevance.
+      @param entity_type Only include entities of this type if specified.
+      @param super Restrict the result to entities strictly below [super].
+      @param limit The maximum number of entities to return. Default no limit.
+      @param cutoff Results with [rank <= cutoff] are excluded. Default 0.0. *)
+
+  val preimage1_fts : ?entity_type: Entity_type.t -> ?super: t ->
+		      ?cutoff: float -> ?limit: int ->
+		      Subsocia_fts.t -> t -> (t * float) list Lwt.t
+  (** [preimage1_fts q e] are relevance-weighted superentities along text
+      attributes matching a full-text search for [q], ordered by relevance.
+      @param entity_type Only include entities of this type if specified.
+      @param super Restrict the result to entities strictly below [super].
+      @param limit The maximum number of entities to return. Default no limit.
+      @param cutoff Results with [rank <= cutoff] are excluded. Default 0.0. *)
+
+  val mapping1 : 'a Attribute_type.t -> t -> 'a Values.t Map.t Lwt.t
+  (** [mapping1 at e] is a map of [at]-values indexed by attribution
+      subentities of [e] which gain those values along [at]. *)
+
+  val premapping1 : 'a Attribute_type.t -> t -> 'a Values.t Map.t Lwt.t
+  (** [premapping1 at e] is a map of [at]-values indexed by attribution
+      superentities of [e] which loose those values along [at]. *)
+
+  (**/**)
   val getattr : t -> t -> 'a Attribute_type.t -> 'a Values.t Lwt.t
-  (** [getattr e e' at] fetches attributes from [e] to [e'] of type [at]. *)
-
+  [@@ocaml.deprecated "Use get_values, but note new argument order."]
   val setattr : t -> t -> 'a Attribute_type.t -> 'a list -> unit Lwt.t
-  (** [setattr e e' at xs] replaces attributes from [e] to [e'] of type [et]
-      with [xs]. *)
-
+  [@@ocaml.deprecated "Use replace_values, but note new argument order."]
   val addattr : t -> t -> 'a Attribute_type.t -> 'a list -> unit Lwt.t
-  (** [addattr e e' at xs] adds attributes [xs] of type [et] from [e] to
-      [e']. *)
-
+  [@@ocaml.deprecated "Use add_values, but note new argument order."]
   val delattr : t -> t -> 'a Attribute_type.t -> 'a list -> unit Lwt.t
-  (** [delattr e e' at] removes attributes [xs] of type [et] from [e] to
-      [e']. *)
-
+  [@@ocaml.deprecated "Use remove_values, but note new argument order."]
   val asub : t -> Attribute.predicate -> Set.t Lwt.t
-  (** [asub e p] are the attribution subentities of [e] along attributes for
-      which [p] holds. *)
-
+  [@@ocaml.deprecated "Use image1."]
   val asuper : t -> Attribute.predicate -> Set.t Lwt.t
-  (** [asub e p] are the attribution superentities of [e] along attributes for
-      which [p] holds. *)
+  [@@ocaml.deprecated "Use preimage1."]
 
   val asub_conj : t -> Attribute.predicate list -> Set.t Lwt.t
   (** [asub_conj e ps] returns the set of elements linked from [e] by at least
@@ -252,40 +317,21 @@ module type ENTITY = sig
       one attribute for each predicate [p] in [ps] fulfilling [p]. *)
 
   val asub_eq : t -> 'a Attribute_type.t -> 'a -> Set.t Lwt.t
-  (** [asub_eq e at v] are the attribution subentities of [e] along [at]
-      gaining the value [v]. *)
-
+  [@@ocaml.deprecated "Use image1_eq."]
   val asuper_eq : t -> 'a Attribute_type.t -> 'a -> Set.t Lwt.t
-  (** [asuper_eq e at v] are the attribution superentities of [e] along [at]
-      loosing the value [v]. *)
-
+  [@@ocaml.deprecated "Use preimage1_eq."]
   val asub_fts : ?entity_type: Entity_type.t -> ?super: t ->
 		 ?cutoff: float -> ?limit: int ->
 		 t -> Subsocia_fts.t -> (t * float) list Lwt.t
-  (** [asub_fts e q] are relevance-weighted subentities along text attributes
-      matching a full-text search for [q], ordered by relevance.
-      @param entity_type Only include entities of this type if specified.
-      @param super Restrict the result to entities strictly below [super].
-      @param limit The maximum number of entities to return. Default no limit.
-      @param cutoff Results with [rank <= cutoff] are excluded. Default 0.0. *)
-
+  [@@ocaml.deprecated "Use image1_fts."]
   val asuper_fts : ?entity_type: Entity_type.t -> ?super: t ->
 		   ?cutoff: float -> ?limit: int ->
 		   t -> Subsocia_fts.t -> (t * float) list Lwt.t
-  (** [asuper_fts e q] are relevance-weighted superentities along text
-      attributes matching a full-text search for [q], ordered by relevance.
-      @param entity_type Only include entities of this type if specified.
-      @param super Restrict the result to entities strictly below [super].
-      @param limit The maximum number of entities to return. Default no limit.
-      @param cutoff Results with [rank <= cutoff] are excluded. Default 0.0. *)
-
+  [@@ocaml.deprecated "Use preimage1_fts."]
   val asub_get : t -> 'a Attribute_type.t -> 'a Values.t Map.t Lwt.t
-  (** [asub_get e at] is a map of [at]-values indexed by attribution
-      subentities of [e] which gain those values along [at]. *)
-
+  [@@ocaml.deprecated "Use mapping1_fts."]
   val asuper_get : t -> 'a Attribute_type.t -> 'a Values.t Map.t Lwt.t
-  (** [asuper_get e at] is a map of [at]-values indexed by attribution
-      superentities of [e] which loose those values along [at]. *)
+  [@@ocaml.deprecated "Use premapping1_fts."]
 end
 
 module type S = sig

@@ -94,14 +94,14 @@ module Make (C : Subsocia_intf.S) = struct
     | `Disallow_inclusion etn' ->
       lwt et' = req_et etn' in
       C.Entity_type.disallow_dsub et et'
-    | `Allow_attribution (etn', atn, mu) ->
+    | `Allow_attribution (etn', atn) ->
       lwt et' = req_et etn' in
-      lwt at = req_at atn in
-      C.Entity_type.allow_asub et et' at mu
+      lwt C.Attribute_type.Ex at = req_at atn in
+      C.Entity_type.allow_attribution at et' et
     | `Disallow_attribution (etn', atn) ->
       lwt et' = req_et etn' in
-      lwt at = req_at atn in
-      C.Entity_type.disallow_asub et et' at
+      lwt C.Attribute_type.Ex at = req_at atn in
+      C.Entity_type.disallow_attribution at et' et
     | `Aux_string ("display", tmpl) ->
       C.Entity_type.set_entity_name_tmpl et tmpl
     | `Aux_string (p, _) ->

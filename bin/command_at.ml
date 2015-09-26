@@ -20,16 +20,18 @@ open Lwt.Infix
 open Subsocia_cmdliner
 open Subsocia_common
 
-let at_create (Type.Ex vt) atn = run0 @@ fun (module C) ->
-  C.Attribute_type.create' vt atn >>= fun at ->
+let at_create (Type.Ex vt) atn mult = run0 @@ fun (module C) ->
+  C.Attribute_type.create' ~mult vt atn >>= fun at ->
   Lwt_log.info_f "Created attribute type #%ld %s." (C.Attribute_type.id' at) atn
 
 let at_create_t =
-  let vt_t = Arg.(required & pos 1 (some value_type_conv) None &
-		  info ~docv:"TYPE" []) in
   let atn_t = Arg.(required & pos 0 (some string) None &
 		   info ~docv:"NAME" []) in
-  Term.(pure at_create $ vt_t $ atn_t)
+  let vt_t = Arg.(required & pos 1 (some value_type_conv) None &
+		  info ~docv:"TYPE" []) in
+  let mu_t = Arg.(value & pos 2 multiplicity_conv Multiplicity.May1 &
+		  info ~docv:"MULTIPLICITY" []) in
+  Term.(pure at_create $ vt_t $ atn_t $ mu_t)
 
 let at_delete atn = run @@ fun (module C) ->
   match_lwt C.Attribute_type.of_name atn with

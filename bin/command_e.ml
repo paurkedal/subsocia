@@ -92,8 +92,8 @@ let fts q etn super limit cutoff = run @@ fun (module C) ->
   lwt e_top = C.Entity.top in
   lwt entity_type = Pwt_option.map_s U.entity_type_of_arg etn in
   lwt super = Pwt_option.map_s U.Entity.select_one super in
-  lwt es = C.Entity.asub_fts ?entity_type ?super ?limit ?cutoff e_top
-			     (Subsocia_fts.tsquery q) in
+  lwt es = C.Entity.image1_fts ?entity_type ?super ?limit ?cutoff
+			       (Subsocia_fts.tsquery q) e_top in
   let show (e, rank) =
     lwt name = U.Entity.display_name ~langs e in
     lwt et = C.Entity.type_ e in

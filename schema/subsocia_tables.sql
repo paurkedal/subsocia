@@ -41,6 +41,7 @@ CREATE TABLE subsocia.attribute_type (
   attribute_type_id SERIAL PRIMARY KEY,
   attribute_name text UNIQUE NOT NULL,
   value_type text NOT NULL,
+  value_mult smallint NOT NULL,
   fts_config text
 );
 CREATE SEQUENCE subsocia.attribute_uniqueness_id_seq;
@@ -50,10 +51,9 @@ CREATE TABLE subsocia.attribute_uniqueness (
   PRIMARY KEY (attribute_uniqueness_id, attribute_type_id)
 );
 CREATE TABLE subsocia.attribution_type (
+  attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
   asub_type_id integer NOT NULL REFERENCES subsocia.entity_type,
   asuper_type_id integer NOT NULL REFERENCES subsocia.entity_type,
-  attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
-  attribute_mult smallint NOT NULL,
   PRIMARY KEY (attribute_type_id, asub_type_id, asuper_type_id)
 );
 
@@ -72,29 +72,29 @@ CREATE TABLE subsocia.inclusion (
   PRIMARY KEY (dsub_id, dsuper_id)
 );
 CREATE TABLE subsocia.attribution_bool (
-  asub_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
   asuper_id integer NOT NULL REFERENCES subsocia.entity,
+  asub_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
   attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
   value boolean NOT NULL,
   PRIMARY KEY (asub_id, asuper_id, attribute_type_id, value)
 );
 CREATE TABLE subsocia.attribution_int (
-  asub_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
   asuper_id integer NOT NULL REFERENCES subsocia.entity,
+  asub_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
   attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
   value integer NOT NULL,
   PRIMARY KEY (asub_id, asuper_id, attribute_type_id, value)
 );
 CREATE TABLE subsocia.attribution_string (
-  asub_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
   asuper_id integer NOT NULL REFERENCES subsocia.entity,
+  asub_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
   attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
   value text NOT NULL,
   PRIMARY KEY (asub_id, asuper_id, attribute_type_id, value)
 );
 CREATE TABLE subsocia.attribution_string_fts (
-  asub_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
   asuper_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
+  asub_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
   fts_config text NOT NULL,
   fts_vector tsvector NOT NULL,
   PRIMARY KEY (asub_id, asuper_id, fts_config)

@@ -99,7 +99,7 @@ module Make (Base : Subsocia_intf.S) = struct
     let _e_un en =
       lwt top = Entity.top in
       lwt at_unique_name = at_unique_name in
-      lwt es = Entity.asub_eq top at_unique_name en in
+      lwt es = Entity.image1_eq at_unique_name en top in
       match Entity.Set.cardinal es with
       | 1 -> Lwt.return (Entity.Set.min_elt es)
       | 0 -> _fail "Missing initial entity %s" en
@@ -137,7 +137,7 @@ module Make (Base : Subsocia_intf.S) = struct
       lwt super = match super with Some e -> Lwt.return e
 				 | None -> Entity.top in
       lwt at_unique_name = Const.at_unique_name in
-      lwt es = Entity.asub_eq super at_unique_name en in
+      lwt es = Entity.image1_eq at_unique_name en super in
       match Entity.Set.cardinal es with
       | 1 -> Lwt.return (Some (Entity.Set.min_elt es))
       | 0 -> Lwt.return_none
@@ -233,7 +233,7 @@ module Make (Base : Subsocia_intf.S) = struct
     let has_role_for_entity role subj obj =
       lwt access_base = access obj in
       lwt at_role = Const.at_role in
-      lwt access_groups = asub_eq access_base at_role role in
+      lwt access_groups = image1_eq at_role role access_base in
       Entity.Set.exists_s (Entity.is_sub subj) access_groups
 
     let can_view_entity = has_role_for_entity "user"
@@ -266,7 +266,7 @@ module Make (Base : Subsocia_intf.S) = struct
 	let attr_by_succ (Attribute_type.Ex at) =
 	  lwt an = Attribute_type.name' at in
 	  let attr vs = Values.elements vs |> List.map (select_attr an at) in
-	  Entity.asuper_get e at >|= Entity.Map.map attr in
+	  Entity.premapping1 at e >|= Entity.Map.map attr in
 	match_lwt Lwt_list.map_s attr_by_succ ats with
 	| [] -> assert false
 	| m :: ms ->
@@ -310,7 +310,7 @@ module Make (Base : Subsocia_intf.S) = struct
 	  lwt at = Attribute_type.coerce_lwt Type.String at0 in
 	  match tn with
 	  | Some tn ->
-	    Entity.asuper_get e at >>=
+	    Entity.premapping1 at e >>=
 	    Base.Entity.Map.search_s
 	      (fun e' vs ->
 		if Entity.Set.contains e' context then
