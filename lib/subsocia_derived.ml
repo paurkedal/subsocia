@@ -117,21 +117,37 @@ module Make (Base : Subsocia_intf.S) = struct
       lwt is_sub = is_sub subentity superentity in
       if is_sub then Lwt.return_unit else force_dsub subentity superentity
 
-    let getattr_opt e e' at =
-      lwt vs = getattr e e' at in
+    let getattr_opt e' e at =
+      lwt vs = get_values at e e' in
       let n = Values.cardinal vs in
       if n = 0 then Lwt.return_none else
       if n = 1 then Lwt.return (Some (Values.min_elt vs)) else
       lwt an = Attribute_type.name' at in
       _fail "Multiple matches for attribute %s" an
 
-    let getattr_one e e' at =
-      lwt vs = getattr e e' at in
+    let getattr_one e' e at =
+      lwt vs = get_values at e' e in
       let n = Values.cardinal vs in
       if n = 1 then Lwt.return (Values.min_elt vs) else
       lwt an = Attribute_type.name' at in
       if n = 0 then _fail "No matches for attribute %s" an
 	       else _fail "Multiple matches for attribute %s" an
+
+    let add_value at v e e' =
+      let vs = Values.singleton (Attribute_type.value_type at) v in
+      add_values at vs e e'
+
+    let remove_value at v e e' =
+      let vs = Values.singleton (Attribute_type.value_type at) v in
+      remove_values at vs e e'
+
+    let set_value at v e e' =
+      let vs = Values.singleton (Attribute_type.value_type at) v in
+      set_values at vs e e'
+
+    let clear_values at e e' =
+      let vs = Values.empty (Attribute_type.value_type at) in
+      set_values at vs e e'
 
     let of_unique_name ?super en =
       lwt super = match super with Some e -> Lwt.return e
@@ -322,7 +338,7 @@ module Make (Base : Subsocia_intf.S) = struct
 		  | Some name ->
 		    Lwt.return (Some (name ^ " / " ^ Values.min_elt vs)))
 	  | None ->
-	    lwt vs = Entity.getattr e e_top at in
+	    lwt vs = Entity.get_values at e_top e in
 	    if Values.is_empty vs then Lwt.return_none
 				  else Lwt.return (Some (Values.min_elt vs)) in
 

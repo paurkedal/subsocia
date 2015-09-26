@@ -1707,7 +1707,7 @@ module Make (P : Param) = struct
       if xs = [] then Lwt.return_unit else
       with_db ~transaction:true (fun conn -> remove_values' conn at xs e e')
 
-    let replace_values (type a) (at : a B.Attribute_type.t) (xs : a Values.t) e e' =
+    let set_values (type a) (at : a B.Attribute_type.t) (xs : a Values.t) e e' =
       let xs = Values.elements xs in (* TODO: Optimise. *)
       begin match_lwt check_mult at e e' with
       | Multiplicity.May1 | Multiplicity.Must1 ->
@@ -1740,7 +1740,7 @@ module Make (P : Param) = struct
     let getattr e1 e0 at = get_values at e0 e1
     let setattr e1 e0 at xs =
       let xs = Values.of_elements (B.Attribute_type.value_type at) xs in
-      replace_values at xs e0 e1
+      set_values at xs e0 e1
     let addattr e1 e0 at xs =
       let xs = Values.of_elements (B.Attribute_type.value_type at) xs in
       add_values at xs e0 e1

@@ -246,8 +246,8 @@ module type ENTITY = sig
   (** [remove_values at e e'] removes values [xs] from attributions of type
       [at] directed from [e] to [e']. *)
 
-  val replace_values : 'a Attribute_type.t -> 'a Values.t -> t -> t -> unit Lwt.t
-  (** [replace_values at xs e e'] replaces values of attributions from [e] to
+  val set_values : 'a Attribute_type.t -> 'a Values.t -> t -> t -> unit Lwt.t
+  (** [set_values at xs e e'] replaces values of attributions from [e] to
       [e'] of type [at] with [xs]. *)
 
   val image1 : Attribute.predicate -> t -> Set.t Lwt.t
@@ -298,7 +298,7 @@ module type ENTITY = sig
   val getattr : t -> t -> 'a Attribute_type.t -> 'a Values.t Lwt.t
   [@@ocaml.deprecated "Use get_values, but note new argument order."]
   val setattr : t -> t -> 'a Attribute_type.t -> 'a list -> unit Lwt.t
-  [@@ocaml.deprecated "Use replace_values, but note new argument order."]
+  [@@ocaml.deprecated "Use set_values, but note new argument order."]
   val addattr : t -> t -> 'a Attribute_type.t -> 'a list -> unit Lwt.t
   [@@ocaml.deprecated "Use add_values, but note new argument order."]
   val delattr : t -> t -> 'a Attribute_type.t -> 'a list -> unit Lwt.t

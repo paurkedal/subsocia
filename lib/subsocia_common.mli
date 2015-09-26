@@ -91,6 +91,7 @@ module Values : sig
 
   val empty : 'a Type.t -> 'a t
   val is_empty : 'a t -> bool
+  val singleton : 'a Type.t -> 'a -> 'a t
   val add : 'a -> 'a t -> 'a t
   val remove : 'a -> 'a t -> 'a t
   val contains : 'a -> 'a t -> bool

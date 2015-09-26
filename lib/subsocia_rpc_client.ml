@@ -256,10 +256,10 @@ module Make (RPCM : RPCM) = struct
       Raw.remove_values (Attribute_type.id' at)
 			(List.map (fun v -> Value.Ex (t, v)) vs) e0 e1
 
-    let replace_values at vs e0 e1 =
+    let set_values at vs e0 e1 =
       let vs = Values.elements vs in
       let t = Attribute_type.value_type at in
-      Raw.replace_values (Attribute_type.id' at)
+      Raw.set_values (Attribute_type.id' at)
 			 (List.map (fun v -> Value.Ex (t, v)) vs) e0 e1 >>=
       check_uniqueness_error
 
@@ -340,7 +340,7 @@ module Make (RPCM : RPCM) = struct
     let setattr e1 e0 at vs =
       let vs = List.sort compare vs in
       let t = Attribute_type.value_type at in
-      Raw.replace_values (Attribute_type.id' at)
+      Raw.set_values (Attribute_type.id' at)
 			 (List.map (fun v -> Value.Ex (t, v)) vs) e0 e1 >>=
       check_uniqueness_error
     let addattr e1 e0 at vs =
@@ -352,7 +352,7 @@ module Make (RPCM : RPCM) = struct
     let delattr e1 e0 at vs =
       let vs = List.sort compare vs in
       let t = Attribute_type.value_type at in
-      Raw.replace_values (Attribute_type.id' at)
+      Raw.set_values (Attribute_type.id' at)
 			 (List.map (fun v -> Value.Ex (t, v)) vs) e0 e1 >>=
       check_uniqueness_error
     let asub e p = image1 p e

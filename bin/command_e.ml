@@ -50,15 +50,15 @@ module Entity_utils (C : Subsocia_intf.S) = struct
   let add_attributes e (e_ctx, attrs) =
     Lwt_list.iter_s
       (function
-      | `One (C.Attribute.Ex (at, av)) -> Entity.addattr e e_ctx at [av]
+      | `One (C.Attribute.Ex (at, av)) -> Entity.add_value at av e_ctx e
       | `All _ -> assert false)
       attrs
 
   let delete_attributes e (e_ctx, attrs) =
     Lwt_list.iter_s
       (function
-      | `One (C.Attribute.Ex (at, av)) -> Entity.delattr e e_ctx at [av]
-      | `All (Attribute_type.Ex at) -> Entity.setattr e e_ctx at [])
+      | `One (C.Attribute.Ex (at, av)) -> Entity.remove_value at av e_ctx e
+      | `All (Attribute_type.Ex at) -> Entity.clear_values at e_ctx e)
       attrs
 
   let entity_type_of_arg etn =

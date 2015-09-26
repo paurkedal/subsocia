@@ -92,7 +92,7 @@ let set_authenticalia subject auth =
     lwt at_unique_name = Const.at_unique_name in
     lwt auth_top = auth_method_group auth.auth_method in
     Entity.force_sub subject amg >>
-    Entity.setattr subject amg at_unique_name [auth.auth_identity]
+    Entity.set_value at_unique_name auth.auth_identity amg subject
 
 let autoreg_entity_of_authenticalia auth =
   match_lwt Pwt_list.search_s (fun p -> p auth) !updating_autoreg_hook with

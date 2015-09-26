@@ -183,6 +183,10 @@ module Values = struct
     let module S = (val impl t) in
     T ((module S), S.empty)
 
+  let singleton : type a. a Type.t -> a -> a t = fun t v ->
+    let module S = (val impl t) in
+    T ((module S), S.singleton v)
+
   let is_empty (type a) (T ((module S), s) : a t) = S.is_empty s
   let contains (type a) (x : a) (T ((module S), s) : a t) = S.contains x s
   let locate (type a) (x : a) (T ((module S), s) : a t) = S.locate x s

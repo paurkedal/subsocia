@@ -293,14 +293,14 @@ module Server_impl = struct
       let vs1 = Values.of_ordered_elements vt (List.map (Value.coerce vt) vs) in
       C.Entity.remove_values at vs1 et0 et1
 
-    let replace_values (module C : Subsocia_intf.S) at_id vs et0_id et1_id =
+    let set_values (module C : Subsocia_intf.S) at_id vs et0_id et1_id =
       lwt et0 = C.Entity.of_id et0_id in
       lwt et1 = C.Entity.of_id et1_id in
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id at_id in
       let vt = C.Attribute_type.value_type at in
       let vs1 = Values.of_ordered_elements vt (List.map (Value.coerce vt) vs) in
       catch_uniqueness_error (module C)
-			     (fun () -> C.Entity.replace_values at vs1 et0 et1)
+			     (fun () -> C.Entity.set_values at vs1 et0 et1)
 
     let image1 (module C : Subsocia_intf.S) at_enc e_id =
       let module U = Utils (C) in

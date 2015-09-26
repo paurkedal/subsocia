@@ -91,7 +91,7 @@
       let mu = Attribute_type.value_mult at in
       lwt value_frag =
 	let t1 = Attribute_type.value_type at in
-	Entity.getattr lb ub at >|= fun vs ->
+	Entity.get_values at ub lb >|= fun vs ->
 	match List.map (Value.typed_to_string t1) (Values.elements vs) with
 	| [] -> [F.span ~a:[F.a_class ["none"]] [F.pcdata "-"]]
 	| strs -> [F.pcdata (String.concat ", " strs)] in

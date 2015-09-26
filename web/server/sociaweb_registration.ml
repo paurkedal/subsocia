@@ -70,9 +70,9 @@ let () =
   lwt e_new_user = Entity.create et_person in
   lwt e_new_users = Const.e_new_users in
   Entity.force_dsub e_new_user e_new_users >>
-  Entity.setattr e_new_user e_top at_first_name [first_name] >>
-  Entity.setattr e_new_user e_top at_last_name [last_name] >>
-  Entity.setattr e_new_user e_top at_email [email] >>
+  Entity.set_value at_first_name first_name e_top e_new_user >>
+  Entity.set_value at_last_name  last_name  e_top e_new_user >>
+  Entity.set_value at_email      email      e_top e_new_user >>
   set_authenticalia e_new_user auth >>
   Lwt.return @@
     Eliom_tools.F.html

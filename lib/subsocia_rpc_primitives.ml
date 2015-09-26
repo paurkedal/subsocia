@@ -82,7 +82,7 @@ module Entity = struct
 			int32 -> int32 -> int32 list = ""
   external remove_values : int32 -> Value.ex list ->
 			   int32 -> int32 -> unit = ""
-  external replace_values : int32 -> Value.ex list ->
+  external set_values : int32 -> Value.ex list ->
 			    int32 -> int32 -> int32 list = ""
   external image1 : encoded_attribute_predicate -> int32 -> int32 list = ""
   external preimage1 : encoded_attribute_predicate -> int32 -> int32 list = ""

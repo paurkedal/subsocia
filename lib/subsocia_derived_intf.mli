@@ -100,6 +100,11 @@ module type S = sig
     val getattr_opt : t -> t -> 'a Attribute_type.t -> 'a option Lwt.t
     val getattr_one : t -> t -> 'a Attribute_type.t -> 'a Lwt.t
 
+    val add_value : 'a Attribute_type.t -> 'a -> t -> t -> unit Lwt.t
+    val remove_value : 'a Attribute_type.t -> 'a -> t -> t -> unit Lwt.t
+    val set_value : 'a Attribute_type.t -> 'a -> t -> t -> unit Lwt.t
+    val clear_values : 'a Attribute_type.t -> t -> t -> unit Lwt.t
+
     val of_unique_name : ?super: t -> string -> t option Lwt.t
 
     module Dsuper : ITERABLE with type t := t

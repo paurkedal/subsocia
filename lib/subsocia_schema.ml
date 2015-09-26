@@ -119,9 +119,11 @@ module Make (C : Subsocia_intf.S) = struct
 	| None -> lwt_failure_f "No attribute type is named %s." an
 	| Some (C.Attribute_type.Ex at) ->
 	  let t = C.Attribute_type.value_type at in
-	  let f = match f with `Add -> C.Entity.addattr
-			     | `Set -> C.Entity.setattr in
-	  f e e' at (List.map (Value.typed_of_string t) vs))
+	  let f = match f with `Add -> C.Entity.add_values
+			     | `Set -> C.Entity.set_values in
+	  let vs = List.map (Value.typed_of_string t) vs in
+	  let vs = Values.of_elements t vs in
+	  f at vs e' e)
       attrs
 
   let del_helper e sel =
@@ -136,10 +138,14 @@ module Make (C : Subsocia_intf.S) = struct
 	| None -> lwt_failure_f "No attribute type is named %s." an
 	| Some (C.Attribute_type.Ex at) ->
 	  match vs_opt with
-	  | None -> C.Entity.setattr e e' at []
+	  | None ->
+	    let vs = Values.empty (C.Attribute_type.value_type at) in
+	    C.Entity.set_values at vs e' e
 	  | Some vs ->
 	    let t = C.Attribute_type.value_type at in
-	    C.Entity.delattr e e' at (List.map (Value.typed_of_string t) vs))
+	    let vs = List.map (Value.typed_of_string t) vs in
+	    let vs = Values.of_elements t vs in
+	    C.Entity.remove_values at vs e' e)
       attrs
 
   let exec_mod e = function
