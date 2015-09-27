@@ -112,6 +112,8 @@ module Q = struct
 
   (* Attribute Uniqueness *)
 
+  let au_all =
+    q "SELECT attribute_uniqueness_id FROM @attribute_uniqueness"
   let au_affected =
     q "SELECT attribute_type_id FROM @attribute_uniqueness \
        WHERE attribute_uniqueness_id = ? ORDER BY attribute_type_id"
@@ -751,6 +753,10 @@ module Make (P : Param) = struct
     let of_id = Lwt.return
     let id au = au
 
+    let all, all_cache = memo_1lwt @@ fun () ->
+      with_db @@ fun (module C : CONNECTION) ->
+      C.fold Q.au_all C.Tuple.(fun t -> Set.add (int32 0 t)) [||] Set.empty
+
     let affecting', affecting_cache = memo_1lwt @@ fun at_id ->
       with_db @@ fun (module C : CONNECTION) ->
       C.fold Q.au_affecting C.Tuple.(fun t -> Set.add (int32 0 t))
@@ -789,12 +795,14 @@ module Make (P : Param) = struct
 	       None
       end >|= fun au_opt ->
       assert (au_opt <> None);
+      Cache.clear all_cache;
       Cache.clear affecting_cache;
       Option.get au_opt
 
     let relax au =
       with_db @@ fun (module C : CONNECTION) ->
       C.exec Q.au_relax C.Param.[|int32 au|] >|= fun () ->
+      Cache.clear all_cache;
       Cache.remove affected_cache au;
       Cache.clear affecting_cache
   end

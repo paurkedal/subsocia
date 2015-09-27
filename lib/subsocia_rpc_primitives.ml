@@ -28,6 +28,7 @@ module Attribute_uniqueness = struct
   external force : int32 list -> int32 = ""
   external relax : int32 -> unit = ""
   external find : int32 list -> int32 option = ""
+  external all : unit -> int32 list = ""
   external affecting : int32 -> int32 list = ""
   external affected : int32 -> int32 list = ""
 end

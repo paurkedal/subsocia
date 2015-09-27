@@ -106,6 +106,10 @@ module Server_impl = struct
       C.Attribute_uniqueness.find >|=
       Option.map C.Attribute_uniqueness.id
 
+    let all (module C : Subsocia_intf.S) () =
+      C.Attribute_uniqueness.all () >|=
+      C.Attribute_uniqueness.Set.elements *> List.map C.Attribute_uniqueness.id
+
     let affecting (module C : Subsocia_intf.S) at_id =
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id at_id in
       C.Attribute_uniqueness.affecting at >|=

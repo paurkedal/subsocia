@@ -99,6 +99,7 @@ module Make (RPCM : RPCM) = struct
     let force s = Raw.force (Attribute_type.decode_set s)
     let relax u = Raw.relax u
     let find s = Raw.find (Attribute_type.decode_set s)
+    let all () = Raw.all () >>= encode_set
     let affecting at = Raw.affecting (Attribute_type.id at) >>= encode_set
     let affected u = Raw.affected u >>= Attribute_type.encode_set
   end

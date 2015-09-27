@@ -61,6 +61,7 @@ module type ATTRIBUTE_UNIQUENESS = sig
   val force : Attribute_type.Set.t -> t Lwt.t
   val relax : t -> unit Lwt.t
   val find : Attribute_type.Set.t -> t option Lwt.t
+  val all : unit -> Set.t Lwt.t
   val affecting : 'a Attribute_type.t -> Set.t Lwt.t
   val affected : t -> Attribute_type.Set.t Lwt.t
 end
