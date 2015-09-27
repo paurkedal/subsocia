@@ -19,6 +19,7 @@ open Caqti_query
 open Printf
 open Subsocia_common
 open Subsocia_intf
+open Unprime_list
 
 let table_for_type : type a. a Type.t -> string = function
   | Type.Bool -> "attribution_bool"
@@ -36,6 +37,7 @@ module Make (Arg : Arg) = struct
   open Arg
 
   let table_for_predicate = function
+    | Attribute.Inter _ -> assert false
     | Attribute.Present at -> table_for_type (Attribute_type.value_type at)
     | Attribute.Eq (at, _) -> table_for_type (Attribute_type.value_type at)
     | Attribute.In (at, _) -> table_for_type (Attribute_type.value_type at)
@@ -100,6 +102,7 @@ module Make (Arg : Arg) = struct
     let do_cond i pred =
       Buffer.add_string buf (if i = 0 then " WHERE " else " AND ");
       match pred with
+      | Attribute.Inter _ -> assert false
       | Attribute.Present at -> do_cond0 i at
       | Attribute.Eq (at, x) -> do_cond1 i "=" at x
       | Attribute.In (at, xs) -> do_in i at xs
@@ -112,18 +115,36 @@ module Make (Arg : Arg) = struct
     List.iteri do_join preds;
     List.iteri do_cond preds
 
-  let select_asub_conj id ps =
+  let rec flatten = function
+    | Attribute.Inter ps -> List.flatten_map flatten ps
+    | p -> [p]
+
+  let select_image p ids =
     let buf = Buffer.create 512 in
     Buffer.add_string buf "SELECT q0.output_id FROM ";
-    bprint_predicate_conj buf ps;
-    bprintf buf " AND q0.input_id = %ld" id;
+    bprint_predicate_conj buf (flatten p);
+    begin match ids with
+    | [] -> bprintf buf " AND false" (* FIXME *)
+    | [id] -> bprintf buf " AND q0.input_id = %ld" id
+    | id :: ids ->
+      bprintf buf " AND (q0.input_id = %ld" id;
+      List.iter (bprintf buf " OR q0.input_id = %ld") ids;
+      Buffer.add_char buf ')'
+    end;
     oneshot_sql (Buffer.contents buf)
 
-  let select_asuper_conj id ps =
+  let select_preimage p ids =
     let buf = Buffer.create 512 in
     Buffer.add_string buf "SELECT q0.input_id FROM ";
-    bprint_predicate_conj buf ps;
-    bprintf buf " AND q0.output_id = %ld" id;
+    bprint_predicate_conj buf (flatten p);
+    begin match ids with
+    | [] -> bprintf buf " AND false" (* FIXME *)
+    | [id] -> bprintf buf " AND q0.output_id = %ld" id
+    | id :: ids ->
+      bprintf buf " AND (q0.output_id = %ld" id;
+      List.iter (bprintf buf " OR q0.output_id = %ld") ids;
+      Buffer.add_char buf ')'
+    end;
     oneshot_sql (Buffer.contents buf)
 
 end

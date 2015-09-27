@@ -17,6 +17,7 @@
 open Subsocia_common
 
 type encoded_attribute_predicate =
+  | Eap_inter of encoded_attribute_predicate list
   | Eap_present of int32
   | Eap_eq of int32 * Value.ex
   | Eap_in of int32 * Values.ex

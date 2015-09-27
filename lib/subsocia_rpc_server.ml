@@ -22,7 +22,9 @@ open Unprime_list
 open Unprime_option
 
 module Utils (C : Subsocia_intf.S) = struct
-  let decode_eap = function
+  let rec decode_eap = function
+    | Eap_inter eaps ->
+      Lwt_list.map_s decode_eap eaps >|= fun ps -> C.Attribute.Inter ps
     | Eap_present e_id ->
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id e_id in
       Lwt.return (C.Attribute.Present at)

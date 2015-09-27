@@ -72,6 +72,7 @@ module type ATTRIBUTE = sig
   type ex = Ex : 'a Attribute_type.t * 'a -> ex
 
   type predicate =
+    | Inter : predicate list -> predicate
     | Present : 'a Attribute_type.t -> predicate
     | Eq : 'a Attribute_type.t * 'a -> predicate
     | In : 'a Attribute_type.t * 'a Values.t -> predicate

@@ -646,6 +646,7 @@ module B = struct
   module Attribute = struct
     type ex = Ex : 'a Attribute_type.t * 'a -> ex
     type predicate =
+      | Inter : predicate list -> predicate
       | Present : 'a Attribute_type.t -> predicate
       | Eq : 'a Attribute_type.t * 'a -> predicate
       | In : 'a Attribute_type.t * 'a Values.t -> predicate
@@ -1108,16 +1109,19 @@ module Make (P : Param) = struct
       | Type.String -> get_values_string e e' at.B.Attribute_type.at_id
 
     (* TODO: Cache? *)
-    let asub_conj e ps =
+    let image_generic p es =
       with_db @@ fun (module C : CONNECTION) ->
-      let q = Attribution_sql.select_asub_conj e ps in
+      let q = Attribution_sql.select_image p es in
       C.fold q (fun t -> Set.add (C.Tuple.int32 0 t)) [||] Set.empty
 
     (* TODO: Cache? *)
-    let asuper_conj e ps =
+    let preimage_generic p es =
       with_db @@ fun (module C : CONNECTION) ->
-      let q = Attribution_sql.select_asuper_conj e ps in
+      let q = Attribution_sql.select_preimage p es in
       C.fold q (fun t -> Set.add (C.Tuple.int32 0 t)) [||] Set.empty
+
+    let asub_conj e ps = image_generic (B.Attribute.Inter ps) [e]
+    let asuper_conj e ps = preimage_generic (B.Attribute.Inter ps) [e]
 
     let asub_present_bool, asub_present_bool_cache =
       memo_2lwt @@ fun (e, at_id) ->
@@ -1209,6 +1213,7 @@ module Make (P : Param) = struct
 
     let image1 p e =
       match p with
+      | B.Attribute.Inter _ | B.Attribute.In _ -> image_generic p [e]
       | B.Attribute.Present at ->
 	begin match B.Attribute_type.value_type at with
 	| Type.Bool -> asub_present_bool e at.B.Attribute_type.at_id
@@ -1216,7 +1221,6 @@ module Make (P : Param) = struct
 	| Type.String -> asub_present_string e at.B.Attribute_type.at_id
 	end
       | B.Attribute.Eq (at, x) -> asub1 Q.ap1_eq at x e
-      | B.Attribute.In _ as p -> asub_conj e [p]
       | B.Attribute.Leq (at, x) -> asub1 Q.ap1_leq at x e
       | B.Attribute.Geq (at, x) -> asub1 Q.ap1_geq at x e
       | B.Attribute.Between (at, x0, x1) -> asub2_between e at x0 x1
@@ -1316,6 +1320,7 @@ module Make (P : Param) = struct
 
     let preimage1 p e =
       match p with
+      | B.Attribute.Inter _ | B.Attribute.In _ -> preimage_generic p [e]
       | B.Attribute.Present at ->
 	begin match B.Attribute_type.value_type at with
 	| Type.Bool -> asuper_present_bool e at.B.Attribute_type.at_id
@@ -1323,7 +1328,6 @@ module Make (P : Param) = struct
 	| Type.String -> asuper_present_string e at.B.Attribute_type.at_id
 	end
       | B.Attribute.Eq (at, x) -> asuper1 Q.ap1_eq at x e
-      | B.Attribute.In _ as p -> asuper_conj e [p]
       | B.Attribute.Leq (at, x) -> asuper1 Q.ap1_leq at x e
       | B.Attribute.Geq (at, x) -> asuper1 Q.ap1_geq at x e
       | B.Attribute.Between (at, x0, x1) -> asuper2_between e at x0 x1

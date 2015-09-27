@@ -107,6 +107,7 @@ module Make (RPCM : RPCM) = struct
   module Attribute = struct
     type ex = Ex : 'a Attribute_type.t * 'a -> ex
     type predicate =
+      | Inter : predicate list -> predicate
       | Present : 'a Attribute_type.t -> predicate
       | Eq : 'a Attribute_type.t * 'a -> predicate
       | In : 'a Attribute_type.t * 'a Values.t -> predicate
@@ -264,7 +265,8 @@ module Make (RPCM : RPCM) = struct
 		     (List.map (fun v -> Value.Ex (t, v)) vs) e0 e1 >>=
       check_uniqueness_error
 
-    let encode_predicate = function
+    let rec encode_predicate = function
+      | Attribute.Inter ps -> Eap_inter (List.map encode_predicate ps)
       | Attribute.Present at -> Eap_present (Attribute_type.id at)
       | Attribute.Eq (at, x) ->
 	let t = Attribute_type.value_type at in

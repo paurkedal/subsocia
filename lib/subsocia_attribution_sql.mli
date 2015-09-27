@@ -25,6 +25,6 @@ end
 module Make (Arg : Arg) : sig
   open Arg
 
-  val select_asub_conj : int32 -> Attribute.predicate list -> query
-  val select_asuper_conj : int32 -> Attribute.predicate list -> query
+  val select_image : Attribute.predicate -> int32 list -> query
+  val select_preimage : Attribute.predicate -> int32 list -> query
 end
