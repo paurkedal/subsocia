@@ -167,11 +167,11 @@ module Make (C : Subsocia_intf.S) = struct
   let exec_schema_entry = function
     | `At_create (atn, tn) ->
       let Type.Ex t = Type.of_string tn in
-      C.Attribute_type.create' t atn >|= fun _ -> ()
+      C.Attribute_type.create t atn >|= fun _ -> ()
     | `At_delete atn ->
       C.Attribute_type.of_name atn >>=
       Pwt_option.iter_s
-	(fun (C.Attribute_type.Ex at) -> C.Attribute_type.delete' at)
+	(fun (C.Attribute_type.Ex at) -> C.Attribute_type.delete at)
     | `Au_force atns ->
       lwt ats = Lwt_list.map_s req_at atns in
       let ats = List.fold C.Attribute_type.Set.add ats

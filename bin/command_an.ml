@@ -60,7 +60,7 @@ let an_list () = run0 @@ fun (module C) ->
   C.Entity_type.allowed_attributions () >>=
   Lwt_list.map_s @@ fun (C.Attribute_type.Ex at, et0, et1) ->
   let mu = C.Attribute_type.value_mult at in
-  lwt atn = C.Attribute_type.name' at in
+  lwt atn = C.Attribute_type.name at in
   lwt etn0 = C.Entity_type.name et0 in
   lwt etn1 = C.Entity_type.name et1 in
   Lwt_io.printlf "%s %s %s %s" (Multiplicity.to_string mu) atn etn0 etn1

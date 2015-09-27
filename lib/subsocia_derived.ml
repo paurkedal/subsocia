@@ -46,7 +46,7 @@ module Make (Base : Subsocia_intf.S) = struct
       match coerce t at0 with
       | Some at -> Lwt.return at
       | None ->
-	lwt an = Attribute_type.name' at1 in
+	lwt an = Attribute_type.name at1 in
 	let tn = Type.to_string (Attribute_type.value_type at1) in
 	let tn' = Type.to_string t in
 	_fail "Wrong type for %s : %s, expected %s." an tn tn'
@@ -122,14 +122,14 @@ module Make (Base : Subsocia_intf.S) = struct
       let n = Values.cardinal vs in
       if n = 0 then Lwt.return_none else
       if n = 1 then Lwt.return (Some (Values.min_elt vs)) else
-      lwt an = Attribute_type.name' at in
+      lwt an = Attribute_type.name at in
       _fail "Multiple matches for attribute %s" an
 
     let getattr_one e' e at =
       lwt vs = get_values at e' e in
       let n = Values.cardinal vs in
       if n = 1 then Lwt.return (Values.min_elt vs) else
-      lwt an = Attribute_type.name' at in
+      lwt an = Attribute_type.name at in
       if n = 0 then _fail "No matches for attribute %s" an
 	       else _fail "Multiple matches for attribute %s" an
 
@@ -280,7 +280,7 @@ module Make (Base : Subsocia_intf.S) = struct
 	  | Type.String -> fun v ->
 	    Select_adjacent (Asub (Attribute_eq (an, v))) in
 	let attr_by_succ (Attribute_type.Ex at) =
-	  lwt an = Attribute_type.name' at in
+	  lwt an = Attribute_type.name at in
 	  let attr vs = Values.elements vs |> List.map (select_attr an at) in
 	  Entity.premapping1 at e >|= Entity.Map.map attr in
 	match_lwt Lwt_list.map_s attr_by_succ ats with

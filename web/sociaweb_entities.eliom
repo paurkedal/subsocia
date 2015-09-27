@@ -87,7 +87,7 @@
     lwt ats = Entity_type.allowed_attributes ubt lbt in
     let ats = Attribute_type.Set.elements ats in
     let render_tr (Attribute_type.Ex at) =
-      lwt an = Attribute_type.name' at in
+      lwt an = Attribute_type.name at in
       let mu = Attribute_type.value_mult at in
       lwt value_frag =
 	let t1 = Attribute_type.value_type at in

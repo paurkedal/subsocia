@@ -77,16 +77,16 @@ module Server_impl = struct
 
     let of_id (module C : Subsocia_intf.S) id =
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id id in
-      lwt name = C.Attribute_type.name' at in
+      lwt name = C.Attribute_type.name at in
       Lwt.return (name, Type.Ex (C.Attribute_type.value_type at),
 		  C.Attribute_type.value_mult at)
 
     let create (module C : Subsocia_intf.S) (Type.Ex vt) mult name =
-      C.Attribute_type.create' ~mult vt name >|= C.Attribute_type.id'
+      C.Attribute_type.create ~mult vt name >|= C.Attribute_type.id'
 
     let delete (module C : Subsocia_intf.S) id =
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id id in
-      C.Attribute_type.delete' at
+      C.Attribute_type.delete at
   end
 
   module Attribute_uniqueness = struct
