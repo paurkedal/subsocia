@@ -55,8 +55,7 @@ module Make (RPCM : RPCM) = struct
     let of_id at_id =
       lwt at_name, Type.Ex at_type, at_mult = Raw.of_id at_id in
       Lwt.return (Ex {at_id; at_name; at_type; at_mult})
-    let id (Ex at) = at.at_id
-    let id' at = at.at_id
+    let id at = at.at_id
 
     let decode_set s = List.map (fun (Ex {at_id}) -> at_id) (Set.elements s)
     let encode_set ids = Lwt_list.map_s of_id ids >|= Set.of_ordered_elements
@@ -65,21 +64,22 @@ module Make (RPCM : RPCM) = struct
       Raw.of_name at_name >|=
       Option.map (fun (at_id, Type.Ex at_type, at_mult) ->
 		  Ex {at_id; at_name; at_type; at_mult})
-    let name (Ex at) = Lwt.return at.at_name
-    let name' at = Lwt.return at.at_name
+    let name at = Lwt.return at.at_name
     let value_type at = at.at_type
     let value_mult at = at.at_mult
-    let create' ?(mult = Multiplicity.May) vt at_name =
+    let create ?(mult = Multiplicity.May) vt at_name =
       Raw.create (Type.Ex vt) mult at_name >|= fun at_id ->
       {at_id; at_name; at_type = vt; at_mult = mult}
-    let delete' at = Raw.delete at.at_id
+    let delete at = Raw.delete at.at_id
 
     (**/**)
     type t0 = ex
     let type0 (Ex at) = Type.Ex at.at_type
     let type1 = value_type
-    let create (Type.Ex vt) name = create' vt name >|= fun at -> Ex at
-    let delete (Ex at) = delete' at
+    let id' = id
+    let name' = name
+    let create' = create
+    let delete' = delete
   end
 
   module Attribute_uniqueness = struct
@@ -99,7 +99,7 @@ module Make (RPCM : RPCM) = struct
     let force s = Raw.force (Attribute_type.decode_set s)
     let relax u = Raw.relax u
     let find s = Raw.find (Attribute_type.decode_set s)
-    let affecting at = Raw.affecting (Attribute_type.id' at) >>= encode_set
+    let affecting at = Raw.affecting (Attribute_type.id at) >>= encode_set
     let affected u = Raw.affected u >>= Attribute_type.encode_set
   end
 
@@ -162,8 +162,8 @@ module Make (RPCM : RPCM) = struct
     let disallow_dsub et0 et1 =
       Raw.disallow_dsub et0 et1
 
-    let can_attribute at lbt ubt =
-      Raw.can_attribute (Attribute_type.id' at) lbt ubt
+    let can_attribute at et0 et1 =
+      Raw.can_attribute (Attribute_type.id at) et0 et1
 
     let allowed_attributes lbt ubt =
       Raw.allowed_attributes lbt ubt >>= Lwt_list.map_s Attribute_type.of_id >|=
@@ -233,7 +233,7 @@ module Make (RPCM : RPCM) = struct
 
     let get_values at et0 et1 =
       let vt = Attribute_type.value_type at in
-      Raw.get_values (Attribute_type.id' at) et0 et1 >|=
+      Raw.get_values (Attribute_type.id at) et0 et1 >|=
       List.map (Value.coerce vt) *> Values.of_ordered_elements vt
 
     let check_uniqueness_error = function
@@ -246,43 +246,42 @@ module Make (RPCM : RPCM) = struct
     let add_values at vs e0 e1 =
       let vs = Values.elements vs in
       let t = Attribute_type.value_type at in
-      Raw.add_values (Attribute_type.id' at)
+      Raw.add_values (Attribute_type.id at)
 		     (List.map (fun v -> Value.Ex (t, v)) vs) e0 e1 >>=
       check_uniqueness_error
 
     let remove_values at vs e0 e1 =
       let vs = Values.elements vs in
       let t = Attribute_type.value_type at in
-      Raw.remove_values (Attribute_type.id' at)
+      Raw.remove_values (Attribute_type.id at)
 			(List.map (fun v -> Value.Ex (t, v)) vs) e0 e1
 
     let set_values at vs e0 e1 =
       let vs = Values.elements vs in
       let t = Attribute_type.value_type at in
-      Raw.set_values (Attribute_type.id' at)
-			 (List.map (fun v -> Value.Ex (t, v)) vs) e0 e1 >>=
+      Raw.set_values (Attribute_type.id at)
+		     (List.map (fun v -> Value.Ex (t, v)) vs) e0 e1 >>=
       check_uniqueness_error
 
     let encode_predicate = function
-      | Attribute.Present at -> Eap_present (Attribute_type.(id (Ex at)))
+      | Attribute.Present at -> Eap_present (Attribute_type.id at)
       | Attribute.Eq (at, x) ->
 	let t = Attribute_type.value_type at in
-	Eap_eq (Attribute_type.(id' at), Value.Ex (t, x))
+	Eap_eq (Attribute_type.id at, Value.Ex (t, x))
       | Attribute.In (at, vs) ->
 	let t = Attribute_type.value_type at in
-	Eap_in (Attribute_type.(id' at), Values.Ex (t, vs))
+	Eap_in (Attribute_type.id at, Values.Ex (t, vs))
       | Attribute.Leq (at, x) ->
 	let t = Attribute_type.value_type at in
-	Eap_leq (Attribute_type.(id' at), Value.Ex (t, x))
+	Eap_leq (Attribute_type.id at, Value.Ex (t, x))
       | Attribute.Geq (at, x) ->
 	let t = Attribute_type.value_type at in
-	Eap_geq (Attribute_type.(id' at), Value.Ex (t, x))
+	Eap_geq (Attribute_type.id at, Value.Ex (t, x))
       | Attribute.Between (at, x0, x1) ->
 	let t = Attribute_type.value_type at in
-	Eap_between (Attribute_type.(id (Ex at)),
-		     Value.Ex (t, x0), Value.Ex (t, x1))
+	Eap_between (Attribute_type.id at, Value.Ex (t, x0), Value.Ex (t, x1))
       | Attribute.Search (at, x) ->
-	Eap_search (Attribute_type.(id (Ex at)), x)
+	Eap_search (Attribute_type.id at, x)
       | Attribute.Search_fts x ->
 	Eap_search_fts x
 
@@ -300,12 +299,12 @@ module Make (RPCM : RPCM) = struct
 
     let image1_eq at av e =
       let t = Attribute_type.value_type at in
-      Raw.image1_eq (Attribute_type.id' at) (Value.Ex (t, av)) e
+      Raw.image1_eq (Attribute_type.id at) (Value.Ex (t, av)) e
 	>|= Set.of_ordered_elements
 
     let preimage1_eq at av e =
       let t = Attribute_type.value_type at in
-      Raw.preimage1_eq (Attribute_type.id' at) (Value.Ex (t, av)) e
+      Raw.preimage1_eq (Attribute_type.id at) (Value.Ex (t, av)) e
 	>|= Set.of_ordered_elements
 
     let image1_fts = Raw.image1_fts
@@ -313,7 +312,7 @@ module Make (RPCM : RPCM) = struct
 
     let mapping1 at e =
       let t = Attribute_type.value_type at in
-      Raw.mapping1 (Attribute_type.id' at) e >|= fun bindings ->
+      Raw.mapping1 (Attribute_type.id at) e >|= fun bindings ->
       List.fold
 	(fun (e, v) m ->
 	  let vs = try Map.find e m with Not_found -> Values.empty t in
@@ -322,7 +321,7 @@ module Make (RPCM : RPCM) = struct
 
     let premapping1 at e =
       let t = Attribute_type.value_type at in
-      Raw.premapping1 (Attribute_type.id' at) e >|= fun bindings ->
+      Raw.premapping1 (Attribute_type.id at) e >|= fun bindings ->
       List.fold
 	(fun (e, v) m ->
 	  let vs = try Map.find e m with Not_found -> Values.empty t in
@@ -340,19 +339,19 @@ module Make (RPCM : RPCM) = struct
     let setattr e1 e0 at vs =
       let vs = List.sort compare vs in
       let t = Attribute_type.value_type at in
-      Raw.set_values (Attribute_type.id' at)
-			 (List.map (fun v -> Value.Ex (t, v)) vs) e0 e1 >>=
+      Raw.set_values (Attribute_type.id at)
+		     (List.map (fun v -> Value.Ex (t, v)) vs) e0 e1 >>=
       check_uniqueness_error
     let addattr e1 e0 at vs =
       let vs = List.sort compare vs in
       let t = Attribute_type.value_type at in
-      Raw.add_values (Attribute_type.id' at)
+      Raw.add_values (Attribute_type.id at)
 		     (List.map (fun v -> Value.Ex (t, v)) vs) e0 e1 >>=
       check_uniqueness_error
     let delattr e1 e0 at vs =
       let vs = List.sort compare vs in
       let t = Attribute_type.value_type at in
-      Raw.set_values (Attribute_type.id' at)
+      Raw.set_values (Attribute_type.id at)
 			 (List.map (fun v -> Value.Ex (t, v)) vs) e0 e1 >>=
       check_uniqueness_error
     let asub e p = image1 p e

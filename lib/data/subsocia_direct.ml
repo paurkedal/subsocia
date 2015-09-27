@@ -690,10 +690,8 @@ module Make (P : Param) = struct
   module Attribute_type = struct
     open B.Attribute_type
 
-    let id (Ex at) = at.at_id
-    let id' at = at.at_id
-    let name (Ex at) = Lwt.return at.at_name
-    let name' at = Lwt.return at.at_name
+    let id at = at.at_id
+    let name at = Lwt.return at.at_name
 
     let of_id', of_id_cache = Cache.memo_lwt_conn @@ fun ?conn at_id ->
       with_db ?conn @@ fun (module C : CONNECTION) ->
@@ -720,8 +718,8 @@ module Make (P : Param) = struct
 	  (Ex {at_id; at_name; at_value_type; at_value_mult; at_beacon})
       end
 
-    let create' : type a. ?mult: Multiplicity.t -> a Type.t -> string ->
-		  a t Lwt.t =
+    let create : type a. ?mult: Multiplicity.t -> a Type.t -> string ->
+		 a t Lwt.t =
 	fun ?(mult = Multiplicity.May) vt at_name ->
       let fts =
 	match vt with
@@ -736,14 +734,15 @@ module Make (P : Param) = struct
 			int (Multiplicity.to_int mult); option string fts|])
 	>>= of_id' ~conn >|= assert_coerce vt
 
-    let create (Type.Ex vt) name = create' vt name >|= fun at -> Ex at
-
-    let delete' at =
+    let delete at =
       with_db @@ fun (module C : CONNECTION) ->
       C.exec Q.at_delete C.Param.([|int32 at.at_id|])
 
     (**/**)
-    let delete (Ex at) = delete' at
+    let id' = id
+    let name' = name
+    let create' = create
+    let delete' = delete
   end
 
   module Attribute_uniqueness = struct
@@ -784,7 +783,8 @@ module Make (P : Param) = struct
 	with_db @@ fun (module C : CONNECTION) ->
 	C.fold (Q.au_force (B.Attribute_type.Set.cardinal atset))
 	       C.Tuple.(fun t _ -> Some (int32 0 t))
-	       (Array.map (C.Param.int32 *< Attribute_type.id)
+	       (Array.map (fun (B.Attribute_type.Ex at) ->
+			    C.Param.int32 (Attribute_type.id at))
 			  (Array.of_list ats))
 	       None
       end >|= fun au_opt ->

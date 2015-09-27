@@ -26,32 +26,25 @@ module type ATTRIBUTE_TYPE = sig
   module Set : SET with type elt = ex
   module Map : MAP with type key = ex
 
-  val of_name : string -> ex option Lwt.t
-  val name' : 'a t -> string Lwt.t
   val of_id : int32 -> ex Lwt.t
-  val id' : 'a t -> int32
+  val of_name : string -> ex option Lwt.t
+  val id : 'a t -> int32
+  val name : 'a t -> string Lwt.t
   val value_type : 'a t -> 'a Type.t
   val value_mult : 'a t -> Multiplicity.t
-  val create' : ?mult: Multiplicity.t -> 'a Type.t -> string -> 'a t Lwt.t
-  val delete' : 'a t -> unit Lwt.t
+  val create : ?mult: Multiplicity.t -> 'a Type.t -> string -> 'a t Lwt.t
+  val delete : 'a t -> unit Lwt.t
 
   (**/**)
   type 'a t1 = 'a t		[@@ocaml.deprecated "Renamed to t"]
   type t0 = ex			[@@ocaml.deprecated "Renamed to ex"]
   val type0 : ex -> Type.ex	[@@ocaml.deprecated "Use value_type"]
   val type1 : 'a t -> 'a Type.t	[@@ocaml.deprecated "Renamed to value_type"]
-  val name : ex -> string Lwt.t
-  [@@ocaml.deprecated "The type of this function will change; \
-		       the new version is available as name'"]
-  val id : ex -> int32
-  [@@ocaml.deprecated "The type of this function will change; \
-		       the new version is available as id'"]
-  val create : Type.ex -> string -> ex Lwt.t
-  [@@ocaml.deprecated "The type of this function will change; \
-		       the new version is available as create'"]
-  val delete : ex -> unit Lwt.t
-  [@@ocaml.deprecated "The type of this function will change; \
-		       the new version is available as delete'"]
+  val name' : 'a t -> string Lwt.t	[@@ocaml.deprecated "Alias for name."]
+  val id' : 'a t -> int32		[@@ocaml.deprecetad "Alias for id."]
+  val create' : ?mult: Multiplicity.t -> 'a Type.t -> string -> 'a t Lwt.t
+					[@@ocaml.deprecated "Alias for create."]
+  val delete' : 'a t -> unit Lwt.t	[@@ocaml.deprecated "Alias for delete."]
 end
 
 module type ATTRIBUTE_UNIQUENESS = sig
