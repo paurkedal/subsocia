@@ -183,19 +183,70 @@ module Make (C : Subsocia_intf.S) = struct
       | None ->
 	C.Attribute_uniqueness.force ats >|= ignore
       end
+    | `Au_relax atns ->
+      lwt ats = Lwt_list.map_s req_at atns in
+      let ats = List.fold C.Attribute_type.Set.add ats
+			  C.Attribute_type.Set.empty in
+      begin match_lwt C.Attribute_uniqueness.find ats with
+      | Some au -> C.Attribute_uniqueness.relax au
+      | None -> Lwt_log.warning "Not constrained."
+      end
     | `Et_create (etn, allows) ->
       lwt et = C.Entity_type.create etn in
       Lwt_list.iter_s (exec_et_adjust et) allows
     | `Et_modify (etn, adjusts) ->
-      begin match_lwt C.Entity_type.of_name etn with
-      | Some et ->
-	Lwt_list.iter_s (exec_et_adjust et) adjusts
-      | None ->
-	lwt_failure_f "No entity type is called %s." etn
-      end
+      lwt et = req_et etn in
+      Lwt_list.iter_s (exec_et_adjust et) adjusts
     | `Et_delete etn ->
       lwt et = C.Entity_type.of_name etn in
       Pwt_option.iter_s C.Entity_type.delete et
+    | `Et_allow_dsub (etn0, etn1) ->
+      lwt et0 = req_et etn0 in
+      lwt et1 = req_et etn1 in
+      C.Entity_type.allow_dsub Multiplicity.May Multiplicity.May et0 et1
+    | `Et_disallow_dsub (etn0, etn1) ->
+      lwt et0 = req_et etn0 in
+      lwt et1 = req_et etn1 in
+      C.Entity_type.disallow_dsub et0 et1
+    | `Et_allow_attribution (atn, etn0, etn1) ->
+      lwt C.Attribute_type.Ex at = req_at atn in
+      lwt et0 = req_et etn0 in
+      lwt et1 = req_et etn1 in
+      C.Entity_type.allow_attribution at et0 et1
+    | `Et_disallow_attribution (atn, etn0, etn1) ->
+      lwt C.Attribute_type.Ex at = req_at atn in
+      lwt et0 = req_et etn0 in
+      lwt et1 = req_et etn1 in
+      C.Entity_type.disallow_attribution at et0 et1
+    | `E_force_dsub (sel0, sel1) ->
+      lwt e0 = Su.select_one sel0 in
+      lwt e1 = Su.select_one sel1 in
+      C.Entity.force_dsub e0 e1
+    | `E_relax_dsub (sel0, sel1) ->
+      lwt e0 = Su.select_one sel0 in
+      lwt e1 = Su.select_one sel1 in
+      C.Entity.relax_dsub e0 e1
+    | `E_add_value (atn, vr, sel0, sel1) ->
+      lwt C.Attribute_type.Ex at = req_at atn in
+      let vt = C.Attribute_type.value_type at in
+      let v = Value.typed_of_string vt vr in
+      lwt e0 = Su.select_one sel0 in
+      lwt e1 = Su.select_one sel1 in
+      let vs = Values.singleton (C.Attribute_type.value_type at) v in
+      C.Entity.add_values at vs e0 e1
+    | `E_remove_value (atn, vr, sel0, sel1) ->
+      lwt C.Attribute_type.Ex at = req_at atn in
+      let vt = C.Attribute_type.value_type at in
+      let v = Value.typed_of_string vt vr in
+      lwt e0 = Su.select_one sel0 in
+      lwt e1 = Su.select_one sel1 in
+      let vs = Values.singleton (C.Attribute_type.value_type at) v in
+      C.Entity.remove_values at vs e0 e1
+    | `E_create (sel, etn) ->
+      lwt et = req_et etn in
+      lwt e = C.Entity.create et in
+      (* TODO: Make sure sel is a path. *)
+      add_set_helper `Add e sel
     | `Create (etn, addl) ->
       begin match_lwt C.Entity_type.of_name etn with
       | Some et ->

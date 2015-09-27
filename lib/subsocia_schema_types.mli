@@ -44,9 +44,19 @@ type schema_entry =
   [ `At_create of string * string
   | `At_delete of string
   | `Au_force of string list
+  | `Au_relax of string list
   | `Et_create of string * et_allow list
   | `Et_modify of string * et_adjust list
   | `Et_delete of string
+  | `Et_allow_dsub of string * string
+  | `Et_disallow_dsub of string * string
+  | `Et_allow_attribution of string * string * string
+  | `Et_disallow_attribution of string * string * string
+  | `E_create of selector * string
+  | `E_force_dsub of selector * selector
+  | `E_relax_dsub of selector * selector
+  | `E_add_value of string * string * selector * selector
+  | `E_remove_value of string * string * selector * selector
   | `Create of string * schema_add list
   | `Modify of selector * schema_mod list
   | `Delete of selector ]

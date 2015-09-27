@@ -24,6 +24,23 @@
     let pos = lexbuf.lex_start_p in
     fprintf stderr "%s:%d:%d: Not expecting '%s' here.\n%!" pos.pos_fname
 	    pos.pos_lnum (pos.pos_cnum - pos.pos_bol) s
+
+  let keywords = Hashtbl.create 19
+  let () = Array.iter (fun (kw, token) -> Hashtbl.add keywords kw token)
+    [|
+      "attribute_type", AT_CREATE;
+      "drop_attribute_type", AT_DELETE;
+      "unique", AU_FORCE;
+      "drop_unique", AU_RELAX;
+      "entity_type", ET_CREATE_SIMPLE;
+      "drop_entity_type", ET_DELETE;
+      "allow", ET_ALLOW;
+      "disallow", ET_DISALLOW;
+      "entity", E_CREATE;
+      "drop_entity", E_DELETE;
+      "force", E_FORCE;
+      "relax", E_RELAX;
+    |]
 }
 
 let space = [' ' '\t']
@@ -61,19 +78,21 @@ and lex = parse
   | ":@?" space { ET_DELETE }
   | "*" space { CREATE }
   | "@" space { MODIFY }
-  | "@?" space { DELETE }
+  | "@?" space { E_DELETE }
   | '%' (identifier as idr)
     { match idr with
       | "access" -> AUX_SELECTOR idr
       | "display" | "tsconfig" -> AUX_STRING idr
-      | "unique" -> AU_FORCE
-      | _ -> lexical_error lexbuf idr; raise Parsing.Parse_error }
+      | _ ->
+	try Hashtbl.find keywords idr with Not_found ->
+	lexical_error lexbuf idr; raise Parsing.Parse_error }
   | '!' { ADDATTR }
   | '?' { DELATTR }
   | "?!" { SETATTR }
   | "!<" { ADDINCL }
   | "?<" { DELINCL }
   | '=' { EQ }
+  | "<" { LT }
   | "<=" { LEQ }
   | ">=" { GEQ }
   | "={" { EQ_VERB (lex_literal (Buffer.create 80) 0 lexbuf) }

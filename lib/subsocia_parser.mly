@@ -27,11 +27,14 @@ let parse_error msg =
 	  pos.pos_lnum (pos.pos_cnum - pos.pos_bol) msg
 %}
 
-%token EOF CREATE MODIFY DELETE
-%token AT_CREATE AT_DELETE ET_CREATE ET_MODIFY ET_DELETE
-%token AU_FORCE
+%token EOF CREATE MODIFY
+%token AT_CREATE AT_DELETE
+%token AU_FORCE AU_RELAX
+%token ET_CREATE ET_CREATE_SIMPLE ET_MODIFY ET_DELETE ET_ALLOW ET_DISALLOW
+%token E_CREATE E_DELETE E_FORCE E_RELAX
 %token DELINCL ADDINCL ADDATTR DELATTR SETATTR
-%token EQ LEQ GEQ SLASH COLON TOP MINUS PLUS COMMA LBRACE RBRACE UNDERSCORE
+%token ARROW EQ LT LEQ GEQ SLASH COLON TOP MINUS PLUS COMMA
+%token LBRACE RBRACE UNDERSCORE
 %token<string> EQ_VERB STR STRING AUX_STRING AUX_SELECTOR
 %token<int32> ID
 
@@ -48,13 +51,24 @@ entries:
 entry:
     CREATE STR create_constraints { `Create ($2, List.rev $3) }
   | MODIFY path modify_constraints { `Modify ($2, List.rev $3) }
-  | DELETE path { `Delete $2 }
   | AT_CREATE STR EQ STR { `At_create ($2, $4) }
   | AT_DELETE STR { `At_delete $2 }
   | AU_FORCE nonempty_string_list { `Au_force ($2) }
+  | AU_RELAX nonempty_string_list { `Au_relax ($2) }
   | ET_CREATE STR et_create_constraints { `Et_create ($2, List.rev $3) }
+  | ET_CREATE_SIMPLE STR { `Et_create ($2, []) }
   | ET_MODIFY STR et_modify_constraints { `Et_modify ($2, List.rev $3) }
   | ET_DELETE STR { `Et_delete $2 }
+  | ET_ALLOW STR LT STR { `Et_allow_dsub ($2, $4) }
+  | ET_DISALLOW STR LT STR { `Et_disallow_dsub ($2, $4) }
+  | ET_ALLOW STR COLON STR ARROW STR { `Et_allow_attribution ($2, $4, $6) }
+  | ET_DISALLOW STR COLON STR ARROW STR { `Et_disallow_attribution ($2,$4,$6) }
+  | E_CREATE path COLON STR { `E_create ($2, $4) }
+  | E_DELETE path { `Delete $2 }
+  | E_FORCE path LT path { `E_force_dsub ($2, $4) }
+  | E_RELAX path LT path { `E_relax_dsub ($2, $4) }
+  | E_FORCE STR EQ STR COLON path ARROW path { `E_add_value ($2, $4, $6, $8) }
+  | E_RELAX STR EQ STR COLON path ARROW path { `E_remove_value ($2,$4,$6,$8) }
   ;
 et_create_constraints:
     /* empty */ { [] }
