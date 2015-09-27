@@ -36,7 +36,7 @@ let parse_error msg =
 %token DELINCL ADDINCL ADDATTR DELATTR SETATTR
 %token ARROW EQ LT LEQ GEQ SLASH COLON TOP MINUS PLUS COMMA
 %token LBRACE RBRACE UNDERSCORE
-%token<string> EQ_VERB STR STRING AUX_STRING AUX_SELECTOR
+%token<string> EQ_VERB STR STRING TYPE_FILTER AUX_STRING AUX_SELECTOR
 %token<int32> ID
 
 %type<Subsocia_schema_types.schema> schema
@@ -132,7 +132,8 @@ relative_path:
   ;
 path_component:
     attribute { $1 }
-  | attribute COLON STR { Select_type ($1, $3) }
+  | attribute TYPE_FILTER {Select_with ($1, Select_type $2)}/*TODO:Deprecate?*/
+  | TYPE_FILTER { Select_type ($1) }
   ;
 attribute:
     disjunction { $1 }

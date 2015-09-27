@@ -72,6 +72,7 @@ and lex = parse
   | ',' { COMMA }
   | '_' { UNDERSCORE }
   | ":" { COLON }
+  | ":" (identifier as idr) { TYPE_FILTER idr }
   | ":!" space { AT_CREATE }
   | ":?" space { AT_DELETE }
   | ":*" space { ET_CREATE }

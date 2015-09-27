@@ -34,7 +34,6 @@ let is_reserved = function
   | _ -> false
 
 let p_slash = 0
-let p_colon = 1
 let p_equal = 2
 let p_disj = 3
 let p_conj = 4
@@ -82,12 +81,9 @@ let rec bprint_selector buf p = function
     Buffer.add_string buf k;
     Buffer.add_string buf "=_";
     if p > p_equal then Buffer.add_char buf '}'
-  | Select_type (s, tn) ->
-    if p > p_colon then Buffer.add_char buf '{';
-    bprint_selector buf p_equal s;
+  | Select_type tn ->
     Buffer.add_char buf ':';
-    Buffer.add_string buf tn;
-    if p > p_colon then Buffer.add_char buf '}'
+    Buffer.add_string buf tn
   | Select_top -> Buffer.add_char buf '#'
   | Select_id id -> bprintf buf "#%ld" id
   | Select_adjacent Dsub ->
@@ -155,14 +151,14 @@ module Selector_utils (C : Subsocia_intf.S) = struct
       C.Entity.Set.fold_s
 	(fun e1 acc -> C.Entity.preimage1 p e1 >|= C.Entity.Set.union acc)
 	es C.Entity.Set.empty
-    | Select_type (s, etn) -> fun es ->
+    | Select_type etn -> fun es ->
       lwt et = match_lwt C.Entity_type.of_name etn with
 	       | Some et -> Lwt.return et
 	       | None -> Lwt.fail (Failure ("No type named " ^ etn)) in
-      select_from s es >>=
       C.Entity.Set.filter_s
 	(fun e -> C.Entity.type_ e >|=
 		  fun et' -> C.Entity_type.compare et et' = 0)
+	es
     | Select_top -> fun es ->
       if C.Entity.Set.is_empty es then Lwt.return C.Entity.Set.empty else
       C.Entity.top >|= C.Entity.Set.singleton
