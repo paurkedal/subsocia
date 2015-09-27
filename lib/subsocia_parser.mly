@@ -71,6 +71,8 @@ entry:
   | E_RELAX path LT path { `E_relax_dsub ($2, $4) }
   | E_FORCE STR EQ STR COLON path ARROW path { `E_add_value ($2, $4, $6, $8) }
   | E_RELAX STR EQ STR COLON path ARROW path { `E_remove_value ($2,$4,$6,$8) }
+  | E_FORCE STR EQ_VERB COLON path ARROW path { `E_add_value ($2, $3, $5, $7) }
+  | E_RELAX STR EQ_VERB COLON path ARROW path { `E_remove_value ($2,$3,$5,$7) }
   ;
 et_create_constraints:
     /* empty */ { [] }
