@@ -52,6 +52,7 @@ type schema_entry =
   | `Et_disallow_dsub of string * string
   | `Et_allow_attribution of string * string * string
   | `Et_disallow_attribution of string * string * string
+  | `Et_display of string * string
   | `E_create of selector * string
   | `E_force_dsub of selector * selector
   | `E_relax_dsub of selector * selector

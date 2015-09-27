@@ -36,6 +36,7 @@
       "drop_entity_type", ET_DELETE;
       "allow", ET_ALLOW;
       "disallow", ET_DISALLOW;
+      "display_template", ET_DISPLAY;
       "entity", E_CREATE;
       "drop_entity", E_DELETE;
       "force", E_FORCE;
@@ -47,7 +48,7 @@ let space = [' ' '\t']
 let identifier = ['A'-'Z' 'a'-'z' '_'] ['0'-'9' 'A'-'Z' 'a'-'z' '_']*
 let bareedge = ['a'-'z' 'A'-'Z' '0'-'9' '_' '[' ']' '\x80'-'\xff']
 let barefill = ['a'-'z' 'A'-'Z' '0'-'9' '_' '[' ']' '\x80'-'\xff'
-		' ' '-' '.' ':' '@']
+		' ' '-' '.' '@']
 let barepath = bareedge (barefill* bareedge)?
 
 rule lex_literal buf level = parse
@@ -91,6 +92,7 @@ and lex = parse
   | "?!" { SETATTR }
   | "!<" { ADDINCL }
   | "?<" { DELINCL }
+  | "->" { ARROW }
   | '=' { EQ }
   | "<" { LT }
   | "<=" { LEQ }

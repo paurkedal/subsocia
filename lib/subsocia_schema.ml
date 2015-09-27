@@ -218,6 +218,9 @@ module Make (C : Subsocia_intf.S) = struct
       lwt et0 = req_et etn0 in
       lwt et1 = req_et etn1 in
       C.Entity_type.disallow_attribution at et0 et1
+    | `Et_display (etn, template) ->
+      lwt et = req_et etn in
+      C.Entity_type.set_entity_name_tmpl et template
     | `E_force_dsub (sel0, sel1) ->
       lwt e0 = Su.select_one sel0 in
       lwt e1 = Su.select_one sel1 in

@@ -30,7 +30,8 @@ let parse_error msg =
 %token EOF CREATE MODIFY
 %token AT_CREATE AT_DELETE
 %token AU_FORCE AU_RELAX
-%token ET_CREATE ET_CREATE_SIMPLE ET_MODIFY ET_DELETE ET_ALLOW ET_DISALLOW
+%token ET_CREATE_SIMPLE ET_DELETE ET_ALLOW ET_DISALLOW ET_DISPLAY
+%token ET_CREATE ET_MODIFY
 %token E_CREATE E_DELETE E_FORCE E_RELAX
 %token DELINCL ADDINCL ADDATTR DELATTR SETATTR
 %token ARROW EQ LT LEQ GEQ SLASH COLON TOP MINUS PLUS COMMA
@@ -63,6 +64,7 @@ entry:
   | ET_DISALLOW STR LT STR { `Et_disallow_dsub ($2, $4) }
   | ET_ALLOW STR COLON STR ARROW STR { `Et_allow_attribution ($2, $4, $6) }
   | ET_DISALLOW STR COLON STR ARROW STR { `Et_disallow_attribution ($2,$4,$6) }
+  | ET_DISPLAY STR STRING { `Et_display ($2, $3) }
   | E_CREATE path COLON STR { `E_create ($2, $4) }
   | E_DELETE path { `Delete $2 }
   | E_FORCE path LT path { `E_force_dsub ($2, $4) }
