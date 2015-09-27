@@ -109,6 +109,9 @@ let subcommands = [
   an_list_t, Term.info ~docs:an_scn
     ~doc:"List allowed attribution."
     "an-list";
+  ls_t, Term.info ~docs:e_scn
+    ~doc:"List entities reachable from a path."
+    "ls";
   search_t, Term.info ~docs:e_scn
     ~doc:"List entities matching a selector."
     "search";

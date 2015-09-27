@@ -16,6 +16,7 @@
 
 open Cmdliner
 open Command_common
+open Lwt.Infix
 open Subsocia_cmdliner
 open Subsocia_common
 open Subsocia_selector
@@ -66,6 +67,40 @@ module Entity_utils (C : Subsocia_intf.S) = struct
     | None -> Lwt.fail (Failure ("No entity type has name " ^ etn))
     | Some et -> Lwt.return et
 end
+
+let ls sel = run @@ fun (module C) ->
+  let module U = Entity_utils (C) in
+  lwt e_top = C.Entity.top in
+  lwt e = U.Entity.select_one sel in
+  lwt et = C.Entity.type_ e in
+  lwt aus = C.Attribute_uniqueness.all () in
+  let show_e ats e' =
+    Lwt_list.iter_s
+      (fun (C.Attribute_type.Ex at) ->
+	lwt an = C.Attribute_type.name at in
+	lwt vs = C.Entity.get_values at e e' >|= Values.elements in
+	let vt = C.Attribute_type.value_type at in
+	Lwt_list.iter_s
+	  (fun av ->
+	    let avr = Value.typed_to_string vt av in
+	    Lwt_io.printf "{%s=%s}" an avr)
+	  vs)
+      ats >>
+    Lwt_io.printl "" in
+  let show_au au =
+    lwt ats = C.Attribute_uniqueness.affected au
+	  >|= C.Attribute_type.Set.elements in
+    let ps =
+      List.map (fun (C.Attribute_type.Ex at) -> C.Attribute.Present at) ats in
+    lwt es' = C.Entity.image1 (C.Attribute.Inter ps) e in
+    C.Entity.Set.iter_s (show_e ats) es' in
+  C.Attribute_uniqueness.Set.iter_s show_au aus >>
+  Lwt.return 0
+
+let ls_t =
+  let sel_t = Arg.(required & pos 0 (some selector_conv) None &
+		   info ~docv:"PATH" []) in
+  Term.(pure ls $ sel_t)
 
 let search sel = run @@ fun (module C) ->
   let module U = Entity_utils (C) in
