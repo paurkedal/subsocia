@@ -293,12 +293,8 @@ module Make (RPCM : RPCM) = struct
     let preimage1 p e =
       Raw.preimage1 (encode_predicate p) e >|= Set.of_ordered_elements
 
-    let asub_conj e ps =
-      Raw.asub_conj e (List.map encode_predicate ps)
-	>|= Set.of_ordered_elements
-    let asuper_conj e ps =
-      Raw.asuper_conj e (List.map encode_predicate ps)
-	>|= Set.of_ordered_elements
+    let asub_conj e ps = image1 (Attribute.Inter ps) e
+    let asuper_conj e ps = preimage1 (Attribute.Inter ps) e
 
     let image1_eq at av e =
       let t = Attribute_type.value_type at in

@@ -87,10 +87,6 @@ module Entity = struct
 			    int32 -> int32 -> int32 list = ""
   external image1 : encoded_attribute_predicate -> int32 -> int32 list = ""
   external preimage1 : encoded_attribute_predicate -> int32 -> int32 list = ""
-  external asub_conj : int32 -> encoded_attribute_predicate list ->
-		       int32 list = ""
-  external asuper_conj : int32 -> encoded_attribute_predicate list ->
-			 int32 list = ""
   external image1_eq : int32 -> Value.ex -> int32 -> int32 list = ""
   external preimage1_eq : int32 -> Value.ex -> int32 -> int32 list = ""
   external image1_fts :

@@ -302,15 +302,10 @@ module type ENTITY = sig
   [@@ocaml.deprecated "Use image1."]
   val asuper : t -> Attribute.predicate -> Set.t Lwt.t
   [@@ocaml.deprecated "Use preimage1."]
-
   val asub_conj : t -> Attribute.predicate list -> Set.t Lwt.t
-  (** [asub_conj e ps] returns the set of elements linked from [e] by at least
-      one attribute for each predicate [p] in [ps] fulfilling [p]. *)
-
+  [@@ocaml.deprecated "Use image1 with Attribute.Inter."]
   val asuper_conj : t -> Attribute.predicate list -> Set.t Lwt.t
-  (** [asuper_conj e ps] returns the set of elements linked to [e] by at least
-      one attribute for each predicate [p] in [ps] fulfilling [p]. *)
-
+  [@@ocaml.deprecated "Use preimage1 with Attribute.Inter."]
   val asub_eq : t -> 'a Attribute_type.t -> 'a -> Set.t Lwt.t
   [@@ocaml.deprecated "Use image1_eq."]
   val asuper_eq : t -> 'a Attribute_type.t -> 'a -> Set.t Lwt.t
