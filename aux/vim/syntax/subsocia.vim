@@ -8,14 +8,17 @@ elseif exists("b:current_syntax")
   finish
 endif
 
-syn match sssPathOperator '[{}=+/]'
+syn match sssPathOperator '[+-/={}]'
+syn match sssOperator '[():<>]'
+syn match sssPathOperator ':[a-zA-Z]\@='
+syn match sssOperator '->'
 
 syn match sssIntroducer '^:!\s' skipwhite nextgroup=sssAtCreateName
 syn match sssIntroducer '^:[*@]\s' skipwhite nextgroup=sssTypeX
 syn match sssIntroducer '^\*\s' skipwhite nextgroup=sssType
 syn match sssIntroducer '^\(@\|@?\)\s'
 syn match sssModifier '\([!?]\|?!\)\s\@='
-syn match sssModifier '[!?]\?<\s\@='
+syn match sssModifier '[!?]<\s\@='
 syn match sssModifier '%[a-zA-Z0-9_]\+'
 syn match sssType contained '[a-zA-Z0-9_]\+'
 syn match sssTypeX contained '[a-zA-Z0-9_]\+' skipwhite nextgroup=sssTypeModifier
@@ -33,6 +36,7 @@ syn match sssComment '#\(\s.*\)\?$'
 
 hi def link sssIntroducer Conditional
 hi def link sssModifier Preproc
+hi def link sssOperator Operator
 hi def link sssPathOperator Special
 hi def link sssType Type
 hi def link sssTypeX sssType
