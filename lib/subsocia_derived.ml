@@ -248,19 +248,20 @@ module Make (Base : Subsocia_intf.S) = struct
     module Super = Transitive (Dsuper)
     module Sub = Transitive (Dsub)
 
-    let has_role_for_entity role subj obj =
+    let has_role_for_entity ?app role subj obj =
       lwt at_role = Const.at_role in
-      let check_for obj =
+      let check role obj =
 	lwt access_groups = image1_eq at_role role obj in
 	Entity.Set.exists_s (Entity.is_sub subj) access_groups in
-      match_lwt check_for obj with
+      let role' = match app with None -> role | Some app -> app ^ "." ^ role in
+      match_lwt check role' obj with
       | true -> Lwt.return_true
       | false ->
 	lwt e_subsocia = Const.e_subsocia in
-	check_for e_subsocia
+	check role e_subsocia
 
-    let can_view_entity = has_role_for_entity "user"
-    let can_edit_entity = has_role_for_entity "admin"
+    let can_view_entity = has_role_for_entity ~app:"subsocia" "user"
+    let can_edit_entity = has_role_for_entity ~app:"subsocia" "admin"
 
     let path_candidates = [
       ["unique_name"];
@@ -407,7 +408,7 @@ module Make (Base : Subsocia_intf.S) = struct
 	(Lwt.return Entity.Set.empty)
 
     let precedes = Entity.is_sub
-    let has_role = has_role_for_entity
+    let has_role role = has_role_for_entity role
     let can_edit = can_edit_entity
     let can_view = can_view_entity
   end
