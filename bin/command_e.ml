@@ -183,23 +183,18 @@ let delete_t =
 		   info ~docv:"PATH" []) in
   Term.(pure delete $ sel_t)
 
-let modify sel add_succs del_succs add_asels del_asels access =
+let modify sel add_succs del_succs add_asels del_asels =
   run0 @@ fun (module C) ->
   let module U = Entity_utils (C) in
   lwt add_succs = Lwt_list.map_p U.Entity.select_one add_succs in
   lwt del_succs = Lwt_list.map_p U.Entity.select_one del_succs in
   lwt add_asels = Lwt_list.map_p U.lookup_aselector add_asels in
   lwt del_asels = Lwt_list.map_p U.lookup_aselector del_asels in
-  lwt access = Pwt_option.map_s U.Entity.select_one access in
   lwt e = U.Entity.select_one sel in
   Lwt_list.iter_s (fun e_sub -> C.Entity.force_dsub e e_sub) add_succs >>
   Lwt_list.iter_s (U.add_attributes e) add_asels >>
   Lwt_list.iter_s (U.delete_attributes e) del_asels >>
-  Lwt_list.iter_s (fun e_sub -> C.Entity.relax_dsub e e_sub) del_succs >>
-  if access <> None then
-    C.Entity.modify ?access e
-  else
-    Lwt.return_unit
+  Lwt_list.iter_s (fun e_sub -> C.Entity.relax_dsub e e_sub) del_succs
 
 let modify_t =
   let sel_t = Arg.(required & pos 0 (some selector_conv) None &
@@ -212,9 +207,5 @@ let modify_t =
 			 info ~docv:"APATH" ["a"]) in
   let del_attrs_t = Arg.(value & opt_all aselector_pres_conv [] &
 			 info ~docv:"APATH" ["d"]) in
-  let access_t = Arg.(value & opt (some selector_conv) None &
-		      info ~docv:"PATH" ~doc:"Set the access base entity."
-			   ["access"]) in
   Term.(pure modify $ sel_t $ add_succs_t $ del_succs_t
-			    $ add_attrs_t $ del_attrs_t
-			    $ access_t)
+			    $ add_attrs_t $ del_attrs_t)

@@ -251,8 +251,8 @@ module Q = struct
        SELECT 0 FROM successors WHERE entity_id = ? LIMIT 1"
 
   let e_create_entity =
-    q "INSERT INTO @entity (entity_type_id, access_id) \
-       VALUES (?, ?) RETURNING entity_id"
+    q "INSERT INTO @entity (entity_type_id) \
+       VALUES (?) RETURNING entity_id"
 
   let e_set_entity_access =
     q "UPDATE @entity SET access_id = ? WHERE entity_id = ?"
@@ -982,15 +982,6 @@ module Make (P : Param) = struct
       with_db @@ fun (module C) ->
       C.find Q.e_rank C.Tuple.(int 0) C.Param.([|int32 e|])
 
-    let access_opt, access_opt_cache = memo_1lwt @@ fun e ->
-      with_db @@ fun (module C) ->
-      C.find Q.e_access C.Tuple.(option int32 0) C.Param.([|int32 e|])
-
-    let rec access e =
-      match_lwt access_opt e with
-      | Some e' -> Lwt.return e'
-      | None -> assert (e <> top_id); access top_id
-
     let type_members, type_members_cache = memo_1lwt @@ fun entity_type_id ->
       with_db @@ fun (module C) ->
       let add tup = Set.add (C.Tuple.int32 0 tup) in
@@ -1027,18 +1018,10 @@ module Make (P : Param) = struct
     let dsuper ?et e =
       match et with None -> dsuper_any e | Some et -> dsuper_typed et e
 
-    let create ?access entity_type =
+    let create entity_type =
       with_db @@ fun (module C) ->
 	C.find Q.e_create_entity C.Tuple.(int32 0)
-	       C.Param.([|int32 entity_type; option int32 access|])
-
-    let modify ?access e =
-      with_db @@ fun (module C) ->
-      Pwt_option.iter_s
-	(fun access ->
-	  C.exec Q.e_set_entity_access C.Param.([|int32 access; int32 e|]) >>
-	  Lwt.return (Cache.remove access_opt_cache e))
-	access
+	       C.Param.([|int32 entity_type|])
 
     let delete e =
       with_db @@ fun (module C) ->

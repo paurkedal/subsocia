@@ -49,7 +49,7 @@
 * org_group ! auth !< {#} ! proper_name=Authentication
 * org_group ! app  !< {#} ! proper_name=Application access
 * org_group ! registrations !< {#} ! proper_name={New registrations}
-@ forbidden %access forbidden
+# @ forbidden %access forbidden
 
 # Subsocia
 * access_base ! app/subsocia !< app
@@ -60,4 +60,4 @@
 @ app/subsocia/role=admin ! proper_name={Subsocia administrators}
 
 # The access of {#} serves as default for entities with unspecified access.
-@ {#} %access app/subsocia
+# @ {#} %access app/subsocia

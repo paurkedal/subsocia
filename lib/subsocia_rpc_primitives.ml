@@ -65,12 +65,10 @@ module Entity_type = struct
 end
 
 module Entity = struct
-  external create : ?access: int32 -> int32 -> int32 = ""
-  external modify : ?access: int32 -> int32 -> unit = ""
+  external create : int32 -> int32 = ""
   external delete : int32 -> unit = ""
   external type_ : int32 -> int32 = ""
   external rank : int32 -> int = ""
-  external access : int32 -> int32 = ""
   external type_members : int32 -> int32 list = ""
   external top : unit -> int32 = ""
   external minimums : unit -> int32 list = ""

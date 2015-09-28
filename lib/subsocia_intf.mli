@@ -191,8 +191,7 @@ module type ENTITY = sig
   module Set : SET with type elt = t
   module Map : MAP with type key = t
 
-  val create : ?access: t -> Entity_type.t -> t Lwt.t
-  val modify : ?access: t -> t -> unit Lwt.t
+  val create : Entity_type.t -> t Lwt.t
   val delete : t -> unit Lwt.t
 
   val compare : t -> t -> int
@@ -202,7 +201,6 @@ module type ENTITY = sig
 
   val type_ : t -> Entity_type.t Lwt.t
   val rank : t -> int Lwt.t
-  val access : t -> t Lwt.t
 
   val type_members : Entity_type.t -> Set.t Lwt.t
   val top : t Lwt.t

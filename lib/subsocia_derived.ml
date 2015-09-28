@@ -96,10 +96,10 @@ module Make (Base : Subsocia_intf.S) = struct
     let et_auth_group = _et "auth_group"
     let et_person = _et "person"
 
-    let _e_un en =
-      lwt top = Entity.top in
+    let _e_un ?(from = Entity.top) en =
+      lwt from = from in
       lwt at_unique_name = at_unique_name in
-      lwt es = Entity.image1_eq at_unique_name en top in
+      lwt es = Entity.image1_eq at_unique_name en from in
       match Entity.Set.cardinal es with
       | 1 -> Lwt.return (Entity.Set.min_elt es)
       | 0 -> _fail "Missing initial entity %s" en
@@ -107,6 +107,8 @@ module Make (Base : Subsocia_intf.S) = struct
 
     let e_forbidden = _e_un "forbidden"
     let e_new_users = _e_un "registrations"
+    let e_app = _e_un "app"
+    let e_subsocia = _e_un ~from:e_app "subsocia"
   end
 
   module Entity = struct
@@ -247,10 +249,15 @@ module Make (Base : Subsocia_intf.S) = struct
     module Sub = Transitive (Dsub)
 
     let has_role_for_entity role subj obj =
-      lwt access_base = access obj in
       lwt at_role = Const.at_role in
-      lwt access_groups = image1_eq at_role role access_base in
-      Entity.Set.exists_s (Entity.is_sub subj) access_groups
+      let check_for obj =
+	lwt access_groups = image1_eq at_role role obj in
+	Entity.Set.exists_s (Entity.is_sub subj) access_groups in
+      match_lwt check_for obj with
+      | true -> Lwt.return_true
+      | false ->
+	lwt e_subsocia = Const.e_subsocia in
+	check_for e_subsocia
 
     let can_view_entity = has_role_for_entity "user"
     let can_edit_entity = has_role_for_entity "admin"
