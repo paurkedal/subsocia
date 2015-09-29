@@ -105,10 +105,8 @@ module Make (Base : Subsocia_intf.S) = struct
       | 0 -> _fail "Missing initial entity %s" en
       | _ -> _fail "Multiple matches for unique name %s" en
 
-    let e_forbidden = _e_un "forbidden"
     let e_new_users = _e_un "registrations"
-    let e_app = _e_un "app"
-    let e_subsocia = _e_un ~from:e_app "subsocia"
+    let e_default = _e_un "default"
   end
 
   module Entity = struct
@@ -248,20 +246,17 @@ module Make (Base : Subsocia_intf.S) = struct
     module Super = Transitive (Dsuper)
     module Sub = Transitive (Dsub)
 
-    let has_role_for_entity ?app role subj obj =
+    let has_role_for_entity role subj obj =
       lwt at_role = Const.at_role in
-      let check role obj =
+      let check_obj obj =
 	lwt access_groups = image1_eq at_role role obj in
 	Entity.Set.exists_s (Entity.is_sub subj) access_groups in
-      let role' = match app with None -> role | Some app -> app ^ "." ^ role in
-      match_lwt check role' obj with
+      match_lwt check_obj obj with
       | true -> Lwt.return_true
-      | false ->
-	lwt e_subsocia = Const.e_subsocia in
-	check role e_subsocia
+      | false -> Const.e_default >>= check_obj
 
-    let can_view_entity = has_role_for_entity ~app:"subsocia" "user"
-    let can_edit_entity = has_role_for_entity ~app:"subsocia" "admin"
+    let can_view_entity = has_role_for_entity "subsocia.user"
+    let can_edit_entity = has_role_for_entity "subsocia.admin"
 
     let path_candidates = [
       ["unique_name"];

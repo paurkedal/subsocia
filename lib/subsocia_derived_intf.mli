@@ -114,7 +114,7 @@ module type S = sig
 
     val paths : t -> selector list Lwt.t
 
-    val has_role_for_entity : ?app: string -> string -> t -> t -> bool Lwt.t
+    val has_role_for_entity : string -> t -> t -> bool Lwt.t
     val can_view_entity : t -> t -> bool Lwt.t
     val can_edit_entity : t -> t -> bool Lwt.t
 
@@ -144,7 +144,7 @@ module type S = sig
     val et_auth_group : Entity_type.t Lwt.t
     val et_person : Entity_type.t Lwt.t
 
-    val e_forbidden : Entity.t Lwt.t
     val e_new_users : Entity.t Lwt.t
+    val e_default : Entity.t Lwt.t
   end
 end
