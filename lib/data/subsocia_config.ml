@@ -65,6 +65,12 @@ module Web = struct
       "Attributes which are exposed by the REST API. This must be \
        valid JSON identifiers due to the way they are returned."
 
+  let member_types =
+    new Config_file.list_cp Config_file.string_wrappers ~group
+      ["web"; "member_types"] ["person"]
+      "A list of types of entities which can be assigned group membership via \
+       the web interface. If empty, all entities can be assigned membership."
+
   let completion_cutoff =
     new Config_file.float_cp ~group
       ["web"; "completion_cutoff"] 0.001

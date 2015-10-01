@@ -177,8 +177,12 @@ let entity_handler entity_id () =
   let open Html5.D in
   lwt cri = get_custom_request_info () in
   lwt e = entity_for_view ~operator:cri.cri_operator entity_id in
-  lwt browser =
-    render_browser ~cri e in
+  lwt enable_edit =
+    match Subsocia_config.Web.member_types#get with
+    | [] -> Lwt.return_true
+    | ets -> Entity.type_ e >>= Entity_type.name >|=
+	     fun et -> List.mem et ets in
+  lwt browser = render_browser ~enable_edit ~cri e in
   let entity_changed_c = Eliom_react.Down.of_react (entity_changed e) in
   ignore {unit{
     Lwt_react.E.keep @@ React.E.trace
