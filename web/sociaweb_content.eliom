@@ -101,7 +101,10 @@
     server_function Json.t<int32 option * int32 option * string> complete
 
   let completed (entity_type_id, super_id, str) =
-    match_lwt complete_helper entity_type_id super_id str with
+    match_lwt
+      complete_helper entity_type_id super_id str >>=
+      Lwt_list.filter_s (fun (e, _) -> Entity.display_name e >|= (=) str)
+    with
     | [(entity, _)] -> Lwt.return (Some (Entity.id entity))
     | _ -> Lwt.return None
 

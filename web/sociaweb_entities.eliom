@@ -157,6 +157,7 @@
     }} in
     let search_inp, search_handle = entity_completion_input emit in
     let search_frag = F.div ~a:[F.a_class ["soc-search"]] [
+      F.label [F.pcdata "Search"]; F.br ();
       search_inp;
     ] in
     Lwt.return @@ F.div ~a:[F.a_class ["soc-entity-browser"]] [

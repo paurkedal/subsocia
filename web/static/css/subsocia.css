@@ -10,6 +10,7 @@ table.soc-layout > tr > th { text-align: left; }
 table.soc-layout > tr > td { vertical-align: top; }
 table.soc-layout table.multicol { margin: 0; }
 
+.soc-search label { font-weight: bold; font-size: small; }
 .soc-search { float: right; }
 
 .soc-entity-browser > table.soc-layout th { font-size: small; }
