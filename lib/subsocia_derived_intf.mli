@@ -117,6 +117,7 @@ module type S = sig
     val has_role_for_entity : string -> t -> t -> bool Lwt.t
     val can_view_entity : t -> t -> bool Lwt.t
     val can_edit_entity : t -> t -> bool Lwt.t
+    val can_search_below : t -> t -> bool Lwt.t
 
     val display_name : ?context: Set.t -> ?langs: lang list -> t -> string Lwt.t
     val candidate_dsupers : ?include_current: bool -> t -> Set.t Lwt.t

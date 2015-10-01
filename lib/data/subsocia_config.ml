@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -64,6 +64,16 @@ module Web = struct
       ["web"; "restapi_allowed_attributes"] []
       "Attributes which are exposed by the REST API. This must be \
        valid JSON identifiers due to the way they are returned."
+
+  let completion_cutoff =
+    new Config_file.float_cp ~group
+      ["web"; "completion_cutoff"] 0.001
+      "Full-text search score cut-off to use in web interface."
+  let completion_limit =
+    new Config_file.int_cp ~group
+      ["web"; "completion_limit"] 10
+      "Maximum number of results to return for full-text search in web \
+       interface."
 end
 
 let () =

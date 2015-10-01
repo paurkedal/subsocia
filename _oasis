@@ -11,7 +11,7 @@ BuildTools: ocamlbuild
 XOCamlbuildPluginTags: package(eliom.ocamlbuild)
 OCamlVersion: >= 4.01
 
-FilesAB: lib/subsocia_version.ml.ab
+FilesAB: lib/subsocia_version.ml.ab, ocsigen-dev.conf.ab
 
 Library "subsocia"
   Path: lib
@@ -96,7 +96,7 @@ Library "subsocia-web-server"
   Modules:
     server/Sociaweb_auth,
     server/Sociaweb_request
-  BuildDepends: eliom.server, prime, subsocia, subsocia.data
+  BuildDepends: eliom.server, panograph-server, prime, subsocia, subsocia.data
   ByteOpt: -thread
   NativeOpt: -thread
   CompiledObject: native
@@ -127,7 +127,7 @@ Object "subsocia-web-debug-module"
 
 Executable "sociaweb_app"
   Path: web/client
-  BuildDepends: eliom.client, prime, subsocia
+  BuildDepends: eliom.client, panograph-client, prime, subsocia
   MainIs: sociaweb_app.ml
   ByteOpt: -thread
   Install: false

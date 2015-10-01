@@ -257,6 +257,7 @@ module Make (Base : Subsocia_intf.S) = struct
 
     let can_view_entity = has_role_for_entity "subsocia.user"
     let can_edit_entity = has_role_for_entity "subsocia.admin"
+    let can_search_below = has_role_for_entity "subsocia.user"
 
     let path_candidates = [
       ["unique_name"];

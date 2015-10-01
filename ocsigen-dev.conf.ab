@@ -16,17 +16,19 @@
     <extension findlib-package="caqti.lwt"/>
     <extension findlib-package="extunix"/>
     <extension findlib-package="panograph"/>
+    <extension findlib-package="panograph-server"/>
     <extension findlib-package="rpclib"/>
     <library module="_build/lib/subsocia.cma"/>
     <library module="_build/lib/data/subsocia-data.cmxs"/>
     <library module="_build/web/subsocia-web-server.cmxs"/>
     <host defaulthostname="localhost" hostfilter="*">
+      <static dir="$(datarootdir)/panograph/static"/>
       <static dir="web/static"/>
       <static dir="_build/web/client"/>
       <static dir="_build"/> <!-- Needed for source map. -->
       <eliommodule module="_build/web/subsocia-web-module.cmxs"/>
       <eliommodule module="_build/web/server/sociaweb_debug.cmo"/>
-      <redirect suburl="^/?$" dest="http://localhost:8080/entities/self"/>
+      <redirect suburl="^/?\$" dest="http://localhost:8080/entities/self"/>
       <eliom/>
     </host>
   </server>

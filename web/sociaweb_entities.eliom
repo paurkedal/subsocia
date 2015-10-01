@@ -19,6 +19,7 @@
   open Eliom_content.Html5
   open Lwt.Infix
   open Panograph_i18n
+  open Panograph_types
   open Printf
   open Sociaweb_content
   open Sociaweb_services
@@ -146,7 +147,20 @@
     let attr_table = F.table ~a:[F.a_class ["soc-assoc"]]
 			     (List.flatten attr_trss) in
     lwt dsuper_frag = render_dsuper ~cri ~enable_edit ent in
+    let emit = {{fun str ->
+      match_lwt %completed_sf (None, None, str) with
+      | None ->
+	Lwt.return (Ack_error "Unique match required.")
+      | Some entity_id ->
+	Eliom_client.change_page ~service:entity_service entity_id () >>
+	Lwt.return Ack_ok
+    }} in
+    let search_inp, search_handle = entity_completion_input emit in
+    let search_frag = F.div ~a:[F.a_class ["soc-search"]] [
+      search_inp;
+    ] in
     Lwt.return @@ F.div ~a:[F.a_class ["soc-entity-browser"]] [
+      search_frag;
       dsuper_frag;
       F.div ~a:[F.a_class ["soc-box"; "focus"; "top"]] [F.pcdata name];
       F.div ~a:[F.a_class ["soc-box"; "focus"; "middle"; "content"]]
@@ -174,7 +188,7 @@ let entity_handler entity_id () =
   Lwt.return @@
     Eliom_tools.D.html
       ~title:"Entity Browser"
-      ~css:[["css"; "subsocia.css"]]
+      ~css:[["css"; "subsocia.css"]; ["css"; "panograph.css"]]
       (body [browser])
 
 let self_entity_handler () () =
