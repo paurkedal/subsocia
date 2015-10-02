@@ -317,9 +317,9 @@ module type ENTITY = sig
 		   t -> Subsocia_fts.t -> (t * float) list Lwt.t
   [@@ocaml.deprecated "Use preimage1_fts."]
   val asub_get : t -> 'a Attribute_type.t -> 'a Values.t Map.t Lwt.t
-  [@@ocaml.deprecated "Use mapping1_fts."]
+  [@@ocaml.deprecated "Use mapping1."]
   val asuper_get : t -> 'a Attribute_type.t -> 'a Values.t Map.t Lwt.t
-  [@@ocaml.deprecated "Use premapping1_fts."]
+  [@@ocaml.deprecated "Use premapping1."]
 end
 
 module type S = sig
