@@ -105,8 +105,8 @@ module Make (Base : Subsocia_intf.S) = struct
       | 0 -> _fail "Missing initial entity %s" en
       | _ -> _fail "Multiple matches for unique name %s" en
 
-    let e_new_users = _e_un "registrations"
     let e_default = _e_un "default"
+    let e_new_users = _e_un ~from:e_default "subsocia-autoregs"
   end
 
   module Entity = struct

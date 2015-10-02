@@ -18,44 +18,55 @@
 # ------------
 
 :* org_group
-    !< org_group ! org_group/unique_name
-    !< unit ! unit/unique_name ! unit/proper_name
+    !< unit
+    ! unit/unique_name
+    ! unit/proper_name
+    !< org_group
+    ! org_group/unique_name
     %display "${proper_name}|${unique_name}"
 :* access_base
-    !< org_group ! org_group/unique_name
-    !< unit ! unit/unique_name ! unit/proper_name
+    !< unit
+    ! unit/unique_name
+    ! unit/proper_name
+    !< org_group
+    ! org_group/unique_name
     %display "${proper_name}|${unique_name}"
 :* access_group
+    ! unit/proper_name
     !< access_group
-    !< access_base ! access_base/role ! unit/proper_name
+    !< access_base
+    ! access_base/unique_name
+    ! access_base/role
     %display "${proper_name}|${unique_name}"
 :* auth_group
-    !< unit ! unit/unique_name
-    !< org_group ! org_group/unique_name
+    !< unit
+    ! unit/unique_name
+    !< org_group
+    ! org_group/unique_name
     %display "${proper_name}|${unique_name}"
 :* person
-    !< access_group ! access_base/role
-    !< auth_group ! auth_group/unique_name
-    !< org_group
-    ! unit/first_name ! unit/last_name ! unit/proper_name ! unit/email
+    ! unit/first_name
+    ! unit/last_name
+    ! unit/proper_name
+    ! unit/email
+    !< access_group
+    ! access_base/role
+    !< auth_group
+    ! auth_group/unique_name
     %display "${first_name} ${last_name}"
 
 # Initial Entities
 # ----------------
 
 # Top level
-* access_base ! forbidden !< {#}
 * org_group ! auth !< {#} ! proper_name=Authentication
-* org_group ! app  !< {#} ! proper_name=Application access
-* org_group ! registrations !< {#} ! proper_name={New registrations}
-# @ forbidden %access forbidden
 
 # Access Control Default
 * access_base ! default ! proper_name={Default Access}
-* access_group ! default/role=subsocia.user
+* access_group ! default/subsocia_users ! default/role=subsocia.user
 	       ! proper_name={Default Subsocia Users}
-* access_group ! default/role=subsocia.admin !< default/role=subsocia.user
+* access_group ! default/subsocia_admins ! default/role=subsocia.admin
+	       !< default/subsocia_users
 	       ! proper_name={Default Subsocia Administrators}
-
-# The access of {#} serves as default for entities with unspecified access.
-# @ {#} %access app/subsocia
+* access_group ! default/subsocia_autoregs ! default/role=subsocia.autoreg
+	       ! proper_name={Default Auto-Registered Users}
