@@ -96,7 +96,7 @@ module Make (Base : Subsocia_intf.S) = struct
     let et_auth_group = _et "auth_group"
     let et_person = _et "person"
 
-    let _e_un ?(from = Entity.top) en =
+    let _e_un ?(from = Entity.root) en =
       lwt from = from in
       lwt at_unique_name = at_unique_name in
       lwt es = Entity.image1_eq at_unique_name en from in
@@ -154,7 +154,7 @@ module Make (Base : Subsocia_intf.S) = struct
 
     let of_unique_name ?super en =
       lwt super = match super with Some e -> Lwt.return e
-				 | None -> Entity.top in
+				 | None -> Entity.root in
       lwt at_unique_name = Const.at_unique_name in
       lwt es = Entity.image1_eq at_unique_name en super in
       match Entity.Set.cardinal es with
@@ -313,18 +313,18 @@ module Make (Base : Subsocia_intf.S) = struct
 	  a.(r')
       done >>
 
-      lwt top = Entity.top in
+      lwt root = Entity.root in
       Lwt.return begin
 	try
 	  let aux = function
 	    | [] -> Select_root
 	    | x :: xs -> List.fold (fun a y -> Select_with (y, a)) xs x in
-	  List.map aux (Entity.Map.find top a.(0))
+	  List.map aux (Entity.Map.find root a.(0))
 	with Not_found -> []
       end
 
     let rec display_name_var ~context ~langs e spec =
-      lwt e_top = Entity.top in
+      lwt root = Entity.root in
 
       let aux ?tn an =
 	match_lwt Base.Attribute_type.of_name an with
@@ -345,7 +345,7 @@ module Make (Base : Subsocia_intf.S) = struct
 		  | Some name ->
 		    Lwt.return (Some (name ^ " / " ^ Values.min_elt vs)))
 	  | None ->
-	    lwt vs = Entity.get_values at e_top e in
+	    lwt vs = Entity.get_values at root e in
 	    if Values.is_empty vs then Lwt.return_none
 				  else Lwt.return (Some (Values.min_elt vs)) in
 

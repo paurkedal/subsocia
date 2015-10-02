@@ -111,7 +111,7 @@ module Make (C : Subsocia_intf.S) = struct
     let sel', attrs = aselector_of_selector asel in
     lwt e' =
       match sel' with
-      | None -> C.Entity.top
+      | None -> C.Entity.root
       | Some sel' -> Su.select_one sel' in
     String_map.iter_s
       (fun an vs ->
@@ -130,7 +130,7 @@ module Make (C : Subsocia_intf.S) = struct
     let sel', attrs = dselector_of_selector sel in
     lwt e' =
       match sel' with
-      | None -> C.Entity.top
+      | None -> C.Entity.root
       | Some sel' -> Su.select_one sel' in
     String_map.iter_s
       (fun an vs_opt ->

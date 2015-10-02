@@ -972,8 +972,8 @@ module Make (P : Param) = struct
     let of_id e = Lwt.return e
     let id e = e
 
-    let top_id = 1l
-    let top = of_id top_id
+    let root_id = 1l
+    let root = of_id root_id
 
     let type_, type_cache = memo_1lwt @@ fun e ->
       with_db @@ fun (module C) ->
@@ -1753,6 +1753,7 @@ module Make (P : Param) = struct
       preimage1_fts ?entity_type ?super ?cutoff ?limit fts e
     let asub_get e at = mapping1 at e
     let asuper_get e at = premapping1 at e
+    let top = root
   end
 
 end

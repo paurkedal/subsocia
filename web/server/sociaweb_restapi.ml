@@ -72,7 +72,7 @@ let _ =
     @@ fun (subject, (must, (may, query))) () ->
   Lwt_log.debug_f "Checking %s against [%s] and optional [%s] groups"
 		  subject (String.concat ", " must) (String.concat ", " may) >>
-  lwt top = Entity.top in
+  lwt root = Entity.root in
   let allowed_ans = Lazy.force allowed_attributes in
   lwt must_ok, may_ok, query_res =
     match_lwt selected_entity subject with
@@ -88,7 +88,7 @@ let _ =
 	| None -> Lwt.return_none
 	| Some (Attribute_type.Ex at) ->
 	  let vt = Attribute_type.value_type at in
-	  lwt vs = Entity.get_values at top user in
+	  lwt vs = Entity.get_values at root user in
 	  let vs = Values.elements vs in
 	  Lwt.return (Some (an, List.map (Value.typed_to_poly vt) vs)) in
       lwt must_ok = Lwt_list.for_all_p is_member_of must in

@@ -226,7 +226,7 @@ module Make (RPCM : RPCM) = struct
     let type_ = Raw.type_
     let rank = Raw.rank
     let type_members et = Raw.type_members et >|= Set.of_ordered_elements
-    let top = Raw.top ()
+    let root = Raw.root ()
     let minimums () = Raw.minimums () >|= Set.of_ordered_elements
     let dsub ?et e = Raw.dsub et e >|= Set.of_ordered_elements
     let dsuper ?et e = Raw.dsuper et e >|= Set.of_ordered_elements
@@ -361,5 +361,6 @@ module Make (RPCM : RPCM) = struct
       preimage1_fts ?entity_type ?super ?cutoff ?limit s e
     let asub_get e at = mapping1 at e
     let asuper_get e at = premapping1 at e
+    let top = root
   end
 end

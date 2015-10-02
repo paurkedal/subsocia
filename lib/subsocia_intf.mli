@@ -203,7 +203,10 @@ module type ENTITY = sig
   val rank : t -> int Lwt.t
 
   val type_members : Entity_type.t -> Set.t Lwt.t
-  val top : t Lwt.t
+
+  val root : t Lwt.t
+  (** [root] is the root element. *)
+
   val minimums : unit -> Set.t Lwt.t
 
   val dsub : ?et: Entity_type.t -> t -> Set.t Lwt.t
@@ -320,6 +323,8 @@ module type ENTITY = sig
   [@@ocaml.deprecated "Use mapping1."]
   val asuper_get : t -> 'a Attribute_type.t -> 'a Values.t Map.t Lwt.t
   [@@ocaml.deprecated "Use premapping1."]
+  val top : t Lwt.t
+  [@@ocaml.deprecated "Renamed to root."]
 end
 
 module type S = sig

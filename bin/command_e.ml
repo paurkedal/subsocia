@@ -40,10 +40,10 @@ module Entity_utils (C : Subsocia_intf.S) = struct
 
   let lookup_aselector (sel_opt, asgn) =
     lwt asgn = Lwt_list.map_p lookup_assignment asgn in
-    lwt e_top = Entity.top in
+    lwt root = Entity.root in
     match sel_opt with
     | None ->
-      Lwt.return (e_top, asgn)
+      Lwt.return (root, asgn)
     | Some sel ->
       lwt e_ctx = Entity.select_one sel in
       Lwt.return (e_ctx, asgn)
@@ -70,7 +70,7 @@ end
 
 let ls sel = run @@ fun (module C) ->
   let module U = Entity_utils (C) in
-  lwt e_top = C.Entity.top in
+  lwt root = C.Entity.root in
   lwt e = U.Entity.select_one sel in
   lwt et = C.Entity.type_ e in
   lwt aus = C.Attribute_uniqueness.all () in
@@ -104,8 +104,8 @@ let ls_t =
 
 let search sel = run @@ fun (module C) ->
   let module U = Entity_utils (C) in
-  lwt e_top = C.Entity.top in
-  lwt es = U.Entity.select_from sel (C.Entity.Set.singleton e_top) in
+  lwt root = C.Entity.root in
+  lwt es = U.Entity.select_from sel (C.Entity.Set.singleton root) in
   let show e =
     lwt name = U.Entity.display_name ~langs e in
     lwt et = C.Entity.type_ e in
@@ -124,11 +124,11 @@ let search_t =
 
 let fts q etn super limit cutoff = run @@ fun (module C) ->
   let module U = Entity_utils (C) in
-  lwt e_top = C.Entity.top in
+  lwt root = C.Entity.root in
   lwt entity_type = Pwt_option.map_s U.entity_type_of_arg etn in
   lwt super = Pwt_option.map_s U.Entity.select_one super in
   lwt es = C.Entity.image1_fts ?entity_type ?super ?limit ?cutoff
-			       (Subsocia_fts.tsquery q) e_top in
+			       (Subsocia_fts.tsquery q) root in
   let show (e, rank) =
     lwt name = U.Entity.display_name ~langs e in
     lwt et = C.Entity.type_ e in

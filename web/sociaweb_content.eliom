@@ -73,8 +73,8 @@
     lwt can_search =
       match super with
       | None ->
-	lwt top = Entity.top in
-	Entity.can_search_below operator top
+	lwt root = Entity.root in
+	Entity.can_search_below operator root
       | Some super ->
 	Entity.can_search_below operator super in
     if not can_search then http_error 403 "Search not permitted." else
@@ -90,7 +90,7 @@
 	Buffer.add_string buf ":*";
 	List.iter (fun word -> Buffer.add_string buf " & ";
 			       Buffer.add_string buf word) words in
-      lwt root = Entity.top in
+      lwt root = Entity.root in
       Entity.image1_fts ?entity_type ?super ~cutoff ~limit fts root
 
   let complete (entity_type_id, super_id, words_str) =

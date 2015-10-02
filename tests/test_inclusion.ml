@@ -47,8 +47,8 @@ module Perf = struct
 end
 
 let test n =
-  lwt top = Entity.top in
-  let ea = Array.make n top in
+  lwt root = Entity.root in
+  let ea = Array.make n root in
   let ia = Array.init n (fun _ -> Array.make n false) in
   lwt org_group = Entity_type.of_name "org_group" >|= Option.get in
   Perf.start "insert";

@@ -65,14 +65,14 @@ let () =
   lwt at_first_name = Const.at_first_name in
   lwt at_last_name = Const.at_last_name in
   lwt at_email = Const.at_email in
-  lwt e_top = Entity.top in
+  lwt e_root = Entity.root in
   lwt et_person = Const.et_person in
   lwt e_new_user = Entity.create et_person in
   lwt e_new_users = Const.e_new_users in
   Entity.force_dsub e_new_user e_new_users >>
-  Entity.set_value at_first_name first_name e_top e_new_user >>
-  Entity.set_value at_last_name  last_name  e_top e_new_user >>
-  Entity.set_value at_email      email      e_top e_new_user >>
+  Entity.set_value at_first_name first_name e_root e_new_user >>
+  Entity.set_value at_last_name  last_name  e_root e_new_user >>
+  Entity.set_value at_email      email      e_root e_new_user >>
   set_authenticalia e_new_user auth >>
   Lwt.return @@
     Eliom_tools.F.html

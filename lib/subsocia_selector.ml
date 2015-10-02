@@ -161,7 +161,7 @@ module Selector_utils (C : Subsocia_intf.S) = struct
 	es
     | Select_root -> fun es ->
       if C.Entity.Set.is_empty es then Lwt.return C.Entity.Set.empty else
-      C.Entity.top >|= C.Entity.Set.singleton
+      C.Entity.root >|= C.Entity.Set.singleton
     | Select_id id -> fun es ->
       if C.Entity.Set.is_empty es then Lwt.return C.Entity.Set.empty else
       C.Entity.of_id id >|= C.Entity.Set.singleton
@@ -175,12 +175,12 @@ module Selector_utils (C : Subsocia_intf.S) = struct
 	es C.Entity.Set.empty
 
   let select sel =
-    lwt e_top = C.Entity.top in
-    select_from sel (C.Entity.Set.singleton e_top)
+    lwt root = C.Entity.root in
+    select_from sel (C.Entity.Set.singleton root)
 
   let select_one sel =
-    lwt e_top = C.Entity.top in
-    lwt es = select_from sel (C.Entity.Set.singleton e_top) in
+    lwt root = C.Entity.root in
+    lwt es = select_from sel (C.Entity.Set.singleton root) in
     match C.Entity.Set.cardinal es with
     | 1 -> Lwt.return (C.Entity.Set.min_elt es)
     | 0 -> lwt_failure_f "No entity matches %s." (string_of_selector sel)
@@ -188,8 +188,8 @@ module Selector_utils (C : Subsocia_intf.S) = struct
 			 n (string_of_selector sel)
 
   let select_opt sel =
-    lwt e_top = C.Entity.top in
-    lwt es = select_from sel (C.Entity.Set.singleton e_top) in
+    lwt root = C.Entity.root in
+    lwt es = select_from sel (C.Entity.Set.singleton root) in
     match C.Entity.Set.cardinal es with
     | 0 -> Lwt.return_none
     | 1 -> Lwt.return (Some (C.Entity.Set.min_elt es))
