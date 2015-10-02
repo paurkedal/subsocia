@@ -140,12 +140,16 @@ module type S = sig
     val at_email : string Attribute_type.t Lwt.t
     val at_role : string Attribute_type.t Lwt.t
 
-    val et_unit : Entity_type.t Lwt.t
+    val et_root : Entity_type.t Lwt.t
     val et_access_group : Entity_type.t Lwt.t
     val et_auth_group : Entity_type.t Lwt.t
     val et_person : Entity_type.t Lwt.t
 
     val e_new_users : Entity.t Lwt.t
     val e_default : Entity.t Lwt.t
+
+    (**/**)
+    val et_unit : Entity_type.t Lwt.t
+      [@@ocaml.deprecated "Renamed to et_root."]
   end
 end

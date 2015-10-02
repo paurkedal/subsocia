@@ -1,6 +1,6 @@
 # It is absolutely essential to create to top node first.
-:* unit %display "Top"
-* unit
+:* root %display "Root"
+* root
 
 # Attribute Types
 # ---------------
@@ -18,37 +18,37 @@
 # ------------
 
 :* org_group
-    !< unit
-    ! unit/unique_name
-    ! unit/proper_name
+    !< root
+    ! root/unique_name
+    ! root/proper_name
     !< org_group
     ! org_group/unique_name
     %display "${proper_name}|${unique_name}"
 :* access_base
-    !< unit
-    ! unit/unique_name
-    ! unit/proper_name
+    !< root
+    ! root/unique_name
+    ! root/proper_name
     !< org_group
     ! org_group/unique_name
     %display "${proper_name}|${unique_name}"
 :* access_group
-    ! unit/proper_name
+    ! root/proper_name
     !< access_group
     !< access_base
     ! access_base/unique_name
     ! access_base/role
     %display "${proper_name}|${unique_name}"
 :* auth_group
-    !< unit
-    ! unit/unique_name
+    !< root
+    ! root/unique_name
     !< org_group
     ! org_group/unique_name
     %display "${proper_name}|${unique_name}"
 :* person
-    ! unit/first_name
-    ! unit/last_name
-    ! unit/proper_name
-    ! unit/email
+    ! root/first_name
+    ! root/last_name
+    ! root/proper_name
+    ! root/email
     !< access_group
     ! access_base/role
     !< auth_group
@@ -59,7 +59,7 @@
 # ----------------
 
 # Top level
-* org_group ! auth !< {#} ! proper_name=Authentication
+* org_group ! auth ! proper_name=Authentication
 
 # Access Control Default
 * access_base ! default ! proper_name={Default Access}

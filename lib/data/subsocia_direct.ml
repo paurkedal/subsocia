@@ -824,6 +824,7 @@ module Make (P : Param) = struct
 
     let of_name, of_name_cache =
       memo_1lwt @@ fun name ->
+      let name = if name = "unit" then "root" else name in (* TODO: Remove *)
       with_db @@ fun (module C) ->
       C.find_opt Q.et_id_of_name
 		 C.Tuple.(int32 0) C.Param.([|string name|])

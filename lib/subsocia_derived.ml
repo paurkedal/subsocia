@@ -91,7 +91,7 @@ module Make (Base : Subsocia_intf.S) = struct
     let at_role = _at_string "role"
 
     (* Predefined entity types. *)
-    let et_unit = _et "unit"
+    let et_root = _et "root"
     let et_access_group = _et "access_group"
     let et_auth_group = _et "auth_group"
     let et_person = _et "person"
@@ -107,6 +107,9 @@ module Make (Base : Subsocia_intf.S) = struct
 
     let e_default = _e_un "default"
     let e_new_users = _e_un ~from:e_default "subsocia-autoregs"
+
+    (**/**)
+    let et_unit = et_root
   end
 
   module Entity = struct

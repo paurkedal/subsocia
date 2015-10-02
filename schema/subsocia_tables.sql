@@ -20,7 +20,7 @@ CREATE TABLE subsocia.global_integer (
   global_value integer NOT NULL
 );
 -- NB: Also update lib/subsocia_version.ml.ab.
-INSERT INTO subsocia.global_integer VALUES ('schema_version', 3);
+INSERT INTO subsocia.global_integer VALUES ('schema_version', 4);
 
 -- Types
 
