@@ -23,7 +23,7 @@ open Unprime_list
 let load = Subsocia_lexer.parse_schema
 
 let rec aconj_of_selector = function
-  | Select_with _ | Select_union _ | Select_top | Select_id _
+  | Select_with _ | Select_union _ | Select_root | Select_id _
   | Select_adjacent (Dsub | Dsuper
 		      | Asub (Attribute_present _ | Attribute_leq _
 						  | Attribute_geq _) | Asuper _)
@@ -45,7 +45,7 @@ let aselector_of_selector = function
     None, aconj_of_selector sel_att String_map.empty
 
 let rec dconj_of_selector = function
-  | Select_with _ | Select_union _ | Select_top | Select_id _
+  | Select_with _ | Select_union _ | Select_root | Select_id _
   | Select_adjacent (Dsub | Dsuper |
 		     Asuper _ | Asub (Attribute_leq _ | Attribute_geq _))
   | Select_type _

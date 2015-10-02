@@ -84,7 +84,7 @@ let rec bprint_selector buf p = function
   | Select_type tn ->
     Buffer.add_char buf ':';
     Buffer.add_string buf tn
-  | Select_top -> Buffer.add_char buf '#'
+  | Select_root -> Buffer.add_char buf '#'
   | Select_id id -> bprintf buf "#%ld" id
   | Select_adjacent Dsub ->
     if p > p_equal then Buffer.add_char buf '{';
@@ -159,7 +159,7 @@ module Selector_utils (C : Subsocia_intf.S) = struct
 	(fun e -> C.Entity.type_ e >|=
 		  fun et' -> C.Entity_type.compare et et' = 0)
 	es
-    | Select_top -> fun es ->
+    | Select_root -> fun es ->
       if C.Entity.Set.is_empty es then Lwt.return C.Entity.Set.empty else
       C.Entity.top >|= C.Entity.Set.singleton
     | Select_id id -> fun es ->

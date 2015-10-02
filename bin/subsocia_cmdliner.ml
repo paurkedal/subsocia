@@ -41,7 +41,7 @@ let selector_conv = selector_parser, selector_printer
 
 let aselector_parser ~with_presence s =
   let rec aux acc = function
-    | Select_top | Select_id _ | Select_with _ | Select_union _
+    | Select_root | Select_id _ | Select_with _ | Select_union _
     | Select_adjacent (Dsub | Dsuper |
 		       Asuper _ | Asub (Attribute_leq _ | Attribute_geq _))
     | Select_type _

@@ -123,11 +123,11 @@ nonempty_string_list:
 selector: path EOF { $1 };
 path:
     relative_path { $1 }
-  | SLASH { Select_top }
-  | SLASH relative_path { Select_with (Select_top, $2) }
-  | TOP { Select_top }
+  | SLASH { Select_root }
+  | SLASH relative_path { Select_with (Select_root, $2) }
+  | TOP { Select_root }
   | ID { Select_id $1 }
-  | TOP relative_path { Select_with (Select_top, $2) }
+  | TOP relative_path { Select_with (Select_root, $2) }
   | ID relative_path { Select_with (Select_id $1, $2) }
   ;
 relative_path:

@@ -317,7 +317,7 @@ module Make (Base : Subsocia_intf.S) = struct
       Lwt.return begin
 	try
 	  let aux = function
-	    | [] -> Select_top
+	    | [] -> Select_root
 	    | x :: xs -> List.fold (fun a y -> Select_with (y, a)) xs x in
 	  List.map aux (Entity.Map.find top a.(0))
 	with Not_found -> []
