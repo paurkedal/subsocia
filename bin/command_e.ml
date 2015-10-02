@@ -20,6 +20,7 @@ open Lwt.Infix
 open Subsocia_cmdliner
 open Subsocia_common
 open Subsocia_selector
+open Unprime_option
 
 module Entity_utils (C : Subsocia_intf.S) = struct
   include Selector_utils (C)
@@ -68,8 +69,9 @@ module Entity_utils (C : Subsocia_intf.S) = struct
     | Some et -> Lwt.return et
 end
 
-let ls sel = run @@ fun (module C) ->
+let ls sel_opt = run @@ fun (module C) ->
   let module U = Entity_utils (C) in
+  let sel = Option.get_or Select_root sel_opt in
   lwt root = C.Entity.root in
   lwt e = U.Entity.select_one sel in
   lwt et = C.Entity.type_ e in
@@ -98,7 +100,7 @@ let ls sel = run @@ fun (module C) ->
   Lwt.return 0
 
 let ls_t =
-  let sel_t = Arg.(required & pos 0 (some selector_conv) None &
+  let sel_t = Arg.(value & pos 0 (some selector_conv) None &
 		   info ~docv:"PATH" []) in
   Term.(pure ls $ sel_t)
 
