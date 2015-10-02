@@ -58,6 +58,9 @@ let rec bprint_selector buf p = function
     Buffer.add_char buf '/';
     bprint_selector buf p_slash s1;
     if p > p_slash then Buffer.add_char buf '}'
+  | Select_adjacent (Asub (Attribute_eq ("unique_name", v)))
+      when not (String.exists is_reserved v) ->
+    Buffer.add_string buf v
   | Select_adjacent (Asub (Attribute_eq (k, v))) ->
     bprint_attr `Asub "=" buf p k v
   | Select_adjacent (Asuper (Attribute_eq (k, v))) ->
