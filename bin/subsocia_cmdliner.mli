@@ -16,7 +16,7 @@
 
 open Cmdliner
 open Subsocia_common
-open Subsocia_selector
+open Subsocia_selector_types
 
 val value_type_conv : Type.ex Arg.converter
 

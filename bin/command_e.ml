@@ -20,6 +20,7 @@ open Lwt.Infix
 open Subsocia_cmdliner
 open Subsocia_common
 open Subsocia_selector
+open Subsocia_selector_types
 open Unprime_option
 
 module Entity_utils (C : Subsocia_intf.S) = struct

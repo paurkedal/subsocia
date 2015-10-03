@@ -16,11 +16,10 @@
 
 open Printf
 open Pwt_infix
-open Subsocia_prereq
 open Subsocia_common
+open Subsocia_prereq
+open Subsocia_selector_types
 open Unprime_string
-
-include Subsocia_selector_types
 
 let pred_char = '+'
 let succ_char = '-'

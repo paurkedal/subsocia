@@ -18,6 +18,7 @@ open Pwt_infix
 open Subsocia_common
 open Subsocia_prereq
 open Subsocia_selector
+open Subsocia_selector_types
 open Unprime_list
 
 let load = Subsocia_lexer.parse_schema

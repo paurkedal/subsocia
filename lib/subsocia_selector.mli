@@ -16,9 +16,7 @@
 
 (** Parser and evaluator of expressions to select entities. *)
 
-include module type of Subsocia_selector_types
-   with type attribute_selector = Subsocia_selector_types.attribute_selector
-    and type selector = Subsocia_selector_types.selector
+open Subsocia_selector_types
 
 val selector_of_string : string -> selector
 val string_of_selector : selector -> string

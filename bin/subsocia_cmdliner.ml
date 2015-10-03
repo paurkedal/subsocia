@@ -18,6 +18,7 @@ open Cmdliner
 open Subsocia_common
 open Subsocia_prereq
 open Subsocia_selector
+open Subsocia_selector_types
 
 let value_type_parser s =
   try `Ok (Type.of_string s) with Invalid_argument msg -> `Error msg
