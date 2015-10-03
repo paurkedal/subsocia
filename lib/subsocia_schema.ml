@@ -24,9 +24,9 @@ let load = Subsocia_lexer.parse_schema
 
 let rec aconj_of_selector = function
   | Select_with _ | Select_union _ | Select_root | Select_id _
-  | Select_adjacent (Dsub | Dsuper
-		      | Asub (Attribute_present _ | Attribute_leq _
-						  | Attribute_geq _) | Asuper _)
+  | Select_dsub | Select_dsuper
+  | Select_image (Attribute_present _ | Attribute_leq _ | Attribute_geq _)
+  | Select_preimage _
   | Select_type _
       as sel_att -> fun _ ->
     invalid_arg_f "The selector %s cannot be used for attribute assignement. \
@@ -34,7 +34,7 @@ let rec aconj_of_selector = function
 		   equalities." (string_of_selector sel_att)
   | Select_inter (selA, selB) -> fun m ->
     aconj_of_selector selA (aconj_of_selector selB m)
-  | Select_adjacent (Asub (Attribute_eq (an, v))) -> fun m ->
+  | Select_image (Attribute_eq (an, v)) -> fun m ->
     let vs = try String_map.find an m with Not_found -> [] in
     String_map.add an (v :: vs) m
 
@@ -46,8 +46,9 @@ let aselector_of_selector = function
 
 let rec dconj_of_selector = function
   | Select_with _ | Select_union _ | Select_root | Select_id _
-  | Select_adjacent (Dsub | Dsuper |
-		     Asuper _ | Asub (Attribute_leq _ | Attribute_geq _))
+  | Select_dsub | Select_dsuper
+  | Select_image (Attribute_leq _ | Attribute_geq _)
+  | Select_preimage _
   | Select_type _
       as sel_att -> fun _ ->
     invalid_arg_f "The selector %s cannot be used for attribute assignement. \
@@ -55,11 +56,11 @@ let rec dconj_of_selector = function
 		   equalities." (string_of_selector sel_att)
   | Select_inter (selA, selB) -> fun m ->
     dconj_of_selector selA (dconj_of_selector selB m)
-  | Select_adjacent (Asub (Attribute_present an)) -> fun m ->
+  | Select_image (Attribute_present an) -> fun m ->
     if String_map.contains an m then
       invalid_arg_f "Conflicting wildcard for %s." an;
     String_map.add an None m
-  | Select_adjacent (Asub (Attribute_eq (an, v))) -> fun m ->
+  | Select_image (Attribute_eq (an, v)) -> fun m ->
     let vs =
       try
 	match String_map.find an m with

@@ -141,16 +141,16 @@ path_component:
   ;
 attribute:
     disjunction { $1 }
-  | STR EQ STR { Select_adjacent (Asub (Attribute_eq ($1, $3))) }
-  | STR EQ_VERB { Select_adjacent (Asub (Attribute_eq ($1, $2))) }
-  | STR EQ UNDERSCORE { Select_adjacent (Asub (Attribute_present $1)) }
-  | STR LEQ STR { Select_adjacent (Asub (Attribute_leq ($1, $3))) }
-  | STR GEQ STR { Select_adjacent (Asub (Attribute_geq ($1, $3))) }
-  | MINUS STR EQ STR { Select_adjacent (Asuper (Attribute_eq ($2, $4))) }
-  | MINUS STR EQ_VERB { Select_adjacent (Asuper (Attribute_eq ($2, $3))) }
-  | MINUS STR EQ UNDERSCORE { Select_adjacent (Asuper (Attribute_present $2)) }
-  | MINUS STR LEQ STR { Select_adjacent (Asuper (Attribute_leq ($2, $4))) }
-  | MINUS STR GEQ STR { Select_adjacent (Asuper (Attribute_geq ($2, $4))) }
+  | STR EQ STR { Select_image (Attribute_eq ($1, $3)) }
+  | STR EQ_VERB { Select_image (Attribute_eq ($1, $2)) }
+  | STR EQ UNDERSCORE { Select_image (Attribute_present $1) }
+  | STR LEQ STR { Select_image (Attribute_leq ($1, $3)) }
+  | STR GEQ STR { Select_image (Attribute_geq ($1, $3)) }
+  | MINUS STR EQ STR { Select_preimage (Attribute_eq ($2, $4)) }
+  | MINUS STR EQ_VERB { Select_preimage (Attribute_eq ($2, $3)) }
+  | MINUS STR EQ UNDERSCORE { Select_preimage (Attribute_present $2) }
+  | MINUS STR LEQ STR { Select_preimage (Attribute_leq ($2, $4)) }
+  | MINUS STR GEQ STR { Select_preimage (Attribute_geq ($2, $4)) }
   ;
 disjunction:
     disjunction_case { $1 }
@@ -158,10 +158,10 @@ disjunction:
   ;
 disjunction_case:
     conjunction { $1 }
-  | STR { Select_adjacent (Asub (Attribute_eq ("unique_name", $1))) }
-  | PLUS { Select_adjacent Dsub }
-  | MINUS { Select_adjacent Dsuper }
-  | MINUS STR { Select_adjacent (Asuper (Attribute_eq ("unique_name", $2))) }
+  | STR { Select_image (Attribute_eq ("unique_name", $1)) }
+  | PLUS { Select_dsub }
+  | MINUS { Select_dsuper }
+  | MINUS STR { Select_preimage (Attribute_eq ("unique_name", $2)) }
   ;
 conjunction:
     braced { $1 }

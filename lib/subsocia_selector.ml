@@ -58,27 +58,27 @@ let rec bprint_selector buf p = function
     Buffer.add_char buf '/';
     bprint_selector buf p_slash s1;
     if p > p_slash then Buffer.add_char buf '}'
-  | Select_adjacent (Asub (Attribute_eq ("unique_name", v)))
+  | Select_image (Attribute_eq ("unique_name", v))
       when not (String.exists is_reserved v) ->
     Buffer.add_string buf v
-  | Select_adjacent (Asub (Attribute_eq (k, v))) ->
+  | Select_image (Attribute_eq (k, v)) ->
     bprint_attr `Asub "=" buf p k v
-  | Select_adjacent (Asuper (Attribute_eq (k, v))) ->
+  | Select_preimage (Attribute_eq (k, v)) ->
     bprint_attr `Asuper "=" buf p k v
-  | Select_adjacent (Asub (Attribute_leq (k, v))) ->
+  | Select_image (Attribute_leq (k, v)) ->
     bprint_attr `Asub "<=" buf p k v
-  | Select_adjacent (Asuper (Attribute_leq (k, v))) ->
+  | Select_preimage (Attribute_leq (k, v)) ->
     bprint_attr `Asuper "<=" buf p k v
-  | Select_adjacent (Asub (Attribute_geq (k, v))) ->
+  | Select_image (Attribute_geq (k, v)) ->
     bprint_attr `Asub ">=" buf p k v
-  | Select_adjacent (Asuper (Attribute_geq (k, v))) ->
+  | Select_preimage (Attribute_geq (k, v)) ->
     bprint_attr `Asuper ">=" buf p k v
-  | Select_adjacent (Asub (Attribute_present k)) ->
+  | Select_image (Attribute_present k) ->
     if p > p_equal then Buffer.add_char buf '{';
     Buffer.add_string buf k;
     Buffer.add_string buf "=_";
     if p > p_equal then Buffer.add_char buf '}'
-  | Select_adjacent (Asuper (Attribute_present k)) ->
+  | Select_preimage (Attribute_present k) ->
     if p > p_equal then Buffer.add_char buf '{';
     Buffer.add_char buf succ_char;
     Buffer.add_string buf k;
@@ -89,11 +89,11 @@ let rec bprint_selector buf p = function
     Buffer.add_string buf tn
   | Select_root -> Buffer.add_char buf '#'
   | Select_id id -> bprintf buf "#%ld" id
-  | Select_adjacent Dsub ->
+  | Select_dsub ->
     if p > p_equal then Buffer.add_char buf '{';
     Buffer.add_char buf pred_char;
     if p > p_equal then Buffer.add_char buf '}'
-  | Select_adjacent Dsuper ->
+  | Select_dsuper ->
     if p > p_equal then Buffer.add_char buf '{';
     Buffer.add_char buf succ_char;
     if p > p_equal then Buffer.add_char buf '}'
@@ -144,12 +144,12 @@ module Selector_utils (C : Subsocia_intf.S) = struct
       lwt esA = select_from selA es in
       lwt esB = select_from selB es in
       Lwt.return (C.Entity.Set.inter esA esB)
-    | Select_adjacent (Asub p) -> fun es ->
+    | Select_image p -> fun es ->
       lwt p = entype_ap p in
       C.Entity.Set.fold_s
 	(fun e1 acc -> C.Entity.image1 p e1 >|= C.Entity.Set.union acc)
 	es C.Entity.Set.empty
-    | Select_adjacent (Asuper p) -> fun es ->
+    | Select_preimage p -> fun es ->
       lwt p = entype_ap p in
       C.Entity.Set.fold_s
 	(fun e1 acc -> C.Entity.preimage1 p e1 >|= C.Entity.Set.union acc)
@@ -168,11 +168,11 @@ module Selector_utils (C : Subsocia_intf.S) = struct
     | Select_id id -> fun es ->
       if C.Entity.Set.is_empty es then Lwt.return C.Entity.Set.empty else
       C.Entity.of_id id >|= C.Entity.Set.singleton
-    | Select_adjacent Dsub -> fun es ->
+    | Select_dsub -> fun es ->
       C.Entity.Set.fold_s
 	(fun e1 acc -> C.Entity.dsub e1 >|= C.Entity.Set.union acc)
 	es C.Entity.Set.empty
-    | Select_adjacent Dsuper -> fun es ->
+    | Select_dsuper -> fun es ->
       C.Entity.Set.fold_s
 	(fun e1 acc -> C.Entity.dsuper e1 >|= C.Entity.Set.union acc)
 	es C.Entity.Set.empty

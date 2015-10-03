@@ -283,11 +283,11 @@ module Make (Base : Subsocia_intf.S) = struct
 	let select_attr (type a) an (at : a Attribute_type.t) : a -> selector =
 	  match Attribute_type.value_type at with
 	  | Type.Bool -> fun v ->
-	    Select_adjacent (Asub (Attribute_eq (an, string_of_bool v)))
+	    Select_image (Attribute_eq (an, string_of_bool v))
 	  | Type.Int -> fun v ->
-	    Select_adjacent (Asub (Attribute_eq (an, string_of_int v)))
+	    Select_image (Attribute_eq (an, string_of_int v))
 	  | Type.String -> fun v ->
-	    Select_adjacent (Asub (Attribute_eq (an, v))) in
+	    Select_image (Attribute_eq (an, v)) in
 	let attr_by_succ (Attribute_type.Ex at) =
 	  lwt an = Attribute_type.name at in
 	  let attr vs = Values.elements vs |> List.map (select_attr an at) in

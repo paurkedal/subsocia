@@ -17,8 +17,7 @@
 (** Parser and evaluator of expressions to select entities. *)
 
 include module type of Subsocia_selector_types
-   with type 'a adjacency = 'a Subsocia_selector_types.adjacency
-    and type attribute_predicate = Subsocia_selector_types.attribute_predicate
+   with type attribute_selector = Subsocia_selector_types.attribute_selector
     and type selector = Subsocia_selector_types.selector
 
 val selector_of_string : string -> selector

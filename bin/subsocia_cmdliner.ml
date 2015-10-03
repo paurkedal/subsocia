@@ -42,17 +42,18 @@ let selector_conv = selector_parser, selector_printer
 let aselector_parser ~with_presence s =
   let rec aux acc = function
     | Select_root | Select_id _ | Select_with _ | Select_union _
-    | Select_adjacent (Dsub | Dsuper |
-		       Asuper _ | Asub (Attribute_leq _ | Attribute_geq _))
+    | Select_dsub | Select_dsuper
+    | Select_image (Attribute_leq _ | Attribute_geq _)
+    | Select_preimage _
     | Select_type _
 	as sel_att ->
       invalid_arg_f "The selector %s cannot be used for attribute assignement. \
 		     It must be a conjunction of one or more attribute \
 		     equalities." (string_of_selector sel_att)
     | Select_inter (selA, selB) -> aux (aux acc selB) selA
-    | Select_adjacent (Asub (Attribute_eq (an, av))) ->
+    | Select_image (Attribute_eq (an, av)) ->
       (an, Some av) :: acc
-    | Select_adjacent (Asub (Attribute_present an)) ->
+    | Select_image (Attribute_present an) ->
       if not with_presence then invalid_arg_f "Presence selector not allowed.";
       (an, None) :: acc in
   try
@@ -65,8 +66,8 @@ let aselector_parser ~with_presence s =
 
 let aselector_printer fmtr (ctx, asgn) =
   let select_attr = function
-    | (an, None) -> Select_adjacent (Asub (Attribute_present an))
-    | (an, Some av) -> Select_adjacent (Asub (Attribute_eq (an, av))) in
+    | (an, None) -> Select_image (Attribute_present an)
+    | (an, Some av) -> Select_image (Attribute_eq (an, av)) in
   let sel_attr =
     match asgn with
     | [] -> assert false

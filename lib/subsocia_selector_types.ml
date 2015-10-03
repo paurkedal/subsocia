@@ -16,9 +16,7 @@
 
 (** Selector type definition. *)
 
-type 'a adjacency = Dsub | Dsuper | Asub of 'a | Asuper of 'a
-
-type attribute_predicate =
+type attribute_selector =
   | Attribute_present of string
   | Attribute_eq of string * string
   | Attribute_leq of string * string
@@ -28,7 +26,10 @@ type selector =
   | Select_with of selector * selector
   | Select_union of selector * selector
   | Select_inter of selector * selector
-  | Select_adjacent of attribute_predicate adjacency
+  | Select_dsub
+  | Select_dsuper
+  | Select_image of attribute_selector
+  | Select_preimage of attribute_selector
   | Select_type of string
   | Select_root
   | Select_id of int32
