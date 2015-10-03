@@ -69,6 +69,8 @@ module Make (Base : Subsocia_intf.S) = struct
 
   module Attribute_uniqueness = Base.Attribute_uniqueness
 
+  module Adjacency = Base.Adjacency
+
   module Attribute = Base.Attribute
 
   module Entity_type = Base.Entity_type

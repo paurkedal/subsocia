@@ -643,9 +643,24 @@ module B = struct
     exception Not_unique of Set.t
   end
 
+  module Adjacency = struct
+    type t =
+      | Inter : t list -> t
+      | Present : 'a Attribute_type.t -> t
+      | Eq : 'a Attribute_type.t * 'a -> t
+      | In : 'a Attribute_type.t * 'a Values.t -> t
+      | Leq : 'a Attribute_type.t * 'a -> t
+      | Geq : 'a Attribute_type.t * 'a -> t
+      | Between : 'a Attribute_type.t * 'a * 'a -> t
+      | Search : string Attribute_type.t * string -> t
+      | Search_fts : string -> t
+  end
+
   module Attribute = struct
     type ex = Ex : 'a Attribute_type.t * 'a -> ex
-    type predicate =
+
+    (**/**)
+    type predicate = Adjacency.t =
       | Inter : predicate list -> predicate
       | Present : 'a Attribute_type.t -> predicate
       | Eq : 'a Attribute_type.t * 'a -> predicate
@@ -655,8 +670,6 @@ module B = struct
       | Between : 'a Attribute_type.t * 'a * 'a -> predicate
       | Search : string Attribute_type.t * string -> predicate
       | Search_fts : string -> predicate
-
-    (**/**)
     type t0 = ex
   end
 
@@ -813,7 +826,7 @@ module Make (P : Param) = struct
       include B.Attribute_type
       include Attribute_type
     end
-    module Attribute = B.Attribute
+    module Adjacency = B.Adjacency
   end)
 
   module Entity_type = struct
@@ -1793,6 +1806,7 @@ let connect uri =
       include B.Attribute_uniqueness
       include M.Attribute_uniqueness
     end
+    module Adjacency = B.Adjacency
     module Attribute = B.Attribute
     module Entity_type = struct
       include B.Entity_type
@@ -1808,8 +1822,9 @@ let connect uri =
        and type Attribute_type.ex = Attribute_type.ex
        and type Attribute_type.Set.t = Attribute_type.Set.t
        and type 'a Attribute_type.Map.t = 'a Attribute_type.Map.t
+       and type Adjacency.t = Adjacency.t
        and type Attribute.ex = Attribute.ex
-       and type Attribute.predicate = Attribute.predicate
+       and type Attribute.predicate = Adjacency.t
        and type Entity_type.t = Entity_type.t
        and type Entity_type.Set.t = Entity_type.Set.t
        and type 'a Entity_type.Map.t = 'a Entity_type.Map.t
@@ -1833,6 +1848,7 @@ let connect uri =
 	  include B.Attribute_uniqueness
 	  include M.Attribute_uniqueness
 	end
+	module Adjacency = B.Adjacency
 	module Attribute = B.Attribute
 	module Entity_type = struct
 	  include B.Entity_type

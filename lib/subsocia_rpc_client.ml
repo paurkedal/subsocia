@@ -104,9 +104,24 @@ module Make (RPCM : RPCM) = struct
     let affected u = Raw.affected u >>= Attribute_type.encode_set
   end
 
+  module Adjacency = struct
+    type t =
+      | Inter : t list -> t
+      | Present : 'a Attribute_type.t -> t
+      | Eq : 'a Attribute_type.t * 'a -> t
+      | In : 'a Attribute_type.t * 'a Values.t -> t
+      | Leq : 'a Attribute_type.t * 'a -> t
+      | Geq : 'a Attribute_type.t * 'a -> t
+      | Between : 'a Attribute_type.t * 'a * 'a -> t
+      | Search : string Attribute_type.t * string -> t
+      | Search_fts : string -> t
+  end
+
   module Attribute = struct
     type ex = Ex : 'a Attribute_type.t * 'a -> ex
-    type predicate =
+
+    (**/**)
+    type predicate = Adjacency.t =
       | Inter : predicate list -> predicate
       | Present : 'a Attribute_type.t -> predicate
       | Eq : 'a Attribute_type.t * 'a -> predicate
@@ -116,8 +131,6 @@ module Make (RPCM : RPCM) = struct
       | Between : 'a Attribute_type.t * 'a * 'a -> predicate
       | Search : string Attribute_type.t * string -> predicate
       | Search_fts : string -> predicate
-
-    (**/**)
     type t0 = ex
   end
 

@@ -66,10 +66,28 @@ module type ATTRIBUTE_UNIQUENESS = sig
   val affected : t -> Attribute_type.Set.t Lwt.t
 end
 
+module type ADJACENCY = sig
+  module Attribute_type : ATTRIBUTE_TYPE
+
+  type t =
+    | Inter : t list -> t
+    | Present : 'a Attribute_type.t -> t
+    | Eq : 'a Attribute_type.t * 'a -> t
+    | In : 'a Attribute_type.t * 'a Values.t -> t
+    | Leq : 'a Attribute_type.t * 'a -> t
+    | Geq : 'a Attribute_type.t * 'a -> t
+    | Between : 'a Attribute_type.t * 'a * 'a -> t
+    | Search : string Attribute_type.t * Subsocia_re.t -> t
+    | Search_fts : Subsocia_fts.t -> t
+end
+
 module type ATTRIBUTE = sig
   module Attribute_type : ATTRIBUTE_TYPE
 
+  (**/**)
+
   type ex = Ex : 'a Attribute_type.t * 'a -> ex
+  [@@ocaml.deprecated "Not needed by the core interface."]
 
   type predicate =
     | Inter : predicate list -> predicate
@@ -81,8 +99,8 @@ module type ATTRIBUTE = sig
     | Between : 'a Attribute_type.t * 'a * 'a -> predicate
     | Search : string Attribute_type.t * Subsocia_re.t -> predicate
     | Search_fts : Subsocia_fts.t -> predicate
+  [@@ocaml.deprecated "Moved to Adjacency.t."]
 
-  (**/**)
   type t0 = ex [@@ocaml.deprecated "Renamed to ex"]
 end
 
@@ -183,6 +201,8 @@ end
 
 module type ENTITY = sig
   module Attribute_type : ATTRIBUTE_TYPE
+  module Adjacency : ADJACENCY
+    with module Attribute_type := Attribute_type
   module Attribute : ATTRIBUTE with module Attribute_type := Attribute_type
   module Entity_type : ENTITY_TYPE with module Attribute_type := Attribute_type
 
@@ -246,11 +266,11 @@ module type ENTITY = sig
   (** [set_values at xs e e'] replaces values of attributions from [e] to
       [e'] of type [at] with [xs]. *)
 
-  val image1 : Attribute.predicate -> t -> Set.t Lwt.t
+  val image1 : Adjacency.t -> t -> Set.t Lwt.t
   (** [asub p e] are the attribution subentities of [e] along attributes for
       which [p] holds. *)
 
-  val preimage1 : Attribute.predicate -> t -> Set.t Lwt.t
+  val preimage1 : Adjacency.t -> t -> Set.t Lwt.t
   (** [asub p e] are the attribution superentities of [e] along attributes for
       which [p] holds. *)
 
@@ -299,13 +319,13 @@ module type ENTITY = sig
   [@@ocaml.deprecated "Use add_values, but note new argument order."]
   val delattr : t -> t -> 'a Attribute_type.t -> 'a list -> unit Lwt.t
   [@@ocaml.deprecated "Use remove_values, but note new argument order."]
-  val asub : t -> Attribute.predicate -> Set.t Lwt.t
+  val asub : t -> Adjacency.t -> Set.t Lwt.t
   [@@ocaml.deprecated "Use image1."]
-  val asuper : t -> Attribute.predicate -> Set.t Lwt.t
+  val asuper : t -> Adjacency.t -> Set.t Lwt.t
   [@@ocaml.deprecated "Use preimage1."]
-  val asub_conj : t -> Attribute.predicate list -> Set.t Lwt.t
+  val asub_conj : t -> Adjacency.t list -> Set.t Lwt.t
   [@@ocaml.deprecated "Use image1 with Attribute.Inter."]
-  val asuper_conj : t -> Attribute.predicate list -> Set.t Lwt.t
+  val asuper_conj : t -> Adjacency.t list -> Set.t Lwt.t
   [@@ocaml.deprecated "Use preimage1 with Attribute.Inter."]
   val asub_eq : t -> 'a Attribute_type.t -> 'a -> Set.t Lwt.t
   [@@ocaml.deprecated "Use image1_eq."]
@@ -331,9 +351,14 @@ module type S = sig
   module Attribute_type : ATTRIBUTE_TYPE
   module Attribute_uniqueness : ATTRIBUTE_UNIQUENESS
     with module Attribute_type := Attribute_type
-  module Attribute : ATTRIBUTE with module Attribute_type := Attribute_type
+  module Adjacency : ADJACENCY
+    with module Attribute_type := Attribute_type
+  module Attribute : ATTRIBUTE
+    with module Attribute_type := Attribute_type
+     and type predicate = Adjacency.t
   module Entity_type : ENTITY_TYPE with module Attribute_type := Attribute_type
   module Entity : ENTITY with module Attribute_type := Attribute_type
+			  and module Adjacency := Adjacency
 			  and module Attribute := Attribute
 			  and module Entity_type := Entity_type
 end

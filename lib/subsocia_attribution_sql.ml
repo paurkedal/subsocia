@@ -30,27 +30,28 @@ let schema_prefix = ref "subsocia." (* FIXME: import *)
 
 module type Arg = sig
   module Attribute_type : ATTRIBUTE_TYPE
-  module Attribute : ATTRIBUTE with module Attribute_type := Attribute_type
+  module Adjacency : ADJACENCY
+    with module Attribute_type := Attribute_type
 end
 
 module Make (Arg : Arg) = struct
   open Arg
 
-  let table_for_predicate = function
-    | Attribute.Inter _ -> assert false
-    | Attribute.Present at -> table_for_type (Attribute_type.value_type at)
-    | Attribute.Eq (at, _) -> table_for_type (Attribute_type.value_type at)
-    | Attribute.In (at, _) -> table_for_type (Attribute_type.value_type at)
-    | Attribute.Leq (at, _) -> table_for_type (Attribute_type.value_type at)
-    | Attribute.Geq (at, _) -> table_for_type (Attribute_type.value_type at)
-    | Attribute.Between(at,_,_) -> table_for_type (Attribute_type.value_type at)
-    | Attribute.Search _ -> "attribution_string"
-    | Attribute.Search_fts _ -> "attribution_string_fts"
+  let table_for_adjacency = function
+    | Adjacency.Inter _ -> assert false
+    | Adjacency.Present at -> table_for_type (Attribute_type.value_type at)
+    | Adjacency.Eq (at, _) -> table_for_type (Attribute_type.value_type at)
+    | Adjacency.In (at, _) -> table_for_type (Attribute_type.value_type at)
+    | Adjacency.Leq (at, _) -> table_for_type (Attribute_type.value_type at)
+    | Adjacency.Geq (at, _) -> table_for_type (Attribute_type.value_type at)
+    | Adjacency.Between(at,_,_) -> table_for_type (Attribute_type.value_type at)
+    | Adjacency.Search _ -> "attribution_string"
+    | Adjacency.Search_fts _ -> "attribution_string_fts"
 
-  let bprint_predicate_conj buf preds =
+  let bprint_adjacency_conj buf preds =
 
     let do_join i pred =
-      let tn = table_for_predicate pred in
+      let tn = table_for_adjacency pred in
       if i = 0 then
 	bprintf buf "%s%s q%d" !schema_prefix tn i
       else
@@ -102,27 +103,27 @@ module Make (Arg : Arg) = struct
     let do_cond i pred =
       Buffer.add_string buf (if i = 0 then " WHERE " else " AND ");
       match pred with
-      | Attribute.Inter _ -> assert false
-      | Attribute.Present at -> do_cond0 i at
-      | Attribute.Eq (at, x) -> do_cond1 i "=" at x
-      | Attribute.In (at, xs) -> do_in i at xs
-      | Attribute.Leq (at, x) -> do_cond1 i "<=" at x
-      | Attribute.Geq (at, x) -> do_cond1 i ">=" at x
-      | Attribute.Between (at, x, y) -> do_between i at x y
-      | Attribute.Search (at, x) -> do_cond1 i "SIMILAR TO" at x
-      | Attribute.Search_fts x -> do_fts i x in
+      | Adjacency.Inter _ -> assert false
+      | Adjacency.Present at -> do_cond0 i at
+      | Adjacency.Eq (at, x) -> do_cond1 i "=" at x
+      | Adjacency.In (at, xs) -> do_in i at xs
+      | Adjacency.Leq (at, x) -> do_cond1 i "<=" at x
+      | Adjacency.Geq (at, x) -> do_cond1 i ">=" at x
+      | Adjacency.Between (at, x, y) -> do_between i at x y
+      | Adjacency.Search (at, x) -> do_cond1 i "SIMILAR TO" at x
+      | Adjacency.Search_fts x -> do_fts i x in
 
     List.iteri do_join preds;
     List.iteri do_cond preds
 
   let rec flatten = function
-    | Attribute.Inter ps -> List.flatten_map flatten ps
+    | Adjacency.Inter ps -> List.flatten_map flatten ps
     | p -> [p]
 
   let select_image p ids =
     let buf = Buffer.create 512 in
     Buffer.add_string buf "SELECT q0.output_id FROM ";
-    bprint_predicate_conj buf (flatten p);
+    bprint_adjacency_conj buf (flatten p);
     begin match ids with
     | [] -> bprintf buf " AND false" (* FIXME *)
     | [id] -> bprintf buf " AND q0.input_id = %ld" id
@@ -136,7 +137,7 @@ module Make (Arg : Arg) = struct
   let select_preimage p ids =
     let buf = Buffer.create 512 in
     Buffer.add_string buf "SELECT q0.input_id FROM ";
-    bprint_predicate_conj buf (flatten p);
+    bprint_adjacency_conj buf (flatten p);
     begin match ids with
     | [] -> bprintf buf " AND false" (* FIXME *)
     | [id] -> bprintf buf " AND q0.output_id = %ld" id
