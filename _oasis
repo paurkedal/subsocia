@@ -1,6 +1,6 @@
 OASISFormat: 0.4
 Name: subsocia
-Version: 0.9.2
+Version: 0.10
 Synopsis: People, organization, and authorization
 Authors: Petter A. Urkedal
 License: LGPL-3 with OCaml linking exception
