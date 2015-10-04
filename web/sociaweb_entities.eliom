@@ -147,21 +147,7 @@
     let attr_table = F.table ~a:[F.a_class ["soc-assoc"]]
 			     (List.flatten attr_trss) in
     lwt dsuper_frag = render_dsuper ~cri ~enable_edit ent in
-    let emit = {{fun str ->
-      match_lwt %completed_sf (None, None, str) with
-      | None ->
-	Lwt.return (Ack_error "Unique match required.")
-      | Some entity_id ->
-	Eliom_client.change_page ~service:entity_service entity_id () >>
-	Lwt.return Ack_ok
-    }} in
-    let search_inp, search_handle = entity_completion_input emit in
-    let search_frag = F.div ~a:[F.a_class ["soc-search"]] [
-      F.label [F.pcdata "Search"]; F.br ();
-      search_inp;
-    ] in
     Lwt.return @@ F.div ~a:[F.a_class ["soc-entity-browser"]] [
-      search_frag;
       dsuper_frag;
       F.div ~a:[F.a_class ["soc-box"; "focus"; "top"]] [F.pcdata name];
       F.div ~a:[F.a_class ["soc-box"; "focus"; "middle"; "content"]]
@@ -174,7 +160,6 @@
 (* TODO: Set enable_edit from permissions or explicit request. *)
 
 let entity_handler entity_id () =
-  let open Html5.D in
   lwt cri = get_custom_request_info () in
   lwt e = entity_for_view ~operator:cri.cri_operator entity_id in
   lwt enable_edit =
@@ -182,7 +167,7 @@ let entity_handler entity_id () =
     | [] -> Lwt.return_true
     | ets -> Entity.type_ e >>= Entity_type.name >|=
 	     fun et -> List.mem et ets in
-  lwt browser = render_browser ~enable_edit ~cri e in
+  lwt browser_div = render_browser ~enable_edit ~cri e in
   let entity_changed_c = Eliom_react.Down.of_react (entity_changed e) in
   ignore {unit{
     Lwt_react.E.keep @@ React.E.trace
@@ -190,11 +175,24 @@ let entity_handler entity_id () =
 	Eliom_client.exit_to ~service:Eliom_service.void_coservice' () ())
       %entity_changed_c
   }};
+  let do_search = {{fun str ->
+    match_lwt %completed_sf (None, None, str) with
+    | None ->
+      Lwt.return (Ack_error "Unique match required.")
+    | Some entity_id ->
+      Eliom_client.change_page ~service:entity_service entity_id () >>
+      Lwt.return Ack_ok
+  }} in
+  let search_inp, search_handle = entity_completion_input do_search in
+  let search_div = F.div ~a:[F.a_class ["soc-search"]] [
+    F.label [F.pcdata "Search"]; F.br ();
+    search_inp;
+  ] in
   Lwt.return @@
     Eliom_tools.D.html
       ~title:"Entity Browser"
       ~css:[["css"; "subsocia.css"]; ["css"; "panograph.css"]]
-      (body [browser])
+      (D.body [search_div; browser_div])
 
 let self_entity_handler () () =
   lwt operator = get_operator () in

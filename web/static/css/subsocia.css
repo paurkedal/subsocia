@@ -1,7 +1,8 @@
 body {
+	margin: 0;
+	padding: 0;
 	background-color: #ddd;
 	color: black;
-	margin: 8mm 6mm;
 }
 
 table.soc-layout { border-collapse: collapse; margin: 0; }
@@ -10,8 +11,12 @@ table.soc-layout > tr > th { text-align: left; }
 table.soc-layout > tr > td { vertical-align: top; }
 table.soc-layout table.multicol { margin: 0; }
 
+div.soc-search, div.soc-entity-browser {
+	padding: 2mm;
+}
+
+.soc-search { background-color: #ccc; }
 .soc-search label { font-weight: bold; font-size: small; }
-.soc-search { float: right; }
 
 .soc-entity-browser > table.soc-layout th { font-size: small; }
 .soc-entity-browser > table.soc-layout td { padding: 0 1mm; }
