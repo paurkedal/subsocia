@@ -81,8 +81,8 @@ let () =
       (F.body [
 	F.h1 [F.pcdata "Welcome, "; F.pcdata first_name];
 	F.p [
-	  F.a ~service:entity_service
+	  F.a ~service:entities_service
 	    [F.pcdata "Your registration is complete."]
-	    (Entity.id e_new_user);
+	    (Some (Entity.id e_new_user));
 	];
       ])

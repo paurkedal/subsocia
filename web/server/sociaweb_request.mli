@@ -19,6 +19,13 @@ open Panograph_i18n
 open Subsocia_connection
 
 val http_error : int -> string -> 'a Lwt.t
+val http_redirect :
+      service:('get, unit, [< Eliom_service.get_service_kind],
+	       [< Eliom_service.attached], [< Eliom_service.service_kind],
+	       [< Eliom_service.suff], 'gn, unit,
+	       [< Eliom_service.registrable], 'return)
+	      Eliom_service.service ->
+      'get -> 'noreturn Lwt.t
 
 type custom_request_info = {
   cri_operator : Entity.t;

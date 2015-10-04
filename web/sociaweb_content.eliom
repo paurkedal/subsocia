@@ -46,7 +46,7 @@
   let entity_link ~langs ent =
     let id = Entity.id ent in
     lwt name = Entity.display_name ~langs ent in
-    Lwt.return (F.a ~service:entity_service [F.pcdata name] id)
+    Lwt.return (F.a ~service:entities_service [F.pcdata name] (Some id))
 }}
 
 {shared{

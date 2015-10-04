@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -18,11 +18,12 @@
 open Eliom_service
 open Eliom_parameter
 
-let self_entity_service =
-  App.service ~path:["entities"; "self"] ~get_params:unit ()
+let entities_service =
+  App.service ~path:["entities"]
+	      ~get_params:(suffix (opt (int32 "entity_id"))) ()
 
-let entity_service =
-  App.service ~path:["entities"] ~get_params:(suffix (int32 "entity_id")) ()
+let entities_self_service =
+  App.service ~path:["entities"; "self"] ~get_params:unit ()
 
 let registration_form_service =
   Http.service ~path:["registration"] ~get_params:unit ()

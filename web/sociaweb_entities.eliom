@@ -14,6 +14,11 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Sociaweb_auth
+open Sociaweb_request
+open Sociaweb_server
+open Subsocia_connection
+
 {shared{
   open Eliom_content
   open Eliom_content.Html5
@@ -24,16 +29,13 @@
   open Sociaweb_content
   open Sociaweb_services
   open Subsocia_common
+  open Subsocia_selector
   open Unprime
   open Unprime_list
+  open Unprime_option
 }}
 
 {server{
-  open Sociaweb_auth
-  open Sociaweb_request
-  open Sociaweb_server
-  open Subsocia_connection
-
   let suggested_number_of_columns es =
     let n = List.length es in
     if n = 0 then 1 else
@@ -167,7 +169,19 @@
 
 (* TODO: Set enable_edit from permissions or explicit request. *)
 
-let entity_handler entity_id () =
+let default_entity_sel =
+  selector_of_string Subsocia_config.Web.default_entity#get
+
+let entity_handler entity_id_opt () =
+  lwt entity_id =
+    match entity_id_opt with
+    | Some id -> Lwt.return id
+    | None ->
+      lwt entity_id =
+	match_lwt Entity.select_opt default_entity_sel with
+	| None -> Lwt.return 1l
+	| Some entity -> Lwt.return (Entity.id entity) in
+      http_redirect ~service:entities_service (Some entity_id) in
   lwt cri = get_custom_request_info () in
   lwt e = entity_for_view ~operator:cri.cri_operator entity_id in
   lwt enable_edit =
@@ -188,7 +202,7 @@ let entity_handler entity_id () =
     | None ->
       Lwt.return (Ack_error "Unique match required.")
     | Some entity_id ->
-      Eliom_client.change_page ~service:entity_service entity_id () >>
+      Eliom_client.change_page ~service:entities_service (Some entity_id) () >>
       Lwt.return Ack_ok
   }} in
   let search_inp, search_handle = entity_completion_input do_search in
@@ -202,12 +216,12 @@ let entity_handler entity_id () =
       ~css:[["css"; "subsocia.css"]; ["css"; "panograph.css"]]
       (D.body [search_div; browser_div])
 
-let self_entity_handler () () =
+let entities_self_handler () () =
   lwt operator = get_operator () in
   let operator_id = Entity.id operator in
-  Lwt.return (Eliom_service.preapply entity_service operator_id)
+  Lwt.return (Eliom_service.preapply entities_service (Some operator_id))
 
 let () =
-  Eliom_registration.Redirection.register ~service:self_entity_service
-					  self_entity_handler;
-  App.register ~service:entity_service entity_handler
+  let open Eliom_registration in
+  Sociaweb_app.register ~service:entities_service entity_handler;
+  Redirection.register ~service:entities_self_service entities_self_handler

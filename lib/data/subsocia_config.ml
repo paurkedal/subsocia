@@ -71,6 +71,11 @@ module Web = struct
       "A list of types of entities which can be assigned group membership via \
        the web interface. If empty, all entities can be assigned membership."
 
+  let default_entity =
+    new Config_file.string_cp ~group
+      ["web"; "default_entity"] "/"
+      "Path to the entity to which the /entities URL redirects."
+
   let completion_cutoff =
     new Config_file.float_cp ~group
       ["web"; "completion_cutoff"] 0.001

@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -23,6 +23,11 @@ open Unprime_option
 
 let http_error code msg =
   Lwt.fail (Ocsigen_http_frame.Http_error.Http_exception (code, Some msg, None))
+
+let http_redirect ~service get =
+  let uri = Eliom_uri.make_string_uri ~absolute:true ~service get in
+  let hdrs = Http_headers.empty |> Http_headers.(add location) uri in
+  Lwt.fail (Ocsigen_http_frame.Http_error.Http_exception (302, None, Some hdrs))
 
 (* Request Info *)
 
