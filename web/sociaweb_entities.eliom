@@ -34,13 +34,21 @@
   open Sociaweb_server
   open Subsocia_connection
 
+  let suggested_number_of_columns es =
+    let n = List.length es in
+    if n = 0 then 1 else
+    let ws = List.map (fun (name, _) -> String.length name) es in
+    let ws = List.sort (fun x y -> compare y x) ws in
+    let w = List.nth ws ((n - 1) / 8) in
+    min (max 1 (120 / w)) 8
+
   let ordered_entities ~cri es =
     let amend_name e =
       lwt name = Entity.display_name ~langs:cri.cri_langs e in
       Lwt.return (name, e) in
     lwt es = Lwt_list.map_s amend_name (Entity.Set.elements es) in
     let es = List.sort (fun (s0, _) (s1, _) -> compare s0 s1) es in
-    Lwt.return (List.map snd es)
+    Lwt.return (List.map snd es, suggested_number_of_columns es)
 
   let neighbour_link ~cri ent =
     entity_link ~langs:cri.cri_langs ent >|= fun x -> [x]
@@ -116,19 +124,19 @@
     if enable_edit then
       lwt csupers = Entity.candidate_dsupers ~include_current:true focus in
       lwt csupers = Entity.Set.filter_s is_relevant csupers in
-      lwt csupers = ordered_entities ~cri csupers in
+      lwt csupers, m = ordered_entities ~cri csupers in
       lwt csuper_frags = Lwt_list.map_s (neighbour_with_edit ~cri focus)
 					csupers in
-      let csuper_block = multicol_tds ~cls:["soc-dsuper1"] csuper_frags in
+      let csuper_block = multicol_tds ~m ~cls:["soc-dsuper1"] csuper_frags in
       Lwt.return @@
 	F.table ~a:[F.a_class ["soc-layout"]]
 	  [F.tr [F.th [F.pcdata "Membership Management"]];
 	   F.tr [F.td [csuper_block]]]
     else
       lwt dsupers = Entity.dsuper focus in
-      lwt dsupers = ordered_entities ~cri dsupers in
+      lwt dsupers, m = ordered_entities ~cri dsupers in
       lwt dsuper_frags = Lwt_list.map_s (neighbour_link ~cri) dsupers in
-      let dsuper_block = multicol ~cls:["soc-dsuper1"] dsuper_frags in
+      let dsuper_block = multicol ~m ~cls:["soc-dsuper1"] dsuper_frags in
       Lwt.return @@
 	F.table ~a:[F.a_class ["soc-layout"]]
 	  [F.tr [F.th [F.pcdata "Member of"]];
@@ -136,7 +144,7 @@
 
   let render_browser ~cri ?(enable_edit = true) ent =
     let open Html5 in
-    lwt dsub = Entity.dsub ent >>= ordered_entities ~cri in
+    lwt dsub, m = Entity.dsub ent >>= ordered_entities ~cri in
     lwt dsub_frags = Lwt_list.map_s (neighbour_link ~cri) dsub in
     lwt name = Entity.display_name ~langs:cri.cri_langs ent in
     lwt ubs = upwards_closure ent in
@@ -153,7 +161,7 @@
       F.div ~a:[F.a_class ["soc-box"; "focus"; "middle"; "content"]]
 	    [attr_table];
       F.div ~a:[F.a_class ["soc-box"; "focus"; "bottom"; "content"]]
-	    [multicol ~cls:["soc-dsub1"] dsub_frags];
+	    [multicol ~m ~cls:["soc-dsub1"] dsub_frags];
     ]
 }}
 
