@@ -71,9 +71,23 @@ module type S = sig
   module Attribute_uniqueness :
     ATTRIBUTE_UNIQUENESS with module Attribute_type := Base.Attribute_type
 
-  module Relation :
-    RELATION with module Attribute_type := Base.Attribute_type
-		      and type t = Base.Relation.t
+  module Relation : sig
+    include RELATION
+       with module Attribute_type := Base.Attribute_type
+	and type t = Base.Relation.t
+
+    val (&&) : t -> t -> t
+    val inter : t list -> t
+    val present : 'a Attribute_type.t -> t
+    val (=) : 'a Attribute_type.t -> 'a -> t
+    val (<:) : 'a Attribute_type.t -> 'a Values.t -> t
+    val (<::) : 'a Attribute_type.t -> 'a list -> t
+    val (<=) : 'a Attribute_type.t -> 'a -> t
+    val (>=) : 'a Attribute_type.t -> 'a -> t
+    val between : 'a Attribute_type.t -> 'a -> 'a -> t
+    val search : string Attribute_type.t -> Subsocia_re.t -> t
+    val search_fts : Subsocia_fts.t -> t
+  end
 
   module Attribute :
     ATTRIBUTE with module Attribute_type := Base.Attribute_type

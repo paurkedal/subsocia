@@ -69,7 +69,25 @@ module Make (Base : Subsocia_intf.S) = struct
 
   module Attribute_uniqueness = Base.Attribute_uniqueness
 
-  module Relation = Base.Relation
+  module Relation = struct
+    include Base.Relation
+
+    let (&&) q r =
+      match q, r with
+      | Inter qs, _ -> Inter (r :: qs)
+      | _, Inter rs -> Inter (q :: rs)
+      | _, _ -> Inter [q; r]
+    let inter rs = Inter rs
+    let present at = Present at
+    let (=) at v = Eq (at, v)
+    let (<:) at vs = In (at, vs)
+    let (<::) at vs = at <: Values.of_elements (Attribute_type.value_type at) vs
+    let (<=) at v = Leq (at, v)
+    let (>=) at v = Geq (at, v)
+    let between at v0 v1 = Between (at, v0, v1)
+    let search at re = Search (at, re)
+    let search_fts w = Search_fts w
+  end
 
   module Attribute = Base.Attribute
 
