@@ -69,7 +69,7 @@ module Make (Base : Subsocia_intf.S) = struct
 
   module Attribute_uniqueness = Base.Attribute_uniqueness
 
-  module Adjacency = Base.Adjacency
+  module Relation = Base.Relation
 
   module Attribute = Base.Attribute
 

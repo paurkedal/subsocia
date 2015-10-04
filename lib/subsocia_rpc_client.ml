@@ -104,7 +104,7 @@ module Make (RPCM : RPCM) = struct
     let affected u = Raw.affected u >>= Attribute_type.encode_set
   end
 
-  module Adjacency = struct
+  module Relation = struct
     type t =
       | Inter : t list -> t
       | Present : 'a Attribute_type.t -> t
@@ -121,7 +121,7 @@ module Make (RPCM : RPCM) = struct
     type ex = Ex : 'a Attribute_type.t * 'a -> ex
 
     (**/**)
-    type predicate = Adjacency.t =
+    type predicate = Relation.t =
       | Inter : predicate list -> predicate
       | Present : 'a Attribute_type.t -> predicate
       | Eq : 'a Attribute_type.t * 'a -> predicate

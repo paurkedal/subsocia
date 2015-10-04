@@ -19,13 +19,13 @@ open Subsocia_intf
 
 module type Arg = sig
   module Attribute_type : ATTRIBUTE_TYPE
-  module Adjacency : ADJACENCY
+  module Relation : RELATION
     with module Attribute_type := Attribute_type
 end
 
 module Make (Arg : Arg) : sig
   open Arg
 
-  val select_image : Adjacency.t -> int32 list -> query
-  val select_preimage : Adjacency.t -> int32 list -> query
+  val select_image : Relation.t -> int32 list -> query
+  val select_preimage : Relation.t -> int32 list -> query
 end

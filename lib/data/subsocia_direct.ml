@@ -643,7 +643,7 @@ module B = struct
     exception Not_unique of Set.t
   end
 
-  module Adjacency = struct
+  module Relation = struct
     type t =
       | Inter : t list -> t
       | Present : 'a Attribute_type.t -> t
@@ -660,7 +660,7 @@ module B = struct
     type ex = Ex : 'a Attribute_type.t * 'a -> ex
 
     (**/**)
-    type predicate = Adjacency.t =
+    type predicate = Relation.t =
       | Inter : predicate list -> predicate
       | Present : 'a Attribute_type.t -> predicate
       | Eq : 'a Attribute_type.t * 'a -> predicate
@@ -826,7 +826,7 @@ module Make (P : Param) = struct
       include B.Attribute_type
       include Attribute_type
     end
-    module Adjacency = B.Adjacency
+    module Relation = B.Relation
   end)
 
   module Entity_type = struct
@@ -1806,7 +1806,7 @@ let connect uri =
       include B.Attribute_uniqueness
       include M.Attribute_uniqueness
     end
-    module Adjacency = B.Adjacency
+    module Relation = B.Relation
     module Attribute = B.Attribute
     module Entity_type = struct
       include B.Entity_type
@@ -1822,9 +1822,9 @@ let connect uri =
        and type Attribute_type.ex = Attribute_type.ex
        and type Attribute_type.Set.t = Attribute_type.Set.t
        and type 'a Attribute_type.Map.t = 'a Attribute_type.Map.t
-       and type Adjacency.t = Adjacency.t
+       and type Relation.t = Relation.t
        and type Attribute.ex = Attribute.ex
-       and type Attribute.predicate = Adjacency.t
+       and type Attribute.predicate = Relation.t
        and type Entity_type.t = Entity_type.t
        and type Entity_type.Set.t = Entity_type.Set.t
        and type 'a Entity_type.Map.t = 'a Entity_type.Map.t
@@ -1848,7 +1848,7 @@ let connect uri =
 	  include B.Attribute_uniqueness
 	  include M.Attribute_uniqueness
 	end
-	module Adjacency = B.Adjacency
+	module Relation = B.Relation
 	module Attribute = B.Attribute
 	module Entity_type = struct
 	  include B.Entity_type

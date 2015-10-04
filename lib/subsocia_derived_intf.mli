@@ -71,13 +71,13 @@ module type S = sig
   module Attribute_uniqueness :
     ATTRIBUTE_UNIQUENESS with module Attribute_type := Base.Attribute_type
 
-  module Adjacency :
-    ADJACENCY with module Attribute_type := Base.Attribute_type
-		      and type t = Base.Adjacency.t
+  module Relation :
+    RELATION with module Attribute_type := Base.Attribute_type
+		      and type t = Base.Relation.t
 
   module Attribute :
     ATTRIBUTE with module Attribute_type := Base.Attribute_type
-	       and type predicate = Base.Adjacency.t
+	       and type predicate = Base.Relation.t
 
   module Entity_type :
     ENTITY_TYPE with module Attribute_type := Base.Attribute_type
@@ -87,7 +87,7 @@ module type S = sig
 
   module Entity : sig
     include ENTITY with module Attribute_type := Base.Attribute_type
-		    and module Adjacency := Base.Adjacency
+		    and module Relation := Base.Relation
 		    and module Attribute := Base.Attribute
 		    and module Entity_type := Base.Entity_type
 		    and type t = Base.Entity.t

@@ -30,7 +30,7 @@ let schema_prefix = ref "subsocia." (* FIXME: import *)
 
 module type Arg = sig
   module Attribute_type : ATTRIBUTE_TYPE
-  module Adjacency : ADJACENCY
+  module Relation : RELATION
     with module Attribute_type := Attribute_type
 end
 
@@ -38,15 +38,15 @@ module Make (Arg : Arg) = struct
   open Arg
 
   let table_for_adjacency = function
-    | Adjacency.Inter _ -> assert false
-    | Adjacency.Present at -> table_for_type (Attribute_type.value_type at)
-    | Adjacency.Eq (at, _) -> table_for_type (Attribute_type.value_type at)
-    | Adjacency.In (at, _) -> table_for_type (Attribute_type.value_type at)
-    | Adjacency.Leq (at, _) -> table_for_type (Attribute_type.value_type at)
-    | Adjacency.Geq (at, _) -> table_for_type (Attribute_type.value_type at)
-    | Adjacency.Between(at,_,_) -> table_for_type (Attribute_type.value_type at)
-    | Adjacency.Search _ -> "attribution_string"
-    | Adjacency.Search_fts _ -> "attribution_string_fts"
+    | Relation.Inter _ -> assert false
+    | Relation.Present at -> table_for_type (Attribute_type.value_type at)
+    | Relation.Eq (at, _) -> table_for_type (Attribute_type.value_type at)
+    | Relation.In (at, _) -> table_for_type (Attribute_type.value_type at)
+    | Relation.Leq (at, _) -> table_for_type (Attribute_type.value_type at)
+    | Relation.Geq (at, _) -> table_for_type (Attribute_type.value_type at)
+    | Relation.Between(at,_,_) -> table_for_type (Attribute_type.value_type at)
+    | Relation.Search _ -> "attribution_string"
+    | Relation.Search_fts _ -> "attribution_string_fts"
 
   let bprint_adjacency_conj buf preds =
 
@@ -103,21 +103,21 @@ module Make (Arg : Arg) = struct
     let do_cond i pred =
       Buffer.add_string buf (if i = 0 then " WHERE " else " AND ");
       match pred with
-      | Adjacency.Inter _ -> assert false
-      | Adjacency.Present at -> do_cond0 i at
-      | Adjacency.Eq (at, x) -> do_cond1 i "=" at x
-      | Adjacency.In (at, xs) -> do_in i at xs
-      | Adjacency.Leq (at, x) -> do_cond1 i "<=" at x
-      | Adjacency.Geq (at, x) -> do_cond1 i ">=" at x
-      | Adjacency.Between (at, x, y) -> do_between i at x y
-      | Adjacency.Search (at, x) -> do_cond1 i "SIMILAR TO" at x
-      | Adjacency.Search_fts x -> do_fts i x in
+      | Relation.Inter _ -> assert false
+      | Relation.Present at -> do_cond0 i at
+      | Relation.Eq (at, x) -> do_cond1 i "=" at x
+      | Relation.In (at, xs) -> do_in i at xs
+      | Relation.Leq (at, x) -> do_cond1 i "<=" at x
+      | Relation.Geq (at, x) -> do_cond1 i ">=" at x
+      | Relation.Between (at, x, y) -> do_between i at x y
+      | Relation.Search (at, x) -> do_cond1 i "SIMILAR TO" at x
+      | Relation.Search_fts x -> do_fts i x in
 
     List.iteri do_join preds;
     List.iteri do_cond preds
 
   let rec flatten = function
-    | Adjacency.Inter ps -> List.flatten_map flatten ps
+    | Relation.Inter ps -> List.flatten_map flatten ps
     | p -> [p]
 
   let select_image p ids =
