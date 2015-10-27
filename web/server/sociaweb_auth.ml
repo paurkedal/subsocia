@@ -117,3 +117,12 @@ let get_operator () =
   match_lwt autoreg_entity_of_authenticalia auth with
   | Some e -> Lwt.return e
   | None -> http_error 403 "Not registered."
+
+let authenticate () =
+  lwt user = get_operator () in
+  let session_id = "user_id=" ^ Int32.to_string (Entity.id user) in
+  let scope = Eliom_common.default_session_scope in
+  lwt () = Eliom_state.set_persistent_data_session_group ~scope session_id in
+  Eliom_state.set_service_session_group ~scope session_id;
+  Eliom_state.set_volatile_data_session_group ~scope session_id;
+  Lwt.return user

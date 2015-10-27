@@ -32,7 +32,7 @@ type custom_request_info = {
   cri_langs : lang list;
 }
 
-val get_custom_request_info : unit -> custom_request_info Lwt.t
+val authenticate_cri : unit -> custom_request_info Lwt.t
 
 val auth_sf : 'a Deriving_Json.t -> (operator: Entity.t -> 'a -> 'b Lwt.t) ->
 	      ('a, 'b) server_function

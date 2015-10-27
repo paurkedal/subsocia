@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -38,3 +38,5 @@ val autoreg_entity_of_authenticalia : authenticalia -> Entity.t option Lwt.t
 val get_operator_opt : unit -> Entity.t option Lwt.t
 
 val get_operator : unit -> Entity.t Lwt.t
+
+val authenticate : unit -> Entity.t Lwt.t

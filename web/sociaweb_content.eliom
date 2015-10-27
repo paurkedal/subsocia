@@ -68,7 +68,7 @@
 
 {server{
   let complete_helper entity_type_id super_id words_str =
-    lwt operator = get_operator () in
+    lwt operator = authenticate () in
     lwt super = Pwt_option.map_s Entity.of_id super_id in
     lwt can_search =
       match super with

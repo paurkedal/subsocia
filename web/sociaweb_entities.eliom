@@ -173,6 +173,7 @@ let default_entity_sel =
   selector_of_string Subsocia_config.Web.default_entity#get
 
 let entity_handler entity_id_opt () =
+  lwt cri = authenticate_cri () in
   lwt entity_id =
     match entity_id_opt with
     | Some id -> Lwt.return id
@@ -182,7 +183,6 @@ let entity_handler entity_id_opt () =
 	| None -> Lwt.return 1l
 	| Some entity -> Lwt.return (Entity.id entity) in
       http_redirect ~service:entities_service (Some entity_id) in
-  lwt cri = get_custom_request_info () in
   lwt e = entity_for_view ~operator:cri.cri_operator entity_id in
   lwt enable_edit =
     match Subsocia_config.Web.member_types#get with
@@ -217,7 +217,7 @@ let entity_handler entity_id_opt () =
       (D.body [search_div; browser_div])
 
 let entities_self_handler () () =
-  lwt operator = get_operator () in
+  lwt operator = authenticate () in
   let operator_id = Entity.id operator in
   Lwt.return (Eliom_service.preapply entities_service (Some operator_id))
 
