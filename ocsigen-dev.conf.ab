@@ -1,5 +1,6 @@
 <ocsigen>
   <server>
+    <debugmode/>
     <port>127.0.0.1:8080</port>
     <logdir>_var/log</logdir>
     <datadir>_var/lib</datadir>
