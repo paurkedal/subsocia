@@ -12,7 +12,7 @@
     <extension findlib-package="eliom.server"/>
     <extension findlib-package="postgresql"/>
     <extension findlib-package="prime"/>
-    <extension findlib-package="prime.testing"/>
+    <extension findlib-package="prime.unstable"/>
     <extension findlib-package="caqti.lwt"/>
     <extension findlib-package="extunix"/>
     <extension findlib-package="panograph"/>

@@ -42,7 +42,7 @@ Library "subsocia"
     extunix,
     lwt,
     panograph,
-    prime.testing,
+    prime.unstable,
     rpclib
   ByteOpt: -thread
   NativeOpt: -thread
