@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -25,19 +25,19 @@ let registration_form (first_name, (last_name, email)) =
   [F.table ~a:[F.a_class ["assoc"]] [
     F.tr [
       F.th [F.pcdata "First name:"];
-      F.td [F.string_input ~input_type:`Text ~name:first_name ()];
+      F.td [F.Form.input ~input_type:`Text ~name:first_name F.Form.string];
     ];
     F.tr [
       F.th [F.pcdata "Last name:"];
-      F.td [F.string_input ~input_type:`Text ~name:last_name ()];
+      F.td [F.Form.input ~input_type:`Text ~name:last_name F.Form.string];
     ];
     F.tr [
       F.th [F.pcdata "Email:"];
-      F.td [F.string_input ~input_type:`Email ~name:email ()];
+      F.td [F.Form.input ~input_type:`Email ~name:email F.Form.string];
     ];
     F.tr [
       F.td [];
-      F.td [F.string_input ~input_type:`Submit ~value:"Register" ()];
+      F.td [F.Form.input ~input_type:`Submit ~value:"Register" F.Form.string];
     ];
   ]]
 
@@ -50,7 +50,8 @@ let () =
       ~css:[["css"; "subsocia.css"]]
       (F.body [
 	F.h1 [F.pcdata "Registration"];
-	F.post_form ~service:registration_post_service registration_form ();
+	F.Form.post_form ~service:registration_post_service
+			 registration_form ();
       ])
 
 let () =

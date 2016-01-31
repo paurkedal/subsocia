@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -60,9 +60,8 @@ open Subsocia_connection
     lwt link = entity_link ~langs:cri.cri_langs csuper in
     if not can_edit then
       let button =
-	F.button ~button_type:`Button
-		 ~a:[F.a_disabled `Disabled; F.a_style "visibility: hidden"]
-		 [] in
+	F.Raw.button ~a:[F.a_button_type `Button; F.a_disabled `Disabled;
+			 F.a_style "visibility: hidden"] [] in
       Lwt.return (F.td [button; link])
     else
       let focus_id = Entity.id focus in
@@ -79,8 +78,9 @@ open Subsocia_connection
 	    Lwt.async (fun () -> %force_dsub_sf (%focus_id, %dsuper_id))
 	  }} in
 	  ("+", add, Some [F.a_class ["candidate"]]) in
-      let button = F.button ~button_type:`Button ~a:[F.a_onclick handler]
-			    [F.pcdata label] in
+      let button =
+	F.Raw.button ~a:[F.a_button_type `Button; F.a_onclick handler]
+		     [F.pcdata label] in
       Lwt.return (F.td ?a [button; link])
 
   let rec fold_closure_from f dsucc x acc =
