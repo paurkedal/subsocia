@@ -91,15 +91,17 @@ module Make (Base : Subsocia_intf.S) = struct
   module Entity_type = struct
     include Base.Entity_type
 
+    let required etn =
+      match_lwt Entity_type.of_name etn with
+      | Some et -> Lwt.return et
+      | None -> _fail "Missing required entity type %s" etn
+
     let equal et0 et1 = Base.Entity_type.compare et0 et1 = 0
   end
 
   module Const = struct
 
-    let _et etn =
-      match_lwt Entity_type.of_name etn with
-      | Some et -> Lwt.return et
-      | None -> _fail "Missing required entity type %s" etn
+    let _et = Entity_type.required
 
     let _at_string = Attribute_type.typed_required Type.String
 

@@ -93,6 +93,8 @@ module type S = sig
 	and module Set = Base.Entity_type.Set
 	and module Map = Base.Entity_type.Map
 
+    val required : string -> t Lwt.t
+
     val equal : t -> t -> bool
   end
 
