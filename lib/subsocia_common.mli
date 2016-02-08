@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -53,14 +53,6 @@ module Type : sig
 
   val rpc_of_ex : ex -> Rpc.t
   val ex_of_rpc : Rpc.t -> ex
-
-  (**/**)
-  type 'a t1 = 'a t	[@@ocaml.deprecated "Renamed to t"]
-  type t0 = ex		[@@ocaml.deprecated "Renamed to ex"]
-  val string_of_t1 : 'a t -> string [@@ocaml.deprecated "Renamed to to_string"]
-  val string_of_t0 : ex -> string [@@ocaml.deprecated "Use to_string"]
-  val rpc_of_t0 : ex -> Rpc.t [@@ocaml.deprecated "Renamed to rpc_of_ex"]
-  val t0_of_rpc : Rpc.t -> ex [@@ocaml.deprecated "Renamed to ex_of_rpc"]
 end
 
 module Value : sig
@@ -78,11 +70,6 @@ module Value : sig
 
   val rpc_of_ex : ex -> Rpc.t
   val ex_of_rpc : Rpc.t -> ex
-
-  (**/**)
-  type t0 = ex			[@@ocaml.deprecated "Renamed to ex"]
-  val rpc_of_t0 : ex -> Rpc.t	[@@ocaml.deprecated "Renamed to rpc_of_ex"]
-  val t0_of_rpc : Rpc.t -> ex	[@@ocaml.deprecated "Renamed to ex_of_rpc"]
 end
 
 module Values : sig

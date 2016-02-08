@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -26,7 +26,6 @@ module type S = sig
      and type 'a Attribute_type.Map.t = 'a Attribute_type.Map.t
      and type Relation.t = Relation.t
      and type Attribute.ex = Attribute.ex
-     and type Attribute.predicate = Relation.t
      and type Entity_type.t = Entity_type.t
      and type Entity_type.Set.t = Entity_type.Set.t
      and type 'a Entity_type.Map.t = 'a Entity_type.Map.t

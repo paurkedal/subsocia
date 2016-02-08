@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -68,23 +68,23 @@ module Make (Arg : Arg) = struct
       | Type.String, s -> bprint_sql_quoted buf s in
 
     let do_cond0 i at =
-      bprintf buf "q%d.attribute_type_id = %ld" i (Attribute_type.id' at) in
+      bprintf buf "q%d.attribute_type_id = %ld" i (Attribute_type.id at) in
 
     let do_cond1 i op at x =
       bprintf buf "q%d.attribute_type_id = %ld AND q%d.value %s "
-	      i (Attribute_type.id' at) i op;
+	      i (Attribute_type.id at) i op;
       do_value at x in
 
     let do_between i at x y =
       bprintf buf "q%d.attribute_type_id = %ld AND q%d.value >= "
-	      i (Attribute_type.id' at) i;
+	      i (Attribute_type.id at) i;
       do_value at x;
       bprintf buf " AND q%d.value < " i;
       do_value at y in
 
     let do_in i at xs =
       assert (not (Values.is_empty xs));
-      bprintf buf "q%d.attribute_type_id = %ld AND (" i (Attribute_type.id' at);
+      bprintf buf "q%d.attribute_type_id = %ld AND (" i (Attribute_type.id at);
       let is_first = ref true in
       Values.iter
 	(fun x ->

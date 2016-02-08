@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -62,9 +62,6 @@ module Make (Base : Subsocia_intf.S) = struct
       | None -> _fail "Required attribute %s must have type %s"
 		      atn (Type.to_string vt)
       | Some at -> Lwt.return at
-
-    let t0_of_name = required
-    let t1_of_name = typed_required
   end
 
   module Attribute_uniqueness = Base.Attribute_uniqueness
@@ -100,7 +97,7 @@ module Make (Base : Subsocia_intf.S) = struct
       | Some et -> Lwt.return et
       | None -> _fail "Missing required entity type %s" etn
 
-    let _at_string = Attribute_type.t1_of_name Type.String
+    let _at_string = Attribute_type.typed_required Type.String
 
     (* Predefined attribute types. *)
     let at_unique_name = _at_string "unique_name"
@@ -127,9 +124,6 @@ module Make (Base : Subsocia_intf.S) = struct
 
     let e_default = _e_un "default"
     let e_new_users = _e_un ~from:e_default "subsocia-autoregs"
-
-    (**/**)
-    let et_unit = et_root
   end
 
   module Entity = struct
@@ -426,9 +420,5 @@ module Make (Base : Subsocia_intf.S) = struct
 	ets'
 	(Lwt.return Entity.Set.empty)
 
-    let precedes = Entity.is_sub
-    let has_role role = has_role_for_entity role
-    let can_edit = can_edit_entity
-    let can_view = can_view_entity
   end
 end

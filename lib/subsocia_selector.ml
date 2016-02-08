@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -121,16 +121,16 @@ module Selector_utils (C : Subsocia_intf.S) = struct
   let entype_ap = function
     | Attribute_present an ->
       req_at an >|= fun (C.Attribute_type.Ex at) ->
-      C.Attribute.Present at
+      C.Relation.Present at
     | Attribute_eq (an, s) ->
       req_at an >|= fun (C.Attribute_type.Ex at) ->
-      C.Attribute.Eq (at, Value.typed_of_string (C.Attribute_type.value_type at) s)
+      C.Relation.Eq (at, Value.typed_of_string (C.Attribute_type.value_type at) s)
     | Attribute_leq (an, s) ->
       req_at an >|= fun (C.Attribute_type.Ex at) ->
-      C.Attribute.Leq (at, Value.typed_of_string (C.Attribute_type.value_type at) s)
+      C.Relation.Leq (at, Value.typed_of_string (C.Attribute_type.value_type at) s)
     | Attribute_geq (an, s) ->
       req_at an >|= fun (C.Attribute_type.Ex at) ->
-      C.Attribute.Geq (at, Value.typed_of_string (C.Attribute_type.value_type at) s)
+      C.Relation.Geq (at, Value.typed_of_string (C.Attribute_type.value_type at) s)
 
   let rec select_from = function
     | Select_with (selA, selB) -> fun es ->

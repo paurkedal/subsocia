@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -90,14 +90,6 @@ module Type = struct
 
   let rpc_of_ex (Ex t) = Rpc.rpc_of_string (to_string t)
   let ex_of_rpc r = of_string (Rpc.string_of_rpc r)
-
-  (**/**)
-  type 'a t1 = 'a t
-  type t0 = ex
-  let string_of_t0 (Ex t) = to_string t
-  let string_of_t1 = to_string
-  let rpc_of_t0 = rpc_of_ex
-  let t0_of_rpc = ex_of_rpc
 end
 
 module Value = struct
@@ -142,14 +134,9 @@ module Value = struct
     | Rpc.Bool x -> Ex (Type.Bool, x)
     | Rpc.Int x -> Ex (Type.Int, Int64.to_int x)
     | Rpc.String x -> Ex (Type.String, x)
-    | _ -> failwith "Value.t0_of_rpc: Protocol error."
+    | _ -> failwith "Value.ex_of_rpc: Protocol error."
 
   let typed_of_rpc t rpc = coerce t (ex_of_rpc rpc)
-
-  (**/**)
-  type t0 = ex
-  let t0_of_rpc = ex_of_rpc
-  let rpc_of_t0 = rpc_of_ex
 end
 
 module Bool_compare = struct type t = bool let compare = compare end

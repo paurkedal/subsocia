@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -94,8 +94,8 @@ let ls sel_opt = run @@ fun (module C) ->
     lwt ats = C.Attribute_uniqueness.affected au
 	  >|= C.Attribute_type.Set.elements in
     let ps =
-      List.map (fun (C.Attribute_type.Ex at) -> C.Attribute.Present at) ats in
-    lwt es' = C.Entity.image1 (C.Attribute.Inter ps) e in
+      List.map (fun (C.Attribute_type.Ex at) -> C.Relation.Present at) ats in
+    lwt es' = C.Entity.image1 (C.Relation.Inter ps) e in
     C.Entity.Set.iter_s (show_e ats) es' in
   C.Attribute_uniqueness.Set.iter_s show_au aus >>
   Lwt.return 0

@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -60,12 +60,6 @@ module type S = sig
     val coerce : 'a Type.t -> ex -> 'a t option
     val required : string -> ex Lwt.t
     val typed_required : 'a Type.t -> string -> 'a t Lwt.t
-
-    (**/**)
-    val t0_of_name : string -> ex Lwt.t
-    [@@ocaml.deprecated "Renamed to required"]
-    val t1_of_name : 'a Type.t -> string -> 'a t Lwt.t
-    [@@ocaml.deprecated "Renamed to typed_required"]
   end
 
   module Attribute_uniqueness :
@@ -91,7 +85,6 @@ module type S = sig
 
   module Attribute :
     ATTRIBUTE with module Attribute_type := Base.Attribute_type
-	       and type predicate = Base.Relation.t
 
   module Entity_type :
     ENTITY_TYPE with module Attribute_type := Base.Attribute_type
@@ -140,15 +133,6 @@ module type S = sig
 
     val display_name : ?context: Set.t -> ?langs: lang list -> t -> string Lwt.t
     val candidate_dsupers : ?include_current: bool -> t -> Set.t Lwt.t
-
-    val precedes : t -> t -> bool Lwt.t
-      [@@ocaml.deprecated "Renamed to is_sub"]
-    val has_role : string -> t -> t -> bool Lwt.t
-      [@@ocaml.deprecated "Renamed to has_role_for_entity"]
-    val can_view : t -> t -> bool Lwt.t
-      [@@ocaml.deprecated "Renamed to can_view_entity"]
-    val can_edit : t -> t -> bool Lwt.t
-      [@@ocaml.deprecated "Renamed to can_edit_entity"]
   end
 
   module Const : sig
@@ -166,9 +150,5 @@ module type S = sig
 
     val e_new_users : Entity.t Lwt.t
     val e_default : Entity.t Lwt.t
-
-    (**/**)
-    val et_unit : Entity_type.t Lwt.t
-      [@@ocaml.deprecated "Renamed to et_root."]
   end
 end

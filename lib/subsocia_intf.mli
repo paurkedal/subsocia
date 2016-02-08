@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -34,17 +34,6 @@ module type ATTRIBUTE_TYPE = sig
   val value_mult : 'a t -> Multiplicity.t
   val create : ?mult: Multiplicity.t -> 'a Type.t -> string -> 'a t Lwt.t
   val delete : 'a t -> unit Lwt.t
-
-  (**/**)
-  type 'a t1 = 'a t		[@@ocaml.deprecated "Renamed to t"]
-  type t0 = ex			[@@ocaml.deprecated "Renamed to ex"]
-  val type0 : ex -> Type.ex	[@@ocaml.deprecated "Use value_type"]
-  val type1 : 'a t -> 'a Type.t	[@@ocaml.deprecated "Renamed to value_type"]
-  val name' : 'a t -> string Lwt.t	[@@ocaml.deprecated "Alias for name."]
-  val id' : 'a t -> int32		[@@ocaml.deprecetad "Alias for id."]
-  val create' : ?mult: Multiplicity.t -> 'a Type.t -> string -> 'a t Lwt.t
-					[@@ocaml.deprecated "Alias for create."]
-  val delete' : 'a t -> unit Lwt.t	[@@ocaml.deprecated "Alias for delete."]
 end
 
 module type ATTRIBUTE_UNIQUENESS = sig
@@ -88,20 +77,6 @@ module type ATTRIBUTE = sig
 
   type ex = Ex : 'a Attribute_type.t * 'a -> ex
   [@@ocaml.deprecated "Not needed by the core interface."]
-
-  type predicate =
-    | Inter : predicate list -> predicate
-    | Present : 'a Attribute_type.t -> predicate
-    | Eq : 'a Attribute_type.t * 'a -> predicate
-    | In : 'a Attribute_type.t * 'a Values.t -> predicate
-    | Leq : 'a Attribute_type.t * 'a -> predicate
-    | Geq : 'a Attribute_type.t * 'a -> predicate
-    | Between : 'a Attribute_type.t * 'a * 'a -> predicate
-    | Search : string Attribute_type.t * Subsocia_re.t -> predicate
-    | Search_fts : Subsocia_fts.t -> predicate
-  [@@ocaml.deprecated "Moved to Relation.t."]
-
-  type t0 = ex [@@ocaml.deprecated "Renamed to ex"]
 end
 
 module type ENTITY_TYPE = sig
@@ -184,19 +159,6 @@ module type ENTITY_TYPE = sig
       are no longer allowed from entities of type [et] to entities of type
       [et'].  Current attributions of this type will remain until cleaned up,
       but algorithms are free to disregard them. *)
-
-  (**/**)
-  val can_asub : t -> t -> 'a Attribute_type.t -> Multiplicity.t option Lwt.t
-  [@@ocaml.deprecated "Use can_attribute, but note new argument order."]
-  val can_asub_byattr : t -> t -> Multiplicity.t Attribute_type.Map.t Lwt.t
-  [@@ocaml.deprecated "Use allowed_attributes, but note new argument order."]
-  val asub_elements :
-    unit -> (t * t * Attribute_type.ex * Multiplicity.t) list Lwt.t
-  [@@ocaml.deprecated "Use allowed_attributions, but note new argument order."]
-  val allow_asub : t -> t -> Attribute_type.ex -> Multiplicity.t -> unit Lwt.t
-  [@@ocaml.deprecated "Use allow_attribution, but note new argument order."]
-  val disallow_asub : t -> t -> Attribute_type.ex -> unit Lwt.t
-  [@@ocaml.deprecated "Use disallow_attribution, but note new argument order."]
 end
 
 module type ENTITY = sig
@@ -309,42 +271,6 @@ module type ENTITY = sig
   val premapping1 : 'a Attribute_type.t -> t -> 'a Values.t Map.t Lwt.t
   (** [premapping1 at e] is a map of [at]-values indexed by attribution
       superentities of [e] which loose those values along [at]. *)
-
-  (**/**)
-  val getattr : t -> t -> 'a Attribute_type.t -> 'a Values.t Lwt.t
-  [@@ocaml.deprecated "Use get_values, but note new argument order."]
-  val setattr : t -> t -> 'a Attribute_type.t -> 'a list -> unit Lwt.t
-  [@@ocaml.deprecated "Use set_values, but note new argument order."]
-  val addattr : t -> t -> 'a Attribute_type.t -> 'a list -> unit Lwt.t
-  [@@ocaml.deprecated "Use add_values, but note new argument order."]
-  val delattr : t -> t -> 'a Attribute_type.t -> 'a list -> unit Lwt.t
-  [@@ocaml.deprecated "Use remove_values, but note new argument order."]
-  val asub : t -> Relation.t -> Set.t Lwt.t
-  [@@ocaml.deprecated "Use image1."]
-  val asuper : t -> Relation.t -> Set.t Lwt.t
-  [@@ocaml.deprecated "Use preimage1."]
-  val asub_conj : t -> Relation.t list -> Set.t Lwt.t
-  [@@ocaml.deprecated "Use image1 with Attribute.Inter."]
-  val asuper_conj : t -> Relation.t list -> Set.t Lwt.t
-  [@@ocaml.deprecated "Use preimage1 with Attribute.Inter."]
-  val asub_eq : t -> 'a Attribute_type.t -> 'a -> Set.t Lwt.t
-  [@@ocaml.deprecated "Use image1_eq."]
-  val asuper_eq : t -> 'a Attribute_type.t -> 'a -> Set.t Lwt.t
-  [@@ocaml.deprecated "Use preimage1_eq."]
-  val asub_fts : ?entity_type: Entity_type.t -> ?super: t ->
-		 ?cutoff: float -> ?limit: int ->
-		 t -> Subsocia_fts.t -> (t * float) list Lwt.t
-  [@@ocaml.deprecated "Use image1_fts."]
-  val asuper_fts : ?entity_type: Entity_type.t -> ?super: t ->
-		   ?cutoff: float -> ?limit: int ->
-		   t -> Subsocia_fts.t -> (t * float) list Lwt.t
-  [@@ocaml.deprecated "Use preimage1_fts."]
-  val asub_get : t -> 'a Attribute_type.t -> 'a Values.t Map.t Lwt.t
-  [@@ocaml.deprecated "Use mapping1."]
-  val asuper_get : t -> 'a Attribute_type.t -> 'a Values.t Map.t Lwt.t
-  [@@ocaml.deprecated "Use premapping1."]
-  val top : t Lwt.t
-  [@@ocaml.deprecated "Renamed to root."]
 end
 
 module type S = sig
@@ -355,7 +281,6 @@ module type S = sig
     with module Attribute_type := Attribute_type
   module Attribute : ATTRIBUTE
     with module Attribute_type := Attribute_type
-     and type predicate = Relation.t
   module Entity_type : ENTITY_TYPE with module Attribute_type := Attribute_type
   module Entity : ENTITY with module Attribute_type := Attribute_type
 			  and module Relation := Relation

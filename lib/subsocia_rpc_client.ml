@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -32,9 +32,6 @@ module Attribute_type_base = struct
     at_mult : Multiplicity.t
   }
   type ex = Ex : 'a t -> ex
-
-  (**/**)
-  type 'a t1 = 'a t
 end
 
 module Make (RPCM : RPCM) = struct
@@ -71,15 +68,6 @@ module Make (RPCM : RPCM) = struct
       Raw.create (Type.Ex vt) mult at_name >|= fun at_id ->
       {at_id; at_name; at_type = vt; at_mult = mult}
     let delete at = Raw.delete at.at_id
-
-    (**/**)
-    type t0 = ex
-    let type0 (Ex at) = Type.Ex at.at_type
-    let type1 = value_type
-    let id' = id
-    let name' = name
-    let create' = create
-    let delete' = delete
   end
 
   module Attribute_uniqueness = struct
@@ -119,19 +107,6 @@ module Make (RPCM : RPCM) = struct
 
   module Attribute = struct
     type ex = Ex : 'a Attribute_type.t * 'a -> ex
-
-    (**/**)
-    type predicate = Relation.t =
-      | Inter : predicate list -> predicate
-      | Present : 'a Attribute_type.t -> predicate
-      | Eq : 'a Attribute_type.t * 'a -> predicate
-      | In : 'a Attribute_type.t * 'a Values.t -> predicate
-      | Leq : 'a Attribute_type.t * 'a -> predicate
-      | Geq : 'a Attribute_type.t * 'a -> predicate
-      | Between : 'a Attribute_type.t * 'a * 'a -> predicate
-      | Search : string Attribute_type.t * string -> predicate
-      | Search_fts : string -> predicate
-    type t0 = ex
   end
 
   module Entity_type = struct
@@ -194,32 +169,6 @@ module Make (RPCM : RPCM) = struct
 
     let disallow_attribution at et0 et1 =
       Raw.disallow_attribution at.Attribute_type.at_id et0 et1
-
-    (**/**)
-    let can_asub et1 et0 at =
-      can_attribute at et0 et1 >|= function
-      | false -> None
-      | true -> Some (Attribute_type.value_mult at)
-    let can_asub_byattr et1 et0 =
-      lwt ats = allowed_attributes et0 et1 in
-      Attribute_type.Set.fold_s
-	(fun ex_at acc ->
-	  let Attribute_type.Ex at = ex_at in
-	  let m = Attribute_type.value_mult at in
-	  Lwt.return (Attribute_type.Map.add ex_at m acc))
-	ats
-	Attribute_type.Map.empty
-    let asub_elements () =
-      let aux (at_id, et0, et1) =
-	lwt ex_at = Attribute_type.of_id at_id in
-	let Attribute_type.Ex at = ex_at in
-	let m = Attribute_type.value_mult at in
-	Lwt.return (et1, et0, ex_at, m) in
-      Raw.allowed_attributions () >>= Lwt_list.map_s aux
-    let allow_asub et1 et0 (Attribute_type.Ex at) mu =
-      allow_attribution at et0 et1
-    let disallow_asub et1 et0 (Attribute_type.Ex at) =
-      disallow_attribution at et0 et1
   end
 
   module Entity = struct
@@ -277,26 +226,26 @@ module Make (RPCM : RPCM) = struct
       check_uniqueness_error
 
     let rec encode_predicate = function
-      | Attribute.Inter ps -> Eap_inter (List.map encode_predicate ps)
-      | Attribute.Present at -> Eap_present (Attribute_type.id at)
-      | Attribute.Eq (at, x) ->
+      | Relation.Inter ps -> Eap_inter (List.map encode_predicate ps)
+      | Relation.Present at -> Eap_present (Attribute_type.id at)
+      | Relation.Eq (at, x) ->
 	let t = Attribute_type.value_type at in
 	Eap_eq (Attribute_type.id at, Value.Ex (t, x))
-      | Attribute.In (at, vs) ->
+      | Relation.In (at, vs) ->
 	let t = Attribute_type.value_type at in
 	Eap_in (Attribute_type.id at, Values.Ex (t, vs))
-      | Attribute.Leq (at, x) ->
+      | Relation.Leq (at, x) ->
 	let t = Attribute_type.value_type at in
 	Eap_leq (Attribute_type.id at, Value.Ex (t, x))
-      | Attribute.Geq (at, x) ->
+      | Relation.Geq (at, x) ->
 	let t = Attribute_type.value_type at in
 	Eap_geq (Attribute_type.id at, Value.Ex (t, x))
-      | Attribute.Between (at, x0, x1) ->
+      | Relation.Between (at, x0, x1) ->
 	let t = Attribute_type.value_type at in
 	Eap_between (Attribute_type.id at, Value.Ex (t, x0), Value.Ex (t, x1))
-      | Attribute.Search (at, x) ->
+      | Relation.Search (at, x) ->
 	Eap_search (Attribute_type.id at, x)
-      | Attribute.Search_fts x ->
+      | Relation.Search_fts x ->
 	Eap_search_fts x
 
     let image1 p e =
@@ -304,8 +253,8 @@ module Make (RPCM : RPCM) = struct
     let preimage1 p e =
       Raw.preimage1 (encode_predicate p) e >|= Set.of_ordered_elements
 
-    let asub_conj e ps = image1 (Attribute.Inter ps) e
-    let asuper_conj e ps = preimage1 (Attribute.Inter ps) e
+    let asub_conj e ps = image1 (Relation.Inter ps) e
+    let asuper_conj e ps = preimage1 (Relation.Inter ps) e
 
     let image1_eq at av e =
       let t = Attribute_type.value_type at in
@@ -344,36 +293,5 @@ module Make (RPCM : RPCM) = struct
     let relax_dsub = Raw.relax_dsub
     let display_name ~langs e = Lwt.return ("#" ^ Int32.to_string e) (* TODO *)
 
-    (**/**)
-    let getattr e1 e0 at = get_values at e0 e1
-    let setattr e1 e0 at vs =
-      let vs = List.sort compare vs in
-      let t = Attribute_type.value_type at in
-      Raw.set_values (Attribute_type.id at)
-		     (List.map (fun v -> Value.Ex (t, v)) vs) e0 e1 >>=
-      check_uniqueness_error
-    let addattr e1 e0 at vs =
-      let vs = List.sort compare vs in
-      let t = Attribute_type.value_type at in
-      Raw.add_values (Attribute_type.id at)
-		     (List.map (fun v -> Value.Ex (t, v)) vs) e0 e1 >>=
-      check_uniqueness_error
-    let delattr e1 e0 at vs =
-      let vs = List.sort compare vs in
-      let t = Attribute_type.value_type at in
-      Raw.set_values (Attribute_type.id at)
-			 (List.map (fun v -> Value.Ex (t, v)) vs) e0 e1 >>=
-      check_uniqueness_error
-    let asub e p = image1 p e
-    let asuper e p = preimage1 p e
-    let asub_eq e at av = image1_eq at av e
-    let asuper_eq e at av = preimage1_eq at av e
-    let asub_fts ?entity_type ?super ?cutoff ?limit e s =
-      image1_fts ?entity_type ?super ?cutoff ?limit s e
-    let asuper_fts ?entity_type ?super ?cutoff ?limit e s =
-      preimage1_fts ?entity_type ?super ?cutoff ?limit s e
-    let asub_get e at = mapping1 at e
-    let asuper_get e at = premapping1 at e
-    let top = root
   end
 end

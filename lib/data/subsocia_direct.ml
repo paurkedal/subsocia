@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -626,12 +626,6 @@ module B = struct
     end
     module Map = Prime_enummap.Make_monadic (Comparable) (Lwt)
     module Set = Prime_enumset.Make_monadic (Comparable) (Lwt)
-
-    (**/**)
-    type t0 = ex
-    type 'a t1 = 'a t
-    let type0 (Ex at) = Type.Ex at.at_value_type
-    let type1 = value_type
   end
 
   module Attribute_uniqueness = struct
@@ -658,19 +652,6 @@ module B = struct
 
   module Attribute = struct
     type ex = Ex : 'a Attribute_type.t * 'a -> ex
-
-    (**/**)
-    type predicate = Relation.t =
-      | Inter : predicate list -> predicate
-      | Present : 'a Attribute_type.t -> predicate
-      | Eq : 'a Attribute_type.t * 'a -> predicate
-      | In : 'a Attribute_type.t * 'a Values.t -> predicate
-      | Leq : 'a Attribute_type.t * 'a -> predicate
-      | Geq : 'a Attribute_type.t * 'a -> predicate
-      | Between : 'a Attribute_type.t * 'a * 'a -> predicate
-      | Search : string Attribute_type.t * string -> predicate
-      | Search_fts : string -> predicate
-    type t0 = ex
   end
 
   module Entity_type = struct
@@ -753,12 +734,6 @@ module Make (P : Param) = struct
     let delete at =
       with_db @@ fun (module C : CONNECTION) ->
       C.exec Q.at_delete C.Param.([|int32 at.at_id|])
-
-    (**/**)
-    let id' = id
-    let name' = name
-    let create' = create
-    let delete' = delete
   end
 
   module Attribute_uniqueness = struct
@@ -776,7 +751,7 @@ module Make (P : Param) = struct
       C.fold Q.au_affecting C.Tuple.(fun t -> Set.add (int32 0 t))
 	     C.Param.[|int32 at_id|] Set.empty
 
-    let affecting at = affecting' (Attribute_type.id' at)
+    let affecting at = affecting' (Attribute_type.id at)
 
     let affected, affected_cache = memo_1lwt @@ fun au ->
       begin
@@ -949,29 +924,6 @@ module Make (P : Param) = struct
 	     C.Param.([|int32 at.B.Attribute_type.at_id; int32 et; int32 et'|])
 
     let display_name ~langs ?pl = name (* FIXME *)
-
-    (**/**)
-    let can_asub et1 et0 at =
-      can_attribute at et0 et1 >|= function
-      | false -> None
-      | true -> Some (B.Attribute_type.value_mult at)
-    let can_asub_byattr et1 et0 =
-      lwt ats = allowed_attributes et0 et1 in
-      B.Attribute_type.Set.fold_s
-	(fun ex_at acc ->
-	  let B.Attribute_type.Ex at = ex_at in
-	  let m = B.Attribute_type.value_mult at in
-	  Lwt.return (B.Attribute_type.Map.add ex_at m acc))
-	ats
-	B.Attribute_type.Map.empty
-    let asub_elements () =
-      allowed_attributions () >|=
-      List.map (fun ((B.Attribute_type.Ex at as ex_at), et0, et1) ->
-		  (et1, et0, ex_at, B.Attribute_type.value_mult at))
-    let allow_asub et1 et0 (B.Attribute_type.Ex at) mu =
-      allow_attribution at et0 et1
-    let disallow_asub et1 et0 (B.Attribute_type.Ex at) =
-      disallow_attribution at et0 et1
   end
 
   module Entity = struct
@@ -1117,8 +1069,8 @@ module Make (P : Param) = struct
       let q = Attribution_sql.select_preimage p es in
       C.fold q (fun t -> Set.add (C.Tuple.int32 0 t)) [||] Set.empty
 
-    let asub_conj e ps = image_generic (B.Attribute.Inter ps) [e]
-    let asuper_conj e ps = preimage_generic (B.Attribute.Inter ps) [e]
+    let asub_conj e ps = image_generic (B.Relation.Inter ps) [e]
+    let asuper_conj e ps = preimage_generic (B.Relation.Inter ps) [e]
 
     let asub_present_bool, asub_present_bool_cache =
       memo_2lwt @@ fun (e, at_id) ->
@@ -1167,9 +1119,9 @@ module Make (P : Param) = struct
 
     let asub1 op (type a) (at : a B.Attribute_type.t) (x : a) e : Set.t Lwt.t =
       match B.Attribute_type.value_type at with
-      | Type.Bool -> asub1_bool op (Attribute_type.id' at) x e
-      | Type.Int -> asub1_int op (Attribute_type.id' at) x e
-      | Type.String -> asub1_string op (Attribute_type.id' at) x e
+      | Type.Bool -> asub1_bool op (Attribute_type.id at) x e
+      | Type.Int -> asub1_int op (Attribute_type.id at) x e
+      | Type.String -> asub1_string op (Attribute_type.id at) x e
 
     let asub2_between_int, asub2_between_int_cache =
       memo_4lwt @@ fun (e, at_id, x0, x1) ->
@@ -1210,20 +1162,20 @@ module Make (P : Param) = struct
 
     let image1 p e =
       match p with
-      | B.Attribute.Inter _ | B.Attribute.In _ -> image_generic p [e]
-      | B.Attribute.Present at ->
+      | B.Relation.Inter _ | B.Relation.In _ -> image_generic p [e]
+      | B.Relation.Present at ->
 	begin match B.Attribute_type.value_type at with
 	| Type.Bool -> asub_present_bool e at.B.Attribute_type.at_id
 	| Type.Int -> asub_present_int e at.B.Attribute_type.at_id
 	| Type.String -> asub_present_string e at.B.Attribute_type.at_id
 	end
-      | B.Attribute.Eq (at, x) -> asub1 Q.ap1_eq at x e
-      | B.Attribute.Leq (at, x) -> asub1 Q.ap1_leq at x e
-      | B.Attribute.Geq (at, x) -> asub1 Q.ap1_geq at x e
-      | B.Attribute.Between (at, x0, x1) -> asub2_between e at x0 x1
-      | B.Attribute.Search (at, x) ->
-	asub1_search (Attribute_type.id' at) x e
-      | B.Attribute.Search_fts x -> asub1_search_fts x e
+      | B.Relation.Eq (at, x) -> asub1 Q.ap1_eq at x e
+      | B.Relation.Leq (at, x) -> asub1 Q.ap1_leq at x e
+      | B.Relation.Geq (at, x) -> asub1 Q.ap1_geq at x e
+      | B.Relation.Between (at, x0, x1) -> asub2_between e at x0 x1
+      | B.Relation.Search (at, x) ->
+	asub1_search (Attribute_type.id at) x e
+      | B.Relation.Search_fts x -> asub1_search_fts x e
 
     let image1_eq at e = asub1 Q.ap1_eq at e
 
@@ -1274,9 +1226,9 @@ module Make (P : Param) = struct
 
     let asuper1 op (type a) (at : a B.Attribute_type.t) (x : a) e : Set.t Lwt.t =
       match B.Attribute_type.value_type at with
-      | Type.Bool -> asuper1_bool op (Attribute_type.id' at) x e
-      | Type.Int -> asuper1_int op (Attribute_type.id' at) x e
-      | Type.String -> asuper1_string op (Attribute_type.id' at) x e
+      | Type.Bool -> asuper1_bool op (Attribute_type.id at) x e
+      | Type.Int -> asuper1_int op (Attribute_type.id at) x e
+      | Type.String -> asuper1_string op (Attribute_type.id at) x e
 
     let asuper2_between_int, asuper2_between_int_cache =
       memo_4lwt @@ fun (e, at_id, x0, x1) ->
@@ -1317,20 +1269,20 @@ module Make (P : Param) = struct
 
     let preimage1 p e =
       match p with
-      | B.Attribute.Inter _ | B.Attribute.In _ -> preimage_generic p [e]
-      | B.Attribute.Present at ->
+      | B.Relation.Inter _ | B.Relation.In _ -> preimage_generic p [e]
+      | B.Relation.Present at ->
 	begin match B.Attribute_type.value_type at with
 	| Type.Bool -> asuper_present_bool e at.B.Attribute_type.at_id
 	| Type.Int -> asuper_present_int e at.B.Attribute_type.at_id
 	| Type.String -> asuper_present_string e at.B.Attribute_type.at_id
 	end
-      | B.Attribute.Eq (at, x) -> asuper1 Q.ap1_eq at x e
-      | B.Attribute.Leq (at, x) -> asuper1 Q.ap1_leq at x e
-      | B.Attribute.Geq (at, x) -> asuper1 Q.ap1_geq at x e
-      | B.Attribute.Between (at, x0, x1) -> asuper2_between e at x0 x1
-      | B.Attribute.Search (at, x) ->
-	asuper1_search (Attribute_type.id' at) x e
-      | B.Attribute.Search_fts x -> asuper1_search_fts x e
+      | B.Relation.Eq (at, x) -> asuper1 Q.ap1_eq at x e
+      | B.Relation.Leq (at, x) -> asuper1 Q.ap1_leq at x e
+      | B.Relation.Geq (at, x) -> asuper1 Q.ap1_geq at x e
+      | B.Relation.Between (at, x0, x1) -> asuper2_between e at x0 x1
+      | B.Relation.Search (at, x) ->
+	asuper1_search (Attribute_type.id at) x e
+      | B.Relation.Search_fts x -> asuper1_search_fts x e
 
     let preimage1_eq at e = asuper1 Q.ap1_eq at e
 
@@ -1607,7 +1559,7 @@ module Make (P : Param) = struct
 
     let check_uniqueness_for_add new_at new_avs e e' =
       let vt = B.Attribute_type.value_type new_at in
-      let new_cond = B.Attribute.In (new_at, Values.of_elements vt new_avs) in
+      let new_cond = B.Relation.In (new_at, Values.of_elements vt new_avs) in
       let is_violated au =
 	lwt aff_ats = Attribute_uniqueness.affected au >|=
 		      B.Attribute_type.Set.remove (B.Attribute_type.Ex new_at) in
@@ -1616,7 +1568,7 @@ module Make (P : Param) = struct
 	    (fun (B.Attribute_type.Ex at) ->
 	      lwt avs = get_values at e e' in
 	      if Values.is_empty avs then Lwt.fail Not_found else
-	      Lwt.return (B.Attribute.In (at, avs)))
+	      Lwt.return (B.Relation.In (at, avs)))
 	    (B.Attribute_type.Set.elements aff_ats) in
 	  asub_conj e (new_cond :: conds) >|= not *< Set.is_empty
 	with Not_found ->
@@ -1745,30 +1697,7 @@ module Make (P : Param) = struct
 			else add_values' c at xs_ins e e')
       end
 
-    (**/**)
-    let getattr e1 e0 at = get_values at e0 e1
-    let setattr e1 e0 at xs =
-      let xs = Values.of_elements (B.Attribute_type.value_type at) xs in
-      set_values at xs e0 e1
-    let addattr e1 e0 at xs =
-      let xs = Values.of_elements (B.Attribute_type.value_type at) xs in
-      add_values at xs e0 e1
-    let delattr e1 e0 at xs =
-      let xs = Values.of_elements (B.Attribute_type.value_type at) xs in
-      remove_values at xs e0 e1
-    let asub e p = image1 p e
-    let asuper e p = preimage1 p e
-    let asub_eq e at x = asub1 Q.ap1_eq at x e
-    let asuper_eq e at x = asuper1 Q.ap1_eq at x e
-    let asub_fts ?entity_type ?super ?cutoff ?limit e fts =
-      image1_fts ?entity_type ?super ?cutoff ?limit fts e
-    let asuper_fts ?entity_type ?super ?cutoff ?limit e fts =
-      preimage1_fts ?entity_type ?super ?cutoff ?limit fts e
-    let asub_get e at = mapping1 at e
-    let asuper_get e at = premapping1 at e
-    let top = root
   end
-
 end
 
 let connect uri =
@@ -1824,7 +1753,6 @@ let connect uri =
        and type 'a Attribute_type.Map.t = 'a Attribute_type.Map.t
        and type Relation.t = Relation.t
        and type Attribute.ex = Attribute.ex
-       and type Attribute.predicate = Relation.t
        and type Entity_type.t = Entity_type.t
        and type Entity_type.Set.t = Entity_type.Set.t
        and type 'a Entity_type.Map.t = 'a Entity_type.Map.t

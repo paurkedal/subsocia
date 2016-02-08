@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -24,39 +24,39 @@ open Unprime_option
 module Utils (C : Subsocia_intf.S) = struct
   let rec decode_eap = function
     | Eap_inter eaps ->
-      Lwt_list.map_s decode_eap eaps >|= fun ps -> C.Attribute.Inter ps
+      Lwt_list.map_s decode_eap eaps >|= fun ps -> C.Relation.Inter ps
     | Eap_present e_id ->
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id e_id in
-      Lwt.return (C.Attribute.Present at)
+      Lwt.return (C.Relation.Present at)
     | Eap_eq (e_id, av) ->
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id e_id in
       let x = Value.coerce (C.Attribute_type.value_type at) av in
-      Lwt.return (C.Attribute.Eq (at, x))
+      Lwt.return (C.Relation.Eq (at, x))
     | Eap_in (e_id, avs) ->
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id e_id in
       let xs = Values.coerce (C.Attribute_type.value_type at) avs in
-      Lwt.return (C.Attribute.In (at, xs))
+      Lwt.return (C.Relation.In (at, xs))
     | Eap_leq (e_id, av) ->
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id e_id in
       let x = Value.coerce (C.Attribute_type.value_type at) av in
-      Lwt.return (C.Attribute.Leq (at, x))
+      Lwt.return (C.Relation.Leq (at, x))
     | Eap_geq (e_id, av) ->
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id e_id in
       let x = Value.coerce (C.Attribute_type.value_type at) av in
-      Lwt.return (C.Attribute.Geq (at, x))
+      Lwt.return (C.Relation.Geq (at, x))
     | Eap_between (e_id, av0, av1) ->
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id e_id in
       let x0 = Value.coerce (C.Attribute_type.value_type at) av0 in
       let x1 = Value.coerce (C.Attribute_type.value_type at) av1 in
-      Lwt.return (C.Attribute.Between (at, x0, x1))
+      Lwt.return (C.Relation.Between (at, x0, x1))
     | Eap_search (e_id, av) ->
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id e_id in
       begin match C.Attribute_type.value_type at with
-      | Type.String -> Lwt.return (C.Attribute.Search (at, av))
+      | Type.String -> Lwt.return (C.Relation.Search (at, av))
       | _ -> assert false
       end
     | Eap_search_fts av ->
-      Lwt.return (C.Attribute.Search_fts av)
+      Lwt.return (C.Relation.Search_fts av)
 end
 
 module Server_impl = struct
@@ -74,7 +74,7 @@ module Server_impl = struct
     let of_name (module C : Subsocia_intf.S) name =
       C.Attribute_type.of_name name >|=
       Option.map @@ fun (C.Attribute_type.Ex at) ->
-	C.Attribute_type.id' at, Type.Ex (C.Attribute_type.value_type at),
+	C.Attribute_type.id at, Type.Ex (C.Attribute_type.value_type at),
 	C.Attribute_type.value_mult at
 
     let of_id (module C : Subsocia_intf.S) id =
@@ -84,7 +84,7 @@ module Server_impl = struct
 		  C.Attribute_type.value_mult at)
 
     let create (module C : Subsocia_intf.S) (Type.Ex vt) mult name =
-      C.Attribute_type.create ~mult vt name >|= C.Attribute_type.id'
+      C.Attribute_type.create ~mult vt name >|= C.Attribute_type.id
 
     let delete (module C : Subsocia_intf.S) id =
       lwt C.Attribute_type.Ex at = C.Attribute_type.of_id id in
@@ -121,7 +121,7 @@ module Server_impl = struct
       C.Attribute_uniqueness.of_id u >>=
       C.Attribute_uniqueness.affected >|=
       C.Attribute_type.Set.elements *>
-      List.map (fun (C.Attribute_type.Ex at) -> C.Attribute_type.id' at)
+      List.map (fun (C.Attribute_type.Ex at) -> C.Attribute_type.id at)
 
   end
 
@@ -194,12 +194,12 @@ module Server_impl = struct
       lwt et1 = C.Entity_type.of_id et1_id in
       C.Entity_type.allowed_attributes et0 et1 >|=
       C.Attribute_type.Set.elements *>
-      List.map (fun (C.Attribute_type.Ex at) -> C.Attribute_type.id' at)
+      List.map (fun (C.Attribute_type.Ex at) -> C.Attribute_type.id at)
 
     let allowed_attributions (module C : Subsocia_intf.S) () =
       C.Entity_type.allowed_attributions () >|=
       List.map (fun (C.Attribute_type.Ex at, et0, et1) ->
-		  (C.Attribute_type.id' at,
+		  (C.Attribute_type.id at,
 		   C.Entity_type.id et0, C.Entity_type.id et1))
 
     let allow_attribution (module C : Subsocia_intf.S) at et0 et1 =
