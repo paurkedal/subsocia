@@ -88,7 +88,11 @@ module Make (Base : Subsocia_intf.S) = struct
 
   module Attribute = Base.Attribute
 
-  module Entity_type = Base.Entity_type
+  module Entity_type = struct
+    include Base.Entity_type
+
+    let equal et0 et1 = Base.Entity_type.compare et0 et1 = 0
+  end
 
   module Const = struct
 
@@ -129,6 +133,8 @@ module Make (Base : Subsocia_intf.S) = struct
   module Entity = struct
     include Base.Entity
     include Subsocia_selector.Selector_utils (Base)
+
+    let equal e0 e1 = Base.Entity.compare e0 e1 = 0
 
     let force_sub subentity superentity =
       lwt is_sub = is_sub subentity superentity in

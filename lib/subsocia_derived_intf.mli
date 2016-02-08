@@ -86,11 +86,15 @@ module type S = sig
   module Attribute :
     ATTRIBUTE with module Attribute_type := Base.Attribute_type
 
-  module Entity_type :
-    ENTITY_TYPE with module Attribute_type := Base.Attribute_type
-		 and type t = Base.Entity_type.t
-		 and module Set = Base.Entity_type.Set
-		 and module Map = Base.Entity_type.Map
+  module Entity_type : sig
+    include ENTITY_TYPE
+       with module Attribute_type := Base.Attribute_type
+	and type t = Base.Entity_type.t
+	and module Set = Base.Entity_type.Set
+	and module Map = Base.Entity_type.Map
+
+    val equal : t -> t -> bool
+  end
 
   module Entity : sig
     include ENTITY with module Attribute_type := Base.Attribute_type
@@ -100,6 +104,8 @@ module type S = sig
 		    and type t = Base.Entity.t
 		    and module Set = Base.Entity.Set
 		    and module Map = Base.Entity.Map
+
+    val equal : t -> t -> bool
 
     val force_sub : t -> t -> unit Lwt.t
 
