@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -30,7 +30,7 @@ module Make (Base : Subsocia_intf.S) : S with module Base = Base = struct
   include Subsocia_derived.Make (Base)
 
   let attribute_type_of_arg atn =
-    match_lwt Attribute_type.of_name atn with
+    match%lwt Attribute_type.of_name atn with
     | Some at -> Lwt.return at
     | None -> lwt_failure_f "These is no attribute type named %s." atn
 end
@@ -43,11 +43,11 @@ let run f =
   end
 
 let au_force atns = run @@ fun (module C : S) ->
-  lwt ats = Lwt_list.map_s C.attribute_type_of_arg atns in
+  let%lwt ats = Lwt_list.map_s C.attribute_type_of_arg atns in
   let ats = List.fold C.Attribute_type.Set.add ats C.Attribute_type.Set.empty in
-  match_lwt C.Attribute_uniqueness.find ats with
+  match%lwt C.Attribute_uniqueness.find ats with
   | None ->
-    lwt au = C.Attribute_uniqueness.force ats in
+    let%lwt au = C.Attribute_uniqueness.force ats in
     Lwt_io.eprintlf "Created constraint #%ld." (C.Attribute_uniqueness.id au) >>
     Lwt.return 0
   | Some au ->
@@ -56,9 +56,9 @@ let au_force atns = run @@ fun (module C : S) ->
     Lwt.return 1
 
 let au_relax atns = run @@ fun (module C : S) ->
-  lwt ats = Lwt_list.map_s C.attribute_type_of_arg atns in
+  let%lwt ats = Lwt_list.map_s C.attribute_type_of_arg atns in
   let ats = List.fold C.Attribute_type.Set.add ats C.Attribute_type.Set.empty in
-  match_lwt C.Attribute_uniqueness.find ats with
+  match%lwt C.Attribute_uniqueness.find ats with
   | Some au ->
     C.Attribute_uniqueness.relax au >>
     Lwt_io.eprintlf "Removed constraint #%ld." (C.Attribute_uniqueness.id au) >>

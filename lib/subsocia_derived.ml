@@ -46,18 +46,18 @@ module Make (Base : Subsocia_intf.S) = struct
       match coerce t at0 with
       | Some at -> Lwt.return at
       | None ->
-	lwt an = Attribute_type.name at1 in
+	let%lwt an = Attribute_type.name at1 in
 	let tn = Type.to_string (Attribute_type.value_type at1) in
 	let tn' = Type.to_string t in
 	_fail "Wrong type for %s : %s, expected %s." an tn tn'
 
     let required atn =
-      match_lwt Base.Attribute_type.of_name atn with
+      match%lwt Base.Attribute_type.of_name atn with
       | Some at -> Lwt.return at
       | None -> _fail "Missing required attribute type %s" atn
 
     let typed_required vt atn =
-      lwt at0 = required atn in
+      let%lwt at0 = required atn in
       match coerce vt at0 with
       | None -> _fail "Required attribute %s must have type %s"
 		      atn (Type.to_string vt)
@@ -92,7 +92,7 @@ module Make (Base : Subsocia_intf.S) = struct
     include Base.Entity_type
 
     let required etn =
-      match_lwt Entity_type.of_name etn with
+      match%lwt Entity_type.of_name etn with
       | Some et -> Lwt.return et
       | None -> _fail "Missing required entity type %s" etn
 
@@ -120,9 +120,9 @@ module Make (Base : Subsocia_intf.S) = struct
     let et_person = _et "person"
 
     let _e_un ?(from = Entity.root) en =
-      lwt from = from in
-      lwt at_unique_name = at_unique_name in
-      lwt es = Entity.image1_eq at_unique_name en from in
+      let%lwt from = from in
+      let%lwt at_unique_name = at_unique_name in
+      let%lwt es = Entity.image1_eq at_unique_name en from in
       match Entity.Set.cardinal es with
       | 1 -> Lwt.return (Entity.Set.min_elt es)
       | 0 -> _fail "Missing initial entity %s" en
@@ -139,22 +139,22 @@ module Make (Base : Subsocia_intf.S) = struct
     let equal e0 e1 = Base.Entity.compare e0 e1 = 0
 
     let force_sub subentity superentity =
-      lwt is_sub = is_sub subentity superentity in
+      let%lwt is_sub = is_sub subentity superentity in
       if is_sub then Lwt.return_unit else force_dsub subentity superentity
 
     let getattr_opt e' e at =
-      lwt vs = get_values at e e' in
+      let%lwt vs = get_values at e e' in
       let n = Values.cardinal vs in
       if n = 0 then Lwt.return_none else
       if n = 1 then Lwt.return (Some (Values.min_elt vs)) else
-      lwt an = Attribute_type.name at in
+      let%lwt an = Attribute_type.name at in
       _fail "Multiple matches for attribute %s" an
 
     let getattr_one e' e at =
-      lwt vs = get_values at e' e in
+      let%lwt vs = get_values at e' e in
       let n = Values.cardinal vs in
       if n = 1 then Lwt.return (Values.min_elt vs) else
-      lwt an = Attribute_type.name at in
+      let%lwt an = Attribute_type.name at in
       if n = 0 then _fail "No matches for attribute %s" an
 	       else _fail "Multiple matches for attribute %s" an
 
@@ -175,10 +175,10 @@ module Make (Base : Subsocia_intf.S) = struct
       set_values at vs e e'
 
     let of_unique_name ?super en =
-      lwt super = match super with Some e -> Lwt.return e
-				 | None -> Entity.root in
-      lwt at_unique_name = Const.at_unique_name in
-      lwt es = Entity.image1_eq at_unique_name en super in
+      let%lwt super =
+	match super with Some e -> Lwt.return e | None -> Entity.root in
+      let%lwt at_unique_name = Const.at_unique_name in
+      let%lwt es = Entity.image1_eq at_unique_name en super in
       match Entity.Set.cardinal es with
       | 1 -> Lwt.return (Some (Entity.Set.min_elt es))
       | 0 -> Lwt.return_none
@@ -209,8 +209,8 @@ module Make (Base : Subsocia_intf.S) = struct
 
       let rec fold_s' visit max_depth f e acc =
 	if visit e then Lwt.return acc else
-	try_lwt
-	  lwt acc = f e acc in
+	try%lwt
+	  let%lwt acc = f e acc in
 	  if max_depth = 0 then Lwt.return acc else
 	  Dir.fold_s (fold_s' visit (max_depth - 1) f) e acc
 	with Prune -> Lwt.return acc
@@ -220,7 +220,7 @@ module Make (Base : Subsocia_intf.S) = struct
 
       let rec iter_s' visit max_depth f e =
 	if visit e then Lwt.return_unit else
-	try_lwt
+	try%lwt
 	  f e >>
 	  if max_depth = 0 then Lwt.return_unit else
 	  Dir.iter_s (iter_s' visit (max_depth - 1) f) e
@@ -231,8 +231,8 @@ module Make (Base : Subsocia_intf.S) = struct
 
       let rec for_all_s' visit max_depth f e =
 	if visit e then Lwt.return_true else
-	try_lwt
-	  match_lwt f e with
+	try%lwt
+	  match%lwt f e with
 	  | false -> Lwt.return_false
 	  | true ->
 	    if max_depth <= 0 then Lwt.return_true else
@@ -244,8 +244,8 @@ module Make (Base : Subsocia_intf.S) = struct
 
       let rec exists_s' visit max_depth f e =
 	if visit e then Lwt.return_false else
-	try_lwt
-	  match_lwt f e with
+	try%lwt
+	  match%lwt f e with
 	  | true -> Lwt.return_true
 	  | false ->
 	    if max_depth <= 0 then Lwt.return_false else
@@ -257,8 +257,8 @@ module Make (Base : Subsocia_intf.S) = struct
 
       let rec search_s' visit max_depth f e =
 	if visit e then Lwt.return_none else
-	try_lwt
-	  match_lwt f e with
+	try%lwt
+	  match%lwt f e with
 	  | Some _ as x -> Lwt.return x
 	  | None ->
 	    if max_depth <= 0 then Lwt.return_none else
@@ -272,11 +272,11 @@ module Make (Base : Subsocia_intf.S) = struct
     module Sub = Transitive (Dsub)
 
     let has_role_for_entity role subj obj =
-      lwt at_role = Const.at_role in
+      let%lwt at_role = Const.at_role in
       let check_obj obj =
-	lwt access_groups = image1_eq at_role role obj in
+	let%lwt access_groups = image1_eq at_role role obj in
 	Entity.Set.exists_s (Entity.is_sub subj) access_groups in
-      match_lwt check_obj obj with
+      match%lwt check_obj obj with
       | true -> Lwt.return_true
       | false -> Const.e_default >>= check_obj
 
@@ -292,7 +292,7 @@ module Make (Base : Subsocia_intf.S) = struct
 
     let paths e =
 
-      lwt r = Entity.rank e in
+      let%lwt r = Entity.rank e in
       let a = Array.make (r + 1) Entity.Map.empty in
 
       let inter _ selsA selsB =
@@ -309,15 +309,15 @@ module Make (Base : Subsocia_intf.S) = struct
 	  | Type.String -> fun v ->
 	    Select_image (Attribute_eq (an, v)) in
 	let attr_by_succ (Attribute_type.Ex at) =
-	  lwt an = Attribute_type.name at in
+	  let%lwt an = Attribute_type.name at in
 	  let attr vs = Values.elements vs |> List.map (select_attr an at) in
 	  Entity.premapping1 at e >|= Entity.Map.map attr in
-	match_lwt Lwt_list.map_s attr_by_succ ats with
+	match%lwt Lwt_list.map_s attr_by_succ ats with
 	| [] -> assert false
 	| m :: ms ->
 	  Entity.Map.iter_s
 	    (fun e' sels ->
-	      lwt r' = rank e' in
+	      let%lwt r' = rank e' in
 	      let ps' = List.flatten @@
 		List.map (fun p -> List.map (fun sel -> sel :: p) sels) ps in
 	      let ps_acc = try Entity.Map.find e' a.(r') with Not_found -> [] in
@@ -325,17 +325,17 @@ module Make (Base : Subsocia_intf.S) = struct
 	      Lwt.return_unit)
 	    (List.fold (Entity.Map.finter inter) ms m) in
 
-      lwt path_candidates =
+      let%lwt path_candidates =
 	Lwt_list.map_s (Pwt_list.fmap_s Attribute_type.of_name)
 		       path_candidates in
       a.(r) <- Entity.Map.singleton e [[]];
-      for_lwt r' = r downto 1 do
+      for%lwt r' = r downto 1 do
 	Entity.Map.iter_s
 	  (fun e ps -> Lwt_list.iter_s (add_conj e ps) path_candidates)
 	  a.(r')
       done >>
 
-      lwt root = Entity.root in
+      let%lwt root = Entity.root in
       Lwt.return begin
 	try
 	  let aux = function
@@ -346,13 +346,13 @@ module Make (Base : Subsocia_intf.S) = struct
       end
 
     let rec display_name_var ~context ~langs e spec =
-      lwt root = Entity.root in
+      let%lwt root = Entity.root in
 
       let aux ?tn an =
-	match_lwt Base.Attribute_type.of_name an with
+	match%lwt Base.Attribute_type.of_name an with
 	| None -> Lwt.return_none
 	| Some at0 ->
-	  lwt at = Attribute_type.coerce_lwt Type.String at0 in
+	  let%lwt at = Attribute_type.coerce_lwt Type.String at0 in
 	  match tn with
 	  | Some tn ->
 	    Entity.premapping1 at e >>=
@@ -361,13 +361,13 @@ module Make (Base : Subsocia_intf.S) = struct
 		if Entity.Set.contains e' context then
 		  Lwt.return (Some (Values.min_elt vs))
 		else
-		  match_lwt display_name_tmpl ~context ~langs e' with
+		  match%lwt display_name_tmpl ~context ~langs e' with
 		  | None ->
 		    Lwt.return_none
 		  | Some name ->
 		    Lwt.return (Some (name ^ " / " ^ Values.min_elt vs)))
 	  | None ->
-	    lwt vs = Entity.get_values at root e in
+	    let%lwt vs = Entity.get_values at root e in
 	    if Values.is_empty vs then Lwt.return_none
 				  else Lwt.return (Some (Values.min_elt vs)) in
 
@@ -375,7 +375,7 @@ module Make (Base : Subsocia_intf.S) = struct
 	match Prime_string.cut_affix "/" spec with
 	| None -> None, spec
 	| Some (_ as tn, an) -> Some tn, an in
-      match_lwt
+      match%lwt
 	if Prime_string.has_suffix ".+" an then
 	  let an = Prime_string.slice 0 (String.length an - 2) an in
 	  Pwt_list.search_s
@@ -389,20 +389,20 @@ module Make (Base : Subsocia_intf.S) = struct
 
     and display_name_tmpl ~context ~langs e =
       let aux tmpl =
-	try_lwt
+	try%lwt
 	  let buf = Buffer.create 80 in
 	  let m = ref String_map.empty in
 	  Buffer.add_substitute buf (fun v -> m := String_map.add v () !m; "")
 				tmpl;
 	  Buffer.clear buf;
-	  lwt m = String_map.mapi_s
-		      (fun v _ -> display_name_var ~context ~langs e v) !m in
+	  let%lwt m = String_map.mapi_s
+			(fun v _ -> display_name_var ~context ~langs e v) !m in
 	  Buffer.add_substitute buf (fun v -> String_map.find v m) tmpl;
 	  Lwt.return (Some (Buffer.contents buf))
 	with Not_found ->
 	  Lwt.return None in
-      lwt et = Base.Entity.type_ e in
-      lwt tmpl = Base.Entity_type.entity_name_tmpl et in
+      let%lwt et = Base.Entity.type_ e in
+      let%lwt tmpl = Base.Entity_type.entity_name_tmpl et in
       Pwt_list.search_s aux (Prime_string.chop_affix "|" tmpl)
 
     let display_name ?(context = Entity.Set.empty) ?(langs = []) e =
@@ -412,18 +412,19 @@ module Make (Base : Subsocia_intf.S) = struct
 	| Some s -> s
 
     let candidate_dsupers ?(include_current = false) e =
-      lwt et = Entity.type_ e in
-      lwt ets' = Entity_type.dsuper et in
+      let%lwt et = Entity.type_ e in
+      let%lwt ets' = Entity_type.dsuper et in
       let not_related e' =
-	match_lwt Entity.is_sub e e' with
+	match%lwt Entity.is_sub e e' with
 	| true -> Lwt.return false
 	| false -> Lwt.map not (Entity.is_sub e' e) in
       Entity_type.Map.fold
 	(fun et' _ m_es ->
-	  lwt es = m_es in
-	  lwt s = Entity.type_members et' in
-	  lwt s = if include_current then Lwt.return s
-				     else Entity.Set.filter_s not_related s in
+	  let%lwt es = m_es in
+	  let%lwt s = Entity.type_members et' in
+	  let%lwt s =
+	    if include_current then Lwt.return s
+			       else Entity.Set.filter_s not_related s in
 	  Lwt.return (Entity.Set.union s es))
 	ets'
 	(Lwt.return Entity.Set.empty)

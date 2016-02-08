@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -20,7 +20,7 @@ open Lwt.Infix
 open Printf
 
 let et_create etn = run0 @@ fun (module C) ->
-  lwt et = C.Entity_type.create etn in
+  let%lwt et = C.Entity_type.create etn in
   Lwt_log.info_f "Created type #%ld = %s." (C.Entity_type.id et) etn
 
 let et_create_t =
@@ -30,7 +30,7 @@ let et_create_t =
   Term.(pure et_create $ et_name_t)
 
 let et_modify etn ent_opt = run @@ fun (module C) ->
-  match_lwt C.Entity_type.of_name etn with
+  match%lwt C.Entity_type.of_name etn with
   | None ->
     Lwt.return (`Error (false, sprintf "No type is named %s." etn))
   | Some et ->
@@ -52,7 +52,7 @@ let et_modify_t =
   Term.(ret (pure et_modify $ etn_t $ ent_t))
 
 let et_delete etn = run @@ fun (module C) ->
-  match_lwt C.Entity_type.of_name etn with
+  match%lwt C.Entity_type.of_name etn with
   | None ->
     Lwt.return (`Error (false, sprintf "No type is named %s." etn))
   | Some et ->

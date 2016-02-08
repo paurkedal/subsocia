@@ -114,7 +114,7 @@ let string_of_selector s =
 module Selector_utils (C : Subsocia_intf.S) = struct
 
   let req_at an =
-    match_lwt C.Attribute_type.of_name an with
+    match%lwt C.Attribute_type.of_name an with
     | None -> Lwt.fail (Failure ("No attribute type is named " ^ an))
     | Some at -> Lwt.return at
 
@@ -136,27 +136,28 @@ module Selector_utils (C : Subsocia_intf.S) = struct
     | Select_with (selA, selB) -> fun es ->
       select_from selA es >>= select_from selB
     | Select_union (selA, selB) -> fun es ->
-      lwt esA = select_from selA es in
-      lwt esB = select_from selB es in
+      let%lwt esA = select_from selA es in
+      let%lwt esB = select_from selB es in
       Lwt.return (C.Entity.Set.union esA esB)
     | Select_inter (selA, selB) -> fun es ->
-      lwt esA = select_from selA es in
-      lwt esB = select_from selB es in
+      let%lwt esA = select_from selA es in
+      let%lwt esB = select_from selB es in
       Lwt.return (C.Entity.Set.inter esA esB)
     | Select_image p -> fun es ->
-      lwt p = entype_ap p in
+      let%lwt p = entype_ap p in
       C.Entity.Set.fold_s
 	(fun e1 acc -> C.Entity.image1 p e1 >|= C.Entity.Set.union acc)
 	es C.Entity.Set.empty
     | Select_preimage p -> fun es ->
-      lwt p = entype_ap p in
+      let%lwt p = entype_ap p in
       C.Entity.Set.fold_s
 	(fun e1 acc -> C.Entity.preimage1 p e1 >|= C.Entity.Set.union acc)
 	es C.Entity.Set.empty
     | Select_type etn -> fun es ->
-      lwt et = match_lwt C.Entity_type.of_name etn with
-	       | Some et -> Lwt.return et
-	       | None -> Lwt.fail (Failure ("No type named " ^ etn)) in
+      let%lwt et =
+	match%lwt C.Entity_type.of_name etn with
+	| Some et -> Lwt.return et
+	| None -> Lwt.fail (Failure ("No type named " ^ etn)) in
       C.Entity.Set.filter_s
 	(fun e -> C.Entity.type_ e >|=
 		  fun et' -> C.Entity_type.compare et et' = 0)
@@ -177,12 +178,12 @@ module Selector_utils (C : Subsocia_intf.S) = struct
 	es C.Entity.Set.empty
 
   let select sel =
-    lwt root = C.Entity.root in
+    let%lwt root = C.Entity.root in
     select_from sel (C.Entity.Set.singleton root)
 
   let select_one sel =
-    lwt root = C.Entity.root in
-    lwt es = select_from sel (C.Entity.Set.singleton root) in
+    let%lwt root = C.Entity.root in
+    let%lwt es = select_from sel (C.Entity.Set.singleton root) in
     match C.Entity.Set.cardinal es with
     | 1 -> Lwt.return (C.Entity.Set.min_elt es)
     | 0 -> lwt_failure_f "No entity matches %s." (string_of_selector sel)
@@ -190,8 +191,8 @@ module Selector_utils (C : Subsocia_intf.S) = struct
 			 n (string_of_selector sel)
 
   let select_opt sel =
-    lwt root = C.Entity.root in
-    lwt es = select_from sel (C.Entity.Set.singleton root) in
+    let%lwt root = C.Entity.root in
+    let%lwt es = select_from sel (C.Entity.Set.singleton root) in
     match C.Entity.Set.cardinal es with
     | 0 -> Lwt.return_none
     | 1 -> Lwt.return (Some (C.Entity.Set.min_elt es))

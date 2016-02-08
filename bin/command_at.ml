@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -34,7 +34,7 @@ let at_create_t =
   Term.(pure at_create $ vt_t $ atn_t $ mu_t)
 
 let at_delete atn = run @@ fun (module C) ->
-  match_lwt C.Attribute_type.of_name atn with
+  match%lwt C.Attribute_type.of_name atn with
   | Some (C.Attribute_type.Ex at) ->
     C.Attribute_type.delete at >>
     Lwt_log.info_f "Delete attribute type #%ld %s."

@@ -28,8 +28,8 @@ module Entity_utils (C : Subsocia_intf.S) = struct
   include Subsocia_derived.Make (C)
 
   let lookup_assignment (an, vs_opt) =
-    lwt Attribute_type.Ex at =
-      match_lwt Attribute_type.of_name an with
+    let%lwt Attribute_type.Ex at =
+      match%lwt Attribute_type.of_name an with
       | None -> Lwt.fail (Failure ("No attribute type has name " ^ an))
       | Some at -> Lwt.return at in
     match vs_opt with
@@ -41,13 +41,13 @@ module Entity_utils (C : Subsocia_intf.S) = struct
       Lwt.return (`All (Attribute_type.Ex at))
 
   let lookup_aselector (sel_opt, asgn) =
-    lwt asgn = Lwt_list.map_p lookup_assignment asgn in
-    lwt root = Entity.root in
+    let%lwt asgn = Lwt_list.map_p lookup_assignment asgn in
+    let%lwt root = Entity.root in
     match sel_opt with
     | None ->
       Lwt.return (root, asgn)
     | Some sel ->
-      lwt e_ctx = Entity.select_one sel in
+      let%lwt e_ctx = Entity.select_one sel in
       Lwt.return (e_ctx, asgn)
 
   let add_attributes e (e_ctx, attrs) =
@@ -65,7 +65,7 @@ module Entity_utils (C : Subsocia_intf.S) = struct
       attrs
 
   let entity_type_of_arg etn =
-    match_lwt C.Entity_type.of_name etn with
+    match%lwt C.Entity_type.of_name etn with
     | None -> Lwt.fail (Failure ("No entity type has name " ^ etn))
     | Some et -> Lwt.return et
 end
@@ -73,15 +73,15 @@ end
 let ls sel_opt = run @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let sel = Option.get_or Select_root sel_opt in
-  lwt root = C.Entity.root in
-  lwt e = U.Entity.select_one sel in
-  lwt et = C.Entity.type_ e in
-  lwt aus = C.Attribute_uniqueness.all () in
+  let%lwt root = C.Entity.root in
+  let%lwt e = U.Entity.select_one sel in
+  let%lwt et = C.Entity.type_ e in
+  let%lwt aus = C.Attribute_uniqueness.all () in
   let show_e ats e' =
     Lwt_list.iter_s
       (fun (C.Attribute_type.Ex at) ->
-	lwt an = C.Attribute_type.name at in
-	lwt vs = C.Entity.get_values at e e' >|= Values.elements in
+	let%lwt an = C.Attribute_type.name at in
+	let%lwt vs = C.Entity.get_values at e e' >|= Values.elements in
 	let vt = C.Attribute_type.value_type at in
 	Lwt_list.iter_s
 	  (fun av ->
@@ -91,11 +91,11 @@ let ls sel_opt = run @@ fun (module C) ->
       ats >>
     Lwt_io.printl "" in
   let show_au au =
-    lwt ats = C.Attribute_uniqueness.affected au
-	  >|= C.Attribute_type.Set.elements in
+    let%lwt ats =
+      C.Attribute_uniqueness.affected au >|= C.Attribute_type.Set.elements in
     let ps =
       List.map (fun (C.Attribute_type.Ex at) -> C.Relation.Present at) ats in
-    lwt es' = C.Entity.image1 (C.Relation.Inter ps) e in
+    let%lwt es' = C.Entity.image1 (C.Relation.Inter ps) e in
     C.Entity.Set.iter_s (show_e ats) es' in
   C.Attribute_uniqueness.Set.iter_s show_au aus >>
   Lwt.return 0
@@ -107,14 +107,14 @@ let ls_t =
 
 let search sel = run @@ fun (module C) ->
   let module U = Entity_utils (C) in
-  lwt root = C.Entity.root in
-  lwt es = U.Entity.select_from sel (C.Entity.Set.singleton root) in
+  let%lwt root = C.Entity.root in
+  let%lwt es = U.Entity.select_from sel (C.Entity.Set.singleton root) in
   let show e =
-    lwt name = U.Entity.display_name ~langs e in
-    lwt et = C.Entity.type_ e in
-    lwt etn = C.Entity_type.name et in
+    let%lwt name = U.Entity.display_name ~langs e in
+    let%lwt et = C.Entity.type_ e in
+    let%lwt etn = C.Entity_type.name et in
     Lwt_io.printlf "%s : %s" name etn >>
-    lwt paths = U.Entity.paths e in
+    let%lwt paths = U.Entity.paths e in
     Lwt_list.iter_s (fun p -> Lwt_io.printf "  %s\n" (string_of_selector p))
 		    paths in
   C.Entity.Set.iter_s show es >>
@@ -127,15 +127,15 @@ let search_t =
 
 let fts q etn super limit cutoff = run @@ fun (module C) ->
   let module U = Entity_utils (C) in
-  lwt root = C.Entity.root in
-  lwt entity_type = Pwt_option.map_s U.entity_type_of_arg etn in
-  lwt super = Pwt_option.map_s U.Entity.select_one super in
-  lwt es = C.Entity.image1_fts ?entity_type ?super ?limit ?cutoff
-			       (Subsocia_fts.tsquery q) root in
+  let%lwt root = C.Entity.root in
+  let%lwt entity_type = Pwt_option.map_s U.entity_type_of_arg etn in
+  let%lwt super = Pwt_option.map_s U.Entity.select_one super in
+  let%lwt es = C.Entity.image1_fts ?entity_type ?super ?limit ?cutoff
+				   (Subsocia_fts.tsquery q) root in
   let show (e, rank) =
-    lwt name = U.Entity.display_name ~langs e in
-    lwt et = C.Entity.type_ e in
-    lwt etn = C.Entity_type.name et in
+    let%lwt name = U.Entity.display_name ~langs e in
+    let%lwt et = C.Entity.type_ e in
+    let%lwt etn = C.Entity_type.name et in
     Lwt_io.printlf "%8.3g %s : %s" rank name etn in
   Lwt_list.iter_s show es >>
   Lwt.return (if es = [] then 1 else 0)
@@ -160,10 +160,10 @@ let fts_t =
 
 let create etn dsuper aselectors = run0 @@ fun (module C) ->
   let module U = Entity_utils (C) in
-  lwt et = U.entity_type_of_arg etn in
-  lwt aselectors = Lwt_list.map_p U.lookup_aselector aselectors in
-  lwt dsuper = Lwt_list.map_p U.Entity.select_one dsuper in
-  lwt e = C.Entity.create et in
+  let%lwt et = U.entity_type_of_arg etn in
+  let%lwt aselectors = Lwt_list.map_p U.lookup_aselector aselectors in
+  let%lwt dsuper = Lwt_list.map_p U.Entity.select_one dsuper in
+  let%lwt e = C.Entity.create et in
   Lwt_list.iter_s (fun (e_sub) -> C.Entity.force_dsub e e_sub) dsuper >>
   Lwt_list.iter_s (U.add_attributes e) aselectors
 
@@ -178,7 +178,7 @@ let create_t =
 
 let delete sel = run0 @@ fun (module C) ->
   let module U = Entity_utils (C) in
-  lwt e = U.Entity.select_one sel in
+  let%lwt e = U.Entity.select_one sel in
   C.Entity.delete e
 
 let delete_t =
@@ -189,11 +189,11 @@ let delete_t =
 let modify sel add_succs del_succs add_asels del_asels =
   run0 @@ fun (module C) ->
   let module U = Entity_utils (C) in
-  lwt add_succs = Lwt_list.map_p U.Entity.select_one add_succs in
-  lwt del_succs = Lwt_list.map_p U.Entity.select_one del_succs in
-  lwt add_asels = Lwt_list.map_p U.lookup_aselector add_asels in
-  lwt del_asels = Lwt_list.map_p U.lookup_aselector del_asels in
-  lwt e = U.Entity.select_one sel in
+  let%lwt add_succs = Lwt_list.map_p U.Entity.select_one add_succs in
+  let%lwt del_succs = Lwt_list.map_p U.Entity.select_one del_succs in
+  let%lwt add_asels = Lwt_list.map_p U.lookup_aselector add_asels in
+  let%lwt del_asels = Lwt_list.map_p U.lookup_aselector del_asels in
+  let%lwt e = U.Entity.select_one sel in
   Lwt_list.iter_s (fun e_sub -> C.Entity.force_dsub e e_sub) add_succs >>
   Lwt_list.iter_s (U.add_attributes e) add_asels >>
   Lwt_list.iter_s (U.delete_attributes e) del_asels >>

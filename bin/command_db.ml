@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -46,14 +46,14 @@ let db_schema_t =
 let load_sql (module C : Caqti_lwt.CONNECTION) sql =
   Lwt_io.with_file ~mode:Lwt_io.input sql @@ fun ic ->
   let rec loop () =
-    match_lwt Caqti_lwt_sql_io.read_sql_statement Lwt_io.read_char_opt ic with
+    match%lwt Caqti_lwt_sql_io.read_sql_statement Lwt_io.read_char_opt ic with
     | None -> Lwt.return_unit
     | Some stmt -> C.exec (Caqti_query.oneshot_sql stmt) [||] >> loop () in
   loop ()
 
 let db_init disable_transaction = run0 @@ fun (module C) ->
   let uri = Uri.of_string Subsocia_config.database_uri#get in
-  lwt cc = Caqti_lwt.connect uri in
+  let%lwt cc = Caqti_lwt.connect uri in
   Lwt_list.iter_s
     (fun fn ->
       let fp = Filename.concat schema_dir fn in
@@ -89,13 +89,13 @@ let string_of_query_info = function
 
 let db_upgrade () = Lwt_main.run begin
   let uri = Uri.of_string Subsocia_config.database_uri#get in
-  lwt c = Caqti_lwt.connect uri in
+  let%lwt c = Caqti_lwt.connect uri in
   let module C : Caqti_lwt.CONNECTION = (val c) in
-  lwt db_schema_version = get_schema_version c in
+  let%lwt db_schema_version = get_schema_version c in
   let have_error = ref false in
   let load fp =
     if !have_error then Lwt_io.printlf "Skipped: %s" fp else
-    try_lwt
+    try%lwt
       load_sql c fp >>
       Lwt_io.printlf "Updated: %s" fp
     with
@@ -108,7 +108,7 @@ let db_upgrade () = Lwt_main.run begin
       have_error := true;
       Lwt_io.printlf "Failed: %s" fp >>
       Lwt_io.printlf "Exception: %s" (Printexc.to_string exc) in
-  for_lwt v = db_schema_version to schema_version - 1 do
+  for%lwt v = db_schema_version to schema_version - 1 do
     load (Filename.concat schema_upgrade_dir (sprintf "from-%d.sql" v))
   done >>
   Lwt_list.iter_s (load *< Filename.concat schema_dir)

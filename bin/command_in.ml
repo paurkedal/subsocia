@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -20,8 +20,8 @@ open Lwt.Infix
 open Subsocia_common
 
 let in_allow etn0 etn1 = run @@ fun (module C) ->
-  lwt et0 = C.Entity_type.of_name etn0 in
-  lwt et1 = C.Entity_type.of_name etn1 in
+  let%lwt et0 = C.Entity_type.of_name etn0 in
+  let%lwt et1 = C.Entity_type.of_name etn1 in
   let report_missing etns =
     Lwt.return (`Error (false, "Missing types " ^ etns ^ ".")) in
   match et0, et1 with
@@ -34,8 +34,8 @@ let in_allow etn0 etn1 = run @@ fun (module C) ->
   | None, None -> report_missing (etn0 ^ " and " ^ etn1)
 
 let in_disallow etn0 etn1 = run @@ fun (module C) ->
-  lwt et0 = C.Entity_type.of_name etn0 in
-  lwt et1 = C.Entity_type.of_name etn1 in
+  let%lwt et0 = C.Entity_type.of_name etn0 in
+  let%lwt et1 = C.Entity_type.of_name etn1 in
   let report_missing etns =
     Lwt.return (`Error (false, "Missing types " ^ etns ^ ".")) in
   match et0, et1 with
@@ -63,15 +63,15 @@ let in_list etn0_opt etn1_opt = run @@ fun (module C) ->
   let get_et = function
     | None | Some "_" -> Lwt.return_none
     | Some etn ->
-      begin match_lwt C.Entity_type.of_name etn with
+      begin match%lwt C.Entity_type.of_name etn with
       | None -> Lwt.fail (Failure ("No entity type is named " ^ etn ^ "."))
       | Some et -> Lwt.return (Some et)
       end in
-  lwt et0 = get_et etn0_opt in
-  lwt et1 = get_et etn1_opt in
+  let%lwt et0 = get_et etn0_opt in
+  let%lwt et1 = get_et etn1_opt in
   let pp mu0 mu1 et0 et1 =
-    lwt etn0 = C.Entity_type.name et0 in
-    lwt etn1 = C.Entity_type.name et1 in
+    let%lwt etn0 = C.Entity_type.name et0 in
+    let%lwt etn1 = C.Entity_type.name et1 in
     Lwt_io.printlf "%30s %s%s %-30s"
       etn0 (Multiplicity.to_string mu0) (Multiplicity.to_string mu1) etn1 in
   match et0, et1 with
@@ -88,7 +88,7 @@ let in_list etn0_opt etn1_opt = run @@ fun (module C) ->
       C.Entity_type.Map.iter_s (fun et0 (mu0, mu1) -> pp mu0 mu1 et0 et1) >>
     Lwt.return 0
   | Some et0, Some et1 ->
-    begin match_lwt C.Entity_type.can_dsub et0 et1 with
+    begin match%lwt C.Entity_type.can_dsub et0 et1 with
     | Some (mu0, mu1) ->
       Lwt_io.printlf "%s%s" (Multiplicity.to_string mu0)
 			    (Multiplicity.to_string mu1) >>

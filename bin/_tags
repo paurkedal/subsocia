@@ -1,1 +1,1 @@
-true: syntax(camlp4o), package(lwt.syntax)
+true: ppx(ppx_lwt)

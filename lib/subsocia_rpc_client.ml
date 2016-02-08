@@ -50,7 +50,7 @@ module Make (RPCM : RPCM) = struct
     module Map = Prime_enummap.Make_monadic (Comparable) (Lwt)
 
     let of_id at_id =
-      lwt at_name, Type.Ex at_type, at_mult = Raw.of_id at_id in
+      let%lwt at_name, Type.Ex at_type, at_mult = Raw.of_id at_id in
       Lwt.return (Ex {at_id; at_name; at_type; at_mult})
     let id at = at.at_id
 
@@ -201,7 +201,7 @@ module Make (RPCM : RPCM) = struct
     let check_uniqueness_error = function
       | [] -> Lwt.return_unit
       | ua_ids ->
-	lwt uas = Lwt_list.map_s Attribute_uniqueness.of_id ua_ids in
+	let%lwt uas = Lwt_list.map_s Attribute_uniqueness.of_id ua_ids in
 	Lwt.fail (Attribute_uniqueness.Not_unique
 		    (Attribute_uniqueness.Set.of_ordered_elements uas))
 

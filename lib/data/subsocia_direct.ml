@@ -547,7 +547,7 @@ module Enabled_cache = struct
     let g x =
       try Lwt.return (Prime_cache.find cache x)
       with Not_found ->
-	lwt y = f x in
+	let%lwt y = f x in
 	Prime_cache.replace cache fetch_grade x y;
 	Lwt.return y in
     g, cache
@@ -557,7 +557,7 @@ module Enabled_cache = struct
     let g ?conn x =
       try Lwt.return (Prime_cache.find cache x)
       with Not_found ->
-	lwt y = f ?conn x in
+	let%lwt y = f ?conn x in
 	Prime_cache.replace cache fetch_grade x y;
 	Lwt.return y in
     g, cache
@@ -890,7 +890,7 @@ module Make (P : Param) = struct
       memo_2lwt @@ fun (et, et') ->
       with_db @@ fun ((module C) as conn) ->
       let aux tup at_map =
-	lwt at = Attribute_type.of_id' ~conn (C.Tuple.int32 0 tup) in
+	let%lwt at = Attribute_type.of_id' ~conn (C.Tuple.int32 0 tup) in
 	Lwt.return (B.Attribute_type.Set.add at at_map) in
       C.fold_s Q.et_allowed_attributes aux C.Param.([|int32 et; int32 et'|])
 	       B.Attribute_type.Set.empty
@@ -1006,8 +1006,8 @@ module Make (P : Param) = struct
       let k = subentity, superentity in
       try Lwt.return (Cache.find inclusion_cache k)
       with Not_found ->
-	lwt r_lim = rank superentity in
-	lwt c = with_db @@ fun (module C) ->
+	let%lwt r_lim = rank superentity in
+	let%lwt c = with_db @@ fun (module C) ->
 	  C.find_opt Q.e_select_precedes (fun _ -> ())
 		     C.Param.([|int r_lim; int32 subentity;
 				int r_lim; int32 superentity|]) >|=
@@ -1492,7 +1492,7 @@ module Make (P : Param) = struct
 	>|= fun () -> Cache.replace rank_cache fetch_grade e r
 
     let rec raise_rank r_min e =
-      lwt r = rank e in
+      let%lwt r = rank e in
       if r >= r_min then Lwt.return_unit else
       begin
 	dsub e >>= Set.iter_s (raise_rank (r_min + 1)) >>
@@ -1500,16 +1500,16 @@ module Make (P : Param) = struct
       end
 
     let rec lower_rank e =
-      lwt r = rank e in
+      let%lwt r = rank e in
       let update_rank eS r' =
 	if r' = r then Lwt.return r' else
 	rank eS >|= max r' *< succ in
-      lwt esS = dsuper e in
-      lwt r' = Set.fold_s update_rank esS 0 in
+      let%lwt esS = dsuper e in
+      let%lwt r' = Set.fold_s update_rank esS 0 in
       if r' = r then Lwt.return_unit else begin
 	set_rank r' e >>
 	dsub e >>= Set.iter_s begin fun eP ->
-	  lwt rP = rank eP in
+	  let%lwt rP = rank eP in
 	  if rP = r + 1 then lower_rank eP
 			else Lwt.return_unit
 	end
@@ -1528,7 +1528,7 @@ module Make (P : Param) = struct
 	emit_changed superentity `Dsub
 
     let relax_dsub' subentity superentity (module C : CONNECTION) =
-      lwt is_subsumed =
+      let%lwt is_subsumed =
 	C.find Q.e_is_subsumed C.Tuple.(bool 0)
 	       C.Param.[|int32 subentity; int32 superentity|] in
       (if is_subsumed then Lwt.return_unit else
@@ -1543,17 +1543,17 @@ module Make (P : Param) = struct
 	emit_changed superentity `Dsub
 
     let force_dsub subentity superentity =
-      lwt is_super = is_sub superentity subentity in
+      let%lwt is_super = is_sub superentity subentity in
       if is_super then Lwt.fail (Invalid_argument "cyclic constraint") else
-      lwt subentity_rank = rank subentity in
-      lwt superentity_rank = rank superentity in
+      let%lwt subentity_rank = rank subentity in
+      let%lwt superentity_rank = rank superentity in
       raise_rank (max subentity_rank (superentity_rank + 1)) subentity >>
       with_db (force_dsub' subentity superentity)
 
     let relax_dsub subentity superentity =
       with_db (relax_dsub' subentity superentity) >>
-      lwt subentity_rank = rank subentity in
-      lwt superentity_rank = rank superentity in
+      let%lwt subentity_rank = rank subentity in
+      let%lwt superentity_rank = rank superentity in
       if subentity_rank > superentity_rank + 1 then Lwt.return_unit
 					       else lower_rank subentity
 
@@ -1561,19 +1561,20 @@ module Make (P : Param) = struct
       let vt = B.Attribute_type.value_type new_at in
       let new_cond = B.Relation.In (new_at, Values.of_elements vt new_avs) in
       let is_violated au =
-	lwt aff_ats = Attribute_uniqueness.affected au >|=
-		      B.Attribute_type.Set.remove (B.Attribute_type.Ex new_at) in
-	try_lwt
-	  lwt conds = Lwt_list.map_s
+	let%lwt aff_ats =
+	  Attribute_uniqueness.affected au >|=
+	  B.Attribute_type.Set.remove (B.Attribute_type.Ex new_at) in
+	try%lwt
+	  let%lwt conds = Lwt_list.map_s
 	    (fun (B.Attribute_type.Ex at) ->
-	      lwt avs = get_values at e e' in
+	      let%lwt avs = get_values at e e' in
 	      if Values.is_empty avs then Lwt.fail Not_found else
 	      Lwt.return (B.Relation.In (at, avs)))
 	    (B.Attribute_type.Set.elements aff_ats) in
 	  asub_conj e (new_cond :: conds) >|= not *< Set.is_empty
 	with Not_found ->
 	  Lwt.return_false in
-      lwt violated =
+      let%lwt violated =
 	Attribute_uniqueness.affecting new_at >>=
 	B.Attribute_uniqueness.Set.filter_s is_violated in
       if B.Attribute_uniqueness.Set.is_empty violated then Lwt.return_unit else
@@ -1608,21 +1609,21 @@ module Make (P : Param) = struct
       post_attribute_update (module C) at e e'
 
     let check_mult at e e' =
-      lwt et = type_ e in
-      lwt et' = type_ e' in
-      match_lwt Entity_type.can_attribute at et et' with
+      let%lwt et = type_ e in
+      let%lwt et' = type_ e' in
+      match%lwt Entity_type.can_attribute at et et' with
       | false ->
-	lwt etn = Entity_type.name et in
-	lwt etn' = Entity_type.name et' in
+	let%lwt etn = Entity_type.name et in
+	let%lwt etn' = Entity_type.name et' in
 	lwt_failure_f "add_values: %s is not allowed from %s to %s."
 		      at.B.Attribute_type.at_name etn etn'
       | true -> Lwt.return (B.Attribute_type.value_mult at)
 
     let add_values (type a) (at : a B.Attribute_type.t) (xs : a Values.t) e e' =
       let xs = Values.elements xs in (* TODO: Optimise. *)
-      lwt xs_pres = get_values at e e' in
-      lwt xs =
-	match_lwt check_mult at e e' with
+      let%lwt xs_pres = get_values at e e' in
+      let%lwt xs =
+	match%lwt check_mult at e e' with
 	| Multiplicity.May1 | Multiplicity.Must1 ->
 	  if Values.is_empty xs_pres
 	  then Lwt.return xs
@@ -1658,7 +1659,7 @@ module Make (P : Param) = struct
     let remove_values (type a) (at : a B.Attribute_type.t)
 		      (xs : a Values.t) e e' =
       let xs = Values.elements xs in (* TODO: Optimise. *)
-      lwt xs_pres = get_values at e e' in
+      let%lwt xs_pres = get_values at e e' in
       let xs =
 	let ht = Hashtbl.create 7 in
 	Values.iter (fun x -> Hashtbl.add ht x ()) xs_pres;
@@ -1670,14 +1671,14 @@ module Make (P : Param) = struct
 
     let set_values (type a) (at : a B.Attribute_type.t) (xs : a Values.t) e e' =
       let xs = Values.elements xs in (* TODO: Optimise. *)
-      begin match_lwt check_mult at e e' with
+      begin match%lwt check_mult at e e' with
       | Multiplicity.May1 | Multiplicity.Must1 ->
 	if List.length xs <= 1 then Lwt.return_unit else
 	lwt_failure_f "add_values: Attribute already set.";
       | Multiplicity.May | Multiplicity.Must ->
 	Lwt.return_unit
       end >>
-      lwt xs_pres = get_values at e e' in
+      let%lwt xs_pres = get_values at e e' in
       let ht = Hashtbl.create 7 in
       Values.iter (fun x -> Hashtbl.add ht x false) xs_pres;
       let xs_ins =
@@ -1705,8 +1706,8 @@ let connect uri =
     module M = Make (struct
       let wrap_transaction f (module C : CONNECTION) =
 	C.exec Q.begin_ [||] >>
-	begin try_lwt
-	  lwt r = f (module C : CONNECTION) in
+	begin try%lwt
+	  let%lwt r = f (module C : CONNECTION) in
 	  C.exec Q.commit [||] >>
 	  Lwt.return r
 	with exc ->

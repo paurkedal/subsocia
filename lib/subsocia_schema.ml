@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -80,29 +80,29 @@ module Make (C : Subsocia_intf.S) = struct
   module Su = Selector_utils (C)
 
   let req_at atn =
-    match_lwt C.Attribute_type.of_name atn with
+    match%lwt C.Attribute_type.of_name atn with
     | Some at -> Lwt.return at
     | None -> lwt_failure_f "No attribute type is named %s." atn
 
   let req_et etn =
-    match_lwt C.Entity_type.of_name etn with
+    match%lwt C.Entity_type.of_name etn with
     | Some et -> Lwt.return et
     | None -> lwt_failure_f "No entity type is named %s." etn
 
   let exec_et_adjust et = function
     | `Allow_inclusion (etn', mu, mu') ->
-      lwt et' = req_et etn' in
+      let%lwt et' = req_et etn' in
       C.Entity_type.allow_dsub mu mu' et et'
     | `Disallow_inclusion etn' ->
-      lwt et' = req_et etn' in
+      let%lwt et' = req_et etn' in
       C.Entity_type.disallow_dsub et et'
     | `Allow_attribution (etn', atn) ->
-      lwt et' = req_et etn' in
-      lwt C.Attribute_type.Ex at = req_at atn in
+      let%lwt et' = req_et etn' in
+      let%lwt C.Attribute_type.Ex at = req_at atn in
       C.Entity_type.allow_attribution at et' et
     | `Disallow_attribution (etn', atn) ->
-      lwt et' = req_et etn' in
-      lwt C.Attribute_type.Ex at = req_at atn in
+      let%lwt et' = req_et etn' in
+      let%lwt C.Attribute_type.Ex at = req_at atn in
       C.Entity_type.disallow_attribution at et' et
     | `Aux_string ("display", tmpl) ->
       C.Entity_type.set_entity_name_tmpl et tmpl
@@ -111,13 +111,13 @@ module Make (C : Subsocia_intf.S) = struct
 
   let add_set_helper f e asel =
     let sel', attrs = aselector_of_selector asel in
-    lwt e' =
+    let%lwt e' =
       match sel' with
       | None -> C.Entity.root
       | Some sel' -> Su.select_one sel' in
     String_map.iter_s
       (fun an vs ->
-	match_lwt C.Attribute_type.of_name an with
+	match%lwt C.Attribute_type.of_name an with
 	| None -> lwt_failure_f "No attribute type is named %s." an
 	| Some (C.Attribute_type.Ex at) ->
 	  let t = C.Attribute_type.value_type at in
@@ -130,13 +130,13 @@ module Make (C : Subsocia_intf.S) = struct
 
   let del_helper e sel =
     let sel', attrs = dselector_of_selector sel in
-    lwt e' =
+    let%lwt e' =
       match sel' with
       | None -> C.Entity.root
       | Some sel' -> Su.select_one sel' in
     String_map.iter_s
       (fun an vs_opt ->
-	match_lwt C.Attribute_type.of_name an with
+	match%lwt C.Attribute_type.of_name an with
 	| None -> lwt_failure_f "No attribute type is named %s." an
 	| Some (C.Attribute_type.Ex at) ->
 	  match vs_opt with
@@ -156,10 +156,10 @@ module Make (C : Subsocia_intf.S) = struct
     | `Aux_selector (p, _) ->
       lwt_failure_f "Entities have no property %s." p
     | `Add_sub sel ->
-      lwt e' = Su.select_one sel in
+      let%lwt e' = Su.select_one sel in
       C.Entity.force_dsub e e'
     | `Remove_sub sel ->
-      lwt e' = Su.select_one sel in
+      let%lwt e' = Su.select_one sel in
       C.Entity.relax_dsub e e'
     | `Add_attr asel -> add_set_helper `Add e asel
     | `Set_attr asel -> add_set_helper `Set e asel
@@ -174,10 +174,10 @@ module Make (C : Subsocia_intf.S) = struct
       Pwt_option.iter_s
 	(fun (C.Attribute_type.Ex at) -> C.Attribute_type.delete at)
     | `Au_force atns ->
-      lwt ats = Lwt_list.map_s req_at atns in
+      let%lwt ats = Lwt_list.map_s req_at atns in
       let ats = List.fold C.Attribute_type.Set.add ats
 			  C.Attribute_type.Set.empty in
-      begin match_lwt C.Attribute_uniqueness.find ats with
+      begin match%lwt C.Attribute_uniqueness.find ats with
       | Some au ->
 	Lwt_log.warning_f "Already constrained by #%ld."
 			  (C.Attribute_uniqueness.id au)
@@ -185,85 +185,85 @@ module Make (C : Subsocia_intf.S) = struct
 	C.Attribute_uniqueness.force ats >|= ignore
       end
     | `Au_relax atns ->
-      lwt ats = Lwt_list.map_s req_at atns in
+      let%lwt ats = Lwt_list.map_s req_at atns in
       let ats = List.fold C.Attribute_type.Set.add ats
 			  C.Attribute_type.Set.empty in
-      begin match_lwt C.Attribute_uniqueness.find ats with
+      begin match%lwt C.Attribute_uniqueness.find ats with
       | Some au -> C.Attribute_uniqueness.relax au
       | None -> Lwt_log.warning "Not constrained."
       end
     | `Et_create (etn, allows) ->
-      lwt et = C.Entity_type.create etn in
+      let%lwt et = C.Entity_type.create etn in
       Lwt_list.iter_s (exec_et_adjust et) allows
     | `Et_modify (etn, adjusts) ->
-      lwt et = req_et etn in
+      let%lwt et = req_et etn in
       Lwt_list.iter_s (exec_et_adjust et) adjusts
     | `Et_delete etn ->
-      lwt et = C.Entity_type.of_name etn in
+      let%lwt et = C.Entity_type.of_name etn in
       Pwt_option.iter_s C.Entity_type.delete et
     | `Et_allow_dsub (etn0, etn1) ->
-      lwt et0 = req_et etn0 in
-      lwt et1 = req_et etn1 in
+      let%lwt et0 = req_et etn0 in
+      let%lwt et1 = req_et etn1 in
       C.Entity_type.allow_dsub Multiplicity.May Multiplicity.May et0 et1
     | `Et_disallow_dsub (etn0, etn1) ->
-      lwt et0 = req_et etn0 in
-      lwt et1 = req_et etn1 in
+      let%lwt et0 = req_et etn0 in
+      let%lwt et1 = req_et etn1 in
       C.Entity_type.disallow_dsub et0 et1
     | `Et_allow_attribution (atn, etn0, etn1) ->
-      lwt C.Attribute_type.Ex at = req_at atn in
-      lwt et0 = req_et etn0 in
-      lwt et1 = req_et etn1 in
+      let%lwt C.Attribute_type.Ex at = req_at atn in
+      let%lwt et0 = req_et etn0 in
+      let%lwt et1 = req_et etn1 in
       C.Entity_type.allow_attribution at et0 et1
     | `Et_disallow_attribution (atn, etn0, etn1) ->
-      lwt C.Attribute_type.Ex at = req_at atn in
-      lwt et0 = req_et etn0 in
-      lwt et1 = req_et etn1 in
+      let%lwt C.Attribute_type.Ex at = req_at atn in
+      let%lwt et0 = req_et etn0 in
+      let%lwt et1 = req_et etn1 in
       C.Entity_type.disallow_attribution at et0 et1
     | `Et_display (etn, template) ->
-      lwt et = req_et etn in
+      let%lwt et = req_et etn in
       C.Entity_type.set_entity_name_tmpl et template
     | `E_force_dsub (sel0, sel1) ->
-      lwt e0 = Su.select_one sel0 in
-      lwt e1 = Su.select_one sel1 in
+      let%lwt e0 = Su.select_one sel0 in
+      let%lwt e1 = Su.select_one sel1 in
       C.Entity.force_dsub e0 e1
     | `E_relax_dsub (sel0, sel1) ->
-      lwt e0 = Su.select_one sel0 in
-      lwt e1 = Su.select_one sel1 in
+      let%lwt e0 = Su.select_one sel0 in
+      let%lwt e1 = Su.select_one sel1 in
       C.Entity.relax_dsub e0 e1
     | `E_add_value (atn, vr, sel0, sel1) ->
-      lwt C.Attribute_type.Ex at = req_at atn in
+      let%lwt C.Attribute_type.Ex at = req_at atn in
       let vt = C.Attribute_type.value_type at in
       let v = Value.typed_of_string vt vr in
-      lwt e0 = Su.select_one sel0 in
-      lwt e1 = Su.select_one sel1 in
+      let%lwt e0 = Su.select_one sel0 in
+      let%lwt e1 = Su.select_one sel1 in
       let vs = Values.singleton (C.Attribute_type.value_type at) v in
       C.Entity.add_values at vs e0 e1
     | `E_remove_value (atn, vr, sel0, sel1) ->
-      lwt C.Attribute_type.Ex at = req_at atn in
+      let%lwt C.Attribute_type.Ex at = req_at atn in
       let vt = C.Attribute_type.value_type at in
       let v = Value.typed_of_string vt vr in
-      lwt e0 = Su.select_one sel0 in
-      lwt e1 = Su.select_one sel1 in
+      let%lwt e0 = Su.select_one sel0 in
+      let%lwt e1 = Su.select_one sel1 in
       let vs = Values.singleton (C.Attribute_type.value_type at) v in
       C.Entity.remove_values at vs e0 e1
     | `E_create (sel, etn) ->
-      lwt et = req_et etn in
-      lwt e = C.Entity.create et in
+      let%lwt et = req_et etn in
+      let%lwt e = C.Entity.create et in
       (* TODO: Make sure sel is a path. *)
       add_set_helper `Add e sel
     | `Create (etn, addl) ->
-      begin match_lwt C.Entity_type.of_name etn with
+      begin match%lwt C.Entity_type.of_name etn with
       | Some et ->
-	lwt e = C.Entity.create et in
+	let%lwt e = C.Entity.create et in
 	Lwt_list.iter_s (exec_mod e) addl
       | None ->
 	lwt_failure_f "No entity type is called %s." etn
       end
     | `Modify (sel, modl) ->
-      lwt e = Su.select_one sel in
+      let%lwt e = Su.select_one sel in
       Lwt_list.iter_s (exec_mod e) modl
     | `Delete sel ->
-      lwt e = Su.select_one sel in
+      let%lwt e = Su.select_one sel in
       C.Entity.delete e
 
   let exec = Lwt_list.iter_s exec_schema_entry

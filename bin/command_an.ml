@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -25,10 +25,10 @@ let req what name = function
   | Some x -> Lwt.return x
 
 let an_allow atn etn0 etn1 = run0 @@ fun (module C) ->
-  lwt C.Attribute_type.Ex at = C.Attribute_type.of_name atn >>=
-			       req "attribute type" atn in
-  lwt et0 = C.Entity_type.of_name etn0 >>= req "entity type" etn0 in
-  lwt et1 = C.Entity_type.of_name etn1 >>= req "entity type" etn1 in
+  let%lwt C.Attribute_type.Ex at =
+    C.Attribute_type.of_name atn >>= req "attribute type" atn in
+  let%lwt et0 = C.Entity_type.of_name etn0 >>= req "entity type" etn0 in
+  let%lwt et1 = C.Entity_type.of_name etn1 >>= req "entity type" etn1 in
   C.Entity_type.allow_attribution at et0 et1
 
 let an_allow_t =
@@ -41,10 +41,10 @@ let an_allow_t =
   Term.(pure an_allow $ atn_t $ etn0_t $ etn1_t)
 
 let an_disallow atn etn0 etn1 = run0 @@ fun (module C) ->
-  lwt C.Attribute_type.Ex at = C.Attribute_type.of_name atn >>=
-			       req "attribute type" atn in
-  lwt et0 = C.Entity_type.of_name etn0 >>= req "entity type" etn0 in
-  lwt et1 = C.Entity_type.of_name etn1 >>= req "entity type" etn1 in
+  let%lwt C.Attribute_type.Ex at =
+    C.Attribute_type.of_name atn >>= req "attribute type" atn in
+  let%lwt et0 = C.Entity_type.of_name etn0 >>= req "entity type" etn0 in
+  let%lwt et1 = C.Entity_type.of_name etn1 >>= req "entity type" etn1 in
   C.Entity_type.disallow_attribution at et0 et1
 
 let an_disallow_t =
@@ -60,9 +60,9 @@ let an_list () = run0 @@ fun (module C) ->
   C.Entity_type.allowed_attributions () >>=
   Lwt_list.map_s @@ fun (C.Attribute_type.Ex at, et0, et1) ->
   let mu = C.Attribute_type.value_mult at in
-  lwt atn = C.Attribute_type.name at in
-  lwt etn0 = C.Entity_type.name et0 in
-  lwt etn1 = C.Entity_type.name et1 in
+  let%lwt atn = C.Attribute_type.name at in
+  let%lwt etn0 = C.Entity_type.name et0 in
+  let%lwt etn1 = C.Entity_type.name et1 in
   Lwt_io.printlf "%s %s %s %s" (Multiplicity.to_string mu) atn etn0 etn1
 
 let an_list_t = Term.(pure an_list $ pure ())
