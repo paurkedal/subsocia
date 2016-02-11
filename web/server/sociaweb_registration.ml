@@ -49,9 +49,9 @@ let () =
       ~title:"Registration"
       ~css:[["css"; "subsocia.css"]]
       (F.body [
-	F.h1 [F.pcdata "Registration"];
-	F.Form.post_form ~service:registration_post_service
-			 registration_form ();
+        F.h1 [F.pcdata "Registration"];
+        F.Form.post_form ~service:registration_post_service
+                         registration_form ();
       ])
 
 let () =
@@ -80,10 +80,10 @@ let () =
       ~title:"Welcome"
       ~css:[["css"; "subsocia.css"]]
       (F.body [
-	F.h1 [F.pcdata "Welcome, "; F.pcdata first_name];
-	F.p [
-	  F.a ~service:entities_service
-	    [F.pcdata "Your registration is complete."]
-	    (Some (Entity.id e_new_user));
-	];
+        F.h1 [F.pcdata "Welcome, "; F.pcdata first_name];
+        F.p [
+          F.a ~service:entities_service
+            [F.pcdata "Your registration is complete."]
+            (Some (Entity.id e_new_user));
+        ];
       ])

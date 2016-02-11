@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -20,7 +20,7 @@ open Eliom_parameter
 
 let entities_service =
   App.service ~path:["entities"]
-	      ~get_params:(suffix (opt (int32 "entity_id"))) ()
+              ~get_params:(suffix (opt (int32 "entity_id"))) ()
 
 let entities_self_service =
   App.service ~path:["entities"; "self"] ~get_params:unit ()
@@ -31,6 +31,6 @@ let registration_form_service =
 let registration_post_service =
   Http.post_service ~fallback:registration_form_service
     ~post_params:(string "first_name" **
-		  string "last_name" **
-		  string "email") ()
+                  string "last_name" **
+                  string "email") ()
 }}

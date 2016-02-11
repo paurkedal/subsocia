@@ -52,12 +52,12 @@ let au_force atns = run @@ fun (module C : S) ->
     Lwt.return 0
   | Some au ->
     Lwt_io.eprintlf "Already constrained by #%ld."
-		    (C.Attribute_uniqueness.id au) >>
+                    (C.Attribute_uniqueness.id au) >>
     Lwt.return 1
 
 let au_force_t =
   let atns_t = Arg.(value & pos_all string [] &
-		    info ~docv:"ATTRIBUTE-TYPES" []) in
+                    info ~docv:"ATTRIBUTE-TYPES" []) in
   Term.(pure au_force $ atns_t)
 
 let au_relax atns = run @@ fun (module C : S) ->
@@ -74,7 +74,7 @@ let au_relax atns = run @@ fun (module C : S) ->
 
 let au_relax_t =
   let atns_t = Arg.(value & pos_all string [] &
-		    info ~docv:"ATTRIBUTE-TYPES" []) in
+                    info ~docv:"ATTRIBUTE-TYPES" []) in
   Term.(pure au_relax $ atns_t)
 
 let au_list () = run @@ fun (module C : S) ->

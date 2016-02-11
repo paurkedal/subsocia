@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -23,7 +23,7 @@
   let lexical_error lexbuf s =
     let pos = lexbuf.lex_start_p in
     fprintf stderr "%s:%d:%d: Not expecting '%s' here.\n%!" pos.pos_fname
-	    pos.pos_lnum (pos.pos_cnum - pos.pos_bol) s
+            pos.pos_lnum (pos.pos_cnum - pos.pos_bol) s
 
   let keywords = Hashtbl.create 19
   let () = Array.iter (fun (kw, token) -> Hashtbl.add keywords kw token)
@@ -48,13 +48,13 @@ let space = [' ' '\t']
 let identifier = ['A'-'Z' 'a'-'z' '_'] ['0'-'9' 'A'-'Z' 'a'-'z' '_']*
 let bareedge = ['a'-'z' 'A'-'Z' '0'-'9' '_' '[' ']' '\x80'-'\xff']
 let barefill = ['a'-'z' 'A'-'Z' '0'-'9' '_' '[' ']' '\x80'-'\xff'
-		' ' '-' '.' '@']
+                ' ' '-' '.' '@']
 let barepath = bareedge (barefill* bareedge)?
 
 rule lex_literal buf level = parse
   | '{' { Buffer.add_char buf '{'; lex_literal buf (level + 1) lexbuf }
   | '}' { if level = 0 then Buffer.contents buf else
-	  (Buffer.add_char buf '}'; lex_literal buf (level - 1) lexbuf) }
+          (Buffer.add_char buf '}'; lex_literal buf (level - 1) lexbuf) }
   | [^ '{' '}']+ as s { Buffer.add_string buf s; lex_literal buf level lexbuf }
 
 and lex_string buf = parse
@@ -86,8 +86,8 @@ and lex = parse
       | "access" -> AUX_SELECTOR idr
       | "display" | "tsconfig" -> AUX_STRING idr
       | _ ->
-	try Hashtbl.find keywords idr with Not_found ->
-	lexical_error lexbuf idr; raise Parsing.Parse_error }
+        try Hashtbl.find keywords idr with Not_found ->
+        lexical_error lexbuf idr; raise Parsing.Parse_error }
   | '!' { ADDATTR }
   | '?' { DELATTR }
   | "?!" { SETATTR }
@@ -123,14 +123,14 @@ and lex = parse
   let parse_schema fp =
     Prime_io.with_file_in
       begin fun ic ->
-	let lexbuf = from_channel ic in
-	lexbuf.lex_curr_p <- {
-	  pos_fname = fp;
-	  pos_lnum = 1;
-	  pos_bol = 0;
-	  pos_cnum = 0
-	};
-	schema lex lexbuf
+        let lexbuf = from_channel ic in
+        lexbuf.lex_curr_p <- {
+          pos_fname = fp;
+          pos_lnum = 1;
+          pos_bol = 0;
+          pos_cnum = 0
+        };
+        schema lex lexbuf
       end
       fp
 }

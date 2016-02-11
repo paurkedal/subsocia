@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -21,10 +21,10 @@ open Subsocia_connection
 val http_error : int -> string -> 'a Lwt.t
 val http_redirect :
       service:('get, unit, [< Eliom_service.get_service_kind],
-	       [< Eliom_service.attached], [< Eliom_service.service_kind],
-	       [< Eliom_service.suff], 'gn, unit,
-	       [< Eliom_service.registrable], 'return)
-	      Eliom_service.service ->
+               [< Eliom_service.attached], [< Eliom_service.service_kind],
+               [< Eliom_service.suff], 'gn, unit,
+               [< Eliom_service.registrable], 'return)
+              Eliom_service.service ->
       'get -> 'noreturn Lwt.t
 
 type custom_request_info = {
@@ -35,4 +35,4 @@ type custom_request_info = {
 val authenticate_cri : unit -> custom_request_info Lwt.t
 
 val auth_sf : 'a Deriving_Json.t -> (operator: Entity.t -> 'a -> 'b Lwt.t) ->
-	      ('a, 'b) server_function
+              ('a, 'b) server_function

@@ -66,7 +66,7 @@ module Value : sig
   val coerce : 'a Type.t -> ex -> 'a
 
   val typed_to_poly : 'a Type.t -> 'a ->
-		      [> `Bool of bool | `Int of int | `String of string]
+                      [> `Bool of bool | `Int of int | `String of string]
 
   val rpc_of_ex : ex -> Rpc.t
   val ex_of_rpc : Rpc.t -> ex

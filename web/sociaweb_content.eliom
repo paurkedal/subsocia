@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -73,10 +73,10 @@
     lwt can_search =
       match super with
       | None ->
-	lwt root = Entity.root in
-	Entity.can_search_below operator root
+        lwt root = Entity.root in
+        Entity.can_search_below operator root
       | Some super ->
-	Entity.can_search_below operator super in
+        Entity.can_search_below operator super in
     if not can_search then http_error 403 "Search not permitted." else
     lwt entity_type = Pwt_option.map_s Entity_type.of_id entity_type_id in
     let words = String.chop_consecutive Char.is_space words_str in
@@ -86,10 +86,10 @@
       let cutoff = Subsocia_config.Web.completion_cutoff#get in
       let limit = Subsocia_config.Web.completion_limit#get in
       let fts = Prime_buffer.with0 @@ fun buf ->
-	Buffer.add_string buf word;
-	Buffer.add_string buf ":*";
-	List.iter (fun word -> Buffer.add_string buf " & ";
-			       Buffer.add_string buf word) words in
+        Buffer.add_string buf word;
+        Buffer.add_string buf ":*";
+        List.iter (fun word -> Buffer.add_string buf " & ";
+                               Buffer.add_string buf word) words in
       lwt root = Entity.root in
       Entity.image1_fts ?entity_type ?super ~cutoff ~limit fts root
 
@@ -113,7 +113,7 @@
 }}
 {client{
   let entity_completion_input ?(entity_type_id : int32 option)
-			      ?(super_id : int32 option) emit =
+                              ?(super_id : int32 option) emit =
     let complete  s = %complete_sf (entity_type_id, super_id, s) in
     string_completion_input complete emit
 }}

@@ -31,16 +31,16 @@ let db_schema do_dir =
       Lwt_io.printl schema_dir
     else
       Lwt_list.iter_s
-	(fun schema ->
-	  Lwt_io.printl (Filename.concat schema_dir schema))
-	(upgradable_sql_schemas @ idempotent_sql_schemas)
+        (fun schema ->
+          Lwt_io.printl (Filename.concat schema_dir schema))
+        (upgradable_sql_schemas @ idempotent_sql_schemas)
   end; 0
 
 let db_schema_t =
   let do_dir_t =
     Arg.(value & flag &
-	 info ~doc:"Print the path to the top-level directory \
-		    instead of to the individual schema files." ["dir"]) in
+         info ~doc:"Print the path to the top-level directory \
+                    instead of to the individual schema files." ["dir"]) in
   Term.(pure db_schema $ do_dir_t)
 
 let load_sql (module C : Caqti_lwt.CONNECTION) sql =
@@ -66,13 +66,13 @@ let db_init disable_transaction = run0 @@ fun (module C) ->
       Lwt_log.info_f "Loading %s." fp >>
       let schema = Subsocia_schema.load fp in
       if disable_transaction then
-	let module Schema = Subsocia_schema.Make (C) in
-	Schema.exec schema
+        let module Schema = Subsocia_schema.Make (C) in
+        Schema.exec schema
       else
-	C.transaction @@
-	  (fun (module C) ->
-	    let module Schema = Subsocia_schema.Make (C) in
-	    Schema.exec schema))
+        C.transaction @@
+          (fun (module C) ->
+            let module Schema = Subsocia_schema.Make (C) in
+            Schema.exec schema))
     subsocia_schemas
 
 let db_init_t = Term.(pure db_init $ disable_transaction_t)
@@ -112,7 +112,7 @@ let db_upgrade () = Lwt_main.run begin
     load (Filename.concat schema_upgrade_dir (sprintf "from-%d.sql" v))
   done >>
   Lwt_list.iter_s (load *< Filename.concat schema_dir)
-		  idempotent_sql_schemas >>
+                  idempotent_sql_schemas >>
   if !have_error then
     Lwt_io.printf "\n\
       You may need to inspect the database and schema and apply the failed\n\

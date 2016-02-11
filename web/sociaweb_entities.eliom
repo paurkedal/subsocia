@@ -60,27 +60,27 @@ open Subsocia_connection
     lwt link = entity_link ~langs:cri.cri_langs csuper in
     if not can_edit then
       let button =
-	F.Raw.button ~a:[F.a_button_type `Button; F.a_disabled `Disabled;
-			 F.a_style "visibility: hidden"] [] in
+        F.Raw.button ~a:[F.a_button_type `Button; F.a_disabled `Disabled;
+                         F.a_style "visibility: hidden"] [] in
       Lwt.return (F.td [button; link])
     else
       let focus_id = Entity.id focus in
       let dsuper_id = Entity.id csuper in
       lwt is_dsuper = Entity.is_dsub focus csuper in
       let label, handler, a =
-	if is_dsuper then
-	  let remove = {{fun _ ->
-	    Lwt.async (fun () -> %relax_dsub_sf (%focus_id, %dsuper_id))
-	  }} in
-	  ("-", remove, None)
-	else
-	  let add = {{fun _ ->
-	    Lwt.async (fun () -> %force_dsub_sf (%focus_id, %dsuper_id))
-	  }} in
-	  ("+", add, Some [F.a_class ["candidate"]]) in
+        if is_dsuper then
+          let remove = {{fun _ ->
+            Lwt.async (fun () -> %relax_dsub_sf (%focus_id, %dsuper_id))
+          }} in
+          ("-", remove, None)
+        else
+          let add = {{fun _ ->
+            Lwt.async (fun () -> %force_dsub_sf (%focus_id, %dsuper_id))
+          }} in
+          ("+", add, Some [F.a_class ["candidate"]]) in
       let button =
-	F.Raw.button ~a:[F.a_button_type `Button; F.a_onclick handler]
-		     [F.pcdata label] in
+        F.Raw.button ~a:[F.a_button_type `Button; F.a_onclick handler]
+                     [F.pcdata label] in
       Lwt.return (F.td ?a [button; link])
 
   let rec fold_closure_from f dsucc x acc =
@@ -101,15 +101,15 @@ open Subsocia_connection
       lwt an = Attribute_type.name at in
       let mu = Attribute_type.value_mult at in
       lwt value_frag =
-	let t1 = Attribute_type.value_type at in
-	Entity.get_values at ub lb >|= fun vs ->
-	match List.map (Value.typed_to_string t1) (Values.elements vs) with
-	| [] -> [F.span ~a:[F.a_class ["none"]] [F.pcdata "-"]]
-	| strs -> [F.pcdata (String.concat ", " strs)] in
+        let t1 = Attribute_type.value_type at in
+        Entity.get_values at ub lb >|= fun vs ->
+        match List.map (Value.typed_to_string t1) (Values.elements vs) with
+        | [] -> [F.span ~a:[F.a_class ["none"]] [F.pcdata "-"]]
+        | strs -> [F.pcdata (String.concat ", " strs)] in
       Lwt.return @@ F.tr [
-	F.td [F.pcdata an; F.sup [F.pcdata (Multiplicity.to_string mu)];
-	      F.pcdata ":"];
-	F.td value_frag;
+        F.td [F.pcdata an; F.sup [F.pcdata (Multiplicity.to_string mu)];
+              F.pcdata ":"];
+        F.td value_frag;
       ] in
     lwt attr_trs = Lwt_list.map_s render_tr ats in
     lwt ub_name = Entity.display_name ~langs:cri.cri_langs ub in
@@ -128,21 +128,21 @@ open Subsocia_connection
       lwt csupers = Entity.Set.filter_s is_relevant csupers in
       lwt csupers, m = ordered_entities ~cri csupers in
       lwt csuper_frags = Lwt_list.map_s (neighbour_with_edit ~cri focus)
-					csupers in
+                                        csupers in
       let csuper_block = multicol_tds ~m ~cls:["soc-dsuper1"] csuper_frags in
       Lwt.return @@
-	F.table ~a:[F.a_class ["soc-layout"]]
-	  [F.tr [F.th [F.pcdata "Membership Management"]];
-	   F.tr [F.td [csuper_block]]]
+        F.table ~a:[F.a_class ["soc-layout"]]
+          [F.tr [F.th [F.pcdata "Membership Management"]];
+           F.tr [F.td [csuper_block]]]
     else
       lwt dsupers = Entity.dsuper focus in
       lwt dsupers, m = ordered_entities ~cri dsupers in
       lwt dsuper_frags = Lwt_list.map_s (neighbour_link ~cri) dsupers in
       let dsuper_block = multicol ~m ~cls:["soc-dsuper1"] dsuper_frags in
       Lwt.return @@
-	F.table ~a:[F.a_class ["soc-layout"]]
-	  [F.tr [F.th [F.pcdata "Member of"]];
-	   F.tr [F.td [dsuper_block]]]
+        F.table ~a:[F.a_class ["soc-layout"]]
+          [F.tr [F.th [F.pcdata "Member of"]];
+           F.tr [F.td [dsuper_block]]]
 
   let render_browser ~cri ?(enable_edit = true) ent =
     let open Html5 in
@@ -152,18 +152,18 @@ open Subsocia_connection
     lwt ubs = upwards_closure ent in
     let attr_aux ub acc =
       render_attribution ~cri ent ub
-	>|= function None -> acc | Some trs -> trs :: acc in
+        >|= function None -> acc | Some trs -> trs :: acc in
     lwt attr_trss = Entity.Set.fold_s attr_aux ubs [] in
     let attr_table = F.table ~a:[F.a_class ["soc-assoc"]]
-			     (List.flatten attr_trss) in
+                             (List.flatten attr_trss) in
     lwt dsuper_frag = render_dsuper ~cri ~enable_edit ent in
     Lwt.return @@ F.div ~a:[F.a_class ["soc-entity-browser"]] [
       dsuper_frag;
       F.div ~a:[F.a_class ["soc-box"; "focus"; "top"]] [F.pcdata name];
       F.div ~a:[F.a_class ["soc-box"; "focus"; "middle"; "content"]]
-	    [attr_table];
+            [attr_table];
       F.div ~a:[F.a_class ["soc-box"; "focus"; "bottom"; "content"]]
-	    [multicol ~m ~cls:["soc-dsub1"] dsub_frags];
+            [multicol ~m ~cls:["soc-dsub1"] dsub_frags];
     ]
 }}
 
@@ -179,22 +179,22 @@ let entity_handler entity_id_opt () =
     | Some id -> Lwt.return id
     | None ->
       lwt entity_id =
-	match_lwt Entity.select_opt default_entity_sel with
-	| None -> Lwt.return 1l
-	| Some entity -> Lwt.return (Entity.id entity) in
+        match_lwt Entity.select_opt default_entity_sel with
+        | None -> Lwt.return 1l
+        | Some entity -> Lwt.return (Entity.id entity) in
       http_redirect ~service:entities_service (Some entity_id) in
   lwt e = entity_for_view ~operator:cri.cri_operator entity_id in
   lwt enable_edit =
     match Subsocia_config.Web.member_types#get with
     | [] -> Lwt.return_true
     | ets -> Entity.type_ e >>= Entity_type.name >|=
-	     fun et -> List.mem et ets in
+             fun et -> List.mem et ets in
   lwt browser_div = render_browser ~enable_edit ~cri e in
   let entity_changed_c = Eliom_react.Down.of_react (entity_changed e) in
   ignore {unit{
     Lwt_react.E.keep @@ React.E.trace
       (fun _ ->
-	Eliom_client.exit_to ~service:Eliom_service.void_coservice' () ())
+        Eliom_client.exit_to ~service:Eliom_service.void_coservice' () ())
       %entity_changed_c
   }};
   let do_search = {{fun str ->

@@ -104,7 +104,7 @@ module Value = struct
   let typed_of_string : type a. a Type.t -> string -> a =
     function
     | Type.Bool -> (function "true" -> true | "false" -> false
-			   | _ -> invalid_arg "Value.Typed_of_string")
+                           | _ -> invalid_arg "Value.Typed_of_string")
     | Type.Int -> int_of_string
     | Type.String -> fun s -> s
 
@@ -118,7 +118,7 @@ module Value = struct
     | _ -> invalid_arg "Subsocia_common.Value.coerce: Type error."
 
   let typed_to_poly : type a. a Type.t -> a ->
-		      [> `Bool of bool | `Int of int | `String of string] =
+                      [> `Bool of bool | `Int of int | `String of string] =
     function
     | Type.Bool -> fun x -> `Bool x
     | Type.Int -> fun x -> `Int x
@@ -205,7 +205,7 @@ module Values = struct
     let aux0 t = Ex (t, empty t) in
     let auxn t = function
       | Rpc.Enum evs ->
-	Ex (t, of_ordered_elements t (List.map (Value.typed_of_rpc t) evs))
+        Ex (t, of_ordered_elements t (List.map (Value.typed_of_rpc t) evs))
       | _ -> failwith "Subsocia_common.Values.ex_of_rpc: Protocol error." in
     match rpc with
     | Rpc.Enum (Rpc.Bool _ :: _) -> auxn Type.Bool rpc

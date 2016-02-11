@@ -26,11 +26,11 @@ let at_create (Type.Ex vt) atn mult = run0 @@ fun (module C) ->
 
 let at_create_t =
   let atn_t = Arg.(required & pos 0 (some string) None &
-		   info ~docv:"NAME" []) in
+                   info ~docv:"NAME" []) in
   let vt_t = Arg.(required & pos 1 (some value_type_conv) None &
-		  info ~docv:"TYPE" []) in
+                  info ~docv:"TYPE" []) in
   let mu_t = Arg.(value & pos 2 multiplicity_conv Multiplicity.May1 &
-		  info ~docv:"MULTIPLICITY" []) in
+                  info ~docv:"MULTIPLICITY" []) in
   Term.(pure at_create $ vt_t $ atn_t $ mu_t)
 
 let at_delete atn = run @@ fun (module C) ->
@@ -38,7 +38,7 @@ let at_delete atn = run @@ fun (module C) ->
   | Some (C.Attribute_type.Ex at) ->
     C.Attribute_type.delete at >>
     Lwt_log.info_f "Delete attribute type #%ld %s."
-		   (C.Attribute_type.id at) atn >>
+                   (C.Attribute_type.id at) atn >>
     Lwt.return 0
   | None ->
     Lwt_log.error_f "No attribute type is named %s." atn >>
@@ -46,7 +46,7 @@ let at_delete atn = run @@ fun (module C) ->
 
 let at_delete_t =
   let atn_t = Arg.(required & pos 0 (some string) None &
-		   info ~docv:"NAME" []) in
+                   info ~docv:"NAME" []) in
   Term.(pure at_delete $ atn_t)
 
 let at_list () = run @@ fun (module C) ->

@@ -246,8 +246,8 @@ module type ENTITY = sig
       [at] loosing the value [v]. *)
 
   val image1_fts : ?entity_type: Entity_type.t -> ?super: t ->
-		   ?cutoff: float -> ?limit: int ->
-		   Subsocia_fts.t -> t -> (t * float) list Lwt.t
+                   ?cutoff: float -> ?limit: int ->
+                   Subsocia_fts.t -> t -> (t * float) list Lwt.t
   (** [image1_fts q e] are relevance-weighted subentities along text
       attributes matching a full-text search for [q], ordered by relevance.
       @param entity_type Only include entities of this type if specified.
@@ -256,8 +256,8 @@ module type ENTITY = sig
       @param cutoff Results with [rank <= cutoff] are excluded. Default 0.0. *)
 
   val preimage1_fts : ?entity_type: Entity_type.t -> ?super: t ->
-		      ?cutoff: float -> ?limit: int ->
-		      Subsocia_fts.t -> t -> (t * float) list Lwt.t
+                      ?cutoff: float -> ?limit: int ->
+                      Subsocia_fts.t -> t -> (t * float) list Lwt.t
   (** [preimage1_fts q e] are relevance-weighted superentities along text
       attributes matching a full-text search for [q], ordered by relevance.
       @param entity_type Only include entities of this type if specified.
@@ -284,7 +284,7 @@ module type S = sig
     with module Attribute_type := Attribute_type
   module Entity_type : ENTITY_TYPE with module Attribute_type := Attribute_type
   module Entity : ENTITY with module Attribute_type := Attribute_type
-			  and module Relation := Relation
-			  and module Attribute := Attribute
-			  and module Entity_type := Entity_type
+                          and module Relation := Relation
+                          and module Attribute := Attribute
+                          and module Entity_type := Entity_type
 end

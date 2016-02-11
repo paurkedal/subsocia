@@ -33,11 +33,11 @@ let an_allow atn etn0 etn1 = run0 @@ fun (module C) ->
 
 let an_allow_t =
   let atn_t = Arg.(required & pos 0 (some string) None &
-		   info ~docv:"NAME" []) in
+                   info ~docv:"NAME" []) in
   let etn0_t = Arg.(required & pos 1 (some string) None &
-		    info ~docv:"SUB-TYPE" []) in
+                    info ~docv:"SUB-TYPE" []) in
   let etn1_t = Arg.(required & pos 2 (some string) None &
-		    info ~docv:"SUPER-TYPE" []) in
+                    info ~docv:"SUPER-TYPE" []) in
   Term.(pure an_allow $ atn_t $ etn0_t $ etn1_t)
 
 let an_disallow atn etn0 etn1 = run0 @@ fun (module C) ->
@@ -49,11 +49,11 @@ let an_disallow atn etn0 etn1 = run0 @@ fun (module C) ->
 
 let an_disallow_t =
   let atn_t = Arg.(required & pos 0 (some string) None &
-		   info ~docv:"NAME" []) in
+                   info ~docv:"NAME" []) in
   let etn0_t = Arg.(required & pos 1 (some string) None &
-		    info ~docv:"SUB-TYPE" []) in
+                    info ~docv:"SUB-TYPE" []) in
   let etn1_t = Arg.(required & pos 2 (some string) None &
-		    info ~docv:"SUPER-TYPE" []) in
+                    info ~docv:"SUPER-TYPE" []) in
   Term.(pure an_disallow $ atn_t $ etn0_t $ etn1_t)
 
 let an_list () = run0 @@ fun (module C) ->

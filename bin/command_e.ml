@@ -80,14 +80,14 @@ let ls sel_opt = run @@ fun (module C) ->
   let show_e ats e' =
     Lwt_list.iter_s
       (fun (C.Attribute_type.Ex at) ->
-	let%lwt an = C.Attribute_type.name at in
-	let%lwt vs = C.Entity.get_values at e e' >|= Values.elements in
-	let vt = C.Attribute_type.value_type at in
-	Lwt_list.iter_s
-	  (fun av ->
-	    let avr = Value.typed_to_string vt av in
-	    Lwt_io.printf "{%s=%s}" an avr)
-	  vs)
+        let%lwt an = C.Attribute_type.name at in
+        let%lwt vs = C.Entity.get_values at e e' >|= Values.elements in
+        let vt = C.Attribute_type.value_type at in
+        Lwt_list.iter_s
+          (fun av ->
+            let avr = Value.typed_to_string vt av in
+            Lwt_io.printf "{%s=%s}" an avr)
+          vs)
       ats >>
     Lwt_io.printl "" in
   let show_au au =
@@ -102,7 +102,7 @@ let ls sel_opt = run @@ fun (module C) ->
 
 let ls_t =
   let sel_t = Arg.(value & pos 0 (some selector_conv) None &
-		   info ~docv:"PATH" []) in
+                   info ~docv:"PATH" []) in
   Term.(pure ls $ sel_t)
 
 let search sel = run @@ fun (module C) ->
@@ -116,13 +116,13 @@ let search sel = run @@ fun (module C) ->
     Lwt_io.printlf "%s : %s" name etn >>
     let%lwt paths = U.Entity.paths e in
     Lwt_list.iter_s (fun p -> Lwt_io.printf "  %s\n" (string_of_selector p))
-		    paths in
+                    paths in
   C.Entity.Set.iter_s show es >>
   Lwt.return (if C.Entity.Set.is_empty es then 1 else 0)
 
 let search_t =
   let sel_t = Arg.(required & pos 0 (some selector_conv) None &
-		   info ~docv:"PATH" []) in
+                   info ~docv:"PATH" []) in
   Term.(pure search $ sel_t)
 
 let fts q etn super limit cutoff = run @@ fun (module C) ->
@@ -131,7 +131,7 @@ let fts q etn super limit cutoff = run @@ fun (module C) ->
   let%lwt entity_type = Pwt_option.map_s U.entity_type_of_arg etn in
   let%lwt super = Pwt_option.map_s U.Entity.select_one super in
   let%lwt es = C.Entity.image1_fts ?entity_type ?super ?limit ?cutoff
-				   (Subsocia_fts.tsquery q) root in
+                                   (Subsocia_fts.tsquery q) root in
   let show (e, rank) =
     let%lwt name = U.Entity.display_name ~langs e in
     let%lwt et = C.Entity.type_ e in
@@ -143,19 +143,19 @@ let fts q etn super limit cutoff = run @@ fun (module C) ->
 let fts_t =
   let doc = "The query string as accepted by PostgrSQL's to_tsquery." in
   let q_t = Arg.(required & pos 0 (some string) None &
-		 info ~docv:"TSQUERY" ~doc []) in
+                 info ~docv:"TSQUERY" ~doc []) in
   let doc = "Restrict the result to the entities of TYPE." in
   let et_t = Arg.(value & opt (some string) None &
-		  info ~docv:"TYPE" ~doc ["t"]) in
+                  info ~docv:"TYPE" ~doc ["t"]) in
   let doc = "Restrict the result to subentities of SUPER." in
   let super_t = Arg.(value & opt (some selector_conv) None &
-		     info ~docv:"SUPER" ~doc ["s"]) in
+                     info ~docv:"SUPER" ~doc ["s"]) in
   let doc = "Only show the first LIMIT highest ranked results." in
   let limit_t = Arg.(value & opt (some int) None &
-		     info ~docv:"LIMIT" ~doc ["limit"]) in
+                     info ~docv:"LIMIT" ~doc ["limit"]) in
   let doc = "Exclude results rank CUTOFF and below." in
   let cutoff_t = Arg.(value & opt (some float) None &
-		      info ~docv:"CUTOFF" ~doc ["cutoff"]) in
+                      info ~docv:"CUTOFF" ~doc ["cutoff"]) in
   Term.(pure fts $ q_t $ et_t $ super_t $ limit_t $ cutoff_t)
 
 let create etn dsuper aselectors = run0 @@ fun (module C) ->
@@ -169,11 +169,11 @@ let create etn dsuper aselectors = run0 @@ fun (module C) ->
 
 let create_t =
   let etn_t = Arg.(required & pos 0 (some string) None &
-		   info ~docv:"TYPE" []) in
+                   info ~docv:"TYPE" []) in
   let succs_t = Arg.(value & opt_all selector_conv [] &
-		    info ~docv:"PATH" ["s"]) in
+                    info ~docv:"PATH" ["s"]) in
   let attrs_t = Arg.(non_empty & opt_all aselector_conv [] &
-		    info ~docv:"APATH" ["a"]) in
+                    info ~docv:"APATH" ["a"]) in
   Term.(pure create $ etn_t $ succs_t $ attrs_t)
 
 let delete sel = run0 @@ fun (module C) ->
@@ -183,7 +183,7 @@ let delete sel = run0 @@ fun (module C) ->
 
 let delete_t =
   let sel_t = Arg.(required & pos 0 (some selector_conv) None &
-		   info ~docv:"PATH" []) in
+                   info ~docv:"PATH" []) in
   Term.(pure delete $ sel_t)
 
 let modify sel add_succs del_succs add_asels del_asels =
@@ -201,14 +201,14 @@ let modify sel add_succs del_succs add_asels del_asels =
 
 let modify_t =
   let sel_t = Arg.(required & pos 0 (some selector_conv) None &
-		   info ~docv:"PATH" []) in
+                   info ~docv:"PATH" []) in
   let add_succs_t = Arg.(value & opt_all selector_conv [] &
-			 info ~docv:"PATH" ["s"]) in
+                         info ~docv:"PATH" ["s"]) in
   let del_succs_t = Arg.(value & opt_all selector_conv [] &
-			 info ~docv:"PATH" ["r"]) in
+                         info ~docv:"PATH" ["r"]) in
   let add_attrs_t = Arg.(value & opt_all aselector_conv [] &
-			 info ~docv:"APATH" ["a"]) in
+                         info ~docv:"APATH" ["a"]) in
   let del_attrs_t = Arg.(value & opt_all aselector_pres_conv [] &
-			 info ~docv:"APATH" ["d"]) in
+                         info ~docv:"APATH" ["d"]) in
   Term.(pure modify $ sel_t $ add_succs_t $ del_succs_t
-			    $ add_attrs_t $ del_attrs_t)
+                            $ add_attrs_t $ del_attrs_t)

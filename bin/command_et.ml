@@ -26,7 +26,7 @@ let et_create etn = run0 @@ fun (module C) ->
 let et_create_t =
   let et_name_t =
     Arg.(required & pos 0 (some string) None &
-	 info [] ~docv:"ET-NAME" ~doc:"Name of type to create.") in
+         info [] ~docv:"ET-NAME" ~doc:"Name of type to create.") in
   Term.(pure et_create $ et_name_t)
 
 let et_modify etn ent_opt = run @@ fun (module C) ->
@@ -43,12 +43,12 @@ let et_modify etn ent_opt = run @@ fun (module C) ->
 let et_modify_t =
   let etn_t =
     Arg.(required & pos 0 (some string) None &
-	 info ~docv:"ET-NAME" ~doc:"Name of the entity type to modify" []) in
+         info ~docv:"ET-NAME" ~doc:"Name of the entity type to modify" []) in
   let ent_t =
     Arg.(value & opt (some string) None &
-	 info ~docv:"TEMPLATE"
-	      ~doc:"Template for the display name of entities of this type."
-	      ["name-template"]) in
+         info ~docv:"TEMPLATE"
+              ~doc:"Template for the display name of entities of this type."
+              ["name-template"]) in
   Term.(ret (pure et_modify $ etn_t $ ent_t))
 
 let et_delete etn = run @@ fun (module C) ->
@@ -64,7 +64,7 @@ let et_delete etn = run @@ fun (module C) ->
 let et_delete_t =
   let et_name_t =
     Arg.(required & pos 0 (some string) None &
-	 info ~docv:"ET-NAME" ~doc:"Name of the entity to delete" []) in
+         info ~docv:"ET-NAME" ~doc:"Name of the entity to delete" []) in
   Term.(ret (pure et_delete $ et_name_t))
 
 let et_list () = run0 @@ fun (module C) ->

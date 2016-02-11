@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -26,7 +26,7 @@ let _ =
       let hdrs = Ocsigen_http_frame.Http_header.get_headers fh in
       let tr_of_header name vs =
         F.tr [F.td [F.pcdata (Http_headers.name_to_string name)];
-	      F.td (List.map (fun s -> F.div [F.pcdata s]) vs)] in
+              F.td (List.map (fun s -> F.div [F.pcdata s]) vs)] in
       Lwt.return @@ Eliom_tools.F.html ~title:"HTTP Headers" @@ F.body [
         F.table ~a:[F.a_class ["std"]]
           (List.rev

@@ -40,23 +40,23 @@ let in_disallow etn0 etn1 = run @@ fun (module C) ->
     Lwt.return (`Error (false, "Missing types " ^ etns ^ ".")) in
   match et0, et1 with
   | Some et0, Some et1 -> C.Entity_type.disallow_dsub et0 et1 >>
-			  Lwt.return (`Ok 0)
+                          Lwt.return (`Ok 0)
   | None, Some _ -> report_missing etn0
   | Some _, None -> report_missing etn1
   | None, None -> report_missing (etn0 ^ " and " ^ etn1)
 
 let in_allow_t =
   let etn0_t = Arg.(required & pos 0 (some string) None &
-		    info ~docv:"SUB-TYPE" []) in
+                    info ~docv:"SUB-TYPE" []) in
   let etn1_t = Arg.(required & pos 1 (some string) None &
-		    info ~docv:"SUPER-TYPE" []) in
+                    info ~docv:"SUPER-TYPE" []) in
   Term.(ret (pure in_allow $ etn0_t $ etn1_t))
 
 let in_disallow_t =
   let etn0_t = Arg.(required & pos 0 (some string) None &
-		    info ~docv:"SUB-TYPE" []) in
+                    info ~docv:"SUB-TYPE" []) in
   let etn1_t = Arg.(required & pos 1 (some string) None &
-		    info ~docv:"SUPER-TYPE" []) in
+                    info ~docv:"SUPER-TYPE" []) in
   Term.(ret (pure in_disallow $ etn0_t $ etn1_t))
 
 let in_list etn0_opt etn1_opt = run @@ fun (module C) ->
@@ -91,7 +91,7 @@ let in_list etn0_opt etn1_opt = run @@ fun (module C) ->
     begin match%lwt C.Entity_type.can_dsub et0 et1 with
     | Some (mu0, mu1) ->
       Lwt_io.printlf "%s%s" (Multiplicity.to_string mu0)
-			    (Multiplicity.to_string mu1) >>
+                            (Multiplicity.to_string mu1) >>
       Lwt.return 0
     | None ->
       Lwt.return 1
@@ -99,8 +99,8 @@ let in_list etn0_opt etn1_opt = run @@ fun (module C) ->
 
 let in_list_t =
   let etn0_t = Arg.(value & pos 0 (some string) None &
-		    info ~docv:"SUB-TYPE" []) in
+                    info ~docv:"SUB-TYPE" []) in
   let etn1_t = Arg.(value & pos 1 (some string) None &
-		    info ~docv:"SUPER-TYPE" []) in
+                    info ~docv:"SUPER-TYPE" []) in
   Term.(pure in_list $ etn0_t $ etn1_t)
 

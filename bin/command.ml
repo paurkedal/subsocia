@@ -38,12 +38,12 @@ let load schema_path disable_transaction =
   else
     C.transaction @@
       (fun (module C) ->
-	let module Schema = Subsocia_schema.Make (C) in
-	Schema.exec schema)
+        let module Schema = Subsocia_schema.Make (C) in
+        Schema.exec schema)
 
 let load_t =
   let schema_t = Arg.(required & pos 0 (some file) None &
-		      info ~docv:"PATH" []) in
+                      info ~docv:"PATH" []) in
   Term.(pure load $ schema_t $ disable_transaction_t)
 
 (* Main *)
@@ -65,7 +65,7 @@ let subcommands = [
     "db-init";
   db_upgrade_t, Term.info ~docs:db_scn
     ~doc:(sprintf "Upgrade the database to the current schema version (%d)."
-		  schema_version)
+                  schema_version)
     "db-upgrade";
 
   et_list_t, Term.info ~docs:et_scn
@@ -141,7 +141,7 @@ let subcommands = [
     "modify";
   load_t, Term.info ~docs:e_scn
     ~doc:"Add, modify, and delete attributes according to the schema loaded \
-	  from PATH."
+          from PATH."
     "load"
 ]
 

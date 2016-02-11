@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -23,7 +23,7 @@ open Unprime_list
 
 let allowed_attributes = lazy
   (List.fold String_set.add Subsocia_config.Web.restapi_allowed_attributes#get
-	     String_set.empty)
+             String_set.empty)
 
 let bprint_json_value buf = function
   | `Bool b -> Buffer.add_string buf (if b then "true" else "false")
@@ -50,10 +50,10 @@ let make_authorize_response must_ok may_ok query_res =
       Buffer.add_string buf an;
       Buffer.add_string buf ": [";
       List.iteri
-	(fun i v ->
-	  if i > 0 then Buffer.add_string buf ", ";
-	  bprint_json_value buf v)
-	vs;
+        (fun i v ->
+          if i > 0 then Buffer.add_string buf ", ";
+          bprint_json_value buf v)
+        vs;
       Buffer.add_string buf "]")
     query_res;
   Buffer.add_string buf "}\n";
@@ -67,11 +67,11 @@ let _ =
   Eliom_registration.Any.register_service
     ~path:["restapi"; "authorize"]
     ~get_params:Eliom_parameter.(
-	string "subject" ** set string "must" ** set string "may" **
-	set string "q")
+        string "subject" ** set string "must" ** set string "may" **
+        set string "q")
     @@ fun (subject, (must, (may, query))) () ->
   Lwt_log.debug_f "Checking %s against [%s] and optional [%s] groups"
-		  subject (String.concat ", " must) (String.concat ", " may) >>
+                  subject (String.concat ", " must) (String.concat ", " may) >>
   lwt root = Entity.root in
   let allowed_ans = Lazy.force allowed_attributes in
   lwt must_ok, may_ok, query_res =
@@ -79,24 +79,24 @@ let _ =
     | None -> Lwt.return (false, [], [])
     | Some user ->
       let is_member_of group =
-	match_lwt selected_entity group with
-	| None -> Lwt.return false
-	| Some group -> Entity.is_sub user group in
+        match_lwt selected_entity group with
+        | None -> Lwt.return false
+        | Some group -> Entity.is_sub user group in
       let get_attribute an =
-	if not (String_set.contains an allowed_ans) then Lwt.return_none else
-	match_lwt Attribute_type.of_name an with
-	| None -> Lwt.return_none
-	| Some (Attribute_type.Ex at) ->
-	  let vt = Attribute_type.value_type at in
-	  lwt vs = Entity.get_values at root user in
-	  let vs = Values.elements vs in
-	  Lwt.return (Some (an, List.map (Value.typed_to_poly vt) vs)) in
+        if not (String_set.contains an allowed_ans) then Lwt.return_none else
+        match_lwt Attribute_type.of_name an with
+        | None -> Lwt.return_none
+        | Some (Attribute_type.Ex at) ->
+          let vt = Attribute_type.value_type at in
+          lwt vs = Entity.get_values at root user in
+          let vs = Values.elements vs in
+          Lwt.return (Some (an, List.map (Value.typed_to_poly vt) vs)) in
       lwt must_ok = Lwt_list.for_all_p is_member_of must in
       if must_ok then
-	lwt may_res = Lwt_list.filter_p is_member_of may in
-	lwt query_res = Pwt_list.fmap_p get_attribute query in
-	Lwt.return (true, may_res, query_res)
+        lwt may_res = Lwt_list.filter_p is_member_of may in
+        lwt query_res = Pwt_list.fmap_p get_attribute query in
+        Lwt.return (true, may_res, query_res)
       else
-	Lwt.return (false, [], []) in
+        Lwt.return (false, [], []) in
   let resp = make_authorize_response must_ok may_ok query_res in
   Eliom_registration.String.send (resp)

@@ -74,14 +74,14 @@ module Server_impl = struct
     let of_name (module C : Subsocia_intf.S) name =
       C.Attribute_type.of_name name >|=
       Option.map @@ fun (C.Attribute_type.Ex at) ->
-	C.Attribute_type.id at, Type.Ex (C.Attribute_type.value_type at),
-	C.Attribute_type.value_mult at
+        C.Attribute_type.id at, Type.Ex (C.Attribute_type.value_type at),
+        C.Attribute_type.value_mult at
 
     let of_id (module C : Subsocia_intf.S) id =
       let%lwt C.Attribute_type.Ex at = C.Attribute_type.of_id id in
       let%lwt name = C.Attribute_type.name at in
       Lwt.return (name, Type.Ex (C.Attribute_type.value_type at),
-		  C.Attribute_type.value_mult at)
+                  C.Attribute_type.value_mult at)
 
     let create (module C : Subsocia_intf.S) (Type.Ex vt) mult name =
       C.Attribute_type.create ~mult vt name >|= C.Attribute_type.id
@@ -175,7 +175,7 @@ module Server_impl = struct
     let dsub_elements (module C : Subsocia_intf.S) () =
       C.Entity_type.dsub_elements () >|=
       List.map (fun (et0, et1, mu0, mu1) ->
-		  C.Entity_type.(id et0, id et1, mu0, mu1))
+                  C.Entity_type.(id et0, id et1, mu0, mu1))
 
     let allow_dsub (module C : Subsocia_intf.S) mu0 mu1 et0 et1 =
       let%lwt et0 = C.Entity_type.of_id et0 in
@@ -203,8 +203,8 @@ module Server_impl = struct
     let allowed_attributions (module C : Subsocia_intf.S) () =
       C.Entity_type.allowed_attributions () >|=
       List.map (fun (C.Attribute_type.Ex at, et0, et1) ->
-		  (C.Attribute_type.id at,
-		   C.Entity_type.id et0, C.Entity_type.id et1))
+                  (C.Attribute_type.id at,
+                   C.Entity_type.id et0, C.Entity_type.id et1))
 
     let allow_attribution (module C : Subsocia_intf.S) at et0 et1 =
       let%lwt C.Attribute_type.Ex at = C.Attribute_type.of_id at in
@@ -273,9 +273,9 @@ module Server_impl = struct
     let catch_uniqueness_error (module C : Subsocia_intf.S) f =
       try%lwt f () >> Lwt.return []
       with C.Attribute_uniqueness.Not_unique uas ->
-	Lwt.return @@
-	  List.map C.Attribute_uniqueness.id
-		   (C.Attribute_uniqueness.Set.elements uas)
+        Lwt.return @@
+          List.map C.Attribute_uniqueness.id
+                   (C.Attribute_uniqueness.Set.elements uas)
 
     let add_values (module C : Subsocia_intf.S) at_id vs et0_id et1_id =
       let%lwt et0 = C.Entity.of_id et0_id in
@@ -284,7 +284,7 @@ module Server_impl = struct
       let vt = C.Attribute_type.value_type at in
       let vs1 = Values.of_ordered_elements vt (List.map (Value.coerce vt) vs) in
       catch_uniqueness_error (module C)
-			     (fun () -> C.Entity.add_values at vs1 et0 et1)
+                             (fun () -> C.Entity.add_values at vs1 et0 et1)
 
     let remove_values (module C : Subsocia_intf.S) at_id vs et0_id et1_id =
       let%lwt et0 = C.Entity.of_id et0_id in
@@ -301,7 +301,7 @@ module Server_impl = struct
       let vt = C.Attribute_type.value_type at in
       let vs1 = Values.of_ordered_elements vt (List.map (Value.coerce vt) vs) in
       catch_uniqueness_error (module C)
-			     (fun () -> C.Entity.set_values at vs1 et0 et1)
+                             (fun () -> C.Entity.set_values at vs1 et0 et1)
 
     let image1 (module C : Subsocia_intf.S) at_enc e_id =
       let module U = Utils (C) in
@@ -330,7 +330,7 @@ module Server_impl = struct
       C.Entity.Set.elements *> List.map C.Entity.id
 
     let image1_fts (module C : Subsocia_intf.S)
-		   ?entity_type ?super ?cutoff ?limit fts e_id =
+                   ?entity_type ?super ?cutoff ?limit fts e_id =
       let%lwt e = C.Entity.of_id e_id in
       let%lwt entity_type = Pwt_option.map_s C.Entity_type.of_id entity_type in
       let%lwt super = Pwt_option.map_s C.Entity.of_id super in
@@ -338,7 +338,7 @@ module Server_impl = struct
       List.map (fun (e, w) -> (C.Entity.id e, w))
 
     let preimage1_fts (module C : Subsocia_intf.S)
-		      ?entity_type ?super ?cutoff ?limit fts e_id =
+                      ?entity_type ?super ?cutoff ?limit fts e_id =
       let%lwt e = C.Entity.of_id e_id in
       let%lwt entity_type = Pwt_option.map_s C.Entity_type.of_id entity_type in
       let%lwt super = Pwt_option.map_s C.Entity.of_id super in
@@ -350,28 +350,28 @@ module Server_impl = struct
       let%lwt C.Attribute_type.Ex at = C.Attribute_type.of_id at_id in
       let%lwt m = C.Entity.mapping1 at e in
       Lwt.return @@
-	C.Entity.Map.fold
-	  (fun e vs ->
-	    Values.fold
-	      (fun v ->
-		let v0 = Value.Ex (C.Attribute_type.value_type at, v) in
-		List.push (C.Entity.id e, v0))
-	      vs)
-	  m []
+        C.Entity.Map.fold
+          (fun e vs ->
+            Values.fold
+              (fun v ->
+                let v0 = Value.Ex (C.Attribute_type.value_type at, v) in
+                List.push (C.Entity.id e, v0))
+              vs)
+          m []
 
     let premapping1 (module C : Subsocia_intf.S) at_id e_id =
       let%lwt e = C.Entity.of_id e_id in
       let%lwt C.Attribute_type.Ex at = C.Attribute_type.of_id at_id in
       let%lwt m = C.Entity.premapping1 at e in
       Lwt.return @@
-	C.Entity.Map.fold
-	  (fun e vs ->
-	    Values.fold
-	      (fun v ->
-		let v0 = Value.Ex (C.Attribute_type.value_type at, v) in
-		List.push (C.Entity.id e, v0))
-	      vs)
-	  m []
+        C.Entity.Map.fold
+          (fun e vs ->
+            Values.fold
+              (fun v ->
+                let v0 = Value.Ex (C.Attribute_type.value_type at, v) in
+                List.push (C.Entity.id e, v0))
+              vs)
+          m []
 
     let force_dsub (module C : Subsocia_intf.S) lb_id ub_id =
       let%lwt lb = C.Entity.of_id lb_id in

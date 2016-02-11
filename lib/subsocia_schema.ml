@@ -31,8 +31,8 @@ let rec aconj_of_selector = function
   | Select_type _
       as sel_att -> fun _ ->
     invalid_arg_f "The selector %s cannot be used for attribute assignement. \
-		   It must be a conjunction of one or more attribute \
-		   equalities." (string_of_selector sel_att)
+                   It must be a conjunction of one or more attribute \
+                   equalities." (string_of_selector sel_att)
   | Select_inter (selA, selB) -> fun m ->
     aconj_of_selector selA (aconj_of_selector selB m)
   | Select_image (Attribute_eq (an, v)) -> fun m ->
@@ -53,8 +53,8 @@ let rec dconj_of_selector = function
   | Select_type _
       as sel_att -> fun _ ->
     invalid_arg_f "The selector %s cannot be used for attribute assignement. \
-		   It must be a conjunction of one or more attribute \
-		   equalities." (string_of_selector sel_att)
+                   It must be a conjunction of one or more attribute \
+                   equalities." (string_of_selector sel_att)
   | Select_inter (selA, selB) -> fun m ->
     dconj_of_selector selA (dconj_of_selector selB m)
   | Select_image (Attribute_present an) -> fun m ->
@@ -64,9 +64,9 @@ let rec dconj_of_selector = function
   | Select_image (Attribute_eq (an, v)) -> fun m ->
     let vs =
       try
-	match String_map.find an m with
-	| None -> invalid_arg_f "Conflicting wildcard for %s." an;
-	| Some vs -> vs
+        match String_map.find an m with
+        | None -> invalid_arg_f "Conflicting wildcard for %s." an;
+        | Some vs -> vs
       with Not_found -> [] in
     String_map.add an (Some (v :: vs)) m
 
@@ -117,15 +117,15 @@ module Make (C : Subsocia_intf.S) = struct
       | Some sel' -> Su.select_one sel' in
     String_map.iter_s
       (fun an vs ->
-	match%lwt C.Attribute_type.of_name an with
-	| None -> lwt_failure_f "No attribute type is named %s." an
-	| Some (C.Attribute_type.Ex at) ->
-	  let t = C.Attribute_type.value_type at in
-	  let f = match f with `Add -> C.Entity.add_values
-			     | `Set -> C.Entity.set_values in
-	  let vs = List.map (Value.typed_of_string t) vs in
-	  let vs = Values.of_elements t vs in
-	  f at vs e' e)
+        match%lwt C.Attribute_type.of_name an with
+        | None -> lwt_failure_f "No attribute type is named %s." an
+        | Some (C.Attribute_type.Ex at) ->
+          let t = C.Attribute_type.value_type at in
+          let f = match f with `Add -> C.Entity.add_values
+                             | `Set -> C.Entity.set_values in
+          let vs = List.map (Value.typed_of_string t) vs in
+          let vs = Values.of_elements t vs in
+          f at vs e' e)
       attrs
 
   let del_helper e sel =
@@ -136,18 +136,18 @@ module Make (C : Subsocia_intf.S) = struct
       | Some sel' -> Su.select_one sel' in
     String_map.iter_s
       (fun an vs_opt ->
-	match%lwt C.Attribute_type.of_name an with
-	| None -> lwt_failure_f "No attribute type is named %s." an
-	| Some (C.Attribute_type.Ex at) ->
-	  match vs_opt with
-	  | None ->
-	    let vs = Values.empty (C.Attribute_type.value_type at) in
-	    C.Entity.set_values at vs e' e
-	  | Some vs ->
-	    let t = C.Attribute_type.value_type at in
-	    let vs = List.map (Value.typed_of_string t) vs in
-	    let vs = Values.of_elements t vs in
-	    C.Entity.remove_values at vs e' e)
+        match%lwt C.Attribute_type.of_name an with
+        | None -> lwt_failure_f "No attribute type is named %s." an
+        | Some (C.Attribute_type.Ex at) ->
+          match vs_opt with
+          | None ->
+            let vs = Values.empty (C.Attribute_type.value_type at) in
+            C.Entity.set_values at vs e' e
+          | Some vs ->
+            let t = C.Attribute_type.value_type at in
+            let vs = List.map (Value.typed_of_string t) vs in
+            let vs = Values.of_elements t vs in
+            C.Entity.remove_values at vs e' e)
       attrs
 
   let exec_mod e = function
@@ -172,22 +172,22 @@ module Make (C : Subsocia_intf.S) = struct
     | `At_delete atn ->
       C.Attribute_type.of_name atn >>=
       Pwt_option.iter_s
-	(fun (C.Attribute_type.Ex at) -> C.Attribute_type.delete at)
+        (fun (C.Attribute_type.Ex at) -> C.Attribute_type.delete at)
     | `Au_force atns ->
       let%lwt ats = Lwt_list.map_s req_at atns in
       let ats = List.fold C.Attribute_type.Set.add ats
-			  C.Attribute_type.Set.empty in
+                          C.Attribute_type.Set.empty in
       begin match%lwt C.Attribute_uniqueness.find ats with
       | Some au ->
-	Lwt_log.warning_f "Already constrained by #%ld."
-			  (C.Attribute_uniqueness.id au)
+        Lwt_log.warning_f "Already constrained by #%ld."
+                          (C.Attribute_uniqueness.id au)
       | None ->
-	C.Attribute_uniqueness.force ats >|= ignore
+        C.Attribute_uniqueness.force ats >|= ignore
       end
     | `Au_relax atns ->
       let%lwt ats = Lwt_list.map_s req_at atns in
       let ats = List.fold C.Attribute_type.Set.add ats
-			  C.Attribute_type.Set.empty in
+                          C.Attribute_type.Set.empty in
       begin match%lwt C.Attribute_uniqueness.find ats with
       | Some au -> C.Attribute_uniqueness.relax au
       | None -> Lwt_log.warning "Not constrained."
@@ -254,10 +254,10 @@ module Make (C : Subsocia_intf.S) = struct
     | `Create (etn, addl) ->
       begin match%lwt C.Entity_type.of_name etn with
       | Some et ->
-	let%lwt e = C.Entity.create et in
-	Lwt_list.iter_s (exec_mod e) addl
+        let%lwt e = C.Entity.create et in
+        Lwt_list.iter_s (exec_mod e) addl
       | None ->
-	lwt_failure_f "No entity type is called %s." etn
+        lwt_failure_f "No entity type is called %s." etn
       end
     | `Modify (sel, modl) ->
       let%lwt e = Su.select_one sel in

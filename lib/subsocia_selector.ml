@@ -146,22 +146,22 @@ module Selector_utils (C : Subsocia_intf.S) = struct
     | Select_image p -> fun es ->
       let%lwt p = entype_ap p in
       C.Entity.Set.fold_s
-	(fun e1 acc -> C.Entity.image1 p e1 >|= C.Entity.Set.union acc)
-	es C.Entity.Set.empty
+        (fun e1 acc -> C.Entity.image1 p e1 >|= C.Entity.Set.union acc)
+        es C.Entity.Set.empty
     | Select_preimage p -> fun es ->
       let%lwt p = entype_ap p in
       C.Entity.Set.fold_s
-	(fun e1 acc -> C.Entity.preimage1 p e1 >|= C.Entity.Set.union acc)
-	es C.Entity.Set.empty
+        (fun e1 acc -> C.Entity.preimage1 p e1 >|= C.Entity.Set.union acc)
+        es C.Entity.Set.empty
     | Select_type etn -> fun es ->
       let%lwt et =
-	match%lwt C.Entity_type.of_name etn with
-	| Some et -> Lwt.return et
-	| None -> Lwt.fail (Failure ("No type named " ^ etn)) in
+        match%lwt C.Entity_type.of_name etn with
+        | Some et -> Lwt.return et
+        | None -> Lwt.fail (Failure ("No type named " ^ etn)) in
       C.Entity.Set.filter_s
-	(fun e -> C.Entity.type_ e >|=
-		  fun et' -> C.Entity_type.compare et et' = 0)
-	es
+        (fun e -> C.Entity.type_ e >|=
+                  fun et' -> C.Entity_type.compare et et' = 0)
+        es
     | Select_root -> fun es ->
       if C.Entity.Set.is_empty es then Lwt.return C.Entity.Set.empty else
       C.Entity.root >|= C.Entity.Set.singleton
@@ -170,12 +170,12 @@ module Selector_utils (C : Subsocia_intf.S) = struct
       C.Entity.of_id id >|= C.Entity.Set.singleton
     | Select_dsub -> fun es ->
       C.Entity.Set.fold_s
-	(fun e1 acc -> C.Entity.dsub e1 >|= C.Entity.Set.union acc)
-	es C.Entity.Set.empty
+        (fun e1 acc -> C.Entity.dsub e1 >|= C.Entity.Set.union acc)
+        es C.Entity.Set.empty
     | Select_dsuper -> fun es ->
       C.Entity.Set.fold_s
-	(fun e1 acc -> C.Entity.dsuper e1 >|= C.Entity.Set.union acc)
-	es C.Entity.Set.empty
+        (fun e1 acc -> C.Entity.dsuper e1 >|= C.Entity.Set.union acc)
+        es C.Entity.Set.empty
 
   let select sel =
     let%lwt root = C.Entity.root in
@@ -188,7 +188,7 @@ module Selector_utils (C : Subsocia_intf.S) = struct
     | 1 -> Lwt.return (C.Entity.Set.min_elt es)
     | 0 -> lwt_failure_f "No entity matches %s." (string_of_selector sel)
     | n -> lwt_failure_f "%d entities matches %s, need one."
-			 n (string_of_selector sel)
+                         n (string_of_selector sel)
 
   let select_opt sel =
     let%lwt root = C.Entity.root in
@@ -197,5 +197,5 @@ module Selector_utils (C : Subsocia_intf.S) = struct
     | 0 -> Lwt.return_none
     | 1 -> Lwt.return (Some (C.Entity.Set.min_elt es))
     | n -> lwt_failure_f "%d entities matches %s, need one."
-			 n (string_of_selector sel)
+                         n (string_of_selector sel)
 end

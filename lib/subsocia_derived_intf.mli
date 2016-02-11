@@ -41,7 +41,7 @@ module type NESTED_ITERABLE = sig
   val for_all_s : ?max_depth: int -> (t -> bool Lwt.t) -> t -> bool Lwt.t
   val exists_s : ?max_depth: int -> (t -> bool Lwt.t) -> t -> bool Lwt.t
   val search_s : ?max_depth: int ->
-		 (t -> 'a option Lwt.t) -> t -> 'a option Lwt.t
+                 (t -> 'a option Lwt.t) -> t -> 'a option Lwt.t
 end
 
 module type S = sig
@@ -54,8 +54,8 @@ module type S = sig
     type ex = Base.Attribute_type.ex = Ex : 'a t -> ex
     include ATTRIBUTE_TYPE
        with type 'a t := 'a t and type ex := ex
-	and module Set = Base.Attribute_type.Set
-	and module Map = Base.Attribute_type.Map
+        and module Set = Base.Attribute_type.Set
+        and module Map = Base.Attribute_type.Map
 
     val coerce : 'a Type.t -> ex -> 'a t option
     val required : string -> ex Lwt.t
@@ -68,7 +68,7 @@ module type S = sig
   module Relation : sig
     include RELATION
        with module Attribute_type := Base.Attribute_type
-	and type t = Base.Relation.t
+        and type t = Base.Relation.t
 
     val (&&) : t -> t -> t
     val inter : t list -> t
@@ -89,9 +89,9 @@ module type S = sig
   module Entity_type : sig
     include ENTITY_TYPE
        with module Attribute_type := Base.Attribute_type
-	and type t = Base.Entity_type.t
-	and module Set = Base.Entity_type.Set
-	and module Map = Base.Entity_type.Map
+        and type t = Base.Entity_type.t
+        and module Set = Base.Entity_type.Set
+        and module Map = Base.Entity_type.Map
 
     val required : string -> t Lwt.t
 
@@ -100,12 +100,12 @@ module type S = sig
 
   module Entity : sig
     include ENTITY with module Attribute_type := Base.Attribute_type
-		    and module Relation := Base.Relation
-		    and module Attribute := Base.Attribute
-		    and module Entity_type := Base.Entity_type
-		    and type t = Base.Entity.t
-		    and module Set = Base.Entity.Set
-		    and module Map = Base.Entity.Map
+                    and module Relation := Base.Relation
+                    and module Attribute := Base.Attribute
+                    and module Entity_type := Base.Entity_type
+                    and type t = Base.Entity.t
+                    and module Set = Base.Entity.Set
+                    and module Map = Base.Entity.Map
 
     val equal : t -> t -> bool
 

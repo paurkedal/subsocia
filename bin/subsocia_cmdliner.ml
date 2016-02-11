@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -47,10 +47,10 @@ let aselector_parser ~with_presence s =
     | Select_image (Attribute_leq _ | Attribute_geq _)
     | Select_preimage _
     | Select_type _
-	as sel_att ->
+        as sel_att ->
       invalid_arg_f "The selector %s cannot be used for attribute assignement. \
-		     It must be a conjunction of one or more attribute \
-		     equalities." (string_of_selector sel_att)
+                     It must be a conjunction of one or more attribute \
+                     equalities." (string_of_selector sel_att)
     | Select_inter (selA, selB) -> aux (aux acc selB) selA
     | Select_image (Attribute_eq (an, av)) ->
       (an, Some av) :: acc
@@ -74,11 +74,11 @@ let aselector_printer fmtr (ctx, asgn) =
     | [] -> assert false
     | anv :: xs ->
       List.fold_left (fun acc anv -> Select_with (acc, select_attr anv))
-		     (select_attr anv) xs in
+                     (select_attr anv) xs in
   Format.pp_print_string fmtr @@
     string_of_selector
       (match ctx with None -> sel_attr
-		    | Some sel_ctx -> Select_with (sel_ctx, sel_attr))
+                    | Some sel_ctx -> Select_with (sel_ctx, sel_attr))
 
 let aselector_conv =
   aselector_parser ~with_presence:false, aselector_printer

@@ -53,12 +53,12 @@ module Make (Arg : Arg) = struct
     let do_join i pred =
       let tn = table_for_adjacency pred in
       if i = 0 then
-	bprintf buf "%s%s q%d" !schema_prefix tn i
+        bprintf buf "%s%s q%d" !schema_prefix tn i
       else
-	bprintf buf " JOIN %s%s q%d \
-			ON q%d.output_id = q%d.output_id \
-		       AND q%d.input_id = q%d.input_id"
-		!schema_prefix tn i i (i - 1) i (i - 1) in
+        bprintf buf " JOIN %s%s q%d \
+                        ON q%d.output_id = q%d.output_id \
+                       AND q%d.input_id = q%d.input_id"
+                !schema_prefix tn i i (i - 1) i (i - 1) in
 
     let do_value : type a. a Attribute_type.t -> a -> unit = fun at x ->
       match Attribute_type.value_type at, x with
@@ -72,12 +72,12 @@ module Make (Arg : Arg) = struct
 
     let do_cond1 i op at x =
       bprintf buf "q%d.attribute_type_id = %ld AND q%d.value %s "
-	      i (Attribute_type.id at) i op;
+              i (Attribute_type.id at) i op;
       do_value at x in
 
     let do_between i at x y =
       bprintf buf "q%d.attribute_type_id = %ld AND q%d.value >= "
-	      i (Attribute_type.id at) i;
+              i (Attribute_type.id at) i;
       do_value at x;
       bprintf buf " AND q%d.value < " i;
       do_value at y in
@@ -87,16 +87,16 @@ module Make (Arg : Arg) = struct
       bprintf buf "q%d.attribute_type_id = %ld AND (" i (Attribute_type.id at);
       let is_first = ref true in
       Values.iter
-	(fun x ->
-	  if !is_first then is_first := false else Buffer.add_string buf " OR ";
-	  bprintf buf "q%d.value = " i;
-	  do_value at x)
-	xs;
+        (fun x ->
+          if !is_first then is_first := false else Buffer.add_string buf " OR ";
+          bprintf buf "q%d.value = " i;
+          do_value at x)
+        xs;
       Buffer.add_char buf ')' in
 
     let do_fts i x =
       bprintf buf "q%d.fts_vector @@ to_tsquery(q%d.fts_config::regconfig, "
-	      i i;
+              i i;
       bprint_sql_quoted buf x;
       bprintf buf ")" in
 

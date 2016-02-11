@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -109,7 +109,7 @@ let get_operator_opt () =
     Lwt.return_none
   | Some auth ->
     Log_auth.debug_f "Authenicated %s with %s."
-		     auth.auth_identity auth.auth_method >>
+                     auth.auth_identity auth.auth_method >>
     autoreg_entity_of_authenticalia auth
 
 let get_operator () =
