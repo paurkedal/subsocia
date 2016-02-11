@@ -121,25 +121,26 @@ let subcommands = [
     ~doc:"List allowed attribution."
     "an-list";
 
-  ls_t, Term.info ~docs:e_scn
+  e_ls_t, Term.info ~docs:e_scn
     ~doc:"List entities reachable from a path."
     "ls";
-  search_t, Term.info ~docs:e_scn
+  e_search_t, Term.info ~docs:e_scn
     ~doc:"List entities matching a selector."
     "search";
-  fts_t, Term.info ~docs:e_scn
+  e_fts_t, Term.info ~docs:e_scn
     ~doc:"Full-text search."
     "fts";
-  create_t, Term.info ~docs:e_scn
+  e_create_t, Term.info ~docs:e_scn
     ~doc:"Create an entity."
     "create";
-  delete_t, Term.info ~docs:e_scn
+  e_delete_t, Term.info ~docs:e_scn
     ~doc:"Delete an entity."
     "delete";
-  modify_t, Term.info ~docs:e_scn
+  e_modify_t, Term.info ~docs:e_scn
     ~doc:"Modify an entity."
     "modify";
-  load_t, Term.info ~docs:e_scn
+
+  load_t, Term.info
     ~doc:"Add, modify, and delete attributes according to the schema loaded \
           from PATH."
     "load"

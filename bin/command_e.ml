@@ -130,7 +130,7 @@ module Entity_utils (C : Subsocia_intf.S) = struct
 
 end
 
-let ls sel_opt = run @@ fun (module C) ->
+let e_ls sel_opt = run @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let sel = Option.get_or Select_root sel_opt in
   let%lwt root = C.Entity.root in
@@ -160,27 +160,27 @@ let ls sel_opt = run @@ fun (module C) ->
   C.Attribute_uniqueness.Set.iter_s show_au aus >>
   Lwt.return 0
 
-let ls_t =
+let e_ls_t =
   let sel_t = Arg.(value & pos 0 (some selector_conv) None &
                    info ~docv:"PATH" []) in
-  Term.(pure ls $ sel_t)
+  Term.(pure e_ls $ sel_t)
 
-let search sel eds = run @@ fun (module C) ->
+let e_search sel eds = run @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let%lwt root = C.Entity.root in
   let%lwt es = U.Entity.select_from sel (C.Entity.Set.singleton root) in
   C.Entity.Set.iter_s (U.show_entity eds) es >>
   Lwt.return (if C.Entity.Set.is_empty es then 1 else 0)
 
-let search_t =
+let e_search_t =
   let sel_t = Arg.(required & pos 0 (some selector_conv) None &
                    info ~docv:"PATH" []) in
   let doc = "Extra information to show for each entity: paths, super, sub" in
   let eds_t = Arg.(value & opt eds_conv eds_default &
                    info ~docv:"COMMA-SEPARATED-LIST" ~doc ["D"]) in
-  Term.(pure search $ sel_t $ eds_t)
+  Term.(pure e_search $ sel_t $ eds_t)
 
-let fts q etn super limit cutoff = run @@ fun (module C) ->
+let e_fts q etn super limit cutoff = run @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let%lwt root = C.Entity.root in
   let%lwt entity_type = Pwt_option.map_s U.entity_type_of_arg etn in
@@ -195,7 +195,7 @@ let fts q etn super limit cutoff = run @@ fun (module C) ->
   Lwt_list.iter_s show es >>
   Lwt.return (if es = [] then 1 else 0)
 
-let fts_t =
+let e_fts_t =
   let doc = "The query string as accepted by PostgrSQL's to_tsquery." in
   let q_t = Arg.(required & pos 0 (some string) None &
                  info ~docv:"TSQUERY" ~doc []) in
@@ -211,9 +211,9 @@ let fts_t =
   let doc = "Exclude results rank CUTOFF and below." in
   let cutoff_t = Arg.(value & opt (some float) None &
                       info ~docv:"CUTOFF" ~doc ["cutoff"]) in
-  Term.(pure fts $ q_t $ et_t $ super_t $ limit_t $ cutoff_t)
+  Term.(pure e_fts $ q_t $ et_t $ super_t $ limit_t $ cutoff_t)
 
-let create etn dsuper aselectors = run0 @@ fun (module C) ->
+let e_create etn dsuper aselectors = run0 @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let%lwt et = U.entity_type_of_arg etn in
   let%lwt aselectors = Lwt_list.map_p U.lookup_aselector aselectors in
@@ -222,26 +222,26 @@ let create etn dsuper aselectors = run0 @@ fun (module C) ->
   Lwt_list.iter_s (fun (e_sub) -> C.Entity.force_dsub e e_sub) dsuper >>
   Lwt_list.iter_s (U.add_attributes e) aselectors
 
-let create_t =
+let e_create_t =
   let etn_t = Arg.(required & pos 0 (some string) None &
                    info ~docv:"TYPE" []) in
   let succs_t = Arg.(value & opt_all selector_conv [] &
                     info ~docv:"PATH" ["s"]) in
   let attrs_t = Arg.(non_empty & opt_all aselector_conv [] &
                     info ~docv:"APATH" ["a"]) in
-  Term.(pure create $ etn_t $ succs_t $ attrs_t)
+  Term.(pure e_create $ etn_t $ succs_t $ attrs_t)
 
-let delete sel = run0 @@ fun (module C) ->
+let e_delete sel = run0 @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let%lwt e = U.Entity.select_one sel in
   C.Entity.delete e
 
-let delete_t =
+let e_delete_t =
   let sel_t = Arg.(required & pos 0 (some selector_conv) None &
                    info ~docv:"PATH" []) in
-  Term.(pure delete $ sel_t)
+  Term.(pure e_delete $ sel_t)
 
-let modify sel add_succs del_succs add_asels del_asels =
+let e_modify sel add_succs del_succs add_asels del_asels =
   run0 @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let%lwt add_succs = Lwt_list.map_p U.Entity.select_one add_succs in
@@ -254,7 +254,7 @@ let modify sel add_succs del_succs add_asels del_asels =
   Lwt_list.iter_s (U.delete_attributes e) del_asels >>
   Lwt_list.iter_s (fun e_sub -> C.Entity.relax_dsub e e_sub) del_succs
 
-let modify_t =
+let e_modify_t =
   let sel_t = Arg.(required & pos 0 (some selector_conv) None &
                    info ~docv:"PATH" []) in
   let add_succs_t = Arg.(value & opt_all selector_conv [] &
@@ -265,5 +265,5 @@ let modify_t =
                          info ~docv:"APATH" ["a"]) in
   let del_attrs_t = Arg.(value & opt_all aselector_pres_conv [] &
                          info ~docv:"APATH" ["d"]) in
-  Term.(pure modify $ sel_t $ add_succs_t $ del_succs_t
-                            $ add_attrs_t $ del_attrs_t)
+  Term.(pure e_modify $ sel_t $ add_succs_t $ del_succs_t
+                      $ add_attrs_t $ del_attrs_t)
