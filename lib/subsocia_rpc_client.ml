@@ -186,7 +186,7 @@ module Make (RPCM : RPCM) = struct
 
     let create = Raw.create
     let delete = Raw.delete
-    let type_ = Raw.type_
+    let entity_type = Raw.entity_type
     let rank = Raw.rank
     let type_members et = Raw.type_members et >|= Set.of_ordered_elements
     let root = Raw.root ()
@@ -294,5 +294,7 @@ module Make (RPCM : RPCM) = struct
     let relax_dsub = Raw.relax_dsub
     let display_name ~langs e = Lwt.return ("#" ^ Int32.to_string e) (* TODO *)
 
+    (**/**)
+    let type_ = entity_type
   end
 end

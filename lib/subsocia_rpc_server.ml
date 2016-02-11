@@ -229,8 +229,8 @@ module Server_impl = struct
       let%lwt entity = C.Entity.of_id entity in
       C.Entity.delete entity
 
-    let type_ (module C : Subsocia_intf.S) e_id =
-      C.Entity.of_id e_id >>= C.Entity.type_ >|= C.Entity_type.id
+    let entity_type (module C : Subsocia_intf.S) e_id =
+      C.Entity.of_id e_id >>= C.Entity.entity_type >|= C.Entity_type.id
 
     let rank (module C : Subsocia_intf.S) e_id =
       C.Entity.of_id e_id >>= C.Entity.rank

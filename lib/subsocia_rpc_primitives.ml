@@ -68,7 +68,7 @@ end
 module Entity = struct
   external create : int32 -> int32 = ""
   external delete : int32 -> unit = ""
-  external type_ : int32 -> int32 = ""
+  external entity_type : int32 -> int32 = ""
   external rank : int32 -> int = ""
   external type_members : int32 -> int32 list = ""
   external root : unit -> int32 = ""

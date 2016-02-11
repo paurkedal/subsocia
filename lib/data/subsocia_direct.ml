@@ -949,7 +949,7 @@ module Make (P : Param) = struct
     let root_id = 1l
     let root = of_id root_id
 
-    let type_, type_cache = memo_1lwt @@ fun e ->
+    let entity_type, entity_type_cache = memo_1lwt @@ fun e ->
       with_db @@ fun (module C) ->
       C.find Q.e_type C.Tuple.(int32 0) C.Param.([|int32 e|])
 
@@ -1618,8 +1618,8 @@ module Make (P : Param) = struct
       post_attribute_update (module C) at e e'
 
     let check_mult at e e' =
-      let%lwt et = type_ e in
-      let%lwt et' = type_ e' in
+      let%lwt et = entity_type e in
+      let%lwt et' = entity_type e' in
       match%lwt Entity_type.can_attribute at et et' with
       | false ->
         let%lwt etn = Entity_type.name et in
@@ -1707,6 +1707,8 @@ module Make (P : Param) = struct
                         else add_values' c at xs_ins e e')
       end
 
+    (**/**)
+    let type_ = entity_type
   end
 end
 

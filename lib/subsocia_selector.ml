@@ -159,7 +159,7 @@ module Selector_utils (C : Subsocia_intf.S) = struct
         | Some et -> Lwt.return et
         | None -> Lwt.fail (Failure ("No type named " ^ etn)) in
       C.Entity.Set.filter_s
-        (fun e -> C.Entity.type_ e >|=
+        (fun e -> C.Entity.entity_type e >|=
                   fun et' -> C.Entity_type.compare et et' = 0)
         es
     | Select_root -> fun es ->

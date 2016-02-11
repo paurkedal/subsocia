@@ -205,7 +205,8 @@ module type ENTITY = sig
   val id : t -> int32
   (** [id e] is the numeric ID of [e]. *)
 
-  val type_ : t -> Entity_type.t Lwt.t
+  val entity_type : t -> Entity_type.t Lwt.t
+  (** [entity_type e] is the entity type of [e]. *)
 
   val rank : t -> int Lwt.t
   (** [rank e] is the rank of [e] in the inclusion graph.  An entity which is
@@ -298,6 +299,9 @@ module type ENTITY = sig
   val premapping1 : 'a Attribute_type.t -> t -> 'a Values.t Map.t Lwt.t
   (** [premapping1 at e] is a map of [at]-values indexed by attribution
       superentities of [e] which loose those values along [at]. *)
+
+  (**/**)
+  val type_ : t -> Entity_type.t Lwt.t [@@ocaml.deprecated "Use entity_type."]
 end
 
 module type S = sig

@@ -93,8 +93,8 @@ open Subsocia_connection
 
   let render_attribution ~cri lb ub =
     let open Html5 in
-    lwt lbt = Entity.type_ lb in
-    lwt ubt = Entity.type_ ub in
+    lwt lbt = Entity.entity_type lb in
+    lwt ubt = Entity.entity_type ub in
     lwt ats = Entity_type.allowed_attributes ubt lbt in
     let ats = Attribute_type.Set.elements ats in
     let render_tr (Attribute_type.Ex at) =
@@ -187,7 +187,7 @@ let entity_handler entity_id_opt () =
   lwt enable_edit =
     match Subsocia_config.Web.member_types#get with
     | [] -> Lwt.return_true
-    | ets -> Entity.type_ e >>= Entity_type.name >|=
+    | ets -> Entity.entity_type e >>= Entity_type.name >|=
              fun et -> List.mem et ets in
   lwt browser_div = render_browser ~enable_edit ~cri e in
   let entity_changed_c = Eliom_react.Down.of_react (entity_changed e) in

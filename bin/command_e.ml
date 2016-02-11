@@ -117,7 +117,7 @@ module Entity_utils (C : Subsocia_intf.S) = struct
 
   let show_entity eds e =
     let%lwt name = Entity.display_name ~langs e in
-    let%lwt et = C.Entity.type_ e in
+    let%lwt et = C.Entity.entity_type e in
     let%lwt etn = C.Entity_type.name et in
     Lwt_io.printlf "#%ld %s : %s" (C.Entity.id e) name etn >>
     ( if not eds.eds_paths then Lwt.return_unit else
@@ -136,7 +136,7 @@ let e_ls sel_opt = run @@ fun (module C) ->
   let sel = Option.get_or Select_root sel_opt in
   let%lwt root = C.Entity.root in
   let%lwt e = U.Entity.select_one sel in
-  let%lwt et = C.Entity.type_ e in
+  let%lwt et = C.Entity.entity_type e in
   let%lwt aus = C.Attribute_uniqueness.all () in
   let show_e ats e' =
     Lwt_list.iter_s
@@ -191,7 +191,7 @@ let e_fts q etn super limit cutoff = run @@ fun (module C) ->
                                    (Subsocia_fts.tsquery q) root in
   let show (e, rank) =
     let%lwt name = U.Entity.display_name ~langs e in
-    let%lwt et = C.Entity.type_ e in
+    let%lwt et = C.Entity.entity_type e in
     let%lwt etn = C.Entity_type.name et in
     Lwt_io.printlf "%8.3g %s : %s" rank name etn in
   Lwt_list.iter_s show es >>

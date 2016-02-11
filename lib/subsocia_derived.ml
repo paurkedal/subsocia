@@ -401,7 +401,7 @@ module Make (Base : Subsocia_intf.S) = struct
           Lwt.return (Some (Buffer.contents buf))
         with Not_found ->
           Lwt.return None in
-      let%lwt et = Base.Entity.type_ e in
+      let%lwt et = Base.Entity.entity_type e in
       let%lwt tmpl = Base.Entity_type.entity_name_tmpl et in
       Pwt_list.search_s aux (Prime_string.chop_affix "|" tmpl)
 
@@ -412,7 +412,7 @@ module Make (Base : Subsocia_intf.S) = struct
         | Some s -> s
 
     let candidate_dsupers ?(include_current = false) e =
-      let%lwt et = Entity.type_ e in
+      let%lwt et = Entity.entity_type e in
       let%lwt ets' = Entity_type.dsuper et in
       let not_related e' =
         match%lwt Entity.is_sub e e' with
