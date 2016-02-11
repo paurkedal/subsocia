@@ -107,6 +107,10 @@ let subcommands = [
   au_relax_t, Term.info ~docs:au_scn
     ~doc:"Remove an attribute uniqueness constraint."
     "au-relax";
+  au_list_t, Term.info ~docs:au_scn
+    ~doc:"List all attribute uniqueness constraints."
+    "au-list";
+
   an_allow_t, Term.info ~docs:an_scn
     ~doc:"Allow an attribution."
     "an-allow";
