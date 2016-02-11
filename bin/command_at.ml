@@ -49,3 +49,16 @@ let at_delete_t =
 		   info ~docv:"NAME" []) in
   Term.(pure at_delete $ atn_t)
 
+let at_list () = run @@ fun (module C) ->
+  let show (C.Attribute_type.Ex at) =
+    let%lwt atn = C.Attribute_type.name at in
+    let ms =
+      match C.Attribute_type.value_mult at with
+      | Multiplicity.Must1 -> ""
+      | m -> Multiplicity.to_string m in
+    let vt = C.Attribute_type.value_type at in
+    Lwt_io.printlf "%s : %s%s" atn (Type.to_string vt) ms in
+  C.Attribute_type.all () >>= C.Attribute_type.Set.iter_s show >>
+  Lwt.return 0
+
+let at_list_t = Term.(pure at_list $ pure ())

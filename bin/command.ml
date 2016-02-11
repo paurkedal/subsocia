@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -67,6 +67,7 @@ let subcommands = [
     ~doc:(sprintf "Upgrade the database to the current schema version (%d)."
 		  schema_version)
     "db-upgrade";
+
   et_list_t, Term.info ~docs:et_scn
     ~doc:"List entity types."
     "et-list";
@@ -79,6 +80,7 @@ let subcommands = [
   et_delete_t, Term.info ~docs:et_scn
     ~doc:"Delete an entity type."
     "et-delete";
+
   in_allow_t, Term.info ~docs:in_scn
     ~doc:"Allow inclusion between entities of a type."
     "in-allow";
@@ -88,12 +90,17 @@ let subcommands = [
   in_list_t, Term.info ~docs:in_scn
     ~doc:"Show inclusion policy between types."
     "in-list";
+
   at_create_t, Term.info ~docs:at_scn
     ~doc:"Create an attribute type."
     "at-create";
   at_delete_t, Term.info ~docs:at_scn
     ~doc:"Delete an attribute type."
     "at-delete";
+  at_list_t, Term.info ~docs:at_scn
+    ~doc:"List all attribute types."
+    "at-list";
+
   au_force_t, Term.info ~docs:au_scn
     ~doc:"Add an attribute uniqueness constraint."
     "au-force";
@@ -109,6 +116,7 @@ let subcommands = [
   an_list_t, Term.info ~docs:an_scn
     ~doc:"List allowed attribution."
     "an-list";
+
   ls_t, Term.info ~docs:e_scn
     ~doc:"List entities reachable from a path."
     "ls";

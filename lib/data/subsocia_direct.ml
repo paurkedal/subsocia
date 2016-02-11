@@ -109,6 +109,8 @@ module Q = struct
        VALUES (?, ?, ?, ?) RETURNING attribute_type_id"
   let at_delete =
     q "DELETE FROM @attribute_type WHERE attribute_type_id = ?"
+  let at_all =
+    q "SELECT attribute_type_id FROM @attribute_type"
 
   (* Attribute Uniqueness *)
 
@@ -734,6 +736,13 @@ module Make (P : Param) = struct
     let delete at =
       with_db @@ fun (module C : CONNECTION) ->
       C.exec Q.at_delete C.Param.([|int32 at.at_id|])
+
+    let all () =
+      let%lwt at_ids =
+	with_db @@ fun (module C : CONNECTION) ->
+	C.fold Q.at_all (fun t acc -> C.Tuple.int32 0 t :: acc) [||] [] in
+      Pwt_list.fold_s (fun id acc -> of_id id >|= fun at -> Set.add at acc)
+		      at_ids Set.empty
   end
 
   module Attribute_uniqueness = struct

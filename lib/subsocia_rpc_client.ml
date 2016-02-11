@@ -68,6 +68,7 @@ module Make (RPCM : RPCM) = struct
       Raw.create (Type.Ex vt) mult at_name >|= fun at_id ->
       {at_id; at_name; at_type = vt; at_mult = mult}
     let delete at = Raw.delete at.at_id
+    let all () = Raw.all () >>= encode_set
   end
 
   module Attribute_uniqueness = struct

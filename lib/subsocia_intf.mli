@@ -34,6 +34,7 @@ module type ATTRIBUTE_TYPE = sig
   val value_mult : 'a t -> Multiplicity.t
   val create : ?mult: Multiplicity.t -> 'a Type.t -> string -> 'a t Lwt.t
   val delete : 'a t -> unit Lwt.t
+  val all : unit -> Set.t Lwt.t
 end
 
 module type ATTRIBUTE_UNIQUENESS = sig

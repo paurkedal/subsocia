@@ -89,6 +89,10 @@ module Server_impl = struct
     let delete (module C : Subsocia_intf.S) id =
       let%lwt C.Attribute_type.Ex at = C.Attribute_type.of_id id in
       C.Attribute_type.delete at
+
+    let all (module C : Subsocia_intf.S) () =
+      C.Attribute_type.all () >|= C.Attribute_type.Set.elements *>
+      List.map (fun (C.Attribute_type.Ex at) -> C.Attribute_type.id at)
   end
 
   module Attribute_uniqueness = struct
