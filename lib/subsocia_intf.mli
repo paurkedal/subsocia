@@ -89,11 +89,25 @@ module type ENTITY_TYPE = sig
   module Map : MAP with type key = t
 
   val compare : t -> t -> int
+  (** [compare] provides an arbitrary strict order of entity types. *)
+
   val of_name : string -> t option Lwt.t
+  (** [of_name etn] is the entity type named [etn] if any. *)
+
   val name : t -> string Lwt.t
+  (** [name et] is the name of [et]. *)
+
   val of_id : int32 -> t Lwt.t
+  (** [of_id id] is the entity of identified by [id], which is assumed to
+      exist. *)
+
   val id : t -> int32
+  (** [id et] is the numeric ID of [et]. *)
+
   val display_name : langs: lang list -> ?pl: bool -> t -> string Lwt.t
+  (** [display_name et] is a human readable name for [et].
+      @deprecated Returns {!name} and may be dropped in a future version
+      unless it deemed useful and implemented. *)
 
   val create : string -> t Lwt.t
   (** [create name] creates an entity type named [name]. *)
@@ -175,15 +189,27 @@ module type ENTITY = sig
   module Map : MAP with type key = t
 
   val create : Entity_type.t -> t Lwt.t
+  (** [create et] creates and returns an entity of the type [et], initially
+      with no relation to other entities. *)
+
   val delete : t -> unit Lwt.t
+  (** [delete e] deletes [e], which must have no remaining relation to other
+      entities. *)
 
   val compare : t -> t -> int
+  (** An arbitrary total order over entities. *)
 
   val of_id : int32 -> t Lwt.t
+  (** [of_id id] is the entity identified by [id], which is assumed to exist. *)
+
   val id : t -> int32
+  (** [id e] is the numeric ID of [e]. *)
 
   val type_ : t -> Entity_type.t Lwt.t
+
   val rank : t -> int Lwt.t
+  (** [rank e] is the rank of [e] in the inclusion graph.  An entity which is
+      not included in other entities, has rank 0. *)
 
   val type_members : Entity_type.t -> Set.t Lwt.t
 
