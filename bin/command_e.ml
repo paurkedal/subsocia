@@ -21,7 +21,43 @@ open Subsocia_cmdliner
 open Subsocia_common
 open Subsocia_selector
 open Subsocia_selector_types
+open Unprime
+open Unprime_list
 open Unprime_option
+
+type entity_details_selection = {
+  eds_paths : bool;
+  eds_super : bool;
+  eds_sub : bool;
+}
+
+let eds_default = {
+  eds_paths = false;
+  eds_super = false;
+  eds_sub = false;
+}
+
+let eds_conv =
+  let parse s =
+    let paths = ref false in
+    let super = ref false in
+    let sub = ref false in
+    let aux = function
+      | "paths" -> paths := true
+      | "super" -> super := true
+      | "sub" -> sub := true
+      | _ -> failwith "Invalid display option." in
+    try
+      s |> Prime_string.chop_affix "," |> List.iter aux;
+      `Ok { eds_paths = !paths; eds_super = !super; eds_sub = !sub }
+    with Failure msg ->
+      `Error msg in
+  let print fo eds =
+    [] |> (if eds.eds_paths then List.push "paths" else ident)
+       |> (if eds.eds_super then List.push "super" else ident)
+       |> (if eds.eds_sub then List.push "sub" else ident)
+       |> String.concat "," |> Format.pp_print_string fo in
+  (parse, print)
 
 module Entity_utils (C : Subsocia_intf.S) = struct
   include Selector_utils (C)
@@ -68,6 +104,30 @@ module Entity_utils (C : Subsocia_intf.S) = struct
     match%lwt C.Entity_type.of_name etn with
     | None -> Lwt.fail (Failure ("No entity type has name " ^ etn))
     | Some et -> Lwt.return et
+
+  let show_entity_list pfx =
+    Entity.Set.iter_s begin fun e ->
+      Lwt_io.print pfx >>
+      begin match%lwt Entity.paths e with
+      | [] -> Entity.display_name e
+      | p :: _ -> Lwt.return (string_of_selector p)
+      end >>= Lwt_io.printl
+    end
+
+  let show_entity eds e =
+    let%lwt name = Entity.display_name ~langs e in
+    let%lwt et = C.Entity.type_ e in
+    let%lwt etn = C.Entity_type.name et in
+    Lwt_io.printlf "#%ld %s : %s" (C.Entity.id e) name etn >>
+    ( if not eds.eds_paths then Lwt.return_unit else
+      let%lwt paths = Entity.paths e in
+      Lwt_list.iter_s (fun p -> Lwt_io.printf "  = %s\n" (string_of_selector p))
+                      paths ) >>
+    ( if not eds.eds_super then Lwt.return_unit else
+      C.Entity.dsuper e >>= show_entity_list "  ⊂ " ) >>
+    ( if not eds.eds_sub then Lwt.return_unit else
+      C.Entity.dsub e >>= show_entity_list "  ⊃ " )
+
 end
 
 let ls sel_opt = run @@ fun (module C) ->
@@ -105,25 +165,20 @@ let ls_t =
                    info ~docv:"PATH" []) in
   Term.(pure ls $ sel_t)
 
-let search sel = run @@ fun (module C) ->
+let search sel eds = run @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let%lwt root = C.Entity.root in
   let%lwt es = U.Entity.select_from sel (C.Entity.Set.singleton root) in
-  let show e =
-    let%lwt name = U.Entity.display_name ~langs e in
-    let%lwt et = C.Entity.type_ e in
-    let%lwt etn = C.Entity_type.name et in
-    Lwt_io.printlf "%s : %s" name etn >>
-    let%lwt paths = U.Entity.paths e in
-    Lwt_list.iter_s (fun p -> Lwt_io.printf "  %s\n" (string_of_selector p))
-                    paths in
-  C.Entity.Set.iter_s show es >>
+  C.Entity.Set.iter_s (U.show_entity eds) es >>
   Lwt.return (if C.Entity.Set.is_empty es then 1 else 0)
 
 let search_t =
   let sel_t = Arg.(required & pos 0 (some selector_conv) None &
                    info ~docv:"PATH" []) in
-  Term.(pure search $ sel_t)
+  let doc = "Extra information to show for each entity: paths, super, sub" in
+  let eds_t = Arg.(value & opt eds_conv eds_default &
+                   info ~docv:"COMMA-SEPARATED-LIST" ~doc ["D"]) in
+  Term.(pure search $ sel_t $ eds_t)
 
 let fts q etn super limit cutoff = run @@ fun (module C) ->
   let module U = Entity_utils (C) in
