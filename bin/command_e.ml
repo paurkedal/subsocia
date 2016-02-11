@@ -43,6 +43,7 @@ let eds_conv =
     let super = ref false in
     let sub = ref false in
     let aux = function
+      | "all" -> paths := true; super := true; sub := true
       | "paths" -> paths := true
       | "super" -> super := true
       | "sub" -> sub := true
@@ -175,7 +176,8 @@ let e_search sel eds = run @@ fun (module C) ->
 let e_search_t =
   let sel_t = Arg.(required & pos 0 (some selector_conv) None &
                    info ~docv:"PATH" []) in
-  let doc = "Extra information to show for each entity: paths, super, sub" in
+  let doc =
+    "Extra information to show for each entity: all, paths, super, sub" in
   let eds_t = Arg.(value & opt eds_conv eds_default &
                    info ~docv:"COMMA-SEPARATED-LIST" ~doc ["D"]) in
   Term.(pure e_search $ sel_t $ eds_t)
