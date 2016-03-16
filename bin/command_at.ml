@@ -49,7 +49,7 @@ let at_delete_t =
                    info ~docv:"NAME" []) in
   Term.(pure at_delete $ atn_t)
 
-let at_list () = run @@ fun (module C) ->
+let at_list verbose = run @@ fun (module C) ->
   let show (C.Attribute_type.Ex at) =
     let%lwt atn = C.Attribute_type.name at in
     let ms =
@@ -57,8 +57,18 @@ let at_list () = run @@ fun (module C) ->
       | Multiplicity.Must1 -> ""
       | m -> Multiplicity.to_string m in
     let vt = C.Attribute_type.value_type at in
-    Lwt_io.printlf "%s : %s%s" atn (Type.to_string vt) ms in
+    Lwt_io.printlf "%s : %s%s" atn (Type.to_string vt) ms >>
+    if%lwt Lwt.return verbose then begin
+      let show_mapping (et0, et1) =
+        let%lwt etn0 = C.Entity_type.name et0 in
+        let%lwt etn1 = C.Entity_type.name et1 in
+        Lwt_io.printlf "  %s -> %s" etn0 etn1 in
+      C.Entity_type.allowed_mappings at >>= Lwt_list.iter_s show_mapping
+    end in
   C.Attribute_type.all () >>= C.Attribute_type.Set.iter_s show >>
   Lwt.return 0
 
-let at_list_t = Term.(pure at_list $ pure ())
+let at_list_t =
+  let doc = "Show allowed domain and codomain combinations." in
+  let v = Arg.(value & flag & info ~doc ["v"]) in
+  Term.(pure at_list $ v)
