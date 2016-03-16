@@ -189,6 +189,9 @@ module Q = struct
   let et_allowed_attributes =
     q "SELECT attribute_type_id FROM @attribution_type \
        WHERE domain_id = ? AND codomain_id = ?"
+  let et_allowed_mappings =
+    q "SELECT domain_id, codomain_id FROM @attribution_type \
+       WHERE attribute_type_id = ?"
   let et_allowed_attributions =
     q "SELECT attribute_type_id, domain_id, codomain_id \
        FROM @attribution_type"
@@ -903,6 +906,18 @@ module Make (P : Param) = struct
         Lwt.return (B.Attribute_type.Set.add at at_map) in
       C.fold_s Q.et_allowed_attributes aux C.Param.([|int32 et; int32 et'|])
                B.Attribute_type.Set.empty
+
+    let allowed_mappings', allowed_mappings_cache =
+      memo_1lwt @@ fun (B.Attribute_type.Ex at) ->
+      with_db @@ fun ((module C) as conn) ->
+      let extract tup acc =
+        let et0 = C.Tuple.int32 0 tup in
+        let et1 = C.Tuple.int32 1 tup in
+        Lwt.return ((et0, et1) :: acc) in
+      C.fold_s Q.et_allowed_mappings extract
+               C.Param.([|int32 at.B.Attribute_type.at_id|]) []
+
+    let allowed_mappings at = allowed_mappings' (B.Attribute_type.Ex at)
 
     let can_attribute', can_attribute_cache =
       memo_3lwt @@ fun (at, et, et') ->

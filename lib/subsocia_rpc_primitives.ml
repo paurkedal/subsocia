@@ -53,16 +53,12 @@ module Entity_type = struct
   external allow_dsub :
     Multiplicity.t -> Multiplicity.t -> int32 -> int32 -> unit = ""
   external disallow_dsub : int32 -> int32 -> unit = ""
-  external can_attribute :
-    int32 -> int32 -> int32 -> bool = ""
-  external allowed_attributes :
-    int32 -> int32 -> int32 list = ""
-  external allowed_attributions :
-    unit -> (int32 * int32 * int32) list = ""
-  external allow_attribution :
-    int32 -> int32 -> int32 -> unit = ""
-  external disallow_attribution :
-    int32 -> int32 -> int32 -> unit = ""
+  external can_attribute : int32 -> int32 -> int32 -> bool = ""
+  external allowed_attributes : int32 -> int32 -> int32 list = ""
+  external allowed_mappings : int32 -> (int32 * int32) list = ""
+  external allowed_attributions : unit -> (int32 * int32 * int32) list = ""
+  external allow_attribution : int32 -> int32 -> int32 -> unit = ""
+  external disallow_attribution : int32 -> int32 -> int32 -> unit = ""
 end
 
 module Entity = struct

@@ -190,7 +190,7 @@ module Server_impl = struct
     let can_attribute (module C : Subsocia_intf.S) at_id et0_id et1_id =
       let%lwt et0 = C.Entity_type.of_id et0_id in
       let%lwt et1 = C.Entity_type.of_id et1_id in
-      let%lwt (C.Attribute_type.Ex at) = C.Attribute_type.of_id at_id in
+      let%lwt C.Attribute_type.Ex at = C.Attribute_type.of_id at_id in
       C.Entity_type.can_attribute at et0 et1
 
     let allowed_attributes (module C : Subsocia_intf.S) et0_id et1_id =
@@ -199,6 +199,11 @@ module Server_impl = struct
       C.Entity_type.allowed_attributes et0 et1 >|=
       C.Attribute_type.Set.elements *>
       List.map (fun (C.Attribute_type.Ex at) -> C.Attribute_type.id at)
+
+    let allowed_mappings (module C : Subsocia_intf.S) at_id =
+      let%lwt C.Attribute_type.Ex at = C.Attribute_type.of_id at_id in
+      C.Entity_type.allowed_mappings at >|=
+      List.map (fun (et0, et1) -> (C.Entity_type.id et0, C.Entity_type.id et1))
 
     let allowed_attributions (module C : Subsocia_intf.S) () =
       C.Entity_type.allowed_attributions () >|=

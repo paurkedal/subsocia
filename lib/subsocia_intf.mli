@@ -163,6 +163,10 @@ module type ENTITY_TYPE = sig
   (** [allowed_attributes et et'] is the set of attribute types allowed from
       [et] to [et']. *)
 
+  val allowed_mappings : 'a Attribute_type.t -> (t * t) list Lwt.t
+  (** [allowed_mappings at] is a list of domain and codomain of the valid
+      attributions involving [at]. *)
+
   val allowed_attributions : unit -> (Attribute_type.ex * t * t) list Lwt.t
 
   val allow_attribution : 'a Attribute_type.t -> t -> t -> unit Lwt.t

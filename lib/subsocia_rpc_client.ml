@@ -160,6 +160,9 @@ module Make (RPCM : RPCM) = struct
       Raw.allowed_attributes lbt ubt >>= Lwt_list.map_s Attribute_type.of_id >|=
       Attribute_type.Set.of_ordered_elements
 
+    let allowed_mappings at =
+      Raw.allowed_mappings at.Attribute_type.at_id
+
     let allowed_attributions () =
       let aux (at_id, et0, et1) =
         Attribute_type.of_id at_id >|= fun at -> (at, et0, et1) in
