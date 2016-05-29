@@ -459,9 +459,9 @@ module Q = struct
        WHERE r > ?"
       (if with_et then " JOIN @entity ON a.output_id = entity_id" else "")
       (if with_super then " JOIN @transitive_reflexive_inclusion AS c \
-                              ON c.subentity_id = a.output_id" else "")
+                              ON c.tsub_id = a.output_id" else "")
       (if with_et then " AND entity_type_id = ?" else "")
-      (if with_super then " AND c.superentity_id = ?" else "")
+      (if with_super then " AND c.tsuper_id = ?" else "")
       (if with_limit then " LIMIT ?" else "")
 
   let _asuper_fts with_et with_super with_limit =
@@ -474,9 +474,9 @@ module Q = struct
        WHERE r > ?"
       (if with_et then " JOIN @entity ON a.input_id = entity_id" else "")
       (if with_super then " JOIN @transitive_reflexive_inclusion AS c \
-                              ON c.subentity_id = a.input_id" else "")
+                              ON c.tsub_id = a.input_id" else "")
       (if with_et then " AND entity_type_id = ?" else "")
-      (if with_super then " AND c.superentity_id = ?" else "")
+      (if with_super then " AND c.tsuper_id = ?" else "")
       (if with_limit then " LIMIT ?" else "")
 
   let e_asub_fts                = _asub_fts   false false false
