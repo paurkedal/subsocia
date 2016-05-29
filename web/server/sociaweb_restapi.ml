@@ -60,7 +60,7 @@ let make_authorize_response must_ok may_ok query_res =
   Buffer.contents buf, "application/json"
 
 let selected_entity s =
-  try_lwt Entity.select_opt (selector_of_string s)
+  try%lwt Entity.select_opt (selector_of_string s)
   with Failure msg | Invalid_argument msg -> http_error 400 msg
 
 let _ =
@@ -72,29 +72,29 @@ let _ =
     @@ fun (subject, (must, (may, query))) () ->
   Lwt_log.debug_f "Checking %s against [%s] and optional [%s] groups"
                   subject (String.concat ", " must) (String.concat ", " may) >>
-  lwt root = Entity.root in
+  let%lwt root = Entity.root in
   let allowed_ans = Lazy.force allowed_attributes in
-  lwt must_ok, may_ok, query_res =
-    match_lwt selected_entity subject with
+  let%lwt must_ok, may_ok, query_res =
+    match%lwt selected_entity subject with
     | None -> Lwt.return (false, [], [])
     | Some user ->
       let is_member_of group =
-        match_lwt selected_entity group with
+        match%lwt selected_entity group with
         | None -> Lwt.return false
         | Some group -> Entity.is_sub user group in
       let get_attribute an =
         if not (String_set.contains an allowed_ans) then Lwt.return_none else
-        match_lwt Attribute_type.of_name an with
+        match%lwt Attribute_type.of_name an with
         | None -> Lwt.return_none
         | Some (Attribute_type.Ex at) ->
           let vt = Attribute_type.value_type at in
-          lwt vs = Entity.get_values at root user in
+          let%lwt vs = Entity.get_values at root user in
           let vs = Values.elements vs in
           Lwt.return (Some (an, List.map (Value.typed_to_poly vt) vs)) in
-      lwt must_ok = Lwt_list.for_all_p is_member_of must in
+      let%lwt must_ok = Lwt_list.for_all_p is_member_of must in
       if must_ok then
-        lwt may_res = Lwt_list.filter_p is_member_of may in
-        lwt query_res = Pwt_list.fmap_p get_attribute query in
+        let%lwt may_res = Lwt_list.filter_p is_member_of may in
+        let%lwt query_res = Pwt_list.fmap_p get_attribute query in
         Lwt.return (true, may_res, query_res)
       else
         Lwt.return (false, [], []) in

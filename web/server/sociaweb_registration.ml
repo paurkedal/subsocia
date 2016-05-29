@@ -57,19 +57,19 @@ let () =
 let () =
   Eliom_registration.Html5.register ~service:registration_post_service
     @@ fun () (first_name, (last_name, email)) ->
-  begin match_lwt get_operator_opt () with
+  begin match%lwt get_operator_opt () with
   | None -> Lwt.return_unit
   | Some _ -> http_error 400 "Already registered."
   end >>
-  lwt auth = get_authenticalia () in
-  lwt at_unique_name = Const.at_unique_name in
-  lwt at_first_name = Const.at_first_name in
-  lwt at_last_name = Const.at_last_name in
-  lwt at_email = Const.at_email in
-  lwt e_root = Entity.root in
-  lwt et_person = Const.et_person in
-  lwt e_new_user = Entity.create et_person in
-  lwt e_new_users = Const.e_new_users in
+  let%lwt auth = get_authenticalia () in
+  let%lwt at_unique_name = Const.at_unique_name in
+  let%lwt at_first_name = Const.at_first_name in
+  let%lwt at_last_name = Const.at_last_name in
+  let%lwt at_email = Const.at_email in
+  let%lwt e_root = Entity.root in
+  let%lwt et_person = Const.et_person in
+  let%lwt e_new_user = Entity.create et_person in
+  let%lwt e_new_users = Const.e_new_users in
   Entity.force_dsub e_new_user e_new_users >>
   Entity.set_value at_first_name first_name e_root e_new_user >>
   Entity.set_value at_last_name  last_name  e_root e_new_user >>

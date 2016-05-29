@@ -46,7 +46,7 @@ type custom_request_info = {
 }
 
 let authenticate_cri () =
-  lwt cri_operator = authenticate () in
+  let%lwt cri_operator = authenticate () in
   let cri_langs = match request_info_langs () with
                   | [] -> [Lang.of_string "en"]
                   | langs -> langs in
@@ -56,6 +56,6 @@ let authenticate_cri () =
 
 let auth_sf json f =
   let f' tup =
-    lwt operator = authenticate () in
+    let%lwt operator = authenticate () in
     f ~operator tup in
   server_function json f'

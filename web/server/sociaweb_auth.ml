@@ -36,7 +36,7 @@ let http_error code msg =
   Lwt.fail (Ocsigen_http_frame.Http_error.Http_exception (code, Some msg, None))
 
 let get_authenticalia_opt () =
-  match_lwt Pwt_list.search_s (fun p -> p ()) !authentication_hook with
+  match%lwt Pwt_list.search_s (fun p -> p ()) !authentication_hook with
   | Some _ as r -> Lwt.return r
   | None ->
     let ri = Eliom_request_info.get_ri () in
@@ -60,50 +60,50 @@ let get_authenticalia_opt () =
       Lwt.return_none
 
 let get_authenticalia () =
-  match_lwt get_authenticalia_opt () with
+  match%lwt get_authenticalia_opt () with
   | Some r -> Lwt.return r
   | None -> http_error 401 "Not authenticated."
 
 let auth_top =
   let en = Subsocia_config.Web.auth_top#get in
-  match_lwt Entity.select_opt (selector_of_string en) with
+  match%lwt Entity.select_opt (selector_of_string en) with
   | None -> Lwt.fail (Failure ("Missing configured auth group "^en^"."))
   | Some e -> Lwt.return e
 
 let auth_method_group name =
-  lwt ag = auth_top in
+  let%lwt ag = auth_top in
   Entity.of_unique_name ~super:ag name
 
 let entity_of_authenticalia auth =
-  match_lwt auth_method_group auth.auth_method with
+  match%lwt auth_method_group auth.auth_method with
   | None -> Lwt.return_none
   | Some amg ->
-    lwt at_unique_name = Const.at_unique_name in
-    lwt s = Entity.image1_eq at_unique_name auth.auth_identity amg in
+    let%lwt at_unique_name = Const.at_unique_name in
+    let%lwt s = Entity.image1_eq at_unique_name auth.auth_identity amg in
     match Entity.Set.cardinal s with
     | 1 -> Lwt.return (Some (Entity.Set.min_elt s))
     | 0 -> Lwt.return_none
     | _ -> http_error 500 "Duplicate registration."
 
 let set_authenticalia subject auth =
-  match_lwt auth_method_group auth.auth_method with
+  match%lwt auth_method_group auth.auth_method with
   | None -> http_error 500 "Missing group for authentication method."
   | Some amg ->
-    lwt at_unique_name = Const.at_unique_name in
-    lwt auth_top = auth_method_group auth.auth_method in
+    let%lwt at_unique_name = Const.at_unique_name in
+    let%lwt auth_top = auth_method_group auth.auth_method in
     Entity.force_sub subject amg >>
     Entity.set_value at_unique_name auth.auth_identity amg subject
 
 let autoreg_entity_of_authenticalia auth =
-  match_lwt Pwt_list.search_s (fun p -> p auth) !updating_autoreg_hook with
+  match%lwt Pwt_list.search_s (fun p -> p auth) !updating_autoreg_hook with
   | Some _ as r -> Lwt.return r
   | None ->
-    match_lwt entity_of_authenticalia auth with
+    match%lwt entity_of_authenticalia auth with
     | Some _ as r -> Lwt.return r
     | None -> Pwt_list.search_s (fun p -> p auth) !oneshot_autoreg_hook
 
 let get_operator_opt () =
-  match_lwt get_authenticalia_opt () with
+  match%lwt get_authenticalia_opt () with
   | None ->
     Log_auth.debug_f "Not authenticated." >>
     Lwt.return_none
@@ -113,16 +113,16 @@ let get_operator_opt () =
     autoreg_entity_of_authenticalia auth
 
 let get_operator () =
-  lwt auth = get_authenticalia () in
-  match_lwt autoreg_entity_of_authenticalia auth with
+  let%lwt auth = get_authenticalia () in
+  match%lwt autoreg_entity_of_authenticalia auth with
   | Some e -> Lwt.return e
   | None -> http_error 403 "Not registered."
 
 let authenticate () =
-  lwt user = get_operator () in
+  let%lwt user = get_operator () in
   let session_id = "user_id=" ^ Int32.to_string (Entity.id user) in
   let scope = Eliom_common.default_session_scope in
-  lwt () = Eliom_state.set_persistent_data_session_group ~scope session_id in
+  let%lwt () = Eliom_state.set_persistent_data_session_group ~scope session_id in
   Eliom_state.set_service_session_group ~scope session_id;
   Eliom_state.set_volatile_data_session_group ~scope session_id;
   Lwt.return user

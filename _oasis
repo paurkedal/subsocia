@@ -8,7 +8,7 @@ AlphaFeatures: ocamlbuild_more_args, pure_interface
 BetaFeatures: section_object
 Plugins: DevFiles (0.4), META (0.4)
 BuildTools: ocamlbuild
-XOCamlbuildPluginTags: package(eliom.ocamlbuild)
+XOCamlbuildPluginTags: package(ocamlbuild-eliom-dev)
 OCamlVersion: >= 4.01
 
 FilesAB: lib/subsocia_version.ml.ab, ocsigen-dev.conf.ab

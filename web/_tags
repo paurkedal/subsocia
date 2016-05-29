@@ -1,3 +1,7 @@
-<**/*.{ml,mli}>: syntax(camlp4o), package(lwt.syntax)
-<client/*.{ml,mli}>: package(js_of_ocaml.syntax)
-"server/sociaweb_server.ml": package(js_of_ocaml.deriving.syntax)
+true: eliom_ppx, package(lwt.ppx)
+<client/*.ml>: package(js_of_ocaml.ppx)
+<server/*.ml>: thread
+"server/sociaweb_server.ml": \
+    package(ppx_deriving), package(js_of_ocaml.deriving.ppx)
+"server/sociaweb_content.ml": \
+    package(ppx_deriving), package(js_of_ocaml.deriving.ppx)

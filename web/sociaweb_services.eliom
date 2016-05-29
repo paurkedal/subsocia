@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-{shared{
+[%%shared
 open Eliom_service
 open Eliom_parameter
 
@@ -33,4 +33,4 @@ let registration_post_service =
     ~post_params:(string "first_name" **
                   string "last_name" **
                   string "email") ()
-}}
+]
