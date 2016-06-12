@@ -21,6 +21,12 @@ open Subsocia_selector
 open Subsocia_selector_types
 open Unprime_list
 
+module Log = struct
+  (* Switched off to avoid dependency on lwt.unix. *)
+  let warning _ = Lwt.return_unit
+  let warning_f fmt = Printf.ksprintf warning fmt
+end
+
 let load = Subsocia_lexer.parse_schema
 
 let rec aconj_of_selector = function
@@ -179,8 +185,8 @@ module Make (C : Subsocia_intf.S) = struct
                           C.Attribute_type.Set.empty in
       begin match%lwt C.Attribute_uniqueness.find ats with
       | Some au ->
-        Lwt_log.warning_f "Already constrained by #%ld."
-                          (C.Attribute_uniqueness.id au)
+        Log.warning_f "Already constrained by #%ld."
+                      (C.Attribute_uniqueness.id au)
       | None ->
         C.Attribute_uniqueness.force ats >|= ignore
       end
@@ -190,7 +196,7 @@ module Make (C : Subsocia_intf.S) = struct
                           C.Attribute_type.Set.empty in
       begin match%lwt C.Attribute_uniqueness.find ats with
       | Some au -> C.Attribute_uniqueness.relax au
-      | None -> Lwt_log.warning "Not constrained."
+      | None -> Log.warning "Not constrained."
       end
     | `Et_create (etn, allows) ->
       let%lwt et = C.Entity_type.create etn in

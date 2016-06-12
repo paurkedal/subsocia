@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,19 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-let pkg_version = "${pkg_version}"
-let pkg_datadir =
-  try Unix.getenv "SUBSOCIA_DATADIR"
-  with Not_found -> Filename.concat "${datadir}" "subsocia"
+val load_base_plugins : unit -> unit
 
-let schema_version = 4 (* NB: Also update schema/subsocia_tables.sql. *)
-let schema_dir = Filename.concat pkg_datadir "schema"
-let schema_upgrade_dir = Filename.concat schema_dir "upgrade"
+val load_cmd_plugins : unit -> unit
 
-let upgradable_sql_schemas = ["subsocia_tables.sql"]
-let idempotent_sql_schemas = ["subsocia_views.sql"]
-let subsocia_schemas = ["subsocia_core.sscm"]
-
-let static_dir = Filename.concat pkg_datadir "static"
-
-let issues_url = "https://github.com/paurkedal/subsocia/issues"
+val load_web_plugins : unit -> unit

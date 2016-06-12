@@ -1,11 +1,8 @@
 *.byte
 *.docdir
+*.mllib
 *.native
-/Makefile
+*.odocl
 /_build
 /_var
-/configure
-/lib/subsocia_version.ml
-/setup.data
-/setup.log
-/setup.ml
+/subsocia.install

@@ -1,0 +1,56 @@
+description = "People, organizational data, and access control"
+version = "%%VERSION_NUM%%"
+requires = "extunix lwt panograph prime.unstable rpclib"
+archive(byte) = "subsocia.cma"
+archive(native) = "subsocia.cmxa"
+plugin(byte) = "subsocia.cma"
+plugin(native) = "subsocia.cmxs"
+exists_if = "subsocia.cma"
+
+package "data" (
+  version = "%%VERSION_NUM%%"
+  description = "People, organization, and authorization"
+  requires = "caqti caqti.lwt config-file react subsocia"
+  directory = "data"
+  archive(byte) = "subsocia-data.cma"
+  archive(native) = "subsocia-data.cmxa"
+  plugin(byte) = "subsocia-data.cma"
+  plugin(native) = "subsocia-data.cmxs"
+  exists_if = "subsocia-data.cma"
+)
+
+package "web-server" (
+  version = "%%VERSION_NUM%%"
+  description = "People, organization, and authorization"
+  requires = "eliom.server panograph-server prime subsocia subsocia.data"
+  directory = "web/server"
+  archive(byte) = "subsocia-web-server.cma"
+  archive(native) = "subsocia-web-server.cmxa"
+  plugin(byte) = "subsocia-web-server.cma"
+  plugin(native) = "subsocia-web-server.cmxs"
+  exists_if = "subsocia-web-server.cmxa"
+)
+
+package "web-module" (
+  version = "%%VERSION_NUM%%"
+  description = "People, organization, and authorization"
+  requires = "subsocia.web-server"
+  directory = "web/server"
+  archive(byte) = "subsocia-web-module.cma"
+  archive(native) = "subsocia-web-module.cmxa"
+  plugin(byte) = "subsocia-web-module.cma"
+  plugin(native) = "subsocia-web-module.cmxs"
+  exists_if = "subsocia-web-module.cmxa"
+)
+
+package "web-debug-module" (
+  version = "%%VERSION_NUM%%"
+  description = "People, organization, and authorization"
+  requires = "eliom.server"
+  directory = "web/server"
+  archive(byte) = "sociaweb_debug.cma"
+  archive(native) = "sociaweb_debug.cmx"
+  plugin(byte) = "sociaweb_debug.cma"
+  plugin(native) = "sociaweb_debug.cmxs"
+  exists_if = "sociaweb_debug.cma"
+)

@@ -1,0 +1,27 @@
+true: bin_annot, eliom_ppx
+<lib/*>: \
+    package(extunix), \
+    package(lwt), \
+    package(lwt.log), \
+    package(panograph), \
+    package(rpclib)
+<lib/data/*>: thread, \
+    package(caqti.lwt), \
+    package(config-file), \
+    package(lib), \
+    package(panograph), \
+    package(prime.unstable), \
+    package(react)
+<web/server/*>: thread, \
+    package(eliom.server), \
+    package(lib.data), \
+    package(panograph.server)
+<web/client/*>: \
+    package(eliom.client), \
+    package(extunix), \
+    package(lib), \
+    package(panograph.client)
+<tests/*>: thread, \
+    package(lib.data), \
+    syntax(camlp4o), package(lwt.syntax), \
+    package(oUnit)

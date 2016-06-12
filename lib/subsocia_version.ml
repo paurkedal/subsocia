@@ -1,0 +1,32 @@
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version, with the OCaml static compilation exception.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ *)
+
+let pkg_version = "%%VERSION_NUM%%"
+let pkg_datadir =
+  try Unix.getenv "SUBSOCIA_DATADIR"
+  with Not_found -> "%%PKG_DATADIR%%"
+
+let schema_version = 4 (* NB: Also update schema/subsocia_tables.sql. *)
+let schema_dir = Filename.concat pkg_datadir "schema"
+let schema_upgrade_dir = Filename.concat schema_dir "upgrade"
+
+let upgradable_sql_schemas = ["subsocia_tables.sql"]
+let idempotent_sql_schemas = ["subsocia_views.sql"]
+let subsocia_schemas = ["subsocia_core.sscm"]
+
+let static_dir = Filename.concat pkg_datadir "static"
+
+let issues_url = "https://github.com/paurkedal/subsocia/issues"
