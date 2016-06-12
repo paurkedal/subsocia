@@ -1,11 +1,25 @@
 # Change Log
 
-## [Unreleased]
+## [0.12.0] – 2016-06-12
 
-## [0.11] - 2016-01-31
+### Added
 
-Changes were not documented before this release; please dive into to the
-gory details of the Git log if you need to know.
+* `Entity_type.equal`, `Entity_type.required`, `Entity.equal`,
+  `Attribute_type.all`, `Entity_type.allowed_mappings`.
+* Added `at-list` and `au-list` subcommands.
+* Added output detail options for `search`.
+
+### Removed
+
+* Removed various deprecated definitions.
+
+### Fixed
+
+* Column name for transitive views affecting `fts` subcommand.
+
+### Deprecated
+
+* `Entity.type_` with new name `Entity.entity_type`.
 
 
-[Unreleased]: https://github.com/paurkedal/subsocia/compare/0.11...HEAD
+[0.12.0]: https://github.com/paurkedal/subsocia/compare/0.11..v0.12.0
