@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -43,54 +43,56 @@ module Perf = struct
     let keys = Hashtbl.fold (fun s _ -> String_set.add s) ht String_set.empty in
     let len = String_set.fold (max *< String.length) keys 0 in
     keys |> String_set.iter (fun tag -> let tC, tW = get tag in
-					printf "%*s: %8g %8g\n" len tag tC tW)
+                                        printf "%*s: %8g %8g\n" len tag tC tW)
 end
 
 let test n =
-  lwt root = Entity.root in
+  let%lwt root = Entity.root in
   let ea = Array.make n root in
   let ia = Array.init n (fun _ -> Array.make n false) in
-  lwt org_group = Entity_type.of_name "org_group" >|= Option.get in
+  let%lwt org_group = Entity_type.of_name "org_group" >|= Option.get in
   Perf.start "insert";
-  for_lwt i = 0 to n - 1 do
-    lwt e = Entity.create org_group in
+  for%lwt i = 0 to n - 1 do
+    let%lwt e = Entity.create org_group in
     ea.(i) <- e;
-    for_lwt j = 0 to i - 1 do
+    for%lwt j = 0 to i - 1 do
       if Random.int 4 = 0 then begin
-	ia.(i).(j) <- true;
-	Entity.force_dsub ea.(i) ea.(j)
+        ia.(i).(j) <- true;
+        Entity.force_dsub ea.(i) ea.(j)
       end else
-	Lwt.return_unit
+        Lwt.return_unit
     done
   done >>
   Perf.stop_lwt "insert" >>
   Perf.start_lwt "update" >>
-  for_lwt i = 0 to n - 1 do
-    for_lwt j = 0 to i - 1 do
+  for%lwt i = 0 to n - 1 do
+    for%lwt j = 0 to i - 1 do
       if Random.int 4 = 0 then begin
-	ia.(i).(j) <- not ia.(i).(j);
-	if ia.(i).(j) then Entity.force_dsub ea.(i) ea.(j)
-		      else Entity.relax_dsub ea.(i) ea.(j)
+        ia.(i).(j) <- not ia.(i).(j);
+        if ia.(i).(j) then Entity.force_dsub ea.(i) ea.(j)
+                      else Entity.relax_dsub ea.(i) ea.(j)
       end else
-	Lwt.return_unit
+        Lwt.return_unit
     done
   done >>
   Perf.stop_lwt "update" >>
   Perf.start_lwt "closure" >>
-  for i = 0 to n - 1 do
-    for j = 0 to i - 1 do
-      for k = 0 to j - 1 do
-	if ia.(i).(j) && ia.(j).(k) then
-	  ia.(i).(k) <- true
+  Lwt.return begin
+    for i = 0 to n - 1 do
+      for j = 0 to i - 1 do
+        for k = 0 to j - 1 do
+          if ia.(i).(j) && ia.(j).(k) then
+            ia.(i).(k) <- true
+        done
       done
     done
-  done;
+  end >>
   Perf.stop_lwt "closure" >>
   Perf.start_lwt "is_sub" >>
-  for_lwt i = 0 to n - 1 do
-    for_lwt j = 0 to i - 1 do
-      lwt issub = Entity.is_sub ea.(i) ea.(j) in
-      lwt issup = Entity.is_sub ea.(j) ea.(i) in
+  for%lwt i = 0 to n - 1 do
+    for%lwt j = 0 to i - 1 do
+      let%lwt issub = Entity.is_sub ea.(i) ea.(j) in
+      let%lwt issup = Entity.is_sub ea.(j) ea.(i) in
       let msg = sprintf "#%ld ⊆ #%ld" (Entity.id ea.(i)) (Entity.id ea.(j)) in
       assert_equal ~msg ~printer:string_of_bool ia.(i).(j) issub;
       assert (not issup);
@@ -99,7 +101,7 @@ let test n =
   done >>
   Perf.stop_lwt "is_sub" >>
   Perf.start_lwt "delete" >>
-  for_lwt i = n - 1 downto 0 do
+  for%lwt i = n - 1 downto 0 do
     Entity.delete ea.(i)
   done >>
   Perf.stop_lwt "delete" >>

@@ -23,5 +23,5 @@ true: bin_annot, eliom_ppx
     package(panograph.client)
 <tests/*>: thread, \
     package(lib.data), \
-    syntax(camlp4o), package(lwt.syntax), \
+    package(lwt.ppx), \
     package(oUnit)
