@@ -1,4 +1,7 @@
 true: bin_annot, eliom_ppx
+<bin/*>: thread, \
+    package(cmdliner), \
+    package(lib.data)
 <lib/*>: \
     package(extunix), \
     package(lwt), \

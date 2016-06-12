@@ -10,6 +10,7 @@ license: "LGPL-3 with OCaml linking exception"
 build: [ocaml "pkg/pkg.ml" "build" "--installer" "true"]
 depends: [
   "caqti"
+  "cmdliner"
   "config-file"
   "eliom"
   "extunix"

@@ -59,6 +59,7 @@ let () = Pkg.describe "subsocia" ~licenses ~opams ~build ~distrib @@ fun c ->
     Pkg.share ~dst:"schema/" "schema/subsocia_tables.sql";
     Pkg.share ~dst:"schema/" "schema/subsocia_views.sql";
     Pkg.share ~dst:"schema/" "schema/subsocia_core.sscm";
+    Pkg.bin ~dst:"subsocia" "bin/command";
   ] in
   let upgrade_sources =
     match OS.Dir.contents "schema/upgrade" with
