@@ -22,4 +22,4 @@
 * `Entity.type_` with new name `Entity.entity_type`.
 
 
-[0.12.0]: https://github.com/paurkedal/subsocia/compare/0.11...v0.12.0
+[0.12.0]: https://github.com/paurkedal/subsocia/compare/0.11...0.12.0
