@@ -30,7 +30,6 @@ Library "subsocia"
     Subsocia_selector_types,
     Subsocia_version
   InternalModules:
-    Subsocia_attribution_sql,
     Subsocia_internal,
     Subsocia_lexer,
     Subsocia_parser,
@@ -38,7 +37,6 @@ Library "subsocia"
     Subsocia_rpc_primitives,
     Subsocia_rpc_types
   BuildDepends:
-    caqti,
     extunix,
     lwt,
     panograph,
@@ -63,6 +61,7 @@ Library "subsocia-data"
   FindlibParent: subsocia
   FindlibName: data
   BuildDepends:
+    caqti,
     caqti.lwt,
     config-file,
     subsocia
@@ -72,6 +71,8 @@ Library "subsocia-data"
     Subsocia_direct,
     Subsocia_direct_intf,
     Subsocia_plugin
+  InternalModules:
+    Subsocia_attribution_sql
   ByteOpt: -thread
   NativeOpt: -thread
   DataFiles:
