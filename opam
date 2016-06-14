@@ -7,7 +7,7 @@ bug-reports: "https://github.com/paurkedal/subsocia/issues"
 dev-repo: "https://github.com/paurkedal/subsocia.git"
 license: "LGPL-3 with OCaml linking exception"
 
-build: [ocaml "pkg/pkg.ml" "build" "--installer" "true"]
+build: [ocaml "pkg/pkg.ml" "build" "--pinned" "%{pinned}%"]
 depends: [
   "caqti"
   "cmdliner"
