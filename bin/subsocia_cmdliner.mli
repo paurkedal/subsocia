@@ -24,8 +24,5 @@ val multiplicity_conv : Multiplicity.t Arg.converter
 
 val selector_conv : selector Arg.converter
 
-val aselector_conv : (selector option * (string * string option) list)
-                     Arg.converter
-
-val aselector_pres_conv : (selector option * (string * string option) list)
-                          Arg.converter
+val add_selector_conv : add_selector Arg.converter
+val delete_selector_conv : delete_selector Arg.converter

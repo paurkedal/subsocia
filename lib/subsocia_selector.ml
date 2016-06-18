@@ -19,6 +19,7 @@ open Pwt_infix
 open Subsocia_common
 open Subsocia_prereq
 open Subsocia_selector_types
+open Unprime_list
 open Unprime_string
 
 let pred_char = '+'
@@ -110,6 +111,88 @@ let string_of_selector s =
   let buf = Buffer.create 80 in
   bprint_selector buf p_slash s;
   Buffer.contents buf
+
+let rec aconj_of_selector = function
+  | Select_with _ | Select_union _ | Select_root | Select_id _
+  | Select_dsub | Select_dsuper
+  | Select_image (Attribute_present _ | Attribute_leq _ | Attribute_geq _)
+  | Select_preimage _
+  | Select_type _
+      as sel_att -> fun _ ->
+    invalid_arg_f "The selector %s cannot be used for attribute assignement. \
+                   It must be a conjunction of one or more attribute \
+                   equalities." (string_of_selector sel_att)
+  | Select_inter (selA, selB) -> fun m ->
+    aconj_of_selector selA (aconj_of_selector selB m)
+  | Select_image (Attribute_eq (an, v)) -> fun m ->
+    let vs = try String_map.find an m with Not_found -> [] in
+    String_map.add an (v :: vs) m
+
+let add_selector_of_selector = function
+  | Select_with (sel_ctx, sel_att) ->
+    Some sel_ctx, aconj_of_selector sel_att String_map.empty
+  | sel_att ->
+    None, aconj_of_selector sel_att String_map.empty
+
+let rec dconj_of_selector = function
+  | Select_with _ | Select_union _ | Select_root | Select_id _
+  | Select_dsub | Select_dsuper
+  | Select_image (Attribute_leq _ | Attribute_geq _)
+  | Select_preimage _
+  | Select_type _
+      as sel_att -> fun _ ->
+    invalid_arg_f "The selector %s cannot be used for attribute deletion. \
+                   It must be a conjunction of one or more attribute \
+                   equalities." (string_of_selector sel_att)
+  | Select_inter (selA, selB) -> fun m ->
+    dconj_of_selector selA (dconj_of_selector selB m)
+  | Select_image (Attribute_present an) -> fun m ->
+    if String_map.contains an m then
+      invalid_arg_f "Conflicting wildcard for %s." an;
+    String_map.add an None m
+  | Select_image (Attribute_eq (an, v)) -> fun m ->
+    let vs =
+      try
+        match String_map.find an m with
+        | None -> invalid_arg_f "Conflicting wildcard for %s." an;
+        | Some vs -> vs
+      with Not_found -> [] in
+    String_map.add an (Some (v :: vs)) m
+
+let delete_selector_of_selector = function
+  | Select_with (sel_ctx, sel_att) ->
+    Some sel_ctx, dconj_of_selector sel_att String_map.empty
+  | sel_att ->
+    None, dconj_of_selector sel_att String_map.empty
+
+let selector_of_add_selector (ctx, assignments) =
+  let sel = String_map.bindings assignments
+    |> List.flatten_map
+        (fun (an, avs) ->
+          List.map (fun av -> Select_image (Attribute_eq (an, av))) avs)
+    |> function
+        | [] -> invalid_arg "selector_of_add_selector"
+        | sel :: sels ->
+          List.fold_right (fun a b -> Select_inter (a, b)) sels sel in
+  match ctx with
+  | None -> sel
+  | Some ctx -> Select_with (ctx, sel)
+
+let selector_of_delete_selector (ctx, assignments) =
+  let sel = String_map.bindings assignments
+    |> List.flatten_map
+        (function
+          | (an, Some avs) ->
+            List.map (fun av -> Select_image (Attribute_eq (an, av))) avs
+          | (an, None) ->
+            [Select_image (Attribute_present an)])
+    |> function
+        | [] -> invalid_arg "selector_of_delete_selector"
+        | sel :: sels ->
+          List.fold_right (fun a b -> Select_inter (a, b)) sels sel in
+  match ctx with
+  | None -> sel
+  | Some ctx -> Select_with (ctx, sel)
 
 module Selector_utils (C : Subsocia_intf.S) = struct
 

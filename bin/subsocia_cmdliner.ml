@@ -40,47 +40,20 @@ let selector_printer fmtr sel =
   Format.pp_print_string fmtr (string_of_selector sel)
 let selector_conv = selector_parser, selector_printer
 
-let aselector_parser ~with_presence s =
-  let rec aux acc = function
-    | Select_root | Select_id _ | Select_with _ | Select_union _
-    | Select_dsub | Select_dsuper
-    | Select_image (Attribute_leq _ | Attribute_geq _)
-    | Select_preimage _
-    | Select_type _
-        as sel_att ->
-      invalid_arg_f "The selector %s cannot be used for attribute assignement. \
-                     It must be a conjunction of one or more attribute \
-                     equalities." (string_of_selector sel_att)
-    | Select_inter (selA, selB) -> aux (aux acc selB) selA
-    | Select_image (Attribute_eq (an, av)) ->
-      (an, Some av) :: acc
-    | Select_image (Attribute_present an) ->
-      if not with_presence then invalid_arg_f "Presence selector not allowed.";
-      (an, None) :: acc in
-  try
-    `Ok
-      begin match selector_of_string s with
-      | Select_with (sel_ctx, sel_att) -> Some sel_ctx, aux [] sel_att
-      | sel_att -> None, aux [] sel_att
-      end
-  with Invalid_argument msg -> `Error msg
+let add_selector_conv =
+  let parse s =
+    try `Ok (add_selector_of_selector (selector_of_string s))
+    with Invalid_argument msg -> `Error msg in
+  let print fmtr sel =
+    Format.pp_print_string fmtr
+      (string_of_selector (selector_of_add_selector sel)) in
+  parse, print
 
-let aselector_printer fmtr (ctx, asgn) =
-  let select_attr = function
-    | (an, None) -> Select_image (Attribute_present an)
-    | (an, Some av) -> Select_image (Attribute_eq (an, av)) in
-  let sel_attr =
-    match asgn with
-    | [] -> assert false
-    | anv :: xs ->
-      List.fold_left (fun acc anv -> Select_with (acc, select_attr anv))
-                     (select_attr anv) xs in
-  Format.pp_print_string fmtr @@
-    string_of_selector
-      (match ctx with None -> sel_attr
-                    | Some sel_ctx -> Select_with (sel_ctx, sel_attr))
-
-let aselector_conv =
-  aselector_parser ~with_presence:false, aselector_printer
-let aselector_pres_conv =
-  aselector_parser ~with_presence:true, aselector_printer
+let delete_selector_conv =
+  let parse s =
+    try `Ok (delete_selector_of_selector (selector_of_string s))
+    with Invalid_argument msg -> `Error msg in
+  let print fmtr sel =
+    Format.pp_print_string fmtr
+      (string_of_selector (selector_of_delete_selector sel)) in
+  parse, print

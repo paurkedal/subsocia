@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,10 +16,17 @@
 
 (** Parser and evaluator of expressions to select entities. *)
 
+open Subsocia_common
 open Subsocia_selector_types
 
 val selector_of_string : string -> selector
 val string_of_selector : selector -> string
+
+val add_selector_of_selector : selector -> add_selector
+val selector_of_add_selector : add_selector -> selector
+
+val delete_selector_of_selector : selector -> delete_selector
+val selector_of_delete_selector : delete_selector -> selector
 
 module Selector_utils (C : Subsocia_intf.S) : sig
   val select_from : selector -> C.Entity.Set.t -> C.Entity.Set.t Lwt.t

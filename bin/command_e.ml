@@ -64,40 +64,48 @@ module Entity_utils (C : Subsocia_intf.S) = struct
   include Selector_utils (C)
   include Subsocia_derived.Make (C)
 
-  let lookup_assignment (an, vs_opt) =
-    let%lwt Attribute_type.Ex at =
-      match%lwt Attribute_type.of_name an with
-      | None -> Lwt.fail (Failure ("No attribute type has name " ^ an))
-      | Some at -> Lwt.return at in
-    match vs_opt with
-    | Some vs ->
+  let lookup_add_selector (ctx, asgn) =
+    let aux (an, avs_str) =
+      let%lwt Attribute_type.Ex at = Attribute_type.required an in
       let t = Attribute_type.value_type at in
-      let v = Value.typed_of_string t vs in
-      Lwt.return (`One (C.Attribute.Ex (at, v)))
-    | None ->
-      Lwt.return (`All (Attribute_type.Ex at))
-
-  let lookup_aselector (sel_opt, asgn) =
-    let%lwt asgn = Lwt_list.map_p lookup_assignment asgn in
+      Lwt.return @@ List.map
+        (fun av_str -> C.Attribute.Ex (at, Value.typed_of_string t av_str))
+        avs_str in
+    let%lwt asgn =
+      List.flatten =|< Lwt_list.map_p aux (String_map.bindings asgn) in
     let%lwt root = Entity.root in
-    match sel_opt with
-    | None ->
-      Lwt.return (root, asgn)
-    | Some sel ->
-      let%lwt e_ctx = Entity.select_one sel in
-      Lwt.return (e_ctx, asgn)
+    match ctx with
+    | None -> Lwt.return (root, asgn)
+    | Some ctx -> Entity.select_one ctx >|= fun e_ctx -> (e_ctx, asgn)
 
   let add_attributes e (e_ctx, attrs) =
     Lwt_list.iter_s
-      (function
-      | `One (C.Attribute.Ex (at, av)) -> Entity.add_value at av e_ctx e
-      | `All _ -> assert false)
+      (fun (C.Attribute.Ex (at, av)) -> Entity.add_value at av e_ctx e)
       attrs
+
+  let lookup_delete_selector (ctx, asgn) =
+    let aux (an, avs_str) =
+      let%lwt Attribute_type.Ex at = Attribute_type.required an in
+      let t = Attribute_type.value_type at in
+      match avs_str with
+      | Some avs_str ->
+        Lwt.return @@ List.map
+          (fun av_str ->
+            `Value (C.Attribute.Ex (at, Value.typed_of_string t av_str)))
+          avs_str
+      | None ->
+        Lwt.return [`All (Attribute_type.Ex at)] in
+    let%lwt asgn =
+      List.flatten =|< Lwt_list.map_p aux (String_map.bindings asgn) in
+    let%lwt root = Entity.root in
+    match ctx with
+    | None -> Lwt.return (root, asgn)
+    | Some ctx -> Entity.select_one ctx >|= fun e_ctx -> (e_ctx, asgn)
 
   let delete_attributes e (e_ctx, attrs) =
     Lwt_list.iter_s
       (function
-      | `One (C.Attribute.Ex (at, av)) -> Entity.remove_value at av e_ctx e
+      | `Value (C.Attribute.Ex (at, av)) -> Entity.remove_value at av e_ctx e
       | `All (Attribute_type.Ex at) -> Entity.clear_values at e_ctx e)
       attrs
 
@@ -218,7 +226,7 @@ let e_fts_t =
 let e_create etn dsuper aselectors = run0 @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let%lwt et = U.entity_type_of_arg etn in
-  let%lwt aselectors = Lwt_list.map_p U.lookup_aselector aselectors in
+  let%lwt aselectors = Lwt_list.map_p U.lookup_add_selector aselectors in
   let%lwt dsuper = Lwt_list.map_p U.Entity.select_one dsuper in
   let%lwt e = C.Entity.create et in
   Lwt_list.iter_s (fun (e_sub) -> C.Entity.force_dsub e e_sub) dsuper >>
@@ -229,7 +237,7 @@ let e_create_t =
                    info ~docv:"TYPE" []) in
   let succs_t = Arg.(value & opt_all selector_conv [] &
                     info ~docv:"PATH" ["s"]) in
-  let attrs_t = Arg.(non_empty & opt_all aselector_conv [] &
+  let attrs_t = Arg.(non_empty & opt_all add_selector_conv [] &
                     info ~docv:"APATH" ["a"]) in
   Term.(pure e_create $ etn_t $ succs_t $ attrs_t)
 
@@ -248,8 +256,8 @@ let e_modify sel add_succs del_succs add_asels del_asels =
   let module U = Entity_utils (C) in
   let%lwt add_succs = Lwt_list.map_p U.Entity.select_one add_succs in
   let%lwt del_succs = Lwt_list.map_p U.Entity.select_one del_succs in
-  let%lwt add_asels = Lwt_list.map_p U.lookup_aselector add_asels in
-  let%lwt del_asels = Lwt_list.map_p U.lookup_aselector del_asels in
+  let%lwt add_asels = Lwt_list.map_p U.lookup_add_selector add_asels in
+  let%lwt del_asels = Lwt_list.map_p U.lookup_delete_selector del_asels in
   let%lwt e = U.Entity.select_one sel in
   Lwt_list.iter_s (fun e_sub -> C.Entity.force_dsub e e_sub) add_succs >>
   Lwt_list.iter_s (U.add_attributes e) add_asels >>
@@ -263,9 +271,9 @@ let e_modify_t =
                          info ~docv:"PATH" ["s"]) in
   let del_succs_t = Arg.(value & opt_all selector_conv [] &
                          info ~docv:"PATH" ["r"]) in
-  let add_attrs_t = Arg.(value & opt_all aselector_conv [] &
+  let add_attrs_t = Arg.(value & opt_all add_selector_conv [] &
                          info ~docv:"APATH" ["a"]) in
-  let del_attrs_t = Arg.(value & opt_all aselector_pres_conv [] &
+  let del_attrs_t = Arg.(value & opt_all delete_selector_conv [] &
                          info ~docv:"APATH" ["d"]) in
   Term.(pure e_modify $ sel_t $ add_succs_t $ del_succs_t
                       $ add_attrs_t $ del_attrs_t)

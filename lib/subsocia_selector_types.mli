@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,6 +15,8 @@
  *)
 
 (** Selector type definition. *)
+
+open Subsocia_common
 
 type attribute_selector =
   | Attribute_present of string
@@ -33,3 +35,6 @@ type selector =
   | Select_type of string
   | Select_root
   | Select_id of int32
+
+type add_selector = selector option * string list String_map.t
+type delete_selector = selector option * string list option String_map.t

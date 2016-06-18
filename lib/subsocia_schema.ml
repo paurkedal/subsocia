@@ -29,59 +29,6 @@ end
 
 let load = Subsocia_lexer.parse_schema
 
-let rec aconj_of_selector = function
-  | Select_with _ | Select_union _ | Select_root | Select_id _
-  | Select_dsub | Select_dsuper
-  | Select_image (Attribute_present _ | Attribute_leq _ | Attribute_geq _)
-  | Select_preimage _
-  | Select_type _
-      as sel_att -> fun _ ->
-    invalid_arg_f "The selector %s cannot be used for attribute assignement. \
-                   It must be a conjunction of one or more attribute \
-                   equalities." (string_of_selector sel_att)
-  | Select_inter (selA, selB) -> fun m ->
-    aconj_of_selector selA (aconj_of_selector selB m)
-  | Select_image (Attribute_eq (an, v)) -> fun m ->
-    let vs = try String_map.find an m with Not_found -> [] in
-    String_map.add an (v :: vs) m
-
-let aselector_of_selector = function
-  | Select_with (sel_ctx, sel_att) ->
-    Some sel_ctx, aconj_of_selector sel_att String_map.empty
-  | sel_att ->
-    None, aconj_of_selector sel_att String_map.empty
-
-let rec dconj_of_selector = function
-  | Select_with _ | Select_union _ | Select_root | Select_id _
-  | Select_dsub | Select_dsuper
-  | Select_image (Attribute_leq _ | Attribute_geq _)
-  | Select_preimage _
-  | Select_type _
-      as sel_att -> fun _ ->
-    invalid_arg_f "The selector %s cannot be used for attribute assignement. \
-                   It must be a conjunction of one or more attribute \
-                   equalities." (string_of_selector sel_att)
-  | Select_inter (selA, selB) -> fun m ->
-    dconj_of_selector selA (dconj_of_selector selB m)
-  | Select_image (Attribute_present an) -> fun m ->
-    if String_map.contains an m then
-      invalid_arg_f "Conflicting wildcard for %s." an;
-    String_map.add an None m
-  | Select_image (Attribute_eq (an, v)) -> fun m ->
-    let vs =
-      try
-        match String_map.find an m with
-        | None -> invalid_arg_f "Conflicting wildcard for %s." an;
-        | Some vs -> vs
-      with Not_found -> [] in
-    String_map.add an (Some (v :: vs)) m
-
-let dselector_of_selector = function
-  | Select_with (sel_ctx, sel_att) ->
-    Some sel_ctx, dconj_of_selector sel_att String_map.empty
-  | sel_att ->
-    None, dconj_of_selector sel_att String_map.empty
-
 module Make (C : Subsocia_intf.S) = struct
   module Su = Selector_utils (C)
 
@@ -116,7 +63,7 @@ module Make (C : Subsocia_intf.S) = struct
       lwt_failure_f "Entity types have no property %s." p
 
   let add_set_helper f e asel =
-    let sel', attrs = aselector_of_selector asel in
+    let sel', attrs = add_selector_of_selector asel in
     let%lwt e' =
       match sel' with
       | None -> C.Entity.root
@@ -135,7 +82,7 @@ module Make (C : Subsocia_intf.S) = struct
       attrs
 
   let del_helper e sel =
-    let sel', attrs = dselector_of_selector sel in
+    let sel', attrs = delete_selector_of_selector sel in
     let%lwt e' =
       match sel' with
       | None -> C.Entity.root
