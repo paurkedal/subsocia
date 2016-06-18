@@ -112,6 +112,14 @@ let string_of_selector s =
   bprint_selector buf p_slash s;
   Buffer.contents buf
 
+let rec longest_prefix = function
+  | Select_with (pfx, sel) ->
+    begin match longest_prefix sel with
+    | None, subsel -> Some pfx, subsel
+    | Some pfx', subsel -> Some (Select_with (pfx, pfx')), subsel
+    end
+  | sel -> None, sel
+
 let rec aconj_of_selector = function
   | Select_with _ | Select_union _ | Select_root | Select_id _
   | Select_dsub | Select_dsuper
@@ -128,11 +136,9 @@ let rec aconj_of_selector = function
     let vs = try String_map.find an m with Not_found -> [] in
     String_map.add an (v :: vs) m
 
-let add_selector_of_selector = function
-  | Select_with (sel_ctx, sel_att) ->
-    Some sel_ctx, aconj_of_selector sel_att String_map.empty
-  | sel_att ->
-    None, aconj_of_selector sel_att String_map.empty
+let add_selector_of_selector sel =
+  let pfx, subsel = longest_prefix sel in
+  pfx, aconj_of_selector subsel String_map.empty
 
 let rec dconj_of_selector = function
   | Select_with _ | Select_union _ | Select_root | Select_id _
@@ -159,11 +165,9 @@ let rec dconj_of_selector = function
       with Not_found -> [] in
     String_map.add an (Some (v :: vs)) m
 
-let delete_selector_of_selector = function
-  | Select_with (sel_ctx, sel_att) ->
-    Some sel_ctx, dconj_of_selector sel_att String_map.empty
-  | sel_att ->
-    None, dconj_of_selector sel_att String_map.empty
+let delete_selector_of_selector sel =
+  let pfx, subsel = longest_prefix sel in
+  pfx, dconj_of_selector subsel String_map.empty
 
 let selector_of_add_selector (ctx, assignments) =
   let sel = String_map.bindings assignments
