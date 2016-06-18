@@ -1,10 +1,10 @@
 #! /usr/bin/env ocaml
 #use "topfind"
+#require "adpkg"
 #require "topkg"
 #require "unix"
-#directory "pkg"
-#use "pkg_utils.ml"
 
+open Adpkg
 open Topkg
 
 let licenses = List.map Pkg.std_file ["COPYING.LESSER"; "COPYING"]
@@ -36,23 +36,46 @@ let watermarks = ("PKG_DATADIR", `String pkg_datadir) :: Pkg.watermarks
 
 let distrib = Pkg.distrib ~watermarks ()
 
-let libs = Library.[
-  create "lib/subsocia";
-  create "lib/data/subsocia-data" ~dst_dir:"data/";
-  create "web/server/subsocia-web-server" ~dst_dir:"web/server/";
-  create "web/server/subsocia-web-module" ~dst_dir:"web/server/";
-  create "web/server/subsocia-web-debug-module" ~dst_dir:"web/server/";
-]
-let api_modules =
-  List.flatten (List.map (Library.api_modules ~qualify:true) libs)
-let all_modules =
-  List.flatten (List.map (Library.all_modules ~qualify:true) libs)
-
-let () = save_lines "doc/api.odocl" api_modules
-let () = save_lines "doc/dev.odocl" all_modules
-
 let () = Pkg.describe "subsocia" ~licenses ~opams ~build ~distrib @@ fun c ->
-  let mllibs = List.map Library.mllib libs in
+  Modules.of_file "lib/subsocia.oclib"
+    >>= fun subsocia_modules ->
+  Modules.of_file "lib/data/subsocia-data.oclib"
+    >>= fun subsocia_data_modules ->
+  Modules.of_file "web/server/subsocia-web-server.oclib"
+    >>= fun web_server_modules ->
+  Modules.of_file "web/server/subsocia-web-module.oclib"
+    >>= fun web_module_modules ->
+  Modules.of_file "web/server/subsocia-web-debug-module.oclib"
+    >>= fun web_debug_module_modules ->
+  Modules.mllib subsocia_modules "lib/subsocia.mllib"
+    >>= fun subsocia_mllib ->
+  Modules.mllib subsocia_data_modules
+    ~dst_dir:"data/" "lib/data/subsocia-data.mllib"
+    >>= fun subsocia_data_mllib ->
+  Modules.mllib web_server_modules
+    ~dst_dir:"web/server/" "web/server/subsocia-web-server.mllib"
+    >>= fun web_server_mllib ->
+  Modules.mllib web_module_modules
+    ~dst_dir:"web/server/" "web/server/subsocia-web-module.mllib"
+    >>= fun web_module_mllib ->
+  Modules.mllib web_debug_module_modules
+    ~dst_dir:"web/server/" "web/server/subsocia-web-debug-module.mllib"
+    >>= fun web_debug_module_mllib ->
+  let mllibs = [
+    subsocia_mllib;
+    subsocia_data_mllib;
+    web_server_mllib;
+    web_module_mllib;
+    web_debug_module_mllib;
+  ] in
+  let doc_modules =
+    let (++) = Modules.union in
+    subsocia_modules ++ subsocia_data_modules
+      ++ web_server_modules
+      ++ web_module_modules ++ web_debug_module_modules in
+  Modules.save doc_modules "doc/api.odocl"
+               ~filter:Filter.(not (tagged "internal")) >>= fun () ->
+  Modules.save doc_modules "doc/dev.odocl" >>= fun () ->
   let misc_fields = [
     Pkg.share ~dst:"static/" "web/client/sociaweb_app.js";
     Pkg.share ~dst:"static/css/" "web/static/css/subsocia.css";
