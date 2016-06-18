@@ -19,7 +19,6 @@ let build_cmd c os =
         % "-classic-display"
         % "-plugin-tag" % "package(ocamlbuild-eliom-dev)"
         % "-build-dir" % build_dir)
-let () = Unix.putenv "OCAMLPATH" "."
 
 let build = Pkg.build ~cmd:build_cmd ()
 

@@ -1,30 +1,41 @@
 true: bin_annot, eliom_ppx
+
+"lib": include
+"lib/data": include
+
 <bin/*>: thread, \
+    package(caqti.lwt), \
     package(cmdliner), \
-    package(lib.data)
-<lib/*>: \
+    package(config-file), \
+    package(extunix), \
+    package(panograph), \
+    package(rpclib), \
+    package(uri), \
+    use_subsocia, use_subsocia-data
+<lib/*.ml*>: \
     package(extunix), \
     package(lwt), \
     package(lwt.log), \
     package(panograph), \
     package(rpclib)
-<lib/data/*>: thread, \
+<lib/data/*.ml*>: thread, \
     package(caqti.lwt), \
     package(config-file), \
-    package(lib), \
     package(panograph), \
     package(prime.unstable), \
-    package(react)
-<web/server/*>: thread, \
+    package(react), \
+    use_subsocia
+<web/server/*.ml*>: thread, \
+    package(config-file), \
     package(eliom.server), \
-    package(lib.data), \
-    package(panograph.server)
+    package(panograph.server), \
+    use_subsocia, use_subsocia-data
 <web/client/*>: \
     package(eliom.client), \
     package(extunix), \
-    package(lib), \
-    package(panograph.client)
+    package(panograph.client), \
+    use_subsocia
 <tests/*>: thread, \
-    package(lib.data), \
     package(lwt.ppx), \
-    package(oUnit)
+    package(oUnit), \
+    use_subsocia, use_subsocia-data

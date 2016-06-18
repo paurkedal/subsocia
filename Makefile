@@ -3,7 +3,7 @@
 prefix = $(shell opam config var prefix)
 
 OCAMLBUILD_PLUGINS = -plugin-tag 'package(ocamlbuild-eliom-dev)'
-OCAMLBUILD = OCAMLPATH=. ocamlbuild -use-ocamlfind $(OCAMLBUILD_PLUGINS)
+OCAMLBUILD = ocamlbuild -use-ocamlfind $(OCAMLBUILD_PLUGINS)
 
 all:
 	ocaml pkg/pkg.ml build
@@ -13,7 +13,7 @@ test:
 	_build/tests/testsuite.native
 
 doc:
-	OCAMLPATH=. topkg doc
+	topkg doc
 
 clean:
 	$(OCAMLBUILD) -clean

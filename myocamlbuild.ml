@@ -27,8 +27,6 @@ let pkg_datadir pkgname =
 let panograph_datadir = pkg_datadir "panograph"
 
 let local_rules () =
-  sed_rule ~dep:"pkg/META" ~prod:"lib/META"
-    ["/^\\s*requires =/ s/\\<subsocia\\>/lib/g"];
   sed_rule ~dep:"ocsigen-dev.conf.in" ~prod:"ocsigen-dev.conf"
     ["s;@PANOGRAPH_DATADIR@;" ^ pkg_datadir "panograph" ^ ";g"];
 
@@ -51,6 +49,6 @@ let () = Ocamlbuild_plugin.dispatch @@ fun hook ->
   | Before_options -> Options.make_links := false
   | After_rules ->
     local_rules ();
-    dep ["ocaml"; "ocamldep"; "package(lib)"] ["lib/lib.otarget"];
-    dep ["ocaml"; "ocamldep"; "package(lib.data)"] ["lib/lib-data.otarget"]
+    ocaml_lib "lib/subsocia";
+    ocaml_lib "lib/data/subsocia-data"
   | _ -> ()
