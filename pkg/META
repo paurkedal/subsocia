@@ -28,7 +28,7 @@ package "web-server" (
   archive(native) = "subsocia-web-server.cmxa"
   plugin(byte) = "subsocia-web-server.cma"
   plugin(native) = "subsocia-web-server.cmxs"
-  exists_if = "subsocia-web-server.cmxa"
+  exists_if = "subsocia-web-server.cma"
 )
 
 package "web-module" (
@@ -40,7 +40,7 @@ package "web-module" (
   archive(native) = "subsocia-web-module.cmxa"
   plugin(byte) = "subsocia-web-module.cma"
   plugin(native) = "subsocia-web-module.cmxs"
-  exists_if = "subsocia-web-module.cmxa"
+  exists_if = "subsocia-web-module.cma"
 )
 
 package "web-debug-module" (
@@ -48,9 +48,9 @@ package "web-debug-module" (
   description = "People, organization, and authorization"
   requires = "eliom.server"
   directory = "web/server"
-  archive(byte) = "sociaweb_debug.cma"
-  archive(native) = "sociaweb_debug.cmx"
-  plugin(byte) = "sociaweb_debug.cma"
-  plugin(native) = "sociaweb_debug.cmxs"
-  exists_if = "sociaweb_debug.cma"
+  archive(byte) = "subsocia-web-debug-module.cma"
+  archive(native) = "subsocia-web-debug-module.cmx"
+  plugin(byte) = "subsocia-web-debug-module.cma"
+  plugin(native) = "subsocia-web-debug-module.cmxs"
+  exists_if = "subsocia-web-debug-module.cma"
 )
