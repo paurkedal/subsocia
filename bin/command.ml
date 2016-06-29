@@ -146,10 +146,12 @@ let subcommands = [
     "load"
 ]
 
-let main_t = Term.(ret @@ pure (`Error (true, "Missing subcommand.")))
+let main_cmd =
+  Term.(ret @@ pure (`Error (true, "Missing subcommand."))),
+  Term.info ~version:Subsocia_version.pkg_version "subsocia"
 
 let () =
-  match Term.eval_choice (main_t, Term.info "subsocia") subcommands with
+  match Term.eval_choice main_cmd subcommands with
   | `Error `Parse -> exit 64
   | `Error `Term -> exit 69
   | `Error `Exn -> exit 70
