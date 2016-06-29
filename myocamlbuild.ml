@@ -17,6 +17,11 @@ let sed_rule ~dep ~prod scripts =
       let script_args = List.map (fun script -> S[A"-e"; A script]) scripts in
       Cmd (S[A"sed"; S script_args; P dep; Sh">"; Px prod]))
 
+let ocamlfind_destdir = run_and_read "ocamlfind printconf destdir"
+let prefix = Filename.dirname ocamlfind_destdir
+let datadir = Filename.concat prefix "share"
+let subsocia_datadir = Filename.concat datadir "subsocia"
+
 let pkg_datadir pkgname =
   let libdir = Findlib.((query pkgname).location) in
   let librootdir = Filename.dirname libdir in
@@ -29,6 +34,8 @@ let panograph_datadir = pkg_datadir "panograph"
 let local_rules () =
   sed_rule ~dep:"ocsigen-dev.conf.in" ~prod:"ocsigen-dev.conf"
     ["s;@PANOGRAPH_DATADIR@;" ^ pkg_datadir "panograph" ^ ";g"];
+  sed_rule ~dep:"lib/subsocia_version.ml.in" ~prod:"lib/subsocia_version.ml"
+    ["s;@SUBSOCIA_DATADIR@;" ^ subsocia_datadir ^ ";g"];
 
   rule "%.mli & %.idem -> %.ml"
     ~deps:["%.mli"; "%.idem"] ~prod:"%.ml"

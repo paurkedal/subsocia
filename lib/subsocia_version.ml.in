@@ -17,7 +17,7 @@
 let pkg_version = "%%VERSION_NUM%%"
 let pkg_datadir =
   try Unix.getenv "SUBSOCIA_DATADIR"
-  with Not_found -> "%%PKG_DATADIR%%"
+  with Not_found -> "@SUBSOCIA_DATADIR@"
 
 let schema_version = 4 (* NB: Also update schema/subsocia_tables.sql. *)
 let schema_dir = Filename.concat pkg_datadir "schema"
