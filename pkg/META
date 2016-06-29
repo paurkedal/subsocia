@@ -22,7 +22,7 @@ package "data" (
 package "web-server" (
   version = "%%VERSION_NUM%%"
   description = "People, organization, and authorization"
-  requires = "eliom.server panograph-server prime subsocia subsocia.data"
+  requires = "eliom.server panograph.server prime subsocia subsocia.data"
   directory = "web/server"
   archive(byte) = "subsocia-web-server.cma"
   archive(native) = "subsocia-web-server.cmxa"
