@@ -22,20 +22,7 @@ let build_cmd c os =
 
 let build = Pkg.build ~cmd:build_cmd ()
 
-let prefix =
-  Cmd.(v "ocamlfind" % "printconf" % "destdir")
-    |> OS.Cmd.run_out
-    |> OS.Cmd.to_string
-    |> (function Ok s -> s | Error (`Msg msg) -> failwith msg)
-    |> Fpath.basename
-
-let pkg_datadir = Fpath.(prefix // "share" // "subsocia")
-
-let watermarks = ("PKG_DATADIR", `String pkg_datadir) :: Pkg.watermarks
-
-let distrib = Pkg.distrib ~watermarks ()
-
-let () = Pkg.describe "subsocia" ~licenses ~opams ~build ~distrib @@ fun c ->
+let () = Pkg.describe "subsocia" ~licenses ~opams ~build @@ fun c ->
   Modules.of_file "lib/subsocia.oclib"
     >>= fun subsocia_modules ->
   Modules.of_file "lib/data/subsocia-data.oclib"
