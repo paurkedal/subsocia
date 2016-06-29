@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.12.1] - 2016-06-29
+
+### Fixes
+
+* Handle deep contexts for add- and delete-selectors.
+
 ## [0.12.0] – 2016-06-12
 
 ### Added
@@ -22,4 +28,5 @@
 * `Entity.type_` with new name `Entity.entity_type`.
 
 
+[0.12.1]: https://github.com/paurkedal/subsocia/compare/0.12.0...0.12.1
 [0.12.0]: https://github.com/paurkedal/subsocia/compare/0.11...0.12.0
