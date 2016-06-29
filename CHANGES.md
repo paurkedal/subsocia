@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.12.2] - 2016-06-30
+
+### Fixes
+
+* Fix watermarking and `pkg_datadir` substitution.
+
 ## [0.12.1] - 2016-06-29
 
 ### Fixes
@@ -28,5 +34,6 @@
 * `Entity.type_` with new name `Entity.entity_type`.
 
 
+[0.12.2]: https://github.com/paurkedal/subsocia/compare/0.12.1...0.12.2
 [0.12.1]: https://github.com/paurkedal/subsocia/compare/0.12.0...0.12.1
 [0.12.0]: https://github.com/paurkedal/subsocia/compare/0.11...0.12.0
