@@ -1527,7 +1527,7 @@ module Make (P : Param) = struct
       let%lwt r = rank e in
       let update_rank eS r' =
         if r' = r then Lwt.return r' else
-        rank eS >|= max r' *< succ in
+        rank eS >|= (max r' <@ succ) in
       let%lwt esS = dsuper e in
       let%lwt r' = Set.fold_s update_rank esS 0 in
       if r' = r then Lwt.return_unit else begin
@@ -1595,7 +1595,7 @@ module Make (P : Param) = struct
               if Values.is_empty avs then Lwt.fail Not_found else
               Lwt.return (B.Relation.In (at, avs)))
             (B.Attribute_type.Set.elements aff_ats) in
-          asub_conj e (new_cond :: conds) >|= not *< Set.is_empty
+          asub_conj e (new_cond :: conds) >|= (not <@ Set.is_empty)
         with Not_found ->
           Lwt.return_false in
       let%lwt violated =

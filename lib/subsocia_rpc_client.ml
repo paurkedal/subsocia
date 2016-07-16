@@ -138,11 +138,11 @@ module Make (RPCM : RPCM) = struct
 
     let dsub et =
       Raw.dsub et >|=
-      List.map (fun (et, muA, muB) -> et, (muA, muB)) *> Map.of_ordered_bindings
+      List.map (fun (et, muA, muB) -> et, (muA, muB)) @> Map.of_ordered_bindings
 
     let dsuper et =
       Raw.dsuper et >|=
-      List.map (fun (et, muA, muB) -> et, (muA, muB)) *> Map.of_ordered_bindings
+      List.map (fun (et, muA, muB) -> et, (muA, muB)) @> Map.of_ordered_bindings
 
     let dsub_elements () =
       Raw.dsub_elements ()
@@ -200,7 +200,7 @@ module Make (RPCM : RPCM) = struct
     let get_values at et0 et1 =
       let vt = Attribute_type.value_type at in
       Raw.get_values (Attribute_type.id at) et0 et1 >|=
-      List.map (Value.coerce vt) *> Values.of_ordered_elements vt
+      List.map (Value.coerce vt) @> Values.of_ordered_elements vt
 
     let check_uniqueness_error = function
       | [] -> Lwt.return_unit

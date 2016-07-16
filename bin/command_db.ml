@@ -111,7 +111,7 @@ let db_upgrade () = Lwt_main.run begin
   for%lwt v = db_schema_version to schema_version - 1 do
     load (Filename.concat schema_upgrade_dir (sprintf "from-%d.sql" v))
   done >>
-  Lwt_list.iter_s (load *< Filename.concat schema_dir)
+  Lwt_list.iter_s (load <@ Filename.concat schema_dir)
                   idempotent_sql_schemas >>
   if !have_error then
     Lwt_io.printf "\n\
