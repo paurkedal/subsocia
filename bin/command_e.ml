@@ -64,12 +64,24 @@ module Entity_utils (C : Subsocia_intf.S) = struct
   include Selector_utils (C)
   include Subsocia_derived.Make (C)
 
+  type attribute_update =
+    | Add_value : 'a Attribute_type.t * 'a -> attribute_update
+    | Remove_value : 'a Attribute_type.t * 'a -> attribute_update
+    | Clear_values : 'a Attribute_type.t -> attribute_update
+
+  let update_attributes e (e_ctx, updates) =
+    let aux = function
+      | Add_value (at, av) -> Entity.add_value at av e_ctx e
+      | Remove_value (at, av) -> Entity.remove_value at av e_ctx e
+      | Clear_values at -> Entity.clear_values at e_ctx e in
+    Lwt_list.iter_s aux updates
+
   let lookup_add_selector (ctx, asgn) =
     let aux (an, avs_str) =
       let%lwt Attribute_type.Ex at = Attribute_type.required an in
       let t = Attribute_type.value_type at in
       Lwt.return @@ List.map
-        (fun av_str -> C.Attribute.Ex (at, Value.typed_of_string t av_str))
+        (fun av_str -> Add_value (at, Value.typed_of_string t av_str))
         avs_str in
     let%lwt asgn =
       List.flatten =|< Lwt_list.map_p aux (String_map.bindings asgn) in
@@ -78,11 +90,6 @@ module Entity_utils (C : Subsocia_intf.S) = struct
     | None -> Lwt.return (root, asgn)
     | Some ctx -> Entity.select_one ctx >|= fun e_ctx -> (e_ctx, asgn)
 
-  let add_attributes e (e_ctx, attrs) =
-    Lwt_list.iter_s
-      (fun (C.Attribute.Ex (at, av)) -> Entity.add_value at av e_ctx e)
-      attrs
-
   let lookup_delete_selector (ctx, asgn) =
     let aux (an, avs_str) =
       let%lwt Attribute_type.Ex at = Attribute_type.required an in
@@ -90,24 +97,15 @@ module Entity_utils (C : Subsocia_intf.S) = struct
       match avs_str with
       | Some avs_str ->
         Lwt.return @@ List.map
-          (fun av_str ->
-            `Value (C.Attribute.Ex (at, Value.typed_of_string t av_str)))
+          (fun av_str -> Remove_value (at, Value.typed_of_string t av_str))
           avs_str
-      | None ->
-        Lwt.return [`All (Attribute_type.Ex at)] in
+      | None -> Lwt.return [Clear_values at] in
     let%lwt asgn =
       List.flatten =|< Lwt_list.map_p aux (String_map.bindings asgn) in
     let%lwt root = Entity.root in
     match ctx with
     | None -> Lwt.return (root, asgn)
     | Some ctx -> Entity.select_one ctx >|= fun e_ctx -> (e_ctx, asgn)
-
-  let delete_attributes e (e_ctx, attrs) =
-    Lwt_list.iter_s
-      (function
-      | `Value (C.Attribute.Ex (at, av)) -> Entity.remove_value at av e_ctx e
-      | `All (Attribute_type.Ex at) -> Entity.clear_values at e_ctx e)
-      attrs
 
   let entity_type_of_arg etn =
     match%lwt C.Entity_type.of_name etn with
@@ -223,14 +221,14 @@ let e_fts_t =
                       info ~docv:"CUTOFF" ~doc ["cutoff"]) in
   Term.(pure e_fts $ q_t $ et_t $ super_t $ limit_t $ cutoff_t)
 
-let e_create etn dsuper aselectors = run0 @@ fun (module C) ->
+let e_create etn add_dsupers add_sels = run0 @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let%lwt et = U.entity_type_of_arg etn in
-  let%lwt aselectors = Lwt_list.map_p U.lookup_add_selector aselectors in
-  let%lwt dsuper = Lwt_list.map_p U.Entity.select_one dsuper in
+  let%lwt add_sels = Lwt_list.map_p U.lookup_add_selector add_sels in
+  let%lwt add_dsupers = Lwt_list.map_p U.Entity.select_one add_dsupers in
   let%lwt e = C.Entity.create et in
-  Lwt_list.iter_s (fun (e_sub) -> C.Entity.force_dsub e e_sub) dsuper >>
-  Lwt_list.iter_s (U.add_attributes e) aselectors
+  Lwt_list.iter_s (C.Entity.force_dsub e) add_dsupers >>
+  Lwt_list.iter_s (U.update_attributes e) add_sels
 
 let e_create_t =
   let etn_t = Arg.(required & pos 0 (some string) None &
@@ -251,18 +249,18 @@ let e_delete_t =
                    info ~docv:"PATH" []) in
   Term.(pure e_delete $ sel_t)
 
-let e_modify sel add_succs del_succs add_asels del_asels =
+let e_modify sel add_dsupers del_dsupers add_sels del_sels =
   run0 @@ fun (module C) ->
   let module U = Entity_utils (C) in
-  let%lwt add_succs = Lwt_list.map_p U.Entity.select_one add_succs in
-  let%lwt del_succs = Lwt_list.map_p U.Entity.select_one del_succs in
-  let%lwt add_asels = Lwt_list.map_p U.lookup_add_selector add_asels in
-  let%lwt del_asels = Lwt_list.map_p U.lookup_delete_selector del_asels in
+  let%lwt add_dsupers = Lwt_list.map_p U.Entity.select_one add_dsupers in
+  let%lwt del_dsupers = Lwt_list.map_p U.Entity.select_one del_dsupers in
+  let%lwt add_sels = Lwt_list.map_p U.lookup_add_selector add_sels in
+  let%lwt del_sels = Lwt_list.map_p U.lookup_delete_selector del_sels in
   let%lwt e = U.Entity.select_one sel in
-  Lwt_list.iter_s (fun e_sub -> C.Entity.force_dsub e e_sub) add_succs >>
-  Lwt_list.iter_s (U.add_attributes e) add_asels >>
-  Lwt_list.iter_s (U.delete_attributes e) del_asels >>
-  Lwt_list.iter_s (fun e_sub -> C.Entity.relax_dsub e e_sub) del_succs
+  Lwt_list.iter_s (fun e_sub -> C.Entity.force_dsub e e_sub) add_dsupers >>
+  Lwt_list.iter_s (U.update_attributes e) add_sels >>
+  Lwt_list.iter_s (U.update_attributes e) del_sels >>
+  Lwt_list.iter_s (fun e_sub -> C.Entity.relax_dsub e e_sub) del_dsupers
 
 let e_modify_t =
   let sel_t = Arg.(required & pos 0 (some selector_conv) None &
