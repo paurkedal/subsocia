@@ -905,7 +905,7 @@ module Make (P : Param) = struct
 
     let allowed_mappings', allowed_mappings_cache =
       memo_1lwt @@ fun (B.Attribute_type.Ex at) ->
-      with_db @@ fun ((module C) as conn) ->
+      with_db @@ fun (module C) ->
       let extract tup acc =
         let et0 = C.Tuple.int32 0 tup in
         let et1 = C.Tuple.int32 1 tup in
