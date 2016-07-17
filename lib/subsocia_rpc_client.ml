@@ -106,10 +106,6 @@ module Make (RPCM : RPCM) = struct
       | Search_fts : string -> t
   end
 
-  module Attribute = struct
-    type ex = Ex : 'a Attribute_type.t * 'a -> ex
-  end
-
   module Entity_type = struct
     module Raw = Raw.Entity_type
 

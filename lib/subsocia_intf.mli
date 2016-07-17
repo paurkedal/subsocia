@@ -71,15 +71,6 @@ module type RELATION = sig
     | Search_fts : Subsocia_fts.t -> t
 end
 
-module type ATTRIBUTE = sig
-  module Attribute_type : ATTRIBUTE_TYPE
-
-  (**/**)
-
-  type ex = Ex : 'a Attribute_type.t * 'a -> ex
-  [@@ocaml.deprecated "Not needed by the core interface."]
-end
-
 module type ENTITY_TYPE = sig
   module Attribute_type : ATTRIBUTE_TYPE
 
@@ -184,7 +175,6 @@ module type ENTITY = sig
   module Attribute_type : ATTRIBUTE_TYPE
   module Relation : RELATION
     with module Attribute_type := Attribute_type
-  module Attribute : ATTRIBUTE with module Attribute_type := Attribute_type
   module Entity_type : ENTITY_TYPE with module Attribute_type := Attribute_type
 
   type t
@@ -314,11 +304,8 @@ module type S = sig
     with module Attribute_type := Attribute_type
   module Relation : RELATION
     with module Attribute_type := Attribute_type
-  module Attribute : ATTRIBUTE
-    with module Attribute_type := Attribute_type
   module Entity_type : ENTITY_TYPE with module Attribute_type := Attribute_type
   module Entity : ENTITY with module Attribute_type := Attribute_type
                           and module Relation := Relation
-                          and module Attribute := Attribute
                           and module Entity_type := Entity_type
 end

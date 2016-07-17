@@ -655,10 +655,6 @@ module B = struct
       | Search_fts : string -> t
   end
 
-  module Attribute = struct
-    type ex = Ex : 'a Attribute_type.t * 'a -> ex
-  end
-
   module Entity_type = struct
     type t = int32
 
@@ -1763,7 +1759,6 @@ let connect uri =
       include M.Attribute_uniqueness
     end
     module Relation = B.Relation
-    module Attribute = B.Attribute
     module Entity_type = struct
       include B.Entity_type
       include M.Entity_type
@@ -1779,7 +1774,6 @@ let connect uri =
        and type Attribute_type.Set.t = Attribute_type.Set.t
        and type 'a Attribute_type.Map.t = 'a Attribute_type.Map.t
        and type Relation.t = Relation.t
-       and type Attribute.ex = Attribute.ex
        and type Entity_type.t = Entity_type.t
        and type Entity_type.Set.t = Entity_type.Set.t
        and type 'a Entity_type.Map.t = 'a Entity_type.Map.t
@@ -1804,7 +1798,6 @@ let connect uri =
           include M.Attribute_uniqueness
         end
         module Relation = B.Relation
-        module Attribute = B.Attribute
         module Entity_type = struct
           include B.Entity_type
           include M.Entity_type

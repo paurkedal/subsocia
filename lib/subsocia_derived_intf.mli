@@ -83,9 +83,6 @@ module type S = sig
     val search_fts : Subsocia_fts.t -> t
   end
 
-  module Attribute :
-    ATTRIBUTE with module Attribute_type := Base.Attribute_type
-
   module Entity_type : sig
     include ENTITY_TYPE
        with module Attribute_type := Base.Attribute_type
@@ -101,7 +98,6 @@ module type S = sig
   module Entity : sig
     include ENTITY with module Attribute_type := Base.Attribute_type
                     and module Relation := Base.Relation
-                    and module Attribute := Base.Attribute
                     and module Entity_type := Base.Entity_type
                     and type t = Base.Entity.t
                     and module Set = Base.Entity.Set

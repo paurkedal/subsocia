@@ -25,7 +25,6 @@ module type S = sig
      and type Attribute_type.Set.t = Attribute_type.Set.t
      and type 'a Attribute_type.Map.t = 'a Attribute_type.Map.t
      and type Relation.t = Relation.t
-     and type Attribute.ex = Attribute.ex
      and type Entity_type.t = Entity_type.t
      and type Entity_type.Set.t = Entity_type.Set.t
      and type 'a Entity_type.Map.t = 'a Entity_type.Map.t

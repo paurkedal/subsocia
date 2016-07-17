@@ -86,8 +86,6 @@ module Make (Base : Subsocia_intf.S) = struct
     let search_fts w = Search_fts w
   end
 
-  module Attribute = Base.Attribute
-
   module Entity_type = struct
     include Base.Entity_type
 

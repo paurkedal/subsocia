@@ -1,5 +1,8 @@
 # Change Log
 
+## [Unreleased]
+- Remove `Attribute` module, containing only the deprecated `ex` type.
+
 ## [0.12.3] - 2016-07-11
 - Update to latest adpkg.
 
@@ -31,6 +34,7 @@
 - `Entity.type_` with new name `Entity.entity_type`.
 
 
+[Unreleased]: https://github.com/paurkedal/subsocia/compare/0.12.3...HEAD
 [0.12.3]: https://github.com/paurkedal/subsocia/compare/0.12.2...0.12.3
 [0.12.2]: https://github.com/paurkedal/subsocia/compare/0.12.1...0.12.2
 [0.12.1]: https://github.com/paurkedal/subsocia/compare/0.12.0...0.12.1
