@@ -16,7 +16,6 @@
 
 open Sociaweb_auth
 open Sociaweb_request
-open Sociaweb_server
 open Subsocia_connection
 
 [%%shared
@@ -27,6 +26,7 @@ open Subsocia_connection
   open Panograph_types
   open Printf
   open Sociaweb_content
+  open Sociaweb_server
   open Sociaweb_services
   open Subsocia_common
   open Subsocia_selector
@@ -70,11 +70,11 @@ open Subsocia_connection
       let label, handler, a =
         if is_dsuper then
           let remove = [%client fun _ ->
-            Lwt.async (fun () -> ~%relax_dsub_sf (~%focus_id, ~%dsuper_id))] in
+            Lwt.async (fun () -> relax_dsub (~%focus_id, ~%dsuper_id))] in
           ("-", remove, None)
         else
           let add = [%client fun _ ->
-            Lwt.async (fun () -> ~%force_dsub_sf (~%focus_id, ~%dsuper_id))] in
+            Lwt.async (fun () -> force_dsub (~%focus_id, ~%dsuper_id))] in
           ("+", add, Some [F.a_class ["candidate"]]) in
       let button =
         F.Raw.button ~a:[F.a_button_type `Button; F.a_onclick handler]

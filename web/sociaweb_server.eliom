@@ -46,7 +46,7 @@ let relax_dsub ~operator (lb_id, ub_id) =
   Lwt_log.info_f "%s removes inclusion #%ld ⊆ #%ld" user_name lb_id ub_id >>
   Entity.relax_dsub lb ub
 
-let force_dsub_sf = auth_sf [%json: int32 * int32] force_dsub
-let relax_dsub_sf = auth_sf [%json: int32 * int32] relax_dsub
+let%client force_dsub = ~%(auth_sf [%json: int32 * int32] force_dsub)
+let%client relax_dsub = ~%(auth_sf [%json: int32 * int32] relax_dsub)
 
 let () = Subsocia_plugin.load_web_plugins ()
