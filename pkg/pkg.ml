@@ -9,7 +9,11 @@ open Topkg
 
 let licenses = List.map Pkg.std_file ["COPYING.LESSER"; "COPYING"]
 
-let opams = [Pkg.opam_file ~lint_deps_excluding:(Some ["lib"]) "opam"]
+let opams = [
+  Pkg.opam_file
+    ~lint_deps_excluding:(Some ["adpkg"; "ounit"; "oUnit"; "rpc"; "rpclib"])
+    "opam"
+]
 
 let build_cmd c os targets =
   let ocamlbuild = Conf.tool "ocamlbuild" os in

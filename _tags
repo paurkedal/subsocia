@@ -1,5 +1,4 @@
 true: bin_annot, eliom_ppx
-false: adpkg
 
 "lib": include
 "lib/data": include
