@@ -104,8 +104,6 @@ module Make (C : Subsocia_intf.S) = struct
       attrs
 
   let exec_mod e = function
-    | `Aux_selector ("access", sel) ->
-      Lwt_io.eprintl "%access is deprecated and has no effect."
     | `Aux_selector (p, _) ->
       lwt_failure_f "Entities have no property %s." p
     | `Add_sub sel ->

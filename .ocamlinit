@@ -27,6 +27,6 @@ open Unprime
 
 let langs = [Panograph_i18n.Lang.of_string "en"]
 
-let show_et et = Entity_type.display_name ~langs et
+let show_et et = Entity_type.name et
 let show_e e = Entity.display_name ~langs e
 let show_es es = Lwt_list.map_s show_e (Entity.Set.elements es)

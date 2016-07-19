@@ -95,11 +95,6 @@ module type ENTITY_TYPE = sig
   val id : t -> int32
   (** [id et] is the numeric ID of [et]. *)
 
-  val display_name : langs: lang list -> ?pl: bool -> t -> string Lwt.t
-  (** [display_name et] is a human readable name for [et].
-      @deprecated Returns {!name} and may be dropped in a future version
-      unless it deemed useful and implemented. *)
-
   val create : string -> t Lwt.t
   (** [create name] creates an entity type named [name]. *)
 
@@ -169,6 +164,10 @@ module type ENTITY_TYPE = sig
       are no longer allowed from entities of type [et] to entities of type
       [et'].  Current attributions of this type will remain until cleaned up,
       but algorithms are free to disregard them. *)
+
+  (**/**)
+  val display_name : langs: lang list -> ?pl: bool -> t -> string Lwt.t
+    [@@ocaml.deprecated "Use name."]
 end
 
 module type ENTITY = sig
@@ -293,9 +292,6 @@ module type ENTITY = sig
   val premapping1 : 'a Attribute_type.t -> t -> 'a Values.t Map.t Lwt.t
   (** [premapping1 at e] is a map of [at]-values indexed by attribution
       superentities of [e] which loose those values along [at]. *)
-
-  (**/**)
-  val type_ : t -> Entity_type.t Lwt.t [@@ocaml.deprecated "Use entity_type."]
 end
 
 module type S = sig

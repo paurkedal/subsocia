@@ -1,7 +1,8 @@
 # Change Log
 
 ## [Unreleased]
-- Remove `Attribute` module, containing only the deprecated `ex` type.
+- Removed `Attribute` module, containing only the deprecated `ex` type.
+- Removed deprecated `access` keyword from schema.
 
 ## [0.12.3] - 2016-07-11
 - Update to latest adpkg.
