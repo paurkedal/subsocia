@@ -24,4 +24,5 @@ depends: [
   "rpc"
   "topkg" {build}
   "uri"
+  "yojson"
 ]

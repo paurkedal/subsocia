@@ -90,7 +90,7 @@ let _ =
           let vt = Attribute_type.value_type at in
           let%lwt vs = Entity.get_values at root user in
           let vs = Values.elements vs in
-          Lwt.return (Some (an, List.map (Value.typed_to_poly vt) vs)) in
+          Lwt.return (Some (an, List.map (Value.to_json vt) vs)) in
       let%lwt must_ok = Lwt_list.for_all_p is_member_of must in
       if must_ok then
         let%lwt may_res = Lwt_list.filter_p is_member_of may in

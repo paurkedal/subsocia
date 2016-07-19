@@ -65,11 +65,23 @@ module Value : sig
 
   val coerce : 'a Type.t -> ex -> 'a
 
-  val typed_to_poly : 'a Type.t -> 'a ->
-                      [> `Bool of bool | `Int of int | `String of string]
+  val to_json : 'a Type.t ->
+    'a -> [> `Bool of bool | `Int of int | `String of string]
+
+  val of_json : 'a Type.t ->
+    [> `Bool of bool | `Int of int | `String of string] -> 'a
+
+  val to_json_string : 'a Type.t -> 'a -> string
+
+  val of_json_string : 'a Type.t -> string -> 'a
 
   val rpc_of_ex : ex -> Rpc.t
   val ex_of_rpc : Rpc.t -> ex
+
+  (**/**)
+  val typed_to_poly : 'a Type.t -> 'a ->
+                      [> `Bool of bool | `Int of int | `String of string]
+    [@@ocaml.deprecated "Renamed to to_json."]
 end
 
 module Values : sig
@@ -98,6 +110,18 @@ module Values : sig
   val of_ordered_elements : 'a Type.t -> 'a list -> 'a t
 
   val coerce : 'a Type.t -> ex -> 'a t
+
+  val to_json : 'a Type.t ->
+    'a t ->
+    [> `List of [> `Bool of bool | `Int of int | `String of string] list]
+
+  val of_json : 'a Type.t ->
+    [> `List of [> `Bool of bool | `Int of int | `String of string] list] ->
+    'a t
+
+  val to_json_string : 'a Type.t -> 'a t -> string
+
+  val of_json_string : 'a Type.t -> string -> 'a t
 
   val rpc_of_ex : ex -> Rpc.t
   val ex_of_rpc : Rpc.t -> ex

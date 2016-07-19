@@ -11,13 +11,15 @@ true: bin_annot, eliom_ppx
     package(panograph), \
     package(rpclib), \
     package(uri), \
+    package(yojson), \
     use_subsocia, use_subsocia-data
 <lib/*.ml*>: \
     package(extunix), \
     package(lwt), \
     package(lwt.log), \
     package(panograph), \
-    package(rpclib)
+    package(rpclib), \
+    package(yojson)
 <lib/data/*.ml*>: thread, \
     package(caqti.lwt), \
     package(config-file), \

@@ -13,6 +13,7 @@ with Not_found -> ();;
 #require "panograph"
 #require "caqti.lwt"
 #require "caqti.caqtus-postgresql"
+#require "yojson"
 
 #directory "_build/lib"
 #directory "_build/lib/data"

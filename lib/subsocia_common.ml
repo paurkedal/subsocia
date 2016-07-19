@@ -117,12 +117,35 @@ module Value = struct
     | Type.String, (Ex (Type.String, x)) -> x
     | _ -> invalid_arg "Subsocia_common.Value.coerce: Type error."
 
-  let typed_to_poly : type a. a Type.t -> a ->
-                      [> `Bool of bool | `Int of int | `String of string] =
-    function
+  let to_json : type a. a Type.t -> a ->
+                [> `Bool of bool | `Int of int | `String of string] = function
     | Type.Bool -> fun x -> `Bool x
     | Type.Int -> fun x -> `Int x
     | Type.String -> fun x -> `String x
+
+  let of_json
+    : type a. a Type.t ->
+      [> `Bool of bool | `Int of int | `String of string] -> a = function
+    | Type.Bool ->
+      (function `Bool (x : bool) -> x | _ -> invalid_arg "Value.of_json")
+    | Type.Int ->
+      (function `Int (x : int) -> x | _ -> invalid_arg "Value.of_json")
+    | Type.String ->
+      (function `String (x : string) -> x | _ -> invalid_arg "Value.of_json")
+
+  let to_json_string : type a. a Type.t -> a -> string = function
+    | Type.Bool -> fun x -> string_of_bool x
+    | Type.Int -> fun x -> string_of_int x
+    | Type.String -> fun x -> Yojson.Basic.to_string (`String x)
+
+  let of_json_string : type a. a Type.t -> string -> a = function
+    | Type.Bool -> fun s -> bool_of_string (String.trim s)
+    | Type.Int -> fun s -> int_of_string (String.trim s)
+    | Type.String -> fun s ->
+      begin match Yojson.Basic.from_string s with
+      | `String s -> s
+      | _ -> invalid_arg "Value.of_json_string"
+      end
 
   let rpc_of_ex = function
     | Ex (Type.Bool, x) -> Rpc.rpc_of_bool x
@@ -137,6 +160,9 @@ module Value = struct
     | _ -> failwith "Value.ex_of_rpc: Protocol error."
 
   let typed_of_rpc t rpc = coerce t (ex_of_rpc rpc)
+
+  (**/**)
+  let typed_to_poly = to_json
 end
 
 module Bool_compare = struct type t = bool let compare = compare end
@@ -184,6 +210,7 @@ module Values = struct
   let remove (type a) x (T ((module S), s) : a t) = T ((module S), S.remove x s)
   let iter (type a) f (T ((module S), s) : a t) = S.iter f s
   let fold (type a) f (T ((module S), s) : a t) acc = S.fold f s acc
+  let fold_rev (type a) f (T ((module S), s) : a t) acc = S.fold_rev f s acc
   let for_all (type a) f (T ((module S), s) : a t) = S.for_all f s
   let exists (type a) f (T ((module S), s) : a t) = S.exists f s
   let filter (type a) f (T ((module S), s) : a t) = T ((module S), S.filter f s)
@@ -200,6 +227,17 @@ module Values = struct
   let of_ordered_elements : type a. a Type.t -> a list -> a t = fun t s ->
     let module S = (val impl t) in
     T ((module S), S.of_ordered_elements s)
+
+  let to_json t vs =
+    `List (fold_rev (fun v acc -> Value.to_json t v :: acc) vs [])
+
+  let of_json t = function
+    | `List jvs -> List.fold (fun jv -> add (Value.of_json t jv)) jvs (empty t)
+    | _ -> invalid_arg "Values.of_json"
+
+  let to_json_string t vs = Yojson.Basic.to_string (to_json t vs)
+
+  let of_json_string t s = of_json t (Yojson.Basic.from_string s)
 
   let ex_of_rpc rpc =
     let aux0 t = Ex (t, empty t) in
