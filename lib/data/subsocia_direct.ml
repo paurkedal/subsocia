@@ -1717,9 +1717,6 @@ module Make (P : Param) = struct
         (if xs_ins = [] then Lwt.return_unit
                         else add_values' c at xs_ins e e')
       end
-
-    (**/**)
-    let type_ = entity_type
   end
 end
 

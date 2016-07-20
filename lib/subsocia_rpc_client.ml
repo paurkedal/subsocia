@@ -292,8 +292,5 @@ module Make (RPCM : RPCM) = struct
     let force_dsub = Raw.force_dsub
     let relax_dsub = Raw.relax_dsub
     let display_name ~langs e = Lwt.return ("#" ^ Int32.to_string e) (* TODO *)
-
-    (**/**)
-    let type_ = entity_type
   end
 end
