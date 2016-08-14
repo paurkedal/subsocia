@@ -1044,9 +1044,6 @@ module Make (P : Param) = struct
       Cache.clear dsuper_typed_cache;
       Cache.clear inclusion_cache
 
-    type ptuple =
-      Ptuple : (module Caqti_sigs.TUPLE with type t = 't) * 't -> ptuple
-
     let get_values_bool, get_values_bool_cache =
       memo_3lwt @@ fun (e, e', at_id) ->
       with_db @@ fun (module C : CONNECTION) ->

@@ -26,5 +26,5 @@ module type S = sig
      and module Entity_type = Entity_type
      and module Entity = Entity
 
-  val transaction : ((module T) -> unit Lwt.t) -> unit Lwt.t
+  val transaction : ((module T) -> 'a Lwt.t) -> 'a Lwt.t
 end
