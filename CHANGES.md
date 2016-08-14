@@ -17,7 +17,8 @@
 - Dropped `#` prefix from start of rooted selectors.
 
 ### Fixed
-- `Entity.paths`.
+- Rewrote `Entity.paths` to use attribute uniqueness and fixing
+  constructions including non-refinement attributes.
 - Fixed parsing of `#` and `#n` as selector prefixes.
 
 ### Removed
