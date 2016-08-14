@@ -67,6 +67,7 @@ module Entity = struct
   external entity_type : int32 -> int32 = ""
   external rank : int32 -> int = ""
   external type_members : int32 -> int32 list = ""
+  external is_root : int32 -> bool = ""
   external root : unit -> int32 = ""
   external minimums : unit -> int32 list = ""
   external dsub : int32 option -> int32 -> int32 list = ""

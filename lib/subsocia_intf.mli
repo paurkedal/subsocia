@@ -235,6 +235,9 @@ module type ENTITY = sig
 
   val type_members : Entity_type.t -> Set.t Lwt.t
 
+  val is_root : t -> bool Lwt.t
+  (** [is_root e] is true iff [e] is the root element. *)
+
   val root : t Lwt.t
   (** [root] is the root element. *)
 

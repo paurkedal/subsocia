@@ -229,6 +229,7 @@ module Make (RPCM : RPCM) = struct
     let entity_type = Raw.entity_type
     let rank = Raw.rank
     let type_members et = Raw.type_members et >|= Set.of_ordered_elements
+    let is_root e = Raw.is_root e
     let root = Raw.root ()
     let minimums () = Raw.minimums () >|= Set.of_ordered_elements
     let dsub ?et e = Raw.dsub et e >|= Set.of_ordered_elements

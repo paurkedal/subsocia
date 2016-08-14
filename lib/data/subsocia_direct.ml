@@ -996,6 +996,7 @@ module Make (P : Param) = struct
     let soid = Lwt.return
 
     let root_id = 1l
+    let is_root e = Lwt.return (e = root_id)
     let root = of_soid root_id
 
     let entity_type, entity_type_cache = memo_1lwt @@ fun e ->

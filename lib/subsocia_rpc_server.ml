@@ -270,6 +270,9 @@ module Server_impl = struct
       C.Entity.type_members et >|= C.Entity.Set.elements
         >>= Lwt_list.map_s C.Entity.soid
 
+    let is_root (module C : CONTEXT) e_id =
+      C.Entity.of_soid e_id >>= C.Entity.is_root
+
     let root (module C : CONTEXT) () = C.Entity.root >>= C.Entity.soid
 
     let minimums (module C : CONTEXT) () =
