@@ -219,6 +219,24 @@ module Server_impl = struct
         >>= Lwt_list.map_s
               (fun (C.Attribute_type.Ex at) -> C.Attribute_type.soid at)
 
+    let allowed_preimage (module C : CONTEXT) et_id =
+      let%lwt et = C.Entity_type.of_soid et_id in
+      C.Entity_type.allowed_preimage et
+        >>= Lwt_list.map_s
+              (fun (C.Attribute_type.Ex at, et) ->
+                C.Attribute_type.soid at >>= fun at_id ->
+                C.Entity_type.soid et >|= fun et_id ->
+                (at_id, et_id))
+
+    let allowed_image (module C : CONTEXT) et_id =
+      let%lwt et = C.Entity_type.of_soid et_id in
+      C.Entity_type.allowed_image et
+        >>= Lwt_list.map_s
+              (fun (C.Attribute_type.Ex at, et) ->
+                C.Attribute_type.soid at >>= fun at_id ->
+                C.Entity_type.soid et >|= fun et_id ->
+                (at_id, et_id))
+
     let allowed_mappings (module C : CONTEXT) at_id =
       let%lwt C.Attribute_type.Ex at = C.Attribute_type.of_soid at_id in
       C.Entity_type.allowed_mappings at

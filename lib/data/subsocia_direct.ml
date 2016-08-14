@@ -191,6 +191,12 @@ module Q = struct
   let et_allowed_attributes =
     q "SELECT attribute_type_id FROM @attribution_type \
        WHERE domain_id = ? AND codomain_id = ?"
+  let et_allowed_preimage =
+    q "SELECT attribute_type_id, domain_type_id FROM @attribution_type \
+       WHERE codomain_id = ?"
+  let et_allowed_image =
+    q "SELECT attribute_type_id, codomain_type_id FROM @attribution_type \
+       WHERE domain_id = ?"
   let et_allowed_mappings =
     q "SELECT domain_id, codomain_id FROM @attribution_type \
        WHERE attribute_type_id = ?"
@@ -936,6 +942,24 @@ module Make (P : Param) = struct
         Lwt.return (B.Attribute_type.Set.add at at_map) in
       C.fold_s Q.et_allowed_attributes aux C.Param.([|int32 et; int32 et'|])
                B.Attribute_type.Set.empty
+
+    let allowed_preimage, allowed_preimage_cache =
+      memo_1lwt @@ fun et ->
+      with_db @@ fun ((module C) as conn) ->
+      let aux tup acc =
+        let%lwt at = Attribute_type.of_soid' ~conn (C.Tuple.int32 0 tup) in
+        let et = C.Tuple.int32 1 tup in
+        Lwt.return ((at, et) :: acc) in
+      C.fold_s Q.et_allowed_preimage aux C.Param.([|int32 et|]) []
+
+    let allowed_image, allowed_image_cache =
+      memo_1lwt @@ fun et ->
+      with_db @@ fun ((module C) as conn) ->
+      let aux tup acc =
+        let%lwt at = Attribute_type.of_soid' ~conn (C.Tuple.int32 0 tup) in
+        let et = C.Tuple.int32 1 tup in
+        Lwt.return ((at, et) :: acc) in
+      C.fold_s Q.et_allowed_image aux C.Param.([|int32 et|]) []
 
     let allowed_mappings', allowed_mappings_cache =
       memo_1lwt @@ fun (B.Attribute_type.Ex at) ->
