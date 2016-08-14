@@ -335,61 +335,6 @@ module Make (Base : Subsocia_intf.S) = struct
       ["first_name"; "last_name"]
     ]
 
-    let paths e =
-
-      let%lwt r = Entity.rank e in
-      let a = Array.make (r + 1) Entity.Map.empty in
-
-      let inter _ selsA selsB =
-        List.map (fun a -> List.map (fun b -> Select_inter (a, b)) selsB) selsA
-          |> List.flatten |> Option.some in
-
-      let add_conj e ps ats =
-        let select_attr (type a) an (at : a Attribute_type.t) : a -> selector =
-          match Attribute_type.value_type at with
-          | Type.Bool -> fun v ->
-            Select_image (Attribute_eq (an, string_of_bool v))
-          | Type.Int -> fun v ->
-            Select_image (Attribute_eq (an, string_of_int v))
-          | Type.String -> fun v ->
-            Select_image (Attribute_eq (an, v)) in
-        let attr_by_succ (Attribute_type.Ex at) =
-          let%lwt an = Attribute_type.name at in
-          let attr vs = Values.elements vs |> List.map (select_attr an at) in
-          Entity.premapping1 at e >|= Entity.Map.map attr in
-        match%lwt Lwt_list.map_s attr_by_succ ats with
-        | [] -> assert false
-        | m :: ms ->
-          Entity.Map.iter_s
-            (fun e' sels ->
-              let%lwt r' = rank e' in
-              let ps' = List.flatten @@
-                List.map (fun p -> List.map (fun sel -> sel :: p) sels) ps in
-              let ps_acc = try Entity.Map.find e' a.(r') with Not_found -> [] in
-              a.(r') <- Entity.Map.add e' (ps' @ ps_acc) a.(r');
-              Lwt.return_unit)
-            (List.fold (Entity.Map.finter inter) ms m) in
-
-      let%lwt path_candidates =
-        Lwt_list.map_s (Pwt_list.fmap_s Attribute_type.of_name)
-                       path_candidates in
-      a.(r) <- Entity.Map.singleton e [[]];
-      for%lwt r' = r downto 1 do
-        Entity.Map.iter_s
-          (fun e ps -> Lwt_list.iter_s (add_conj e ps) path_candidates)
-          a.(r')
-      done >>
-
-      let%lwt root = Entity.root in
-      Lwt.return begin
-        try
-          let aux = function
-            | [] -> Select_root
-            | x :: xs -> List.fold (fun a y -> Select_with (y, a)) xs x in
-          List.map aux (Entity.Map.find root a.(0))
-        with Not_found -> []
-      end
-
     let unique_premapping1 au e =
 
       let build_attribute at vs =
@@ -413,6 +358,28 @@ module Make (Base : Subsocia_intf.S) = struct
           premapping1 at e
             >>= Map.map_s (fun vs -> build_attribute at vs >|= fun r -> [r])
             >>= Map.fmapi_s (intersect_attributes ats)
+
+    let rec paths e =
+      if%lwt Entity.is_root e then Lwt.return [Select_root] else
+      let%lwt et = Entity.entity_type e in
+      let%lwt apm = Entity_type.allowed_preimage et in
+      let ats = apm |> Entity_type.Map.bindings
+                    |> List.rev_map snd |> List.rev_flatten in
+      let%lwt aus =
+        Pwt_list.fold_s
+          (fun (Attribute_type.Ex at) acc ->
+            Attribute_uniqueness.affecting at >|= fun aus ->
+            Attribute_uniqueness.Set.union aus acc)
+          ats
+          Attribute_uniqueness.Set.empty in
+      let try_r (e', r) =
+        let%lwt ps' = paths e' in
+        let%lwt p = Relation.to_selector r in
+        Lwt.return (List.map (fun p' -> Select_with (p', p)) ps') in
+      let try_au au =
+        unique_premapping1 au e >|= Entity.Map.bindings
+          >>= Pwt_list.flatten_map_p try_r in
+      Pwt_list.flatten_map_p try_au (Attribute_uniqueness.Set.elements aus)
 
     let rec display_name_var ~context ~langs e spec =
       let%lwt root = Entity.root in
