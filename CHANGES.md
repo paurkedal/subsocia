@@ -1,6 +1,26 @@
 # Change Log
 
-## [Unreleased]
+## [0.13.0]
+
+### Added
+- JSON conversions for values.
+- Added `Entity.is_root`
+- Added `Entity_type.allowed_preimage`, `Entity_type.allowed_image`.
+- Added `Entity.unique_premapping1`
+- Added `Values.choose`.
+- Added `Relation.to_selector`.
+
+### Changed
+- Generalized transaction type and removed an unused type.
+- Added `soid` and `of_soid` functions and `Soid` module for AT, AU, ET, and
+  E and deprecated `id` and `of_id`.
+- Dropped `#` prefix from start of rooted selectors.
+
+### Fixed
+- `Entity.paths`.
+- Fixed parsing of `#` and `#n` as selector prefixes.
+
+### Removed
 - Removed `Attribute` module, containing only the deprecated `ex` type.
 - Removed deprecated `access` keyword from schema.
 
