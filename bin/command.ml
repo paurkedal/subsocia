@@ -151,6 +151,7 @@ let main_cmd =
   Term.info ~version:Subsocia_version.pkg_version "subsocia"
 
 let () =
+  Dynlink.allow_unsafe_modules true;
   match Term.eval_choice main_cmd subcommands with
   | `Error `Parse -> exit 64
   | `Error `Term -> exit 69
