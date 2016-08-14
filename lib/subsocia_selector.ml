@@ -51,10 +51,10 @@ let bprint_attr dir op buf p k v =
     Buffer.add_string buf v;
   if p > p_equal then Buffer.add_char buf '}'
 
-let rec bprint_selector buf p = function
+let rec bprint_selector ?(is_prefix = false) buf p = function
   | Select_with (s0, s1) ->
     if p > p_slash then Buffer.add_char buf '{';
-    bprint_selector buf p_slash s0;
+    bprint_selector ~is_prefix:true buf p_slash s0;
     Buffer.add_char buf '/';
     bprint_selector buf p_slash s1;
     if p > p_slash then Buffer.add_char buf '}'
@@ -87,7 +87,7 @@ let rec bprint_selector buf p = function
   | Select_type tn ->
     Buffer.add_char buf ':';
     Buffer.add_string buf tn
-  | Select_root -> Buffer.add_char buf '#'
+  | Select_root -> if not is_prefix then Buffer.add_char buf '#'
   | Select_id id [@ocaml.warning "-3"] -> bprintf buf "#%ld" id
   | Select_dsub ->
     if p > p_equal then Buffer.add_char buf '{';
@@ -109,7 +109,7 @@ let rec bprint_selector buf p = function
 
 let string_of_selector s =
   let buf = Buffer.create 80 in
-  bprint_selector buf p_slash s;
+  bprint_selector ~is_prefix:true buf p_slash s;
   Buffer.contents buf
 
 let rec longest_prefix = function
