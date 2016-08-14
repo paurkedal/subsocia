@@ -127,8 +127,8 @@ path:
   | SLASH relative_path { Select_with (Select_root, $2) }
   | TOP { Select_root }
   | ID { Select_id $1 [@ocaml.warning "-3"] }
-  | TOP relative_path { Select_with (Select_root, $2) }
-  | ID relative_path { Select_with (Select_id $1 [@ocaml.warning "-3"], $2) }
+  | TOP SLASH relative_path { Select_with (Select_root, $3) }
+  | ID SLASH relative_path {Select_with (Select_id $1[@ocaml.warning "-3"], $3)}
   ;
 relative_path:
     path_component { $1 }

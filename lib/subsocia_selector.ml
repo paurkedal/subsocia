@@ -255,7 +255,8 @@ module Selector_utils (C : Subsocia_intf.S) = struct
       if C.Entity.Set.is_empty es then Lwt.return C.Entity.Set.empty else
       C.Entity.root >|= C.Entity.Set.singleton
     | Select_id id [@ocaml.warning "-3"] -> fun es ->
-      let soid = C.Entity.Soid.of_string (sprintf "E%ld" id) in
+      let soid =
+        C.Entity.Soid.of_string (sprintf Subsocia_internal.e_soid_format id) in
       if C.Entity.Set.is_empty es then Lwt.return C.Entity.Set.empty else
       C.Entity.of_soid soid >|= C.Entity.Set.singleton
     | Select_dsub -> fun es ->
