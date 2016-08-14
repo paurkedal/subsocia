@@ -50,20 +50,26 @@ module type S = sig
   open Base
 
   module Attribute_type : sig
+    type soid = Base.Attribute_type.soid
     type 'a t = 'a Base.Attribute_type.t
     type ex = Base.Attribute_type.ex = Ex : 'a t -> ex
     include ATTRIBUTE_TYPE
-       with type 'a t := 'a t and type ex := ex
-        and module Set = Base.Attribute_type.Set
-        and module Map = Base.Attribute_type.Map
+      with type soid := soid
+       and type 'a t := 'a t and type ex := ex
+       and module Set = Base.Attribute_type.Set
+       and module Map = Base.Attribute_type.Map
 
     val coerce : 'a Type.t -> ex -> 'a t option
     val required : string -> ex Lwt.t
     val typed_required : 'a Type.t -> string -> 'a t Lwt.t
   end
 
-  module Attribute_uniqueness :
-    ATTRIBUTE_UNIQUENESS with module Attribute_type := Base.Attribute_type
+  module Attribute_uniqueness : sig
+    include ATTRIBUTE_UNIQUENESS
+      with type soid = Base.Attribute_uniqueness.soid
+       and module Attribute_type := Base.Attribute_type
+    val soid_string : t -> string Lwt.t
+  end
 
   module Relation : sig
     include RELATION
@@ -85,7 +91,8 @@ module type S = sig
 
   module Entity_type : sig
     include ENTITY_TYPE
-       with module Attribute_type := Base.Attribute_type
+       with type soid = Base.Entity_type.soid
+        and module Attribute_type := Base.Attribute_type
         and type t = Base.Entity_type.t
         and module Set = Base.Entity_type.Set
         and module Map = Base.Entity_type.Map
@@ -96,12 +103,16 @@ module type S = sig
   end
 
   module Entity : sig
-    include ENTITY with module Attribute_type := Base.Attribute_type
-                    and module Relation := Base.Relation
-                    and module Entity_type := Base.Entity_type
-                    and type t = Base.Entity.t
-                    and module Set = Base.Entity.Set
-                    and module Map = Base.Entity.Map
+    include ENTITY
+      with type soid = Base.Entity.soid
+       and module Attribute_type := Base.Attribute_type
+       and module Relation := Base.Relation
+       and module Entity_type := Base.Entity_type
+       and type t = Base.Entity.t
+       and module Set = Base.Entity.Set
+       and module Map = Base.Entity.Map
+
+    val soid_string : t -> string Lwt.t
 
     val equal : t -> t -> bool
 
@@ -155,4 +166,13 @@ module type S = sig
     val e_new_users : Entity.t Lwt.t
     val e_default : Entity.t Lwt.t
   end
+end
+
+module type S_SOID = sig
+  type soid
+  include S
+    with type Base.Attribute_type.soid = soid
+     and type Base.Attribute_uniqueness.soid = soid
+     and type Base.Entity_type.soid = soid
+     and type Base.Entity.soid = soid
 end

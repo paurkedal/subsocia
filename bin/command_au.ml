@@ -48,11 +48,12 @@ let au_force atns = run @@ fun (module C : S) ->
   match%lwt C.Attribute_uniqueness.find ats with
   | None ->
     let%lwt au = C.Attribute_uniqueness.force ats in
-    Lwt_io.eprintlf "Created constraint #%ld." (C.Attribute_uniqueness.id au) >>
+    let%lwt au_idstr = C.Attribute_uniqueness.soid_string au in
+    Lwt_io.eprintlf "Created constraint %s." au_idstr >>
     Lwt.return 0
   | Some au ->
-    Lwt_io.eprintlf "Already constrained by #%ld."
-                    (C.Attribute_uniqueness.id au) >>
+    let%lwt au_idstr = C.Attribute_uniqueness.soid_string au in
+    Lwt_io.eprintlf "Already constrained by %s." au_idstr >>
     Lwt.return 1
 
 let au_force_t =
@@ -66,7 +67,8 @@ let au_relax atns = run @@ fun (module C : S) ->
   match%lwt C.Attribute_uniqueness.find ats with
   | Some au ->
     C.Attribute_uniqueness.relax au >>
-    Lwt_io.eprintlf "Removed constraint #%ld." (C.Attribute_uniqueness.id au) >>
+    let%lwt au_idstr = C.Attribute_uniqueness.soid_string au in
+    Lwt_io.eprintlf "Removed constraint %s." au_idstr >>
     Lwt.return 0
   | None ->
     Lwt_io.eprintlf "No matching constraint." >>

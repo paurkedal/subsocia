@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,3 +16,8 @@
 
 type re = string
 type fts = string
+
+let at_soid_format : ('a, 'b, 'c, 'd) format4 = "#%ld"
+let au_soid_format : ('a, 'b, 'c, 'd) format4 = "#%ld"
+let et_soid_format : ('a, 'b, 'c, 'd) format4 = "#%ld"
+let e_soid_format : ('a, 'b, 'c, 'd) format4 = "#%ld"

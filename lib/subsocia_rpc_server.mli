@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,4 +16,5 @@
 
 (** RPC server. *)
 
-val process : (module Subsocia_intf.S) -> Rpc.call -> Rpc.response Lwt.t
+val process : (module Subsocia_intf.S_SOID with type soid = int32) ->
+              Rpc.call -> Rpc.response Lwt.t

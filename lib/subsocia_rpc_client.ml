@@ -14,7 +14,9 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Printf
 open Pwt_infix
+open Scanf
 open Subsocia_common
 open Subsocia_prereq
 open Subsocia_rpc_types
@@ -25,6 +27,7 @@ open Unprime_option
 module type RPCM = Subsocia_rpc_primitives.RPCM with type 'a t = 'a Lwt.t
 
 module Attribute_type_base = struct
+  type soid = int32
   type 'a t = {
     at_id : int32;
     at_name : string;
@@ -49,13 +52,18 @@ module Make (RPCM : RPCM) = struct
     module Set = Prime_enumset.Make_monadic (Comparable) (Lwt)
     module Map = Prime_enummap.Make_monadic (Comparable) (Lwt)
 
-    let of_id at_id =
-      let%lwt at_name, Type.Ex at_type, at_mult = Raw.of_id at_id in
+    module Soid = struct
+      let to_string id = sprintf Subsocia_internal.at_soid_format id
+      let of_string s = sscanf s Subsocia_internal.at_soid_format (fun id -> id)
+    end
+
+    let of_soid at_id =
+      let%lwt at_name, Type.Ex at_type, at_mult = Raw.of_soid at_id in
       Lwt.return (Ex {at_id; at_name; at_type; at_mult})
-    let id at = at.at_id
+    let soid at = Lwt.return at.at_id
 
     let decode_set s = List.map (fun (Ex {at_id}) -> at_id) (Set.elements s)
-    let encode_set ids = Lwt_list.map_s of_id ids >|= Set.of_ordered_elements
+    let encode_set ids = Lwt_list.map_s of_soid ids >|= Set.of_ordered_elements
 
     let of_name at_name =
       Raw.of_name at_name >|=
@@ -69,21 +77,31 @@ module Make (RPCM : RPCM) = struct
       {at_id; at_name; at_type = vt; at_mult = mult}
     let delete at = Raw.delete at.at_id
     let all () = Raw.all () >>= encode_set
+
+    (**/**)
+    let of_id = of_soid
+    let id at = at.at_id
   end
 
   module Attribute_uniqueness = struct
     module Raw = Raw.Attribute_uniqueness
+    type soid = int32
     type t = int32
 
     module Set = Int32_set
     module Map = Int32_map
 
+    module Soid = struct
+      let to_string id = sprintf Subsocia_internal.au_soid_format id
+      let of_string s = sscanf s Subsocia_internal.au_soid_format (fun id -> id)
+    end
+
     exception Not_unique of Set.t
 
-    let of_id = Lwt.return
-    let id u = u
+    let of_soid = Lwt.return
+    let soid = Lwt.return
 
-    let encode_set ids = Lwt_list.map_s of_id ids >|= Set.of_ordered_elements
+    let encode_set ids = Lwt_list.map_s of_soid ids >|= Set.of_ordered_elements
 
     let force s = Raw.force (Attribute_type.decode_set s)
     let relax u = Raw.relax u
@@ -91,6 +109,10 @@ module Make (RPCM : RPCM) = struct
     let all () = Raw.all () >>= encode_set
     let affecting at = Raw.affecting (Attribute_type.id at) >>= encode_set
     let affected u = Raw.affected u >>= Attribute_type.encode_set
+
+    (**/**)
+    let of_id = Lwt.return
+    let id u = u
   end
 
   module Relation = struct
@@ -112,12 +134,19 @@ module Make (RPCM : RPCM) = struct
     module Set = Int32_set
     module Map = Int32_map
 
+    module Soid = struct
+      let to_string id = sprintf Subsocia_internal.et_soid_format id
+      let of_string s = sscanf s Subsocia_internal.et_soid_format (fun id -> id)
+    end
+
+    type soid = int32
     type t = int32
 
     let of_name = Raw.of_name
 
-    let id et = et
-    let of_id et = Lwt.return et
+    let of_soid = Lwt.return
+    let soid = Lwt.return
+
     let compare = compare
 
     let name = Raw.name
@@ -153,7 +182,8 @@ module Make (RPCM : RPCM) = struct
       Raw.can_attribute (Attribute_type.id at) et0 et1
 
     let allowed_attributes lbt ubt =
-      Raw.allowed_attributes lbt ubt >>= Lwt_list.map_s Attribute_type.of_id >|=
+      Raw.allowed_attributes lbt ubt >>=
+      Lwt_list.map_s Attribute_type.of_soid >|=
       Attribute_type.Set.of_ordered_elements
 
     let allowed_mappings at =
@@ -161,7 +191,7 @@ module Make (RPCM : RPCM) = struct
 
     let allowed_attributions () =
       let aux (at_id, et0, et1) =
-        Attribute_type.of_id at_id >|= fun at -> (at, et0, et1) in
+        Attribute_type.of_soid at_id >|= fun at -> (at, et0, et1) in
       Raw.allowed_attributions () >>= Lwt_list.map_s aux
 
     let allow_attribution at et0 et1 =
@@ -169,18 +199,29 @@ module Make (RPCM : RPCM) = struct
 
     let disallow_attribution at et0 et1 =
       Raw.disallow_attribution at.Attribute_type.at_id et0 et1
+
+    (**/**)
+    let id et = et
+    let of_id et = Lwt.return et
   end
 
   module Entity = struct
     module Raw = Raw.Entity
 
+    type soid = int32
     type t = int32
 
     module Set = Int32_set
     module Map = Int32_map
 
-    let id e = e
-    let of_id e = Lwt.return e
+    module Soid = struct
+      let to_string id = sprintf Subsocia_internal.e_soid_format id
+      let of_string s = sscanf s Subsocia_internal.e_soid_format (fun id -> id)
+    end
+
+    let of_soid = Lwt.return
+    let soid = Lwt.return
+
     let compare = compare
 
     let create = Raw.create
@@ -201,7 +242,7 @@ module Make (RPCM : RPCM) = struct
     let check_uniqueness_error = function
       | [] -> Lwt.return_unit
       | ua_ids ->
-        let%lwt uas = Lwt_list.map_s Attribute_uniqueness.of_id ua_ids in
+        let%lwt uas = Lwt_list.map_s Attribute_uniqueness.of_soid ua_ids in
         Lwt.fail (Attribute_uniqueness.Not_unique
                     (Attribute_uniqueness.Set.of_ordered_elements uas))
 
@@ -292,5 +333,9 @@ module Make (RPCM : RPCM) = struct
     let force_dsub = Raw.force_dsub
     let relax_dsub = Raw.relax_dsub
     let display_name ~langs e = Lwt.return ("#" ^ Int32.to_string e) (* TODO *)
+
+    (**/**)
+    let id e = e
+    let of_id e = Lwt.return e
   end
 end

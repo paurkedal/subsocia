@@ -69,6 +69,7 @@ let () =
   let%lwt e_root = Entity.root in
   let%lwt et_person = Const.et_person in
   let%lwt e_new_user = Entity.create et_person in
+  let%lwt e_new_user_id = Entity.soid e_new_user in
   let%lwt e_new_users = Const.e_new_users in
   Entity.force_dsub e_new_user e_new_users >>
   Entity.set_value at_first_name first_name e_root e_new_user >>
@@ -84,6 +85,6 @@ let () =
         F.p [
           F.a ~service:entities_service
             [F.pcdata "Your registration is complete."]
-            (Some (Entity.id e_new_user));
+            (Some e_new_user_id);
         ];
       ])

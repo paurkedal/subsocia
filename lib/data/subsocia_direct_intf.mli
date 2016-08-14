@@ -15,7 +15,7 @@
  *)
 
 module type S = sig
-  include Subsocia_intf.S
+  include Subsocia_intf.S_SOID with type soid := int32
 
   val entity_changed : Entity.t -> [`Dsub | `Dsuper | `Asub | `Asuper] React.E.t
 

@@ -64,7 +64,10 @@ module Make (Base : Subsocia_intf.S) = struct
       | Some at -> Lwt.return at
   end
 
-  module Attribute_uniqueness = Base.Attribute_uniqueness
+  module Attribute_uniqueness = struct
+    include Base.Attribute_uniqueness
+    let soid_string au = soid au >|= Soid.to_string
+  end
 
   module Relation = struct
     include Base.Relation
@@ -133,6 +136,8 @@ module Make (Base : Subsocia_intf.S) = struct
   module Entity = struct
     include Base.Entity
     include Subsocia_selector.Selector_utils (Base)
+
+    let soid_string au = soid au >|= Soid.to_string
 
     let equal e0 e1 = Base.Entity.compare e0 e1 = 0
 
@@ -404,10 +409,9 @@ module Make (Base : Subsocia_intf.S) = struct
       Pwt_list.search_s aux (Prime_string.chop_affix "|" tmpl)
 
     let display_name ?(context = Entity.Set.empty) ?(langs = []) e =
-      display_name_tmpl ~context ~langs e >|=
-      function
-        | None -> sprintf "#%ld" (Entity.id e)
-        | Some s -> s
+      match%lwt display_name_tmpl ~context ~langs e with
+      | None -> Entity.soid e >|= Soid.to_string
+      | Some s -> Lwt.return s
 
     let candidate_dsupers ?(include_current = false) e =
       let%lwt et = Entity.entity_type e in

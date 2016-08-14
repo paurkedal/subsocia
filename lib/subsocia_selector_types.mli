@@ -34,7 +34,7 @@ type selector =
   | Select_preimage of attribute_selector
   | Select_type of string
   | Select_root
-  | Select_id of int32
+  | Select_id of int32 [@ocaml.deprecated]
 
 type add_selector = selector option * string list String_map.t
 type delete_selector = selector option * string list option String_map.t

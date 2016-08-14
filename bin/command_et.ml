@@ -21,7 +21,8 @@ open Printf
 
 let et_create etn = run0 @@ fun (module C) ->
   let%lwt et = C.Entity_type.create etn in
-  Lwt_log.info_f "Created type #%ld = %s." (C.Entity_type.id et) etn
+  let%lwt et_idstr = C.Entity_type.(soid et >|= Soid.to_string) in
+  Lwt_log.info_f "Created type %s = %s." et_idstr etn
 
 let et_create_t =
   let et_name_t =
@@ -56,7 +57,7 @@ let et_delete etn = run @@ fun (module C) ->
   | None ->
     Lwt.return (`Error (false, sprintf "No type is named %s." etn))
   | Some et ->
-    let et_id = C.Entity_type.id et in
+    let%lwt et_id = C.Entity_type.soid et in
     C.Entity_type.delete et >>
     Lwt_log.info_f "Deleted type #%ld = %s." et_id etn >>
     Lwt.return (`Ok 0)

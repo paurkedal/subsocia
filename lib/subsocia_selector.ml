@@ -88,7 +88,7 @@ let rec bprint_selector buf p = function
     Buffer.add_char buf ':';
     Buffer.add_string buf tn
   | Select_root -> Buffer.add_char buf '#'
-  | Select_id id -> bprintf buf "#%ld" id
+  | Select_id id [@ocaml.warning "-3"] -> bprintf buf "#%ld" id
   | Select_dsub ->
     if p > p_equal then Buffer.add_char buf '{';
     Buffer.add_char buf pred_char;
@@ -121,7 +121,8 @@ let rec longest_prefix = function
   | sel -> None, sel
 
 let rec aconj_of_selector = function
-  | Select_with _ | Select_union _ | Select_root | Select_id _
+  | Select_with _ | Select_union _ | Select_root
+  | Select_id _ [@ocaml.warning "-3"]
   | Select_dsub | Select_dsuper
   | Select_image (Attribute_present _ | Attribute_leq _ | Attribute_geq _)
   | Select_preimage _
@@ -141,7 +142,8 @@ let add_selector_of_selector sel =
   pfx, aconj_of_selector subsel String_map.empty
 
 let rec dconj_of_selector = function
-  | Select_with _ | Select_union _ | Select_root | Select_id _
+  | Select_with _ | Select_union _ | Select_root
+  | Select_id _ [@ocaml.warning "-3"]
   | Select_dsub | Select_dsuper
   | Select_image (Attribute_leq _ | Attribute_geq _)
   | Select_preimage _
@@ -252,9 +254,10 @@ module Selector_utils (C : Subsocia_intf.S) = struct
     | Select_root -> fun es ->
       if C.Entity.Set.is_empty es then Lwt.return C.Entity.Set.empty else
       C.Entity.root >|= C.Entity.Set.singleton
-    | Select_id id -> fun es ->
+    | Select_id id [@ocaml.warning "-3"] -> fun es ->
+      let soid = C.Entity.Soid.of_string (sprintf "E%ld" id) in
       if C.Entity.Set.is_empty es then Lwt.return C.Entity.Set.empty else
-      C.Entity.of_id id >|= C.Entity.Set.singleton
+      C.Entity.of_soid soid >|= C.Entity.Set.singleton
     | Select_dsub -> fun es ->
       C.Entity.Set.fold_s
         (fun e1 acc -> C.Entity.dsub e1 >|= C.Entity.Set.union acc)

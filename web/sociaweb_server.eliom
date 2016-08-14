@@ -21,13 +21,13 @@ module Sociaweb_app =
   Eliom_registration.App (struct let application_name = "sociaweb_app" end)
 
 let entity_for_view ~operator entity_id =
-  let%lwt entity = Entity.of_id entity_id in
+  let%lwt entity = Entity.of_soid entity_id in
   match%lwt Entity.can_view_entity operator entity with
   | true -> Lwt.return entity
   | false -> http_error 403 "Not authorized for this entity."
 
 let entity_for_edit ~operator entity_id =
-  let%lwt entity = Entity.of_id entity_id in
+  let%lwt entity = Entity.of_soid entity_id in
   match%lwt Entity.can_edit_entity operator entity with
   | true -> Lwt.return entity
   | false -> http_error 403 "Not authorized for editing this entity."

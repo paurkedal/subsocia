@@ -64,8 +64,8 @@ open Subsocia_connection
                          F.a_style "visibility: hidden"] [] in
       Lwt.return (F.td [button; link])
     else
-      let focus_id = Entity.id focus in
-      let dsuper_id = Entity.id csuper in
+      let%lwt focus_id = Entity.soid focus in
+      let%lwt dsuper_id = Entity.soid csuper in
       let%lwt is_dsuper = Entity.is_dsub focus csuper in
       let label, handler, a =
         if is_dsuper then
@@ -179,7 +179,7 @@ let entity_handler entity_id_opt () =
       let%lwt entity_id =
         match%lwt Entity.select_opt default_entity_sel with
         | None -> Lwt.return 1l
-        | Some entity -> Lwt.return (Entity.id entity) in
+        | Some entity -> Entity.soid entity in
       http_redirect ~service:entities_service (Some entity_id) in
   let%lwt e = entity_for_view ~operator:cri.cri_operator entity_id in
   let%lwt enable_edit =
@@ -203,7 +203,7 @@ let entity_handler entity_id_opt () =
       Eliom_client.change_page ~service:entities_service (Some entity_id) () >>
       Lwt.return Ack_ok
   ] in
-  let search_inp, search_handle = entity_completion_input do_search in
+  let%lwt search_inp, search_handle = entity_completion_input do_search in
   let search_div = F.div ~a:[F.a_class ["soc-search"]] [
     F.label [F.pcdata "Search"]; F.br ();
     search_inp;
@@ -216,7 +216,7 @@ let entity_handler entity_id_opt () =
 
 let entities_self_handler () () =
   let%lwt operator = authenticate () in
-  let operator_id = Entity.id operator in
+  let%lwt operator_id = Entity.soid operator in
   Lwt.return (Eliom_service.preapply entities_service (Some operator_id))
 
 let () =

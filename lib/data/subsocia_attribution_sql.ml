@@ -16,6 +16,7 @@
 
 open Caqti_sql
 open Caqti_query
+open Lwt.Infix
 open Printf
 open Subsocia_common
 open Subsocia_intf
@@ -30,6 +31,7 @@ let schema_prefix = ref "subsocia." (* FIXME: import *)
 
 module type Arg = sig
   module Attribute_type : ATTRIBUTE_TYPE
+    with type soid = int32
   module Relation : RELATION
     with module Attribute_type := Attribute_type
 end
@@ -68,23 +70,25 @@ module Make (Arg : Arg) = struct
       | Type.String, s -> bprint_sql_quoted buf s in
 
     let do_cond0 i at =
-      bprintf buf "q%d.attribute_type_id = %ld" i (Attribute_type.id at) in
+      Attribute_type.soid at >|= fun at_id ->
+      bprintf buf "q%d.attribute_type_id = %ld" i at_id in
 
     let do_cond1 i op at x =
-      bprintf buf "q%d.attribute_type_id = %ld AND q%d.value %s "
-              i (Attribute_type.id at) i op;
+      Attribute_type.soid at >|= fun at_id ->
+      bprintf buf "q%d.attribute_type_id = %ld AND q%d.value %s " i at_id i op;
       do_value at x in
 
     let do_between i at x y =
-      bprintf buf "q%d.attribute_type_id = %ld AND q%d.value >= "
-              i (Attribute_type.id at) i;
+      Attribute_type.soid at >|= fun at_id ->
+      bprintf buf "q%d.attribute_type_id = %ld AND q%d.value >= " i at_id i;
       do_value at x;
       bprintf buf " AND q%d.value < " i;
       do_value at y in
 
     let do_in i at xs =
+      Attribute_type.soid at >|= fun at_id ->
       assert (not (Values.is_empty xs));
-      bprintf buf "q%d.attribute_type_id = %ld AND (" i (Attribute_type.id at);
+      bprintf buf "q%d.attribute_type_id = %ld AND (" i at_id;
       let is_first = ref true in
       Values.iter
         (fun x ->
@@ -98,7 +102,8 @@ module Make (Arg : Arg) = struct
       bprintf buf "q%d.fts_vector @@ to_tsquery(q%d.fts_config::regconfig, "
               i i;
       bprint_sql_quoted buf x;
-      bprintf buf ")" in
+      bprintf buf ")";
+      Lwt.return_unit in
 
     let do_cond i pred =
       Buffer.add_string buf (if i = 0 then " WHERE " else " AND ");
@@ -114,7 +119,7 @@ module Make (Arg : Arg) = struct
       | Relation.Search_fts x -> do_fts i x in
 
     List.iteri do_join preds;
-    List.iteri do_cond preds
+    Lwt_list.iteri_p do_cond preds
 
   let rec flatten = function
     | Relation.Inter ps -> List.flatten_map flatten ps
@@ -123,7 +128,7 @@ module Make (Arg : Arg) = struct
   let select_image p ids =
     let buf = Buffer.create 512 in
     Buffer.add_string buf "SELECT q0.output_id FROM ";
-    bprint_adjacency_conj buf (flatten p);
+    let%lwt () = bprint_adjacency_conj buf (flatten p) in
     begin match ids with
     | [] -> bprintf buf " AND false" (* FIXME *)
     | [id] -> bprintf buf " AND q0.input_id = %ld" id
@@ -132,12 +137,12 @@ module Make (Arg : Arg) = struct
       List.iter (bprintf buf " OR q0.input_id = %ld") ids;
       Buffer.add_char buf ')'
     end;
-    oneshot_sql (Buffer.contents buf)
+    Lwt.return (oneshot_sql (Buffer.contents buf))
 
   let select_preimage p ids =
     let buf = Buffer.create 512 in
     Buffer.add_string buf "SELECT q0.input_id FROM ";
-    bprint_adjacency_conj buf (flatten p);
+    let%lwt () = bprint_adjacency_conj buf (flatten p) in
     begin match ids with
     | [] -> bprintf buf " AND false" (* FIXME *)
     | [id] -> bprintf buf " AND q0.output_id = %ld" id
@@ -146,6 +151,6 @@ module Make (Arg : Arg) = struct
       List.iter (bprintf buf " OR q0.output_id = %ld") ids;
       Buffer.add_char buf ')'
     end;
-    oneshot_sql (Buffer.contents buf)
+    Lwt.return (oneshot_sql (Buffer.contents buf))
 
 end

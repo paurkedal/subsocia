@@ -16,7 +16,9 @@
 
 open Caqti_lwt
 open Panograph_i18n
+open Printf
 open Pwt_infix
+open Scanf
 open Subsocia_common
 open Subsocia_prereq
 open Unprime
@@ -43,7 +45,7 @@ let format_query sql = Caqti_query.prepare_fun @@ fun lang ->
     let p = ref 0 in
     for i = 0 to n - 1 do
       match sql.[i] with
-      | '?' -> incr p; Printf.bprintf buf "$%d" !p
+      | '?' -> incr p; bprintf buf "$%d" !p
       | '@' when i + 1 < n && Char.is_alpha sql.[i + 1] ->
         Buffer.add_string buf !schema_prefix
       | ch -> Buffer.add_char buf ch
@@ -58,7 +60,7 @@ let format_query sql = Caqti_query.prepare_fun @@ fun lang ->
   end;
   Buffer.contents buf
 
-let format_query_f fmt = Printf.ksprintf format_query fmt
+let format_query_f fmt = ksprintf format_query fmt
 
 (* TODO: Read custom mapping from a configuration file. These are only the
  * currently shipped catalogs. *)
@@ -598,6 +600,7 @@ let memo_6lwt f = let g, c = memo_1lwt f in
 
 module B = struct
   module Attribute_type = struct
+    type soid = int32
     type 'a t = {
       at_id : int32;
       at_name : string;
@@ -631,13 +634,24 @@ module B = struct
     end
     module Map = Prime_enummap.Make_monadic (Comparable) (Lwt)
     module Set = Prime_enumset.Make_monadic (Comparable) (Lwt)
+
+    module Soid = struct
+      let to_string id = sprintf Subsocia_internal.at_soid_format id
+      let of_string s = sscanf s Subsocia_internal.at_soid_format (fun id -> id)
+    end
   end
 
   module Attribute_uniqueness = struct
+    type soid = int32
     type t = int32
 
     module Set = Int32_set
     module Map = Int32_map
+
+    module Soid = struct
+      let to_string id = sprintf Subsocia_internal.au_soid_format id
+      let of_string s = sscanf s Subsocia_internal.au_soid_format (fun id -> id)
+    end
 
     exception Not_unique of Set.t
   end
@@ -656,19 +670,31 @@ module B = struct
   end
 
   module Entity_type = struct
+    type soid = int32
     type t = int32
 
     module Set = Int32_set
     module Map = Int32_map
+
+    module Soid = struct
+      let to_string id = sprintf Subsocia_internal.et_soid_format id
+      let of_string s = sscanf s Subsocia_internal.et_soid_format (fun id -> id)
+    end
 
     let compare = Int32.compare
   end
 
   module Entity = struct
+    type soid = int32
     type t = int32
 
     module Set = Int32_set
     module Map = Int32_map
+
+    module Soid = struct
+      let to_string id = sprintf Subsocia_internal.e_soid_format id
+      let of_string s = sscanf s Subsocia_internal.e_soid_format (fun id -> id)
+    end
   end
 end
 
@@ -688,10 +714,10 @@ module Make (P : Param) = struct
   module Attribute_type = struct
     open B.Attribute_type
 
-    let id at = at.at_id
+    let soid at = Lwt.return at.at_id
     let name at = Lwt.return at.at_name
 
-    let of_id', of_id_cache = Cache.memo_lwt_conn @@ fun ?conn at_id ->
+    let of_soid', of_soid_cache = Cache.memo_lwt_conn @@ fun ?conn at_id ->
       with_db ?conn @@ fun (module C : CONNECTION) ->
       C.find Q.at_by_id
              C.Tuple.(fun tup -> string 0 tup, string 1 tup, int 2 tup)
@@ -702,7 +728,7 @@ module Make (P : Param) = struct
       Beacon.embed attribute_type_grade @@ fun at_beacon ->
       Ex {at_id; at_name; at_value_type; at_value_mult; at_beacon}
 
-    let of_id id = of_id' id
+    let of_soid id = of_soid' id
 
     let of_name, of_name_cache = memo_1lwt @@ fun at_name ->
       with_db @@ fun (module C : CONNECTION) ->
@@ -730,7 +756,7 @@ module Make (P : Param) = struct
       C.find Q.at_create C.Tuple.(int32 0)
              C.Param.([|string at_name; string (Type.to_string vt);
                         int (Multiplicity.to_int mult); option string fts|])
-        >>= of_id' ~conn >|= assert_coerce vt
+        >>= of_soid' ~conn >|= assert_coerce vt
 
     let delete at =
       with_db @@ fun (module C : CONNECTION) ->
@@ -740,15 +766,19 @@ module Make (P : Param) = struct
       let%lwt at_ids =
         with_db @@ fun (module C : CONNECTION) ->
         C.fold Q.at_all (fun t acc -> C.Tuple.int32 0 t :: acc) [||] [] in
-      Pwt_list.fold_s (fun id acc -> of_id id >|= fun at -> Set.add at acc)
+      Pwt_list.fold_s (fun id acc -> of_soid id >|= fun at -> Set.add at acc)
                       at_ids Set.empty
+
+    (**/**)
+    let id at = at.at_id
+    let of_id = of_soid
   end
 
   module Attribute_uniqueness = struct
     open B.Attribute_uniqueness
 
-    let of_id = Lwt.return
-    let id au = au
+    let of_soid = Lwt.return
+    let soid = Lwt.return
 
     let all, all_cache = memo_1lwt @@ fun () ->
       with_db @@ fun (module C : CONNECTION) ->
@@ -802,6 +832,10 @@ module Make (P : Param) = struct
       Cache.clear all_cache;
       Cache.remove affected_cache au;
       Cache.clear affecting_cache
+
+    (**/**)
+    let id au = au
+    let of_id = of_soid
   end
 
   module Attribution_sql = Subsocia_attribution_sql.Make (struct
@@ -815,8 +849,8 @@ module Make (P : Param) = struct
   module Entity_type = struct
     open B.Entity_type
 
-    let of_id et = Lwt.return et
-    let id et = et
+    let of_soid = Lwt.return
+    let soid = Lwt.return
 
     let of_name, of_name_cache =
       memo_1lwt @@ fun name ->
@@ -898,7 +932,7 @@ module Make (P : Param) = struct
       memo_2lwt @@ fun (et, et') ->
       with_db @@ fun ((module C) as conn) ->
       let aux tup at_map =
-        let%lwt at = Attribute_type.of_id' ~conn (C.Tuple.int32 0 tup) in
+        let%lwt at = Attribute_type.of_soid' ~conn (C.Tuple.int32 0 tup) in
         Lwt.return (B.Attribute_type.Set.add at at_map) in
       C.fold_s Q.et_allowed_attributes aux C.Param.([|int32 et; int32 et'|])
                B.Attribute_type.Set.empty
@@ -929,7 +963,7 @@ module Make (P : Param) = struct
       with_db @@ fun ((module C) as conn) ->
       let aux tup acc =
         let et0, et1 = C.Tuple.(int32 1 tup, int32 2 tup) in
-        Attribute_type.of_id' ~conn C.Tuple.(int32 0 tup) >|= fun at ->
+        Attribute_type.of_soid' ~conn C.Tuple.(int32 0 tup) >|= fun at ->
         (at, et0, et1) :: acc in
       C.fold_s Q.et_allowed_attributions aux [||] []
 
@@ -944,6 +978,10 @@ module Make (P : Param) = struct
              C.Param.([|int32 at.B.Attribute_type.at_id; int32 et; int32 et'|])
 
     let display_name ~langs ?pl = name (* FIXME *)
+
+    (**/**)
+    let of_id et = Lwt.return et
+    let id et = et
   end
 
   module Entity = struct
@@ -954,11 +992,11 @@ module Make (P : Param) = struct
 
     let compare = Int32.compare
 
-    let of_id e = Lwt.return e
-    let id e = e
+    let of_soid = Lwt.return
+    let soid = Lwt.return
 
     let root_id = 1l
-    let root = of_id root_id
+    let root = of_soid root_id
 
     let entity_type, entity_type_cache = memo_1lwt @@ fun e ->
       with_db @@ fun (module C) ->
@@ -1076,14 +1114,14 @@ module Make (P : Param) = struct
 
     (* TODO: Cache? *)
     let image_generic p es =
+      let%lwt q = Attribution_sql.select_image p es in
       with_db @@ fun (module C : CONNECTION) ->
-      let q = Attribution_sql.select_image p es in
       C.fold q (fun t -> Set.add (C.Tuple.int32 0 t)) [||] Set.empty
 
     (* TODO: Cache? *)
     let preimage_generic p es =
+      let%lwt q = Attribution_sql.select_preimage p es in
       with_db @@ fun (module C : CONNECTION) ->
-      let q = Attribution_sql.select_preimage p es in
       C.fold q (fun t -> Set.add (C.Tuple.int32 0 t)) [||] Set.empty
 
     let asub_conj e ps = image_generic (B.Relation.Inter ps) [e]
@@ -1714,6 +1752,10 @@ module Make (P : Param) = struct
         (if xs_ins = [] then Lwt.return_unit
                         else add_values' c at xs_ins e e')
       end
+
+    (**/**)
+    let of_id e = Lwt.return e
+    let id e = e
   end
 end
 
@@ -1762,8 +1804,9 @@ let connect uri =
       include M.Entity
     end
 
-    module type T = Subsocia_intf.S
-      with type 'a Attribute_type.t = 'a Attribute_type.t
+    module type T = Subsocia_intf.S_SOID
+      with type soid := int32
+       and type 'a Attribute_type.t = 'a Attribute_type.t
        and type Attribute_type.ex = Attribute_type.ex
        and type Attribute_type.Set.t = Attribute_type.Set.t
        and type 'a Attribute_type.Map.t = 'a Attribute_type.Map.t

@@ -19,41 +19,63 @@
 open Panograph_i18n
 open Subsocia_common
 
+module type SOID = sig
+  type soid
+
+  val of_string : string -> soid
+  (** For internal use. *)
+
+  val to_string : soid -> string
+  (** A textual representation for logging and debugging. *)
+end
+
 module type ATTRIBUTE_TYPE = sig
+  type soid
   type 'a t
   type ex = Ex : 'a t -> ex
 
   module Set : SET with type elt = ex
   module Map : MAP with type key = ex
+  module Soid : SOID with type soid := soid
 
-  val of_id : int32 -> ex Lwt.t
+  val of_soid : soid -> ex Lwt.t
+  val soid : 'a t -> soid Lwt.t
   val of_name : string -> ex option Lwt.t
-  val id : 'a t -> int32
   val name : 'a t -> string Lwt.t
   val value_type : 'a t -> 'a Type.t
   val value_mult : 'a t -> Multiplicity.t
   val create : ?mult: Multiplicity.t -> 'a Type.t -> string -> 'a t Lwt.t
   val delete : 'a t -> unit Lwt.t
   val all : unit -> Set.t Lwt.t
+
+  (**/**)
+  val of_id : int32 -> ex Lwt.t [@@ocaml.deprecated "Renamed to of_soid."]
+  val id : 'a t -> int32 [@@ocaml.deprecated "Use soid."]
 end
 
 module type ATTRIBUTE_UNIQUENESS = sig
   module Attribute_type : ATTRIBUTE_TYPE
+  type soid
   type t
 
   module Set : SET with type elt = t
   module Map : MAP with type key = t
+  module Soid : SOID with type soid := soid
 
   exception Not_unique of Set.t
 
-  val of_id : int32 -> t Lwt.t
-  val id : t -> int32
+  val of_soid : soid -> t Lwt.t
+  val soid : t -> soid Lwt.t
   val force : Attribute_type.Set.t -> t Lwt.t
   val relax : t -> unit Lwt.t
   val find : Attribute_type.Set.t -> t option Lwt.t
   val all : unit -> Set.t Lwt.t
   val affecting : 'a Attribute_type.t -> Set.t Lwt.t
   val affected : t -> Attribute_type.Set.t Lwt.t
+
+  (**/**)
+  val of_id : int32 -> t Lwt.t [@@ocaml.deprecated "Renamed to of_soid."]
+  val id : t -> int32 [@@ocaml.deprecated "Use soid."]
 end
 
 module type RELATION = sig
@@ -74,10 +96,12 @@ end
 module type ENTITY_TYPE = sig
   module Attribute_type : ATTRIBUTE_TYPE
 
+  type soid
   type t
 
   module Set : SET with type elt = t
   module Map : MAP with type key = t
+  module Soid : SOID with type soid := soid
 
   val compare : t -> t -> int
   (** [compare] provides an arbitrary strict order of entity types. *)
@@ -88,12 +112,12 @@ module type ENTITY_TYPE = sig
   val name : t -> string Lwt.t
   (** [name et] is the name of [et]. *)
 
-  val of_id : int32 -> t Lwt.t
-  (** [of_id id] is the entity of identified by [id], which is assumed to
+  val of_soid : soid -> t Lwt.t
+  (** [of_id id] returns the entity of identified by [id], which is assumed to
       exist. *)
 
-  val id : t -> int32
-  (** [id et] is the numeric ID of [et]. *)
+  val soid : t -> soid Lwt.t
+  (** [id et] returns the numeric ID of [et]. *)
 
   val create : string -> t Lwt.t
   (** [create name] creates an entity type named [name]. *)
@@ -168,6 +192,8 @@ module type ENTITY_TYPE = sig
   (**/**)
   val display_name : langs: lang list -> ?pl: bool -> t -> string Lwt.t
     [@@ocaml.deprecated "Use name."]
+  val of_id : int32 -> t Lwt.t [@@ocaml.deprecated "Renamed to of_soid."]
+  val id : t -> int32 [@@ocaml.deprecated "Use soid."]
 end
 
 module type ENTITY = sig
@@ -176,10 +202,12 @@ module type ENTITY = sig
     with module Attribute_type := Attribute_type
   module Entity_type : ENTITY_TYPE with module Attribute_type := Attribute_type
 
+  type soid
   type t
 
   module Set : SET with type elt = t
   module Map : MAP with type key = t
+  module Soid : SOID with type soid := soid
 
   val create : Entity_type.t -> t Lwt.t
   (** [create et] creates and returns an entity of the type [et], initially
@@ -192,10 +220,10 @@ module type ENTITY = sig
   val compare : t -> t -> int
   (** An arbitrary total order over entities. *)
 
-  val of_id : int32 -> t Lwt.t
+  val of_soid : soid -> t Lwt.t
   (** [of_id id] is the entity identified by [id], which is assumed to exist. *)
 
-  val id : t -> int32
+  val soid : t -> soid Lwt.t
   (** [id e] is the numeric ID of [e]. *)
 
   val entity_type : t -> Entity_type.t Lwt.t
@@ -292,6 +320,10 @@ module type ENTITY = sig
   val premapping1 : 'a Attribute_type.t -> t -> 'a Values.t Map.t Lwt.t
   (** [premapping1 at e] is a map of [at]-values indexed by attribution
       superentities of [e] which loose those values along [at]. *)
+
+  (**/**)
+  val of_id : int32 -> t Lwt.t [@@ocaml.deprecated "Renamed to of_soid."]
+  val id : t -> int32 [@@ocaml.deprecated "Use soid."]
 end
 
 module type S = sig
@@ -304,4 +336,13 @@ module type S = sig
   module Entity : ENTITY with module Attribute_type := Attribute_type
                           and module Relation := Relation
                           and module Entity_type := Entity_type
+end
+
+module type S_SOID = sig
+  type soid
+  include S
+    with type Attribute_type.soid = soid
+     and type Attribute_uniqueness.soid = soid
+     and type Entity_type.soid = soid
+     and type Entity.soid = soid
 end

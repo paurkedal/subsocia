@@ -130,8 +130,9 @@ module Make (C : Subsocia_intf.S) = struct
                           C.Attribute_type.Set.empty in
       begin match%lwt C.Attribute_uniqueness.find ats with
       | Some au ->
-        Log.warning_f "Already constrained by #%ld."
-                      (C.Attribute_uniqueness.id au)
+        let%lwt au_id = C.Attribute_uniqueness.soid au in
+        Log.warning_f "Already constrained by %s."
+                      (C.Attribute_uniqueness.Soid.to_string au_id)
       | None ->
         C.Attribute_uniqueness.force ats >|= ignore
       end

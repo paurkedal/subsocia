@@ -120,7 +120,8 @@ let get_operator () =
 
 let authenticate () =
   let%lwt user = get_operator () in
-  let session_id = "user_id=" ^ Int32.to_string (Entity.id user) in
+  let%lwt user_id = Entity.soid user in
+  let session_id = "user_id=" ^ (Entity.Soid.to_string user_id) in
   let scope = Eliom_common.default_session_scope in
   let%lwt () = Eliom_state.set_persistent_data_session_group ~scope session_id in
   Eliom_state.set_service_session_group ~scope session_id;

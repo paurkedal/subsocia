@@ -22,7 +22,8 @@ open Subsocia_common
 
 let at_create (Type.Ex vt) atn mult = run0 @@ fun (module C) ->
   C.Attribute_type.create ~mult vt atn >>= fun at ->
-  Lwt_log.info_f "Created attribute type #%ld %s." (C.Attribute_type.id at) atn
+  let%lwt at_idstr = C.Attribute_type.(soid at >|= Soid.to_string) in
+  Lwt_log.info_f "Created attribute type %s %s." at_idstr atn
 
 let at_create_t =
   let open Arg in
@@ -39,8 +40,8 @@ let at_delete atn = run @@ fun (module C) ->
   match%lwt C.Attribute_type.of_name atn with
   | Some (C.Attribute_type.Ex at) ->
     C.Attribute_type.delete at >>
-    Lwt_log.info_f "Delete attribute type #%ld %s."
-                   (C.Attribute_type.id at) atn >>
+    let%lwt at_idstr = C.Attribute_type.(soid at >|= Soid.to_string) in
+    Lwt_log.info_f "Delete attribute type %s %s." at_idstr atn >>
     Lwt.return 0
   | None ->
     Lwt_log.error_f "No attribute type is named %s." atn >>

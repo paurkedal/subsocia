@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -19,6 +19,7 @@ open Subsocia_intf
 
 module type Arg = sig
   module Attribute_type : ATTRIBUTE_TYPE
+    with type soid = int32
   module Relation : RELATION
     with module Attribute_type := Attribute_type
 end
@@ -26,6 +27,6 @@ end
 module Make (Arg : Arg) : sig
   open Arg
 
-  val select_image : Relation.t -> int32 list -> query
-  val select_preimage : Relation.t -> int32 list -> query
+  val select_image : Relation.t -> int32 list -> query Lwt.t
+  val select_preimage : Relation.t -> int32 list -> query Lwt.t
 end

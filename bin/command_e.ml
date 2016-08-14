@@ -125,7 +125,8 @@ module Entity_utils (C : Subsocia_intf.S) = struct
     let%lwt name = Entity.display_name ~langs e in
     let%lwt et = C.Entity.entity_type e in
     let%lwt etn = C.Entity_type.name et in
-    Lwt_io.printlf "#%ld %s : %s" (C.Entity.id e) name etn >>
+    let%lwt e_idstr = Entity.soid_string e in
+    Lwt_io.printlf "%s %s : %s" e_idstr name etn >>
     ( if not eds.eds_paths then Lwt.return_unit else
       let%lwt paths = Entity.paths e in
       Lwt_list.iter_s (fun p -> Lwt_io.printf "  = %s\n" (string_of_selector p))

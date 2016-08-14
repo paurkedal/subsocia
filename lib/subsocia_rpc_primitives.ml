@@ -19,7 +19,7 @@ open Subsocia_rpc_types
 
 module Attribute_type = struct
   external of_name : string -> (int32 * Type.ex * Multiplicity.t) option = ""
-  external of_id : int32 -> string * Type.ex * Multiplicity.t = ""
+  external of_soid : int32 -> string * Type.ex * Multiplicity.t = ""
   external create : Type.ex -> Multiplicity.t -> string -> int32 = ""
   external delete : int32 -> unit = ""
   external all : unit -> int32 list = ""

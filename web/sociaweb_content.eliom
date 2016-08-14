@@ -45,7 +45,7 @@
 *)
 
   let entity_link ~langs ent =
-    let id = Entity.id ent in
+    let%lwt id = Entity.soid ent in
     let%lwt name = Entity.display_name ~langs ent in
     Lwt.return (F.a ~service:entities_service [F.pcdata name] (Some id))
 ]
@@ -69,7 +69,7 @@
 
 let complete_helper entity_type_id super_id words_str =
   let%lwt operator = authenticate () in
-  let%lwt super = Pwt_option.map_s Entity.of_id super_id in
+  let%lwt super = Pwt_option.map_s Entity.of_soid super_id in
   let%lwt can_search =
     match super with
     | None ->
@@ -78,7 +78,7 @@ let complete_helper entity_type_id super_id words_str =
     | Some super ->
       Entity.can_search_below operator super in
   if not can_search then http_error 403 "Search not permitted." else
-  let%lwt entity_type = Pwt_option.map_s Entity_type.of_id entity_type_id in
+  let%lwt entity_type = Pwt_option.map_s Entity_type.of_soid entity_type_id in
   let words = String.chop_consecutive Char.is_space words_str in
   match List.rev words with
   | [] -> Lwt.return []
@@ -106,7 +106,7 @@ let completed (entity_type_id, super_id, str) =
     complete_helper entity_type_id super_id str >>=
     Lwt_list.filter_s (fun (e, _) -> Entity.display_name e >|= (=) str)
   with
-  | [(entity, _)] -> Lwt.return (Some (Entity.id entity))
+  | [(entity, _)] -> Entity.soid entity >|= Option.some
   | _ -> Lwt.return None
 
 let%client completed
@@ -114,11 +114,11 @@ let%client completed
   ~%(server_function [%json: int32 option * int32 option * string] completed)
 
 let entity_completion_input ?entity_type ?super emit =
-  let entity_type_id = Option.map Entity.id entity_type in
-  let super_id = Option.map Entity.id super in
+  let%lwt entity_type_id = Pwt_option.map_s Entity.soid entity_type in
+  let%lwt super_id = Pwt_option.map_s Entity.soid super in
   let complete = [%client fun s ->
     complete (~%entity_type_id, ~%super_id, s)] in
-  string_completion_input complete emit
+  Lwt.return (string_completion_input complete emit)
 
 let%client entity_completion_input ?(entity_type_id : int32 option)
                                    ?(super_id : int32 option) emit =
