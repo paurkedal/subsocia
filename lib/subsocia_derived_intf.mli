@@ -139,6 +139,9 @@ module type S = sig
     module Super : NESTED_ITERABLE with type t := t
     module Sub : NESTED_ITERABLE with type t := t
 
+    val unique_premapping1 :
+      Attribute_uniqueness.t -> t -> Relation.t Entity.Map.t Lwt.t
+
     val paths : t -> selector list Lwt.t
 
     val has_role_for_entity : string -> t -> t -> bool Lwt.t

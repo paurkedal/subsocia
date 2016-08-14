@@ -348,6 +348,30 @@ module Make (Base : Subsocia_intf.S) = struct
         with Not_found -> []
       end
 
+    let unique_premapping1 au e =
+
+      let build_attribute at vs =
+        let v = Values.choose vs in
+        Lwt.return Relation.(Eq (at, v)) in
+
+      let rec intersect_attributes = function
+        | [] -> fun e' acc ->
+            Lwt.return_some Relation.(Inter acc)
+        | (Attribute_type.Ex at) :: ats -> fun e' acc ->
+            let%lwt vs = get_values at e' e in
+            if Values.is_empty vs then Lwt.return_none else
+            let%lwt sel = build_attribute at vs in
+            intersect_attributes ats e' (sel :: acc) in
+
+      match%lwt
+        Attribute_uniqueness.affected au >|= Attribute_type.Set.elements with
+      | [] ->
+          assert false
+      | (Attribute_type.Ex at) :: ats ->
+          premapping1 at e
+            >>= Map.map_s (fun vs -> build_attribute at vs >|= fun r -> [r])
+            >>= Map.fmapi_s (intersect_attributes ats)
+
     let rec display_name_var ~context ~langs e spec =
       let%lwt root = Entity.root in
 

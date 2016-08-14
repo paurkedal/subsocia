@@ -105,6 +105,7 @@ module Values : sig
   val filter : ('a -> bool) -> 'a t -> 'a t
   val union : 'a t -> 'a t -> 'a t
   val inter : 'a t -> 'a t -> 'a t
+  val choose : 'a t -> 'a
   val elements : 'a t -> 'a list
   val of_elements : 'a Type.t -> 'a list -> 'a t
   val of_ordered_elements : 'a Type.t -> 'a list -> 'a t

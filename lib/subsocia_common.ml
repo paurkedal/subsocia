@@ -218,6 +218,7 @@ module Values = struct
     T ((module SB), SA.fold SB.add sA sB)
   let inter (type a) (T ((module SA), sA) : a t) (T ((module SB), sB) : a t) =
     T ((module SB), SB.filter (fun x -> SA.contains x sA) sB)
+  let choose (type a) (T ((module S), s) : a t) = S.choose s
   let elements (type a) (T ((module S), s) : a t) = S.elements s
 
   let of_elements : type a. a Type.t -> a list -> a t = fun t xs ->
