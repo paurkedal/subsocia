@@ -187,20 +187,22 @@ module Make (RPCM : RPCM) = struct
       Attribute_type.Set.of_ordered_elements
 
     let allowed_preimage et =
-      Raw.allowed_preimage et >>=
-      Lwt_list.map_s
-        (fun (at_id, et_id) ->
-          Attribute_type.of_soid at_id >>= fun at ->
-          of_soid et_id >|= fun et ->
-          (at, et))
+      Raw.allowed_preimage et
+        >>= Lwt_list.map_s
+          (fun (et_id, at_ids) ->
+            Lwt_list.map_s Attribute_type.of_soid at_ids >>= fun ats ->
+            of_soid et_id >|= fun et ->
+            (et, ats))
+        >|= Map.of_ordered_bindings
 
     let allowed_image et =
-      Raw.allowed_image et >>=
-      Lwt_list.map_s
-        (fun (at_id, et_id) ->
-          Attribute_type.of_soid at_id >>= fun at ->
-          of_soid et_id >|= fun et ->
-          (at, et))
+      Raw.allowed_image et
+        >>= Lwt_list.map_s
+          (fun (et_id, at_ids) ->
+            Lwt_list.map_s Attribute_type.of_soid at_ids >>= fun ats ->
+            of_soid et_id >|= fun et ->
+            (et, ats))
+        >|= Map.of_ordered_bindings
 
     let allowed_mappings at =
       Raw.allowed_mappings at.Attribute_type.at_id

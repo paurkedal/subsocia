@@ -949,8 +949,9 @@ module Make (P : Param) = struct
       let aux tup acc =
         let%lwt at = Attribute_type.of_soid' ~conn (C.Tuple.int32 0 tup) in
         let et = C.Tuple.int32 1 tup in
-        Lwt.return ((at, et) :: acc) in
-      C.fold_s Q.et_allowed_preimage aux C.Param.([|int32 et|]) []
+        let ats' = try Map.find et acc with Not_found -> [] in
+        Lwt.return (Map.add et (at :: ats') acc) in
+      C.fold_s Q.et_allowed_preimage aux C.Param.([|int32 et|]) Map.empty
 
     let allowed_image, allowed_image_cache =
       memo_1lwt @@ fun et ->
@@ -958,8 +959,9 @@ module Make (P : Param) = struct
       let aux tup acc =
         let%lwt at = Attribute_type.of_soid' ~conn (C.Tuple.int32 0 tup) in
         let et = C.Tuple.int32 1 tup in
-        Lwt.return ((at, et) :: acc) in
-      C.fold_s Q.et_allowed_image aux C.Param.([|int32 et|]) []
+        let ats' = try Map.find et acc with Not_found -> [] in
+        Lwt.return (Map.add et (at :: ats') acc) in
+      C.fold_s Q.et_allowed_image aux C.Param.([|int32 et|]) Map.empty
 
     let allowed_mappings', allowed_mappings_cache =
       memo_1lwt @@ fun (B.Attribute_type.Ex at) ->
