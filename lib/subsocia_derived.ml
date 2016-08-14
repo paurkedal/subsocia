@@ -87,6 +87,48 @@ module Make (Base : Subsocia_intf.S) = struct
     let between at v0 v1 = Between (at, v0, v1)
     let search at re = Search (at, re)
     let search_fts w = Search_fts w
+
+    let rec to_selector = function
+      | Inter [] -> assert false
+      | Inter (r :: rs) ->
+        to_selector r
+          >>= Pwt_list.fold_s
+                (fun r rs_sel ->
+                  to_selector r >|= fun r_sel ->
+                  Select_inter (r_sel, rs_sel)) rs
+      | Present at ->
+        Attribute_type.name at >|= fun an -> Select_image (Attribute_present an)
+      | Eq (at, av) ->
+        Attribute_type.name at >|= fun an ->
+        let v = Value.typed_to_string (Attribute_type.value_type at) av in
+        Select_image (Attribute_eq (an, v))
+      | In (at, avs) ->
+        Attribute_type.name at >|= fun an ->
+        begin match
+          avs |> Values.elements
+              |> List.map (Value.typed_to_string (Attribute_type.value_type at))
+        with
+        | [] -> assert false
+        | v :: vs ->
+          List.fold
+            (fun v sel ->
+              Select_union (Select_image (Attribute_eq (an, v)), sel))
+            vs (Select_image (Attribute_eq (an, v)))
+        end
+      | Leq (at, av) ->
+        Attribute_type.name at >|= fun an ->
+        let v = Value.typed_to_string (Attribute_type.value_type at) av in
+        Select_image (Attribute_leq (an, v))
+      | Geq (at, av) ->
+        Attribute_type.name at >|= fun an ->
+        let v = Value.typed_to_string (Attribute_type.value_type at) av in
+        Select_image (Attribute_geq (an, v))
+      | Between (at, v_min, v_max) ->
+        let%lwt sel_min = to_selector (Geq (at, v_min)) in
+        let%lwt sel_max = to_selector (Leq (at, v_max)) in
+        Lwt.return (Select_inter (sel_min, sel_max))
+      | Search _ | Search_fts _ ->
+        Lwt.fail_with "Search to not supported for selectors." (* FIXME *)
   end
 
   module Entity_type = struct

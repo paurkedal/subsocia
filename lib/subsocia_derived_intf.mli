@@ -87,6 +87,11 @@ module type S = sig
     val between : 'a Attribute_type.t -> 'a -> 'a -> t
     val search : string Attribute_type.t -> Subsocia_re.t -> t
     val search_fts : Subsocia_fts.t -> t
+
+    val to_selector : t -> selector Lwt.t
+    (** [to_selector r] constructs a one-step selector corresponding to [r] if
+        possible.
+        @raise Failure if [r] contains a search term. *)
   end
 
   module Entity_type : sig
