@@ -192,10 +192,10 @@ module Q = struct
     q "SELECT attribute_type_id FROM @attribution_type \
        WHERE domain_id = ? AND codomain_id = ?"
   let et_allowed_preimage =
-    q "SELECT attribute_type_id, domain_type_id FROM @attribution_type \
+    q "SELECT attribute_type_id, domain_id FROM @attribution_type \
        WHERE codomain_id = ?"
   let et_allowed_image =
-    q "SELECT attribute_type_id, codomain_type_id FROM @attribution_type \
+    q "SELECT attribute_type_id, codomain_id FROM @attribution_type \
        WHERE domain_id = ?"
   let et_allowed_mappings =
     q "SELECT domain_id, codomain_id FROM @attribution_type \
