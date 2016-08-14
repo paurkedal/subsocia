@@ -1,6 +1,6 @@
 # Change Log
 
-## [0.13.0]
+## [0.13.0] - 2016-08-14
 
 ### Added
 - JSON conversions for values.
@@ -57,6 +57,7 @@
 
 
 [Unreleased]: https://github.com/paurkedal/subsocia/compare/0.12.3...HEAD
+[0.13.0]: https://github.com/paurkedal/subsocia/compare/0.12.3...0.13.0
 [0.12.3]: https://github.com/paurkedal/subsocia/compare/0.12.2...0.12.3
 [0.12.2]: https://github.com/paurkedal/subsocia/compare/0.12.1...0.12.2
 [0.12.1]: https://github.com/paurkedal/subsocia/compare/0.12.0...0.12.1
