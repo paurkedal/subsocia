@@ -55,6 +55,7 @@ module Make (RPCM : RPCM) = struct
     module Soid = struct
       let to_string id = sprintf Subsocia_internal.at_soid_format id
       let of_string s = sscanf s Subsocia_internal.at_soid_format (fun id -> id)
+      let compare = compare
     end
 
     let of_soid at_id =
@@ -94,6 +95,7 @@ module Make (RPCM : RPCM) = struct
     module Soid = struct
       let to_string id = sprintf Subsocia_internal.au_soid_format id
       let of_string s = sscanf s Subsocia_internal.au_soid_format (fun id -> id)
+      let compare = compare
     end
 
     exception Not_unique of Set.t
@@ -137,6 +139,7 @@ module Make (RPCM : RPCM) = struct
     module Soid = struct
       let to_string id = sprintf Subsocia_internal.et_soid_format id
       let of_string s = sscanf s Subsocia_internal.et_soid_format (fun id -> id)
+      let compare = compare
     end
 
     type soid = int32
@@ -235,6 +238,7 @@ module Make (RPCM : RPCM) = struct
     module Soid = struct
       let to_string id = sprintf Subsocia_internal.e_soid_format id
       let of_string s = sscanf s Subsocia_internal.e_soid_format (fun id -> id)
+      let compare = compare
     end
 
     let of_soid = Lwt.return

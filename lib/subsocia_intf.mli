@@ -27,6 +27,9 @@ module type SOID = sig
 
   val to_string : soid -> string
   (** A textual representation for logging and debugging. *)
+
+  val compare : soid -> soid -> int
+  (** Strict order. *)
 end
 
 module type ATTRIBUTE_TYPE = sig

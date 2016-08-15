@@ -644,6 +644,7 @@ module B = struct
     module Soid = struct
       let to_string id = sprintf Subsocia_internal.at_soid_format id
       let of_string s = sscanf s Subsocia_internal.at_soid_format (fun id -> id)
+      let compare = compare
     end
   end
 
@@ -657,6 +658,7 @@ module B = struct
     module Soid = struct
       let to_string id = sprintf Subsocia_internal.au_soid_format id
       let of_string s = sscanf s Subsocia_internal.au_soid_format (fun id -> id)
+      let compare = compare
     end
 
     exception Not_unique of Set.t
@@ -685,6 +687,7 @@ module B = struct
     module Soid = struct
       let to_string id = sprintf Subsocia_internal.et_soid_format id
       let of_string s = sscanf s Subsocia_internal.et_soid_format (fun id -> id)
+      let compare = compare
     end
 
     let compare = Int32.compare
@@ -700,6 +703,7 @@ module B = struct
     module Soid = struct
       let to_string id = sprintf Subsocia_internal.e_soid_format id
       let of_string s = sscanf s Subsocia_internal.e_soid_format (fun id -> id)
+      let compare = compare
     end
   end
 end
