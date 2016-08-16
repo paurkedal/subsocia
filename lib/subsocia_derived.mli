@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,4 +17,22 @@
 (** Implementation of the derived API. *)
 
 module Make (Base : Subsocia_intf.S) :
-  Subsocia_derived_intf.S with module Base := Base
+  Subsocia_derived_intf.S
+    with type Attribute_type.soid = Base.Attribute_type.soid
+     and type 'a Attribute_type.t = 'a Base.Attribute_type.t
+     and type Attribute_type.ex = Base.Attribute_type.ex
+     and module Attribute_type.Set = Base.Attribute_type.Set
+     and module Attribute_type.Map = Base.Attribute_type.Map
+     and type Attribute_uniqueness.soid = Base.Attribute_uniqueness.soid
+     and type Attribute_uniqueness.t = Base.Attribute_uniqueness.t
+     and module Attribute_uniqueness.Set = Base.Attribute_uniqueness.Set
+     and module Attribute_uniqueness.Map = Base.Attribute_uniqueness.Map
+     and type Relation.t = Base.Relation.t
+     and type Entity_type.soid = Base.Entity_type.soid
+     and type Entity_type.t = Base.Entity_type.t
+     and module Entity_type.Set = Base.Entity_type.Set
+     and module Entity_type.Map = Base.Entity_type.Map
+     and type Entity.soid = Base.Entity.soid
+     and type Entity.t = Base.Entity.t
+     and module Entity.Set = Base.Entity.Set
+     and module Entity.Map = Base.Entity.Map

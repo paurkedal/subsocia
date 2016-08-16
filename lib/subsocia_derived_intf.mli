@@ -18,7 +18,6 @@
 
 open Panograph_i18n
 open Subsocia_common
-open Subsocia_intf
 open Subsocia_selector_types
 
 module type ITERABLE = sig
@@ -44,119 +43,111 @@ module type NESTED_ITERABLE = sig
                  (t -> 'a option Lwt.t) -> t -> 'a option Lwt.t
 end
 
+module type ATTRIBUTE_TYPE = sig
+  include Subsocia_intf.ATTRIBUTE_TYPE
+
+  val coerce : 'a Type.t -> ex -> 'a t option
+  val required : string -> ex Lwt.t
+  val typed_required : 'a Type.t -> string -> 'a t Lwt.t
+end
+
+module type ATTRIBUTE_UNIQUENESS = sig
+  include Subsocia_intf.ATTRIBUTE_UNIQUENESS
+
+  val soid_string : t -> string Lwt.t
+end
+
+module type RELATION = sig
+  include Subsocia_intf.RELATION
+
+  val (&&) : t -> t -> t
+  val inter : t list -> t
+  val present : 'a Attribute_type.t -> t
+  val (=) : 'a Attribute_type.t -> 'a -> t
+  val (<:) : 'a Attribute_type.t -> 'a Values.t -> t
+  val (<::) : 'a Attribute_type.t -> 'a list -> t
+  val (<=) : 'a Attribute_type.t -> 'a -> t
+  val (>=) : 'a Attribute_type.t -> 'a -> t
+  val between : 'a Attribute_type.t -> 'a -> 'a -> t
+  val search : string Attribute_type.t -> Subsocia_re.t -> t
+  val search_fts : Subsocia_fts.t -> t
+
+  val to_selector : t -> selector Lwt.t
+  (** [to_selector r] constructs a one-step selector corresponding to [r] if
+      possible.
+      @raise Failure if [r] contains a search term. *)
+end
+
+module type ENTITY_TYPE = sig
+  include Subsocia_intf.ENTITY_TYPE
+
+  val required : string -> t Lwt.t
+  val equal : t -> t -> bool
+end
+
+module type ENTITY = sig
+  include Subsocia_intf.ENTITY
+
+  module Attribute_uniqueness : ATTRIBUTE_UNIQUENESS
+    with module Attribute_type := Attribute_type
+
+  val soid_string : t -> string Lwt.t
+
+  val equal : t -> t -> bool
+
+  val force_sub : t -> t -> unit Lwt.t
+
+  val select_from : selector -> Set.t -> Set.t Lwt.t
+  val select : selector -> Set.t Lwt.t
+  val select_opt : selector -> t option Lwt.t
+  val select_one : selector -> t Lwt.t
+
+  (* TODO: Replace and deprecate these. *)
+  val getattr_opt : t -> t -> 'a Attribute_type.t -> 'a option Lwt.t
+  val getattr_one : t -> t -> 'a Attribute_type.t -> 'a Lwt.t
+
+  val add_value : 'a Attribute_type.t -> 'a -> t -> t -> unit Lwt.t
+  val remove_value : 'a Attribute_type.t -> 'a -> t -> t -> unit Lwt.t
+  val set_value : 'a Attribute_type.t -> 'a -> t -> t -> unit Lwt.t
+  val clear_values : 'a Attribute_type.t -> t -> t -> unit Lwt.t
+
+  val of_unique_name : ?super: t -> string -> t option Lwt.t
+
+  module Dsuper : ITERABLE with type t := t
+  module Dsub : ITERABLE with type t := t
+  module Super : NESTED_ITERABLE with type t := t
+  module Sub : NESTED_ITERABLE with type t := t
+
+  val unique_premapping1 : Attribute_uniqueness.t -> t -> Relation.t Map.t Lwt.t
+
+  val paths : t -> selector list Lwt.t
+
+  val has_role_for_entity : string -> t -> t -> bool Lwt.t
+  val can_view_entity : t -> t -> bool Lwt.t
+  val can_edit_entity : t -> t -> bool Lwt.t
+  val can_search_below : t -> t -> bool Lwt.t
+
+  val display_name : ?context: Set.t -> ?langs: lang list -> t -> string Lwt.t
+  val candidate_dsupers : ?include_current: bool -> t -> Set.t Lwt.t
+end
+
 module type S = sig
-  module Base : Subsocia_intf.S
+  module Attribute_type : ATTRIBUTE_TYPE
 
-  open Base
+  module Attribute_uniqueness : ATTRIBUTE_UNIQUENESS
+    with module Attribute_type := Attribute_type
 
-  module Attribute_type : sig
-    type soid = Base.Attribute_type.soid
-    type 'a t = 'a Base.Attribute_type.t
-    type ex = Base.Attribute_type.ex = Ex : 'a t -> ex
-    include ATTRIBUTE_TYPE
-      with type soid := soid
-       and type 'a t := 'a t and type ex := ex
-       and module Set = Base.Attribute_type.Set
-       and module Map = Base.Attribute_type.Map
+  module Relation : RELATION
+    with module Attribute_type := Attribute_type
 
-    val coerce : 'a Type.t -> ex -> 'a t option
-    val required : string -> ex Lwt.t
-    val typed_required : 'a Type.t -> string -> 'a t Lwt.t
-  end
+  module Entity_type : ENTITY_TYPE
+    with module Attribute_type := Attribute_type
 
-  module Attribute_uniqueness : sig
-    include ATTRIBUTE_UNIQUENESS
-      with type soid = Base.Attribute_uniqueness.soid
-       and module Attribute_type := Base.Attribute_type
-    val soid_string : t -> string Lwt.t
-  end
-
-  module Relation : sig
-    include RELATION
-       with module Attribute_type := Base.Attribute_type
-        and type t = Base.Relation.t
-
-    val (&&) : t -> t -> t
-    val inter : t list -> t
-    val present : 'a Attribute_type.t -> t
-    val (=) : 'a Attribute_type.t -> 'a -> t
-    val (<:) : 'a Attribute_type.t -> 'a Values.t -> t
-    val (<::) : 'a Attribute_type.t -> 'a list -> t
-    val (<=) : 'a Attribute_type.t -> 'a -> t
-    val (>=) : 'a Attribute_type.t -> 'a -> t
-    val between : 'a Attribute_type.t -> 'a -> 'a -> t
-    val search : string Attribute_type.t -> Subsocia_re.t -> t
-    val search_fts : Subsocia_fts.t -> t
-
-    val to_selector : t -> selector Lwt.t
-    (** [to_selector r] constructs a one-step selector corresponding to [r] if
-        possible.
-        @raise Failure if [r] contains a search term. *)
-  end
-
-  module Entity_type : sig
-    include ENTITY_TYPE
-       with type soid = Base.Entity_type.soid
-        and module Attribute_type := Base.Attribute_type
-        and type t = Base.Entity_type.t
-        and module Set = Base.Entity_type.Set
-        and module Map = Base.Entity_type.Map
-
-    val required : string -> t Lwt.t
-
-    val equal : t -> t -> bool
-  end
-
-  module Entity : sig
-    include ENTITY
-      with type soid = Base.Entity.soid
-       and module Attribute_type := Base.Attribute_type
-       and module Relation := Base.Relation
-       and module Entity_type := Base.Entity_type
-       and type t = Base.Entity.t
-       and module Set = Base.Entity.Set
-       and module Map = Base.Entity.Map
-
-    val soid_string : t -> string Lwt.t
-
-    val equal : t -> t -> bool
-
-    val force_sub : t -> t -> unit Lwt.t
-
-    val select_from : selector -> Set.t -> Set.t Lwt.t
-    val select : selector -> Set.t Lwt.t
-    val select_opt : selector -> t option Lwt.t
-    val select_one : selector -> t Lwt.t
-
-    (* TODO: Replace and deprecate these. *)
-    val getattr_opt : t -> t -> 'a Attribute_type.t -> 'a option Lwt.t
-    val getattr_one : t -> t -> 'a Attribute_type.t -> 'a Lwt.t
-
-    val add_value : 'a Attribute_type.t -> 'a -> t -> t -> unit Lwt.t
-    val remove_value : 'a Attribute_type.t -> 'a -> t -> t -> unit Lwt.t
-    val set_value : 'a Attribute_type.t -> 'a -> t -> t -> unit Lwt.t
-    val clear_values : 'a Attribute_type.t -> t -> t -> unit Lwt.t
-
-    val of_unique_name : ?super: t -> string -> t option Lwt.t
-
-    module Dsuper : ITERABLE with type t := t
-    module Dsub : ITERABLE with type t := t
-    module Super : NESTED_ITERABLE with type t := t
-    module Sub : NESTED_ITERABLE with type t := t
-
-    val unique_premapping1 :
-      Attribute_uniqueness.t -> t -> Relation.t Entity.Map.t Lwt.t
-
-    val paths : t -> selector list Lwt.t
-
-    val has_role_for_entity : string -> t -> t -> bool Lwt.t
-    val can_view_entity : t -> t -> bool Lwt.t
-    val can_edit_entity : t -> t -> bool Lwt.t
-    val can_search_below : t -> t -> bool Lwt.t
-
-    val display_name : ?context: Set.t -> ?langs: lang list -> t -> string Lwt.t
-    val candidate_dsupers : ?include_current: bool -> t -> Set.t Lwt.t
-  end
+  module Entity : ENTITY
+    with module Attribute_type := Attribute_type
+     and module Attribute_uniqueness := Attribute_uniqueness
+     and module Relation := Relation
+     and module Entity_type := Entity_type
 
   module Const : sig
     val at_unique_name : string Attribute_type.t Lwt.t
@@ -179,8 +170,8 @@ end
 module type S_SOID = sig
   type soid
   include S
-    with type Base.Attribute_type.soid = soid
-     and type Base.Attribute_uniqueness.soid = soid
-     and type Base.Entity_type.soid = soid
-     and type Base.Entity.soid = soid
+    with type Attribute_type.soid = soid
+     and type Attribute_uniqueness.soid = soid
+     and type Entity_type.soid = soid
+     and type Entity.soid = soid
 end

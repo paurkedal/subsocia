@@ -25,8 +25,7 @@ module type S = sig
   val attribute_type_of_arg : string -> Attribute_type.ex Lwt.t
 end
 
-module Make (Base : Subsocia_intf.S) : S with module Base = Base = struct
-  module Base = Base
+module Make (Base : Subsocia_intf.S) : S = struct
   include Subsocia_derived.Make (Base)
 
   let attribute_type_of_arg atn =
