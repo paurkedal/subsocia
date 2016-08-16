@@ -29,9 +29,19 @@ let selector_of_string s =
   try Subsocia_lexer.selector_of_string s
   with Parsing.Parse_error -> raise (Invalid_argument "Parse error")
 
-let is_reserved = function
-  | '{' | '}' | '/' | '-' | '+' | ',' | '=' -> true
-  | _ -> false
+let must_escape_char ~edge = function
+  | 'A'..'Z' | 'a'..'z' | '0'..'9' | '_' | '\x80'..'\xff' -> false
+  | ' ' | '@' | '-' -> edge
+  | _ -> true
+
+let must_escape s =
+  let n = String.length s in
+  if n = 0 then true else
+  if n = 1 && s.[0] = '_' then true else
+  let rec loop i =
+    if i = n then false else
+    must_escape_char ~edge:(i = 0 || i = n - 1) s.[i] || loop (i + 1) in
+  loop 0
 
 let p_slash = 0
 let p_equal = 2
@@ -42,7 +52,7 @@ let bprint_attr dir op buf p k v =
   if p > p_equal then Buffer.add_char buf '{';
   Buffer.add_string buf k;
   Buffer.add_string buf op;
-  if String.exists is_reserved v then begin
+  if must_escape v then begin
     Buffer.add_char buf '{';
     if dir = `Asuper then Buffer.add_char buf succ_char;
     Buffer.add_string buf v;
@@ -59,7 +69,7 @@ let rec bprint_selector ?(is_prefix = false) buf p = function
     bprint_selector buf p_slash s1;
     if p > p_slash then Buffer.add_char buf '}'
   | Select_image (Attribute_eq ("unique_name", v))
-      when not (String.exists is_reserved v) ->
+      when not (must_escape v) ->
     Buffer.add_string buf v
   | Select_image (Attribute_eq (k, v)) ->
     bprint_attr `Asub "=" buf p k v
@@ -108,6 +118,7 @@ let rec bprint_selector ?(is_prefix = false) buf p = function
     bprint_selector buf p_conj s1
 
 let string_of_selector s =
+  if s = Select_root then "/" else
   let buf = Buffer.create 80 in
   bprint_selector ~is_prefix:true buf p_slash s;
   Buffer.contents buf

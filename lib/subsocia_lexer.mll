@@ -69,7 +69,6 @@ and lex = parse
   | ',' { COMMA }
   | '-' { MINUS }
   | '+' { PLUS }
-  | ',' { COMMA }
   | '_' { UNDERSCORE }
   | ":" { COLON }
   | ":" (identifier as idr) { TYPE_FILTER idr }
