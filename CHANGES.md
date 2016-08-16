@@ -1,5 +1,19 @@
 # Change Log
 
+## [Unreleased]
+
+## [0.13.1] - 2016-08-16
+
+### Added
+- Added `Soid.compare`.
+
+### Fixed
+- Added missing yojson (and implied uri) dependency.
+- Fix escape condition and root case in printer, and tweak lexer.
+
+### Removed
+- `Subsocia_derived_intf.S.Base` component, indented only for internal use.
+
 ## [0.13.0] - 2016-08-14
 
 ### Added
@@ -56,7 +70,8 @@
 - `Entity.type_` with new name `Entity.entity_type`.
 
 
-[Unreleased]: https://github.com/paurkedal/subsocia/compare/0.12.3...HEAD
+[Unreleased]: https://github.com/paurkedal/subsocia/compare/0.13.1...HEAD
+[0.13.1]: https://github.com/paurkedal/subsocia/compare/0.13.0...0.13.1
 [0.13.0]: https://github.com/paurkedal/subsocia/compare/0.12.3...0.13.0
 [0.12.3]: https://github.com/paurkedal/subsocia/compare/0.12.2...0.12.3
 [0.12.2]: https://github.com/paurkedal/subsocia/compare/0.12.1...0.12.2
