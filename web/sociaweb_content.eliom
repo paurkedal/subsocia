@@ -72,26 +72,20 @@ let complete_helper entity_type_id super_id words_str =
   let%lwt super = Pwt_option.map_s Entity.of_soid super_id in
   let%lwt can_search =
     match super with
-    | None ->
-      let%lwt root = Entity.root in
-      Entity.can_search_below operator root
-    | Some super ->
-      Entity.can_search_below operator super in
+     | None ->
+        let%lwt root = Entity.root in
+        Entity.can_search_below operator root
+     | Some super ->
+        Entity.can_search_below operator super in
   if not can_search then http_error 403 "Search not permitted." else
   let%lwt entity_type = Pwt_option.map_s Entity_type.of_soid entity_type_id in
-  let words = String.chop_consecutive Char.is_space words_str in
-  match List.rev words with
-  | [] -> Lwt.return []
-  | word :: words ->
-    let cutoff = Subsocia_config.Web.completion_cutoff#get in
-    let limit = Subsocia_config.Web.completion_limit#get in
-    let fts = Prime_buffer.with0 @@ fun buf ->
-      Buffer.add_string buf word;
-      Buffer.add_string buf ":*";
-      List.iter (fun word -> Buffer.add_string buf " & ";
-                             Buffer.add_string buf word) words in
-    let%lwt root = Entity.root in
-    Entity.image1_fts ?entity_type ?super ~cutoff ~limit fts root
+  match Subsocia_fts.of_completion_string words_str with
+   | None -> Lwt.return []
+   | Some fts ->
+      let cutoff = Subsocia_config.Web.completion_cutoff#get in
+      let limit = Subsocia_config.Web.completion_limit#get in
+      let%lwt root = Entity.root in
+      Entity.image1_fts ?entity_type ?super ~cutoff ~limit fts root
 
 let complete (entity_type_id, super_id, words_str) =
   complete_helper entity_type_id super_id words_str

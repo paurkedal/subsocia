@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -25,3 +25,8 @@ type t = Subsocia_internal.fts
 
 val tsquery : string -> t
 (** Currently passed directly to PostgrSQL's `to_tsquery`. *)
+
+val of_completion_string : string -> t option
+(** Creates an FTS query from a space separated list of words where the last
+    word is treated as a prefix.  [None] is returned if the string is considered
+    too incomplete to create a useful query. *)
