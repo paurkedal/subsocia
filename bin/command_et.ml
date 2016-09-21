@@ -19,21 +19,34 @@ open Command_common
 open Lwt.Infix
 open Printf
 
+let et_name_t =
+  Arg.(required & pos 0 (some string) None &
+       info [] ~docv:"ET-NAME" ~doc:"The name of the entity type.")
+
+let et_info etn = run @@ fun (module C) ->
+  match%lwt C.Entity_type.of_name etn with
+   | None ->
+      Lwt.return (`Error (false, sprintf "No entity type is named %s." etn))
+   | Some et ->
+      let%lwt soid = C.Entity_type.soid et in
+      let%lwt name_tmpl = C.Entity_type.entity_name_tmpl et in
+      Lwt_io.printlf "Entity type #%ld %s " soid etn >>
+      Lwt_io.printlf "Name template: %s" name_tmpl >>
+      Lwt.return (`Ok 0)
+
+let et_info_t = Term.(ret (const et_info $ et_name_t))
+
 let et_create etn = run0 @@ fun (module C) ->
   let%lwt et = C.Entity_type.create etn in
   let%lwt et_idstr = C.Entity_type.(soid et >|= Soid.to_string) in
   Lwt_log.info_f "Created type %s = %s." et_idstr etn
 
-let et_create_t =
-  let et_name_t =
-    Arg.(required & pos 0 (some string) None &
-         info [] ~docv:"ET-NAME" ~doc:"Name of type to create.") in
-  Term.(pure et_create $ et_name_t)
+let et_create_t = Term.(pure et_create $ et_name_t)
 
 let et_modify etn ent_opt = run @@ fun (module C) ->
   match%lwt C.Entity_type.of_name etn with
   | None ->
-    Lwt.return (`Error (false, sprintf "No type is named %s." etn))
+    Lwt.return (`Error (false, sprintf "No entity type is named %s." etn))
   | Some et ->
     begin match ent_opt with
     | None -> Lwt.return_unit

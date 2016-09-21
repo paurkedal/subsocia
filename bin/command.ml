@@ -68,6 +68,9 @@ let subcommands = [
                   schema_version)
     "db-upgrade";
 
+  et_info_t, Term.info ~docs:et_scn
+    ~doc:"Show information about the named entity type."
+    "et-info";
   et_list_t, Term.info ~docs:et_scn
     ~doc:"List entity types."
     "et-list";
