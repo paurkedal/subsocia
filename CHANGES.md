@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.13.2] - 2016-09-22
+
+- Added et-info subcommand.
+- Fixed filter construction for full-text search.
+
 ## [0.13.1] - 2016-08-16
 
 ### Added
@@ -70,7 +75,8 @@
 - `Entity.type_` with new name `Entity.entity_type`.
 
 
-[Unreleased]: https://github.com/paurkedal/subsocia/compare/0.13.1...HEAD
+[Unreleased]: https://github.com/paurkedal/subsocia/compare/0.13.2...HEAD
+[0.13.2]: https://github.com/paurkedal/subsocia/compare/0.13.1...0.13.2
 [0.13.1]: https://github.com/paurkedal/subsocia/compare/0.13.0...0.13.1
 [0.13.0]: https://github.com/paurkedal/subsocia/compare/0.12.3...0.13.0
 [0.12.3]: https://github.com/paurkedal/subsocia/compare/0.12.2...0.12.3
