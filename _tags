@@ -36,6 +36,12 @@ true: bin_annot, eliom_ppx
     package(panograph.client), \
     use_subsocia
 <tests/*>: thread, \
+    package(caqti.lwt), \
+    package(config-file), \
+    package(extunix), \
     package(lwt.ppx), \
     package(oUnit), \
+    package(panograph), \
+    package(rpclib), \
+    package(yojson), \
     use_subsocia, use_subsocia-data

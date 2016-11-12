@@ -68,6 +68,7 @@ let () = Pkg.describe "subsocia" ~licenses ~opams ~build @@ fun c ->
                ~filter:Filter.(not (tagged "internal")) >>= fun () ->
   Modules.save doc_modules "doc/dev.odocl" >>= fun () ->
   let misc_fields = [
+    Pkg.test "tests/testsuite";
     Pkg.share ~dst:"static/" "web/client/sociaweb_app.js";
     Pkg.share ~dst:"static/css/" "web/static/css/subsocia.css";
     Pkg.share ~dst:"schema/" "schema/subsocia_tables.sql";

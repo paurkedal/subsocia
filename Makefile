@@ -8,15 +8,14 @@ OCAMLBUILD = ocamlbuild -use-ocamlfind $(OCAMLBUILD_PLUGINS)
 all:
 	ocaml pkg/pkg.ml build
 
-test:
-	$(OCAMLBUILD) tests/testsuite.native
-	_build/tests/testsuite.native
+test: all
+	ocaml pkg/pkg.ml test
 
 doc:
 	topkg doc
 
 clean:
-	$(OCAMLBUILD) -clean
+	ocaml pkg/pkg.ml clean
 
 install:
 	opam-installer --prefix $(prefix) subsocia.install
