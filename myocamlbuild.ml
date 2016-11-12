@@ -48,7 +48,11 @@ let local_rules () =
     begin fun env build ->
       let src = env "%.eliomi" and dst = env "%.eliom" in
       cp src dst
-    end
+    end;
+  Pathname.define_context "web/type" ["lib/data"];
+  Pathname.define_context "web/server" ["lib/data"];
+  Pathname.define_context "bin" ["lib/data"];
+  Pathname.define_context "tests" ["lib/data"]
 
 let () = Ocamlbuild_plugin.dispatch @@ fun hook ->
   M.dispatcher ~oasis_executables hook;

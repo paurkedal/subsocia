@@ -1,7 +1,6 @@
 true: bin_annot, eliom_ppx
 
 "lib": include
-"lib/data": include
 
 <bin/*>: thread, \
     package(caqti.lwt), \
@@ -34,7 +33,6 @@ true: bin_annot, eliom_ppx
     use_subsocia, use_subsocia-data
 <web/client/*>: \
     package(eliom.client), \
-    package(extunix), \
     package(panograph.client), \
     use_subsocia
 <tests/*>: thread, \

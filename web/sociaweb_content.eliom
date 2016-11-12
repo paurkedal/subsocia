@@ -26,10 +26,22 @@
   open Unprime_string
 ]
 
+[%%client
+  (* Dummy implementation for the client needed for server-client type checking,
+   * since server-only parts are also incleded in .inferred.mli. *)
+  module Subsocia_connection = struct
+    module Entity = struct
+      type soid = int32
+    end
+  end
+]
+
 [%%server
   open Sociaweb_auth
   open Sociaweb_request
   open Subsocia_connection
+
+  let ignore_cv (x : unit client_value) = ignore x
 
 (*
   let client_node_lwt (m : [`Div] Html5.elt Lwt.t client_value) =

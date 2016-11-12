@@ -189,7 +189,7 @@ let entity_handler entity_id_opt () =
              fun et -> List.mem et ets in
   let%lwt browser_div = render_browser ~enable_edit ~cri e in
   let entity_changed_c = Eliom_react.Down.of_react (entity_changed e) in
-  ignore [%client
+  ignore_cv [%client
     Lwt_react.E.keep @@ React.E.trace
       (fun _ ->
         Eliom_client.exit_to ~service:Eliom_service.void_coservice' () ())
