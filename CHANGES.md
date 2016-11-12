@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.13.3] - 2016-11-12
+
+- Fix server-client typing.
+
 ## [0.13.2] - 2016-09-22
 
 - Added et-info subcommand.
@@ -75,7 +79,8 @@
 - `Entity.type_` with new name `Entity.entity_type`.
 
 
-[Unreleased]: https://github.com/paurkedal/subsocia/compare/0.13.2...HEAD
+[Unreleased]: https://github.com/paurkedal/subsocia/compare/0.13.3...HEAD
+[0.13.3]: https://github.com/paurkedal/subsocia/compare/0.13.2...0.13.3
 [0.13.2]: https://github.com/paurkedal/subsocia/compare/0.13.1...0.13.2
 [0.13.1]: https://github.com/paurkedal/subsocia/compare/0.13.0...0.13.1
 [0.13.0]: https://github.com/paurkedal/subsocia/compare/0.12.3...0.13.0
