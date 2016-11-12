@@ -17,7 +17,7 @@
 open OUnit
 open Subsocia_connection
 open Printf
-open Pwt_infix
+open Lwt.Infix
 open Unprime
 open Unprime_option
 
@@ -45,7 +45,7 @@ module Perf = struct
 
   let show () =
     let keys = Hashtbl.fold (fun s _ -> String_set.add s) ht String_set.empty in
-    let len = String_set.fold (max *< String.length) keys 0 in
+    let len = String_set.fold (max <@ String.length) keys 0 in
     keys |> String_set.iter @@ fun tag ->
       let tC, tW, n = get tag in
       if n = 0 then
@@ -105,7 +105,9 @@ let test n =
       Perf.step ~dn:2 "is_sub";
       let%lwt issub = Entity.is_sub ea.(i) ea.(j) in
       let%lwt issup = Entity.is_sub ea.(j) ea.(i) in
-      let msg = sprintf "#%ld ⊆ #%ld" (Entity.id ea.(i)) (Entity.id ea.(j)) in
+      let%lwt soid_i = Entity.soid ea.(i) in
+      let%lwt soid_j = Entity.soid ea.(j) in
+      let msg = sprintf "#%ld ⊆ #%ld" soid_i soid_j in
       assert_equal ~msg ~printer:string_of_bool ia.(i).(j) issub;
       assert (not issup);
       Lwt.return_unit

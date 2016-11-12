@@ -16,7 +16,7 @@
 
 open Panograph_i18n
 open Printf
-open Pwt_infix
+open Lwt.Infix
 open Subsocia_common
 open Subsocia_derived_intf
 open Subsocia_selector_types

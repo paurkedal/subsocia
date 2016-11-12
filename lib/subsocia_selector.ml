@@ -15,7 +15,7 @@
  *)
 
 open Printf
-open Pwt_infix
+open Lwt.Infix
 open Subsocia_common
 open Subsocia_prereq
 open Subsocia_selector_types

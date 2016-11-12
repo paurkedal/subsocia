@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Pwt_infix
+open Lwt.Infix
 open Subsocia_common
 open Subsocia_rpc_types
 open Unprime
