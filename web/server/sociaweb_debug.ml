@@ -14,11 +14,15 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Eliom_content.Html5
+open Eliom_content.Html
+
+let debug_service =
+  let open Eliom_service in
+  create ~path:(Path ["debug"; "http_headers"])
+         ~meth:(Get Eliom_parameter.unit) ()
 
 let _ =
-  Eliom_registration.Html5.register_service
-    ~path:["debug"; "http_headers"] ~get_params:Eliom_parameter.unit
+  Eliom_registration.Html.register ~service:debug_service
     (fun () () ->
       let ri = Eliom_request_info.get_ri () in
       let frame = Ocsigen_extensions.Ocsigen_request_info.http_frame ri in

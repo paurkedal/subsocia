@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Eliom_pervasives
+open Eliom_client
 open Panograph_i18n
 open Sociaweb_auth
 open Subsocia_connection

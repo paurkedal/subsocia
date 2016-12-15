@@ -63,12 +63,15 @@ let selected_entity s =
   try%lwt Entity.select_opt (selector_of_string s)
   with Failure msg | Invalid_argument msg -> http_error 400 msg
 
+let restapi_service =
+  let open Eliom_service in
+  let get = Eliom_parameter.(
+    string "subject" ** set string "must" ** set string "may" **
+    set string "q") in
+  create ~path:(Path ["restapi"; "authorize"]) ~meth:(Get get) ()
+
 let _ =
-  Eliom_registration.Any.register_service
-    ~path:["restapi"; "authorize"]
-    ~get_params:Eliom_parameter.(
-        string "subject" ** set string "must" ** set string "may" **
-        set string "q")
+  Eliom_registration.Any.register ~service:restapi_service
     @@ fun (subject, (must, (may, query))) () ->
   Lwt_log.debug_f "Checking %s against [%s] and optional [%s] groups"
                   subject (String.concat ", " must) (String.concat ", " may) >>

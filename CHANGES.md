@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.14.0] - 2016-12-15
+
+- Update to Eliom 6.
+
 ## [0.13.3] - 2016-11-12
 
 - Fix server-client typing.
@@ -79,7 +83,8 @@
 - `Entity.type_` with new name `Entity.entity_type`.
 
 
-[Unreleased]: https://github.com/paurkedal/subsocia/compare/0.13.3...HEAD
+[Unreleased]: https://github.com/paurkedal/subsocia/compare/0.14.0...HEAD
+[0.14.0]: https://github.com/paurkedal/subsocia/compare/0.13.3...0.14.0
 [0.13.3]: https://github.com/paurkedal/subsocia/compare/0.13.2...0.13.3
 [0.13.2]: https://github.com/paurkedal/subsocia/compare/0.13.1...0.13.2
 [0.13.1]: https://github.com/paurkedal/subsocia/compare/0.13.0...0.13.1

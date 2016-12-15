@@ -17,8 +17,11 @@
 open Sociaweb_request
 open Subsocia_connection
 
-module Sociaweb_app =
-  Eliom_registration.App (struct let application_name = "sociaweb_app" end)
+module Sociaweb_app = Eliom_registration.App
+  (struct
+    let application_name = "sociaweb_app"
+    let global_data_path = None
+  end)
 
 let entity_for_view ~operator entity_id =
   let%lwt entity = Entity.of_soid entity_id in

@@ -14,23 +14,22 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-[%%shared
 open Eliom_service
 open Eliom_parameter
 
 let entities_service =
-  App.service ~path:["entities"]
-              ~get_params:(suffix (opt (int32 "entity_id"))) ()
+  create ~path:(Path ["entities"])
+         ~meth:(Get (suffix (opt (int32 "entity_id")))) ()
 
 let entities_self_service =
-  App.service ~path:["entities"; "self"] ~get_params:unit ()
+  create ~path:(Path ["entities"; "self"]) ~meth:(Get unit) ()
 
 let registration_form_service =
-  Http.service ~path:["registration"] ~get_params:unit ()
+  create ~path:(Path ["registration"]) ~meth:(Get unit) ()
 
 let registration_post_service =
-  Http.post_service ~fallback:registration_form_service
-    ~post_params:(string "first_name" **
-                  string "last_name" **
-                  string "email") ()
-]
+  let post = string "first_name" ** string "last_name" ** string "email" in
+  create_attached_post ~fallback:registration_form_service
+                       ~post_params:post ()
+
+let%client entities_service = ~%entities_service

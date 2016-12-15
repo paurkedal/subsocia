@@ -13,7 +13,7 @@ depends: [
   "caqti"
   "cmdliner"
   "config-file"
-  "eliom"
+  "eliom" {>= "6.0" & < "7.0"}
   "extunix"
   "lwt"
   "ocamlbuild" {build}

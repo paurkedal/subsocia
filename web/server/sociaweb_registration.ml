@@ -15,7 +15,7 @@
  *)
 
 open Eliom_content
-open Eliom_content.Html5
+open Eliom_content.Html
 open Sociaweb_auth
 open Sociaweb_request
 open Sociaweb_services
@@ -42,7 +42,7 @@ let registration_form (first_name, (last_name, email)) =
   ]]
 
 let () =
-  Eliom_registration.Html5.register ~service:registration_form_service
+  Eliom_registration.Html.register ~service:registration_form_service
     @@ fun () () ->
   Lwt.return @@
     Eliom_tools.F.html
@@ -55,7 +55,7 @@ let () =
       ])
 
 let () =
-  Eliom_registration.Html5.register ~service:registration_post_service
+  Eliom_registration.Html.register ~service:registration_post_service
     @@ fun () (first_name, (last_name, email)) ->
   begin match%lwt get_operator_opt () with
   | None -> Lwt.return_unit

@@ -15,8 +15,8 @@
  *)
 
 [%%shared
-  open Eliom_content.Html5
-  open Eliom_pervasives
+  open Eliom_client
+  open Eliom_content.Html
   open Lwt.Infix
   open Panui_completion
   open Sociaweb_services
@@ -41,16 +41,16 @@
   open Sociaweb_request
   open Subsocia_connection
 
-  let ignore_cv (x : unit client_value) = ignore x
+  let ignore_cv (x : unit Eliom_client_value.t) = ignore x
 
 (*
-  let client_node_lwt (m : [`Div] Html5.elt Lwt.t client_value) =
-    let ph_el = Html5.D.div [] in
+  let client_node_lwt (m : [`Div] Html.elt Lwt.t client_value) =
+    let ph_el = Html.D.div [] in
     ignore {unit{
-      let ph_node = Html5.To_dom.of_div ~%ph_el in
+      let ph_node = Html.To_dom.of_div ~%ph_el in
       Lwt.async @@ fun () ->
       %m >|= fun el ->
-      let n = Html5.To_dom.of_div el in
+      let n = Html.To_dom.of_div el in
       Js.Opt.iter (ph_node##parentNode) (fun p -> Dom.replaceChild p n ph_node)
     }};
     ph_el
@@ -89,30 +89,33 @@ let complete_helper entity_type_id super_id words_str =
         Entity.can_search_below operator root
      | Some super ->
         Entity.can_search_below operator super in
-  if not can_search then http_error 403 "Search not permitted." else
+  if not can_search then Lwt_result.fail "Search not permitted." else
   let%lwt entity_type = Pwt_option.map_s Entity_type.of_soid entity_type_id in
   match Subsocia_fts.of_completion_string words_str with
-   | None -> Lwt.return []
+   | None -> Lwt_result.return []
    | Some fts ->
       let cutoff = Subsocia_config.Web.completion_cutoff#get in
       let limit = Subsocia_config.Web.completion_limit#get in
       let%lwt root = Entity.root in
-      Entity.image1_fts ?entity_type ?super ~cutoff ~limit fts root
+      Lwt_result.ok
+        @@ Entity.image1_fts ?entity_type ?super ~cutoff ~limit fts root
 
 let complete (entity_type_id, super_id, words_str) =
-  complete_helper entity_type_id super_id words_str
-    >>= Lwt_list.map_s (fun (entity, _) -> Entity.display_name entity)
+  Lwt_result.bind_lwt
+    (complete_helper entity_type_id super_id words_str)
+    (Lwt_list.map_s (fun (entity, _) -> Entity.display_name entity))
 
 let%client complete
-    : int32 option * int32 option * string -> string list Lwt.t =
+  : int32 option * int32 option * string -> (string list, string) result Lwt.t =
   ~%(server_function [%json: int32 option * int32 option * string] complete)
 
 let completed (entity_type_id, super_id, str) =
   match%lwt
-    complete_helper entity_type_id super_id str >>=
-    Lwt_list.filter_s (fun (e, _) -> Entity.display_name e >|= (=) str)
+    Lwt_result.bind_lwt
+      (complete_helper entity_type_id super_id str)
+      (Lwt_list.filter_s (fun (e, _) -> Entity.display_name e >|= (=) str))
   with
-  | [(entity, _)] -> Entity.soid entity >|= Option.some
+  | Ok [(entity, _)] -> Entity.soid entity >|= Option.some
   | _ -> Lwt.return None
 
 let%client completed

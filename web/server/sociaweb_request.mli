@@ -14,17 +14,14 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Eliom_pervasives
+open Eliom_client
 open Panograph_i18n
 open Subsocia_connection
 
 val http_error : int -> string -> 'a Lwt.t
 val http_redirect :
-      service:('get, unit, [< Eliom_service.get_service_kind],
-               [< Eliom_service.attached], [< Eliom_service.service_kind],
-               [< Eliom_service.suff], 'gn, unit,
-               [< Eliom_service.registrable], 'return)
-              Eliom_service.service ->
+      service: ('get, unit, Eliom_service.get, _, _, _, _,
+                _, _, unit, _) Eliom_service.t ->
       'get -> 'noreturn Lwt.t
 
 type custom_request_info = {

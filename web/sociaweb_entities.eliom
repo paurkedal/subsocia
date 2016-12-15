@@ -20,7 +20,7 @@ open Subsocia_connection
 
 [%%shared
   open Eliom_content
-  open Eliom_content.Html5
+  open Eliom_content.Html
   open Lwt.Infix
   open Panograph_i18n
   open Panograph_types
@@ -60,7 +60,7 @@ open Subsocia_connection
     let%lwt link = entity_link ~langs:cri.cri_langs csuper in
     if not can_edit then
       let button =
-        F.Raw.button ~a:[F.a_button_type `Button; F.a_disabled `Disabled;
+        F.Raw.button ~a:[F.a_button_type `Button; F.a_disabled ();
                          F.a_style "visibility: hidden"] [] in
       Lwt.return (F.td [button; link])
     else
@@ -90,7 +90,7 @@ open Subsocia_connection
     fold_closure_from Entity.Set.add Entity.dsuper e Entity.Set.empty
 
   let render_attribution ~cri lb ub =
-    let open Html5 in
+    let open Html in
     let%lwt lbt = Entity.entity_type lb in
     let%lwt ubt = Entity.entity_type ub in
     let%lwt ats = Entity_type.allowed_attributes ubt lbt in
@@ -143,7 +143,7 @@ open Subsocia_connection
            F.tr [F.td [dsuper_block]]]
 
   let render_browser ~cri ?(enable_edit = true) ent =
-    let open Html5 in
+    let open Html in
     let%lwt dsub, m = Entity.dsub ent >>= ordered_entities ~cri in
     let%lwt dsub_frags = Lwt_list.map_s (neighbour_link ~cri) dsub in
     let%lwt name = Entity.display_name ~langs:cri.cri_langs ent in
@@ -192,16 +192,16 @@ let entity_handler entity_id_opt () =
   ignore_cv [%client
     Lwt_react.E.keep @@ React.E.trace
       (fun _ ->
-        Eliom_client.exit_to ~service:Eliom_service.void_coservice' () ())
+        Eliom_client.exit_to ~service:Eliom_service.reload_action () ())
       ~%entity_changed_c
   ];
   let do_search = [%client fun str ->
     match%lwt completed (None, None, str) with
     | None ->
-      Lwt.return (Ack_error "Unique match required.")
+      Lwt.return (Error "Unique match required.")
     | Some entity_id ->
       Eliom_client.change_page ~service:entities_service (Some entity_id) () >>
-      Lwt.return Ack_ok
+      Lwt_result.return ()
   ] in
   let%lwt search_inp, search_handle = entity_completion_input do_search in
   let search_div = F.div ~a:[F.a_class ["soc-search"]] [
@@ -217,7 +217,8 @@ let entity_handler entity_id_opt () =
 let entities_self_handler () () =
   let%lwt operator = authenticate () in
   let%lwt operator_id = Entity.soid operator in
-  Lwt.return (Eliom_service.preapply entities_service (Some operator_id))
+  Lwt.return (Eliom_registration.Redirection
+    (Eliom_service.preapply entities_service (Some operator_id)))
 
 let () =
   let open Eliom_registration in

@@ -17,7 +17,7 @@
 [%%server.start]
 open Subsocia_connection
 
-module Sociaweb_app : Eliom_registration.ELIOM_APPL
+module Sociaweb_app : Eliom_registration.APP
 
 val entity_for_view : operator: Entity.t -> int32 -> Entity.t Lwt.t
 val entity_for_edit : operator: Entity.t -> int32 -> Entity.t Lwt.t
