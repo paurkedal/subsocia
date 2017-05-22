@@ -99,7 +99,7 @@ let db_upgrade () = Lwt_main.run begin
       load_sql c fp >>
       Lwt_io.printlf "Updated: %s" fp
     with
-    | Caqti.Execute_failed (_, qi, msg) ->
+    | Caqti_errors.Execute_failed (_, qi, msg) ->
       have_error := true;
       Lwt_io.printlf "Failed: %s" fp >>
       Lwt_io.printlf "<<- %s" (string_of_query_info qi) >>
