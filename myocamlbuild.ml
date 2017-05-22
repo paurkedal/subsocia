@@ -56,10 +56,14 @@ let local_rules () =
 
 let () = Ocamlbuild_plugin.dispatch @@ fun hook ->
   M.dispatcher ~oasis_executables hook;
-  match hook with
-  | Before_options -> Options.make_links := false
-  | After_rules ->
-    local_rules ();
-    ocaml_lib "lib/subsocia";
-    ocaml_lib "lib/data/subsocia-data"
-  | _ -> ()
+  (match hook with
+   | Before_options -> Options.make_links := false
+   | After_rules ->
+      local_rules ();
+      ocaml_lib "lib/subsocia";
+      ocaml_lib "lib/data/subsocia-data";
+      (match Sys.getenv "TERM" with
+       | exception Not_found -> ()
+       | "" | "dumb" -> ()
+       | _ -> flag ["ocaml"; "compile"] (S [A"-color"; A"always"]))
+   | _ -> ())
