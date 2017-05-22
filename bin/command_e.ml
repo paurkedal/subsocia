@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -168,7 +168,7 @@ let e_ls sel_opt = run @@ fun (module C) ->
   C.Attribute_uniqueness.Set.iter_s show_au aus >>
   Lwt.return 0
 
-let e_ls_t =
+let e_ls_cmd =
   let sel_t = Arg.(value & pos 0 (some selector_conv) None &
                    info ~docv:"PATH" []) in
   Term.(pure e_ls $ sel_t)
@@ -180,7 +180,7 @@ let e_search sel eds = run @@ fun (module C) ->
   C.Entity.Set.iter_s (U.show_entity eds) es >>
   Lwt.return (if C.Entity.Set.is_empty es then 1 else 0)
 
-let e_search_t =
+let e_search_cmd =
   let sel_t = Arg.(required & pos 0 (some selector_conv) None &
                    info ~docv:"PATH" []) in
   let doc =
@@ -204,7 +204,7 @@ let e_fts q etn super limit cutoff = run @@ fun (module C) ->
   Lwt_list.iter_s show es >>
   Lwt.return (if es = [] then 1 else 0)
 
-let e_fts_t =
+let e_fts_cmd =
   let doc = "The query string as accepted by PostgrSQL's to_tsquery." in
   let q_t = Arg.(required & pos 0 (some string) None &
                  info ~docv:"TSQUERY" ~doc []) in
@@ -231,7 +231,7 @@ let e_create etn add_dsupers add_sels = run0 @@ fun (module C) ->
   Lwt_list.iter_s (C.Entity.force_dsub e) add_dsupers >>
   Lwt_list.iter_s (U.update_attributes e) add_sels
 
-let e_create_t =
+let e_create_cmd =
   let etn_t = Arg.(required & pos 0 (some string) None &
                    info ~docv:"TYPE" []) in
   let succs_t = Arg.(value & opt_all selector_conv [] &
@@ -245,7 +245,7 @@ let e_delete sel = run0 @@ fun (module C) ->
   let%lwt e = U.Entity.select_one sel in
   C.Entity.delete e
 
-let e_delete_t =
+let e_delete_cmd =
   let sel_t = Arg.(required & pos 0 (some selector_conv) None &
                    info ~docv:"PATH" []) in
   Term.(pure e_delete $ sel_t)
@@ -263,7 +263,7 @@ let e_modify sel add_dsupers del_dsupers add_sels del_sels =
   Lwt_list.iter_s (U.update_attributes e) del_sels >>
   Lwt_list.iter_s (fun e_sub -> C.Entity.relax_dsub e e_sub) del_dsupers
 
-let e_modify_t =
+let e_modify_cmd =
   let sel_t = Arg.(required & pos 0 (some selector_conv) None &
                    info ~docv:"PATH" []) in
   let add_succs_t = Arg.(value & opt_all selector_conv [] &

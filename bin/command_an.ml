@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -31,7 +31,7 @@ let an_allow atn etn0 etn1 = run0 @@ fun (module C) ->
   let%lwt et1 = C.Entity_type.of_name etn1 >>= req "entity type" etn1 in
   C.Entity_type.allow_attribution at et0 et1
 
-let an_allow_t =
+let an_allow_cmd =
   let atn_t = Arg.(required & pos 0 (some string) None &
                    info ~docv:"NAME" []) in
   let etn0_t = Arg.(required & pos 1 (some string) None &
@@ -47,7 +47,7 @@ let an_disallow atn etn0 etn1 = run0 @@ fun (module C) ->
   let%lwt et1 = C.Entity_type.of_name etn1 >>= req "entity type" etn1 in
   C.Entity_type.disallow_attribution at et0 et1
 
-let an_disallow_t =
+let an_disallow_cmd =
   let atn_t = Arg.(required & pos 0 (some string) None &
                    info ~docv:"NAME" []) in
   let etn0_t = Arg.(required & pos 1 (some string) None &
@@ -65,4 +65,4 @@ let an_list () = run0 @@ fun (module C) ->
   let%lwt etn1 = C.Entity_type.name et1 in
   Lwt_io.printlf "%s %s %s %s" (Multiplicity.to_string mu) atn etn0 etn1
 
-let an_list_t = Term.(pure an_list $ pure ())
+let an_list_cmd = Term.(pure an_list $ pure ())

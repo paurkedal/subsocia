@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -45,14 +45,14 @@ let in_disallow etn0 etn1 = run @@ fun (module C) ->
   | Some _, None -> report_missing etn1
   | None, None -> report_missing (etn0 ^ " and " ^ etn1)
 
-let in_allow_t =
+let in_allow_cmd =
   let etn0_t = Arg.(required & pos 0 (some string) None &
                     info ~docv:"SUB-TYPE" []) in
   let etn1_t = Arg.(required & pos 1 (some string) None &
                     info ~docv:"SUPER-TYPE" []) in
   Term.(ret (pure in_allow $ etn0_t $ etn1_t))
 
-let in_disallow_t =
+let in_disallow_cmd =
   let etn0_t = Arg.(required & pos 0 (some string) None &
                     info ~docv:"SUB-TYPE" []) in
   let etn1_t = Arg.(required & pos 1 (some string) None &
@@ -97,7 +97,7 @@ let in_list etn0_opt etn1_opt = run @@ fun (module C) ->
       Lwt.return 1
     end
 
-let in_list_t =
+let in_list_cmd =
   let etn0_t = Arg.(value & pos 0 (some string) None &
                     info ~docv:"SUB-TYPE" []) in
   let etn1_t = Arg.(value & pos 1 (some string) None &

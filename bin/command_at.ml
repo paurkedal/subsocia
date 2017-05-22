@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -25,7 +25,7 @@ let at_create (Type.Ex vt) atn mult = run0 @@ fun (module C) ->
   let%lwt at_idstr = C.Attribute_type.(soid at >|= Soid.to_string) in
   Lwt_log.info_f "Created attribute type %s %s." at_idstr atn
 
-let at_create_t =
+let at_create_cmd =
   let open Arg in
   let atn_t = required & pos 0 (some string) None
     & info ~docv:"NAME" ~doc:"A name to identify the new attribute type." [] in
@@ -47,7 +47,7 @@ let at_delete atn = run @@ fun (module C) ->
     Lwt_log.error_f "No attribute type is named %s." atn >>
     Lwt.return 1
 
-let at_delete_t =
+let at_delete_cmd =
   let open Arg in
   let atn_t = required & pos 0 (some string) None
     & info ~docv:"NAME" ~doc:"Name of the attribute to delete." [] in
@@ -72,7 +72,7 @@ let at_list verbose = run @@ fun (module C) ->
   C.Attribute_type.all () >>= C.Attribute_type.Set.iter_s show >>
   Lwt.return 0
 
-let at_list_t =
+let at_list_cmd =
   let open Arg in
   let v = value & flag
     & info ~doc:"Show allowed domain and codomain combinations." ["v"] in

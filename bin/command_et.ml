@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -34,14 +34,14 @@ let et_info etn = run @@ fun (module C) ->
       Lwt_io.printlf "Name template: %s" name_tmpl >>
       Lwt.return (`Ok 0)
 
-let et_info_t = Term.(ret (const et_info $ et_name_t))
+let et_info_cmd = Term.(ret (const et_info $ et_name_t))
 
 let et_create etn = run0 @@ fun (module C) ->
   let%lwt et = C.Entity_type.create etn in
   let%lwt et_idstr = C.Entity_type.(soid et >|= Soid.to_string) in
   Lwt_log.info_f "Created type %s = %s." et_idstr etn
 
-let et_create_t = Term.(pure et_create $ et_name_t)
+let et_create_cmd = Term.(pure et_create $ et_name_t)
 
 let et_modify etn ent_opt = run @@ fun (module C) ->
   match%lwt C.Entity_type.of_name etn with
@@ -54,7 +54,7 @@ let et_modify etn ent_opt = run @@ fun (module C) ->
     end >>
     Lwt.return (`Ok 0)
 
-let et_modify_t =
+let et_modify_cmd =
   let etn_t =
     Arg.(required & pos 0 (some string) None &
          info ~docv:"ET-NAME" ~doc:"Name of the entity type to modify" []) in
@@ -75,7 +75,7 @@ let et_delete etn = run @@ fun (module C) ->
     Lwt_log.info_f "Deleted type #%ld = %s." et_id etn >>
     Lwt.return (`Ok 0)
 
-let et_delete_t =
+let et_delete_cmd =
   let et_name_t =
     Arg.(required & pos 0 (some string) None &
          info ~docv:"ET-NAME" ~doc:"Name of the entity to delete" []) in
@@ -86,5 +86,5 @@ let et_list () = run0 @@ fun (module C) ->
   C.Entity_type.Set.iter_s
     (fun et -> C.Entity_type.name et >>= Lwt_io.printl)
 
-let et_list_t = Term.(pure et_list $ pure ())
+let et_list_cmd = Term.(pure et_list $ pure ())
 

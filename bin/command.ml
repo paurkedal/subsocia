@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -57,89 +57,89 @@ let an_scn = "ATTRIBUTION COMMANDS"
 let e_scn = "ENTITY COMMANDS"
 
 let subcommands = [
-  db_schema_t, Term.info ~docs:db_scn
+  db_schema_cmd, Term.info ~docs:db_scn
     ~doc:"Print the directory or paths of database schema files."
     "db-schema";
-  db_init_t, Term.info ~docs:db_scn
+  db_init_cmd, Term.info ~docs:db_scn
     ~doc:"Initialize the database."
     "db-init";
-  db_upgrade_t, Term.info ~docs:db_scn
+  db_upgrade_cmd, Term.info ~docs:db_scn
     ~doc:(sprintf "Upgrade the database to the current schema version (%d)."
                   schema_version)
     "db-upgrade";
 
-  et_info_t, Term.info ~docs:et_scn
+  et_info_cmd, Term.info ~docs:et_scn
     ~doc:"Show information about the named entity type."
     "et-info";
-  et_list_t, Term.info ~docs:et_scn
+  et_list_cmd, Term.info ~docs:et_scn
     ~doc:"List entity types."
     "et-list";
-  et_create_t, Term.info ~docs:et_scn
+  et_create_cmd, Term.info ~docs:et_scn
     ~doc:"Create an entity type."
     "et-create";
-  et_modify_t, Term.info ~docs:et_scn
+  et_modify_cmd, Term.info ~docs:et_scn
     ~doc:"Modify an entity type."
     "et-modify";
-  et_delete_t, Term.info ~docs:et_scn
+  et_delete_cmd, Term.info ~docs:et_scn
     ~doc:"Delete an entity type."
     "et-delete";
 
-  in_allow_t, Term.info ~docs:in_scn
+  in_allow_cmd, Term.info ~docs:in_scn
     ~doc:"Allow inclusion between entities of a type."
     "in-allow";
-  in_disallow_t, Term.info ~docs:in_scn
+  in_disallow_cmd, Term.info ~docs:in_scn
     ~doc:"Disallow inclusion between entities of a type."
     "in-disallow";
-  in_list_t, Term.info ~docs:in_scn
+  in_list_cmd, Term.info ~docs:in_scn
     ~doc:"Show inclusion policy between types."
     "in-list";
 
-  at_create_t, Term.info ~docs:at_scn
+  at_create_cmd, Term.info ~docs:at_scn
     ~doc:"Create an attribute type."
     "at-create";
-  at_delete_t, Term.info ~docs:at_scn
+  at_delete_cmd, Term.info ~docs:at_scn
     ~doc:"Delete an attribute type."
     "at-delete";
-  at_list_t, Term.info ~docs:at_scn
+  at_list_cmd, Term.info ~docs:at_scn
     ~doc:"List all attribute types."
     "at-list";
 
-  au_force_t, Term.info ~docs:au_scn
+  au_force_cmd, Term.info ~docs:au_scn
     ~doc:"Add an attribute uniqueness constraint."
     "au-force";
-  au_relax_t, Term.info ~docs:au_scn
+  au_relax_cmd, Term.info ~docs:au_scn
     ~doc:"Remove an attribute uniqueness constraint."
     "au-relax";
-  au_list_t, Term.info ~docs:au_scn
+  au_list_cmd, Term.info ~docs:au_scn
     ~doc:"List all attribute uniqueness constraints."
     "au-list";
 
-  an_allow_t, Term.info ~docs:an_scn
+  an_allow_cmd, Term.info ~docs:an_scn
     ~doc:"Allow an attribution."
     "an-allow";
-  an_disallow_t, Term.info ~docs:an_scn
+  an_disallow_cmd, Term.info ~docs:an_scn
     ~doc:"Disallow an attribution."
     "an-disallow";
-  an_list_t, Term.info ~docs:an_scn
+  an_list_cmd, Term.info ~docs:an_scn
     ~doc:"List allowed attribution."
     "an-list";
 
-  e_ls_t, Term.info ~docs:e_scn
+  e_ls_cmd, Term.info ~docs:e_scn
     ~doc:"List entities reachable from a path."
     "ls";
-  e_search_t, Term.info ~docs:e_scn
+  e_search_cmd, Term.info ~docs:e_scn
     ~doc:"List entities matching a selector."
     "search";
-  e_fts_t, Term.info ~docs:e_scn
+  e_fts_cmd, Term.info ~docs:e_scn
     ~doc:"Full-text search."
     "fts";
-  e_create_t, Term.info ~docs:e_scn
+  e_create_cmd, Term.info ~docs:e_scn
     ~doc:"Create an entity."
     "create";
-  e_delete_t, Term.info ~docs:e_scn
+  e_delete_cmd, Term.info ~docs:e_scn
     ~doc:"Delete an entity."
     "delete";
-  e_modify_t, Term.info ~docs:e_scn
+  e_modify_cmd, Term.info ~docs:e_scn
     ~doc:"Modify an entity."
     "modify";
 

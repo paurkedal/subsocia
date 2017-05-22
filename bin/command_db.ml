@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -36,7 +36,7 @@ let db_schema do_dir =
         (upgradable_sql_schemas @ idempotent_sql_schemas)
   end; 0
 
-let db_schema_t =
+let db_schema_cmd =
   let do_dir_t =
     Arg.(value & flag &
          info ~doc:"Print the path to the top-level directory \
@@ -75,7 +75,7 @@ let db_init disable_transaction = run0 @@ fun (module C) ->
             Schema.exec schema))
     subsocia_schemas
 
-let db_init_t = Term.(pure db_init $ disable_transaction_t)
+let db_init_cmd = Term.(pure db_init $ disable_transaction_t)
 
 let get_schema_version_q = Subsocia_direct.format_query
   "SELECT global_value FROM @global_integer \
@@ -126,4 +126,4 @@ let db_upgrade () = Lwt_main.run begin
     Lwt.return 0
 end
 
-let db_upgrade_t = Term.(pure db_upgrade $ pure ())
+let db_upgrade_cmd = Term.(pure db_upgrade $ pure ())
