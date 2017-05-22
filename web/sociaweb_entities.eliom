@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -195,11 +195,9 @@ let entity_handler entity_id_opt () =
         Eliom_client.exit_to ~service:Eliom_service.reload_action () ())
       ~%entity_changed_c
   ];
-  let do_search = [%client fun str ->
-    match%lwt completed (None, None, str) with
-    | None ->
-      Lwt.return (Error "Unique match required.")
-    | Some entity_id ->
+  let do_search = [%client function
+   | None -> Lwt_result.return ()
+   | Some (_, entity_id) ->
       Eliom_client.change_page ~service:entities_service (Some entity_id) () >>
       Lwt_result.return ()
   ] in

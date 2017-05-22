@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -97,7 +97,7 @@ let _ =
       let%lwt must_ok = Lwt_list.for_all_p is_member_of must in
       if must_ok then
         let%lwt may_res = Lwt_list.filter_p is_member_of may in
-        let%lwt query_res = Pwt_list.fmap_p get_attribute query in
+        let%lwt query_res = Lwt_list.filter_map_p get_attribute query in
         Lwt.return (true, may_res, query_res)
       else
         Lwt.return (false, [], []) in
