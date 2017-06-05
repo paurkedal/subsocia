@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -23,7 +23,7 @@ let load_plugin pkg =
   let aux () =
     if Hashtbl.mem loaded_plugins pkg then Some () else
     (Hashtbl.add loaded_plugins pkg (); None) in
-  Caqti_plugin.ensure_plugin aux [pkg]
+  Caqti_plugin.ensure_plugin aux pkg
 
 let load_base_plugins () =
   List.iter load_plugin Subsocia_config.plugins#get

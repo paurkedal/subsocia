@@ -1,6 +1,8 @@
 # Change Log
 
-## [Unreleased]
+## [0.15.0] - 2017-06-05
+
+- Update to Caqti 0.6.0.
 
 ## [0.14.0] - 2016-12-15
 
@@ -84,6 +86,7 @@
 
 
 [Unreleased]: https://github.com/paurkedal/subsocia/compare/0.14.0...HEAD
+[0.15.0]: https://github.com/paurkedal/subsocia/compare/0.14.0...0.15.0
 [0.14.0]: https://github.com/paurkedal/subsocia/compare/0.13.3...0.14.0
 [0.13.3]: https://github.com/paurkedal/subsocia/compare/0.13.2...0.13.3
 [0.13.2]: https://github.com/paurkedal/subsocia/compare/0.13.1...0.13.2

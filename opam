@@ -10,7 +10,9 @@ license: "LGPL-3 with OCaml linking exception"
 build: ["ocaml" "pkg/pkg.ml" "build" "--pinned" "%{pinned}%"]
 depends: [
   "adpkg" {build}
-  "caqti"
+  "caqti" {>= "0.6.0"}
+  "caqti-driver-postgresql"
+  "caqti-lwt"
   "cmdliner"
   "config-file"
   "eliom" {>= "6.0" & < "7.0"}
