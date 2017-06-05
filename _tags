@@ -3,7 +3,7 @@ true: bin_annot, eliom_ppx
 "lib": include
 
 <bin/*>: thread, \
-    package(caqti-lwt), \
+    package(caqti), package(caqti-lwt), \
     package(cmdliner), \
     package(config-file), \
     package(extunix), \
@@ -20,7 +20,7 @@ true: bin_annot, eliom_ppx
     package(rpclib), \
     package(yojson)
 <lib/data/*.ml*>: thread, \
-    package(caqti-lwt), \
+    package(caqti), package(caqti-lwt), \
     package(config-file), \
     package(panograph), \
     package(prime.unstable), \
@@ -36,7 +36,7 @@ true: bin_annot, eliom_ppx
     package(panograph.client), \
     use_subsocia
 <tests/*>: thread, \
-    package(caqti-lwt), \
+    package(caqti), package(caqti-lwt), \
     package(config-file), \
     package(extunix), \
     package(lwt.ppx), \

@@ -11,7 +11,6 @@ build: ["ocaml" "pkg/pkg.ml" "build" "--pinned" "%{pinned}%"]
 depends: [
   "adpkg" {build}
   "caqti" {>= "0.6.0"}
-  "caqti-driver-postgresql"
   "caqti-lwt"
   "cmdliner"
   "config-file"

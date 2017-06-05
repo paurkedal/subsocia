@@ -11,7 +11,6 @@
     <extension findlib-package="ocsigenserver.ext.redirectmod"/>
     <extension findlib-package="config-file"/>
     <extension findlib-package="eliom.server"/>
-    <extension findlib-package="postgresql"/>
     <extension findlib-package="prime"/>
     <extension findlib-package="prime.unstable"/>
     <extension findlib-package="caqti-lwt"/>
