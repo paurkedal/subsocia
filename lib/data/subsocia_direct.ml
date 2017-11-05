@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -804,7 +804,7 @@ module Make (P : Param) = struct
     let affected, affected_cache = memo_1lwt @@ fun au ->
       begin
         with_db @@ fun (module C : CONNECTION) ->
-        C.fold Q.au_affected C.Tuple.(fun t -> List.push (int32 0 t))
+        C.fold Q.au_affected C.Tuple.(fun t -> List.cons (int32 0 t))
                C.Param.[|int32 au|] []
       end >>= Lwt_list.rev_map_s Attribute_type.of_id >|=
               B.Attribute_type.Set.of_ordered_elements
@@ -1375,7 +1375,7 @@ module Make (P : Param) = struct
     let image1_fts, image1_fts_cache =
       memo_6lwt @@ fun (et, super, cutoff, limit, fts, e) ->
       with_db @@ fun (module C : CONNECTION) ->
-      let f tup = List.push C.Tuple.(int32 0 tup, float 1 tup) in
+      let f tup = List.cons C.Tuple.(int32 0 tup, float 1 tup) in
       begin match et, super, limit with
       | None, None, None ->
         C.fold Q.e_asub_fts f
@@ -1416,7 +1416,7 @@ module Make (P : Param) = struct
     let preimage1_fts, preimage1_fts_cache =
       memo_6lwt @@ fun (et, super, cutoff, limit, fts, e) ->
       with_db @@ fun (module C : CONNECTION) ->
-      let f tup = List.push C.Tuple.(int32 0 tup, float 1 tup) in
+      let f tup = List.cons C.Tuple.(int32 0 tup, float 1 tup) in
       begin match et, super, limit with
       | None, None, None ->
         C.fold Q.e_asuper_fts f
@@ -1589,7 +1589,7 @@ module Make (P : Param) = struct
       let%lwt r = rank e in
       let update_rank eS r' =
         if r' = r then Lwt.return r' else
-        rank eS >|= (max r' <@ succ) in
+        rank eS >|= (max r' % succ) in
       let%lwt esS = dsuper e in
       let%lwt r' = Set.fold_s update_rank esS 0 in
       if r' = r then Lwt.return_unit else begin
@@ -1657,7 +1657,7 @@ module Make (P : Param) = struct
               if Values.is_empty avs then Lwt.fail Not_found else
               Lwt.return (B.Relation.In (at, avs)))
             (B.Attribute_type.Set.elements aff_ats) in
-          asub_conj e (new_cond :: conds) >|= (not <@ Set.is_empty)
+          asub_conj e (new_cond :: conds) >|= (not % Set.is_empty)
         with Not_found ->
           Lwt.return_false in
       let%lwt violated =

@@ -54,9 +54,9 @@ let eds_conv =
     with Failure msg ->
       `Error msg in
   let print fo eds =
-    [] |> (if eds.eds_paths then List.push "paths" else ident)
-       |> (if eds.eds_super then List.push "super" else ident)
-       |> (if eds.eds_sub then List.push "sub" else ident)
+    [] |> (if eds.eds_paths then List.cons "paths" else ident)
+       |> (if eds.eds_super then List.cons "super" else ident)
+       |> (if eds.eds_sub then List.cons "sub" else ident)
        |> String.concat "," |> Format.pp_print_string fo in
   (parse, print)
 

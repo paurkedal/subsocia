@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -105,7 +105,7 @@ module Server_impl = struct
 
     let force (module C : CONTEXT) s =
       Lwt_list.map_s C.Attribute_type.of_soid s
-        >>= C.Attribute_type.Set.of_ordered_elements @>
+        >>= C.Attribute_type.Set.of_ordered_elements %>
             C.Attribute_uniqueness.force
         >>= C.Attribute_uniqueness.soid
 
@@ -114,7 +114,7 @@ module Server_impl = struct
 
     let find (module C : CONTEXT) s =
       Lwt_list.map_s C.Attribute_type.of_soid s
-        >>= C.Attribute_type.Set.of_ordered_elements @>
+        >>= C.Attribute_type.Set.of_ordered_elements %>
             C.Attribute_uniqueness.find
         >>= Pwt_option.map_s C.Attribute_uniqueness.soid
 
@@ -330,7 +330,7 @@ module Server_impl = struct
       let%lwt et1 = C.Entity.of_soid et1_id in
       let%lwt C.Attribute_type.Ex at = C.Attribute_type.of_soid at_id in
       C.Entity.get_values at et0 et1 >|=
-      Values.elements @>
+      Values.elements %>
       List.map (fun v -> Value.Ex (C.Attribute_type.value_type at, v))
 
     let catch_uniqueness_error (module C : CONTEXT) f =
@@ -427,7 +427,7 @@ module Server_impl = struct
           Values.fold
             (fun v ->
               let v0 = Value.Ex (C.Attribute_type.value_type at, v) in
-              List.push (e_id, v0))
+              List.cons (e_id, v0))
             vs acc)
         m []
 
@@ -441,7 +441,7 @@ module Server_impl = struct
           Values.fold
             (fun v ->
               let v0 = Value.Ex (C.Attribute_type.value_type at, v) in
-              List.push (e_id, v0))
+              List.cons (e_id, v0))
             vs acc)
         m []
 

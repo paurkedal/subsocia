@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -45,7 +45,7 @@ module Perf = struct
 
   let show () =
     let keys = Hashtbl.fold (fun s _ -> String_set.add s) ht String_set.empty in
-    let len = String_set.fold (max <@ String.length) keys 0 in
+    let len = String_set.fold (max % String.length) keys 0 in
     keys |> String_set.iter @@ fun tag ->
       let tC, tW, n = get tag in
       if n = 0 then
