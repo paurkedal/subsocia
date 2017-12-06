@@ -43,17 +43,17 @@ let db_schema_cmd =
                     instead of to the individual schema files." ["dir"]) in
   Term.(pure db_schema $ do_dir_t)
 
-let load_sql (module C : Caqti_lwt.CONNECTION) sql =
+let load_sql (module C : Caqti1_lwt.CONNECTION) sql =
   Lwt_io.with_file ~mode:Lwt_io.input sql @@ fun ic ->
   let rec loop () =
     match%lwt Caqti_lwt_sql_io.read_sql_statement Lwt_io.read_char_opt ic with
     | None -> Lwt.return_unit
-    | Some stmt -> C.exec (Caqti_query.oneshot_sql stmt) [||] >> loop () in
+    | Some stmt -> C.exec (Caqti1_query.oneshot_sql stmt) [||] >> loop () in
   loop ()
 
 let db_init disable_transaction = run0 @@ fun (module C) ->
   let uri = Uri.of_string Subsocia_config.database_uri#get in
-  let%lwt cc = Caqti_lwt.connect uri in
+  let%lwt cc = Caqti1_lwt.connect uri in
   Lwt_list.iter_s
     (fun fn ->
       let fp = Filename.concat schema_dir fn in
@@ -80,7 +80,7 @@ let db_init_cmd = Term.(pure db_init $ disable_transaction_t)
 let get_schema_version_q = Subsocia_direct.format_query
   "SELECT global_value FROM @global_integer \
    WHERE global_name = 'schema_version'"
-let get_schema_version (module C : Caqti_lwt.CONNECTION) =
+let get_schema_version (module C : Caqti1_lwt.CONNECTION) =
   C.find get_schema_version_q C.Tuple.(int 0) [||]
 
 let string_of_query_info = function
@@ -89,8 +89,8 @@ let string_of_query_info = function
 
 let db_upgrade () = Lwt_main.run begin
   let uri = Uri.of_string Subsocia_config.database_uri#get in
-  let%lwt c = Caqti_lwt.connect uri in
-  let module C : Caqti_lwt.CONNECTION = (val c) in
+  let%lwt c = Caqti1_lwt.connect uri in
+  let module C : Caqti1_lwt.CONNECTION = (val c) in
   let%lwt db_schema_version = get_schema_version c in
   let have_error = ref false in
   let load fp =
@@ -99,7 +99,7 @@ let db_upgrade () = Lwt_main.run begin
       load_sql c fp >>
       Lwt_io.printlf "Updated: %s" fp
     with
-    | Caqti_errors.Execute_failed (_, qi, msg) ->
+    | Caqti1_errors.Execute_failed (_, qi, msg) ->
       have_error := true;
       Lwt_io.printlf "Failed: %s" fp >>
       Lwt_io.printlf "<<- %s" (string_of_query_info qi) >>

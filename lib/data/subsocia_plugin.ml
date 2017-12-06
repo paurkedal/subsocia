@@ -23,7 +23,7 @@ let load_plugin pkg =
   let aux () =
     if Hashtbl.mem loaded_plugins pkg then Some () else
     (Hashtbl.add loaded_plugins pkg (); None) in
-  Caqti_plugin.ensure_plugin aux pkg
+  Caqti1_plugin.ensure_plugin aux pkg
 
 let load_base_plugins () =
   List.iter load_plugin Subsocia_config.plugins#get

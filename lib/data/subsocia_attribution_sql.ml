@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,7 +15,7 @@
  *)
 
 open Caqti_sql
-open Caqti_query
+open Caqti1_query
 open Lwt.Infix
 open Printf
 open Subsocia_common

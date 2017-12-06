@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2015  Petter Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,11 +17,11 @@
 module type S = Subsocia_direct_intf.S
 
 val schema_prefix : string ref
-val format_query : string -> Caqti_query.query
+val format_query : string -> Caqti1_query.query
 val fetch_grade : float
 
 module type CONNECTION_POOL = sig
-  val pool : (module Caqti_lwt.CONNECTION) Caqti_lwt.Pool.t
+  val pool : (module Caqti1_lwt.CONNECTION) Caqti1_lwt.Pool.t
 end
 
 val connect : Uri.t -> (module S)

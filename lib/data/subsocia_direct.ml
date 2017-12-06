@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Caqti_lwt
+open Caqti1_lwt
 open Panograph_i18n
 open Printf
 open Lwt.Infix
@@ -37,7 +37,7 @@ let schema_prefix = ref "subsocia."
 
 let int_of_bool x = if x then 1 else 0
 
-let format_query sql = Caqti_query.prepare_fun @@ fun lang ->
+let format_query sql = Caqti1_query.prepare_fun @@ fun lang ->
   let buf = Buffer.create (String.length sql) in
   let n = String.length sql in
   begin match lang with
@@ -56,7 +56,7 @@ let format_query sql = Caqti_query.prepare_fun @@ fun lang ->
       | '@' when i + 1 < n && Char.is_alpha sql.[i + 1] -> ()
       | ch -> Buffer.add_char buf ch
     done
-  | _ -> raise Caqti_query.Missing_query_string
+  | _ -> raise Caqti1_query.Missing_query_string
   end;
   Buffer.contents buf
 
@@ -83,13 +83,13 @@ let tsconfig_of_lang2 = function
   | _ -> "simple"
 
 module type CONNECTION_POOL = sig
-  val pool : (module Caqti_lwt.CONNECTION) Caqti_lwt.Pool.t
+  val pool : (module Caqti1_lwt.CONNECTION) Caqti1_lwt.Pool.t
 end
 
 module type S = Subsocia_direct_intf.S
 
 module Q = struct
-  open Caqti_query
+  open Caqti1_query
 
   let q = format_query
 
@@ -710,7 +710,7 @@ end
 
 module type Param = sig
  val with_db : transaction: bool ->
-               ((module Caqti_lwt.CONNECTION) -> 'a Lwt.t) -> 'a Lwt.t
+               ((module Caqti1_lwt.CONNECTION) -> 'a Lwt.t) -> 'a Lwt.t
 end
 
 module Make (P : Param) = struct
@@ -1806,15 +1806,15 @@ let connect uri =
         end
 
       let pool =
-        let connect () = Caqti_lwt.connect uri in
+        let connect () = Caqti1_lwt.connect uri in
         let disconnect (module C : CONNECTION) = C.disconnect () in
         let validate (module C : CONNECTION) = C.validate () in
         let check (module C : CONNECTION) = C.check in
-        Caqti_lwt.Pool.create ~validate ~check connect disconnect
+        Caqti1_lwt.Pool.create ~validate ~check connect disconnect
 
       let with_db ~transaction f =
-        if transaction then Caqti_lwt.Pool.use (wrap_transaction f) pool
-                       else Caqti_lwt.Pool.use f pool
+        if transaction then Caqti1_lwt.Pool.use (wrap_transaction f) pool
+                       else Caqti1_lwt.Pool.use f pool
     end)
 
     module Attribute_type = struct
