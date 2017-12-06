@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.15.1] - 2017-12-06
+
+- Fix deprecations for Caqti 0.8.0 and use future-proof findlib names.
+
 ## [0.15.0] - 2017-06-05
 
 - Update to Caqti 0.6.0.
