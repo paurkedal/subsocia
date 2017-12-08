@@ -20,8 +20,4 @@ val schema_prefix : string ref
 val format_query : string -> Caqti1_query.query
 val fetch_grade : float
 
-module type CONNECTION_POOL = sig
-  val pool : (module Caqti1_lwt.CONNECTION) Caqti1_lwt.Pool.t
-end
-
 val connect : Uri.t -> (module S)

@@ -82,10 +82,6 @@ let tsconfig_of_lang2 = function
   | "tr" -> "turkish"
   | _ -> "simple"
 
-module type CONNECTION_POOL = sig
-  val pool : (module Caqti1_lwt.CONNECTION) Caqti1_lwt.Pool.t
-end
-
 module type S = Subsocia_direct_intf.S
 
 module Q = struct
