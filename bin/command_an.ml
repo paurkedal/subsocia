@@ -24,7 +24,7 @@ let req what name = function
   | None -> Lwt.fail (Failure ("There is no " ^ what ^ " named " ^ name ^ "."))
   | Some x -> Lwt.return x
 
-let an_allow atn etn0 etn1 = run0 @@ fun (module C) ->
+let an_allow atn etn0 etn1 = run_exn @@ fun (module C) ->
   let%lwt C.Attribute_type.Ex at =
     C.Attribute_type.of_name atn >>= req "attribute type" atn in
   let%lwt et0 = C.Entity_type.of_name etn0 >>= req "entity type" etn0 in
@@ -40,7 +40,7 @@ let an_allow_cmd =
                     info ~docv:"SUPER-TYPE" []) in
   Term.(pure an_allow $ atn_t $ etn0_t $ etn1_t)
 
-let an_disallow atn etn0 etn1 = run0 @@ fun (module C) ->
+let an_disallow atn etn0 etn1 = run_exn @@ fun (module C) ->
   let%lwt C.Attribute_type.Ex at =
     C.Attribute_type.of_name atn >>= req "attribute type" atn in
   let%lwt et0 = C.Entity_type.of_name etn0 >>= req "entity type" etn0 in
@@ -56,9 +56,9 @@ let an_disallow_cmd =
                     info ~docv:"SUPER-TYPE" []) in
   Term.(pure an_disallow $ atn_t $ etn0_t $ etn1_t)
 
-let an_list () = run0 @@ fun (module C) ->
+let an_list () = run_exn @@ fun (module C) ->
   C.Entity_type.allowed_attributions () >>=
-  Lwt_list.map_s @@ fun (C.Attribute_type.Ex at, et0, et1) ->
+  Lwt_list.iter_s @@ fun (C.Attribute_type.Ex at, et0, et1) ->
   let mu = C.Attribute_type.value_mult at in
   let%lwt atn = C.Attribute_type.name at in
   let%lwt etn0 = C.Entity_type.name et0 in

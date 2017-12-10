@@ -138,7 +138,7 @@ module Entity_utils (C : Subsocia_intf.S) = struct
 
 end
 
-let e_ls sel_opt = run @@ fun (module C) ->
+let e_ls sel_opt = run_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let sel = Option.get_or Select_root sel_opt in
   let%lwt root = C.Entity.root in
@@ -165,20 +165,19 @@ let e_ls sel_opt = run @@ fun (module C) ->
       List.map (fun (C.Attribute_type.Ex at) -> C.Relation.Present at) ats in
     let%lwt es' = C.Entity.image1 (C.Relation.Inter ps) e in
     C.Entity.Set.iter_s (show_e ats) es' in
-  C.Attribute_uniqueness.Set.iter_s show_au aus >>
-  Lwt.return 0
+  C.Attribute_uniqueness.Set.iter_s show_au aus
 
 let e_ls_cmd =
   let sel_t = Arg.(value & pos 0 (some selector_conv) None &
                    info ~docv:"PATH" []) in
   Term.(pure e_ls $ sel_t)
 
-let e_search sel eds = run @@ fun (module C) ->
+let e_search sel eds = run_bool_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let%lwt root = C.Entity.root in
   let%lwt es = U.Entity.select_from sel (C.Entity.Set.singleton root) in
   C.Entity.Set.iter_s (U.show_entity eds) es >>
-  Lwt.return (if C.Entity.Set.is_empty es then 1 else 0)
+  Lwt.return (not (C.Entity.Set.is_empty es))
 
 let e_search_cmd =
   let sel_t = Arg.(required & pos 0 (some selector_conv) None &
@@ -189,7 +188,7 @@ let e_search_cmd =
                    info ~docv:"COMMA-SEPARATED-LIST" ~doc ["D"]) in
   Term.(pure e_search $ sel_t $ eds_t)
 
-let e_fts q etn super limit cutoff = run @@ fun (module C) ->
+let e_fts q etn super limit cutoff = run_bool_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let%lwt root = C.Entity.root in
   let%lwt entity_type = Pwt_option.map_s U.entity_type_of_arg etn in
@@ -202,7 +201,7 @@ let e_fts q etn super limit cutoff = run @@ fun (module C) ->
     let%lwt etn = C.Entity_type.name et in
     Lwt_io.printlf "%8.3g %s : %s" rank name etn in
   Lwt_list.iter_s show es >>
-  Lwt.return (if es = [] then 1 else 0)
+  Lwt.return (es <> [])
 
 let e_fts_cmd =
   let doc = "The query string as accepted by PostgrSQL's to_tsquery." in
@@ -222,7 +221,7 @@ let e_fts_cmd =
                       info ~docv:"CUTOFF" ~doc ["cutoff"]) in
   Term.(pure e_fts $ q_t $ et_t $ super_t $ limit_t $ cutoff_t)
 
-let e_create etn add_dsupers add_sels = run0 @@ fun (module C) ->
+let e_create etn add_dsupers add_sels = run_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let%lwt et = U.entity_type_of_arg etn in
   let%lwt add_sels = Lwt_list.map_p U.lookup_add_selector add_sels in
@@ -240,7 +239,7 @@ let e_create_cmd =
                     info ~docv:"APATH" ["a"]) in
   Term.(pure e_create $ etn_t $ succs_t $ attrs_t)
 
-let e_delete sel = run0 @@ fun (module C) ->
+let e_delete sel = run_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let%lwt e = U.Entity.select_one sel in
   C.Entity.delete e
@@ -251,7 +250,7 @@ let e_delete_cmd =
   Term.(pure e_delete $ sel_t)
 
 let e_modify sel add_dsupers del_dsupers add_sels del_sels =
-  run0 @@ fun (module C) ->
+  run_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let%lwt add_dsupers = Lwt_list.map_p U.Entity.select_one add_dsupers in
   let%lwt del_dsupers = Lwt_list.map_p U.Entity.select_one del_dsupers in

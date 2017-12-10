@@ -14,7 +14,6 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Caqti1_query
 open Subsocia_intf
 
 module type Arg = sig
@@ -27,6 +26,11 @@ end
 module Make (Arg : Arg) : sig
   open Arg
 
-  val select_image : Relation.t -> int32 list -> query Lwt.t
-  val select_preimage : Relation.t -> int32 list -> query Lwt.t
+  type request =
+    | Empty
+    | Request :
+        ('a, int32, Caqti_mult.zero_or_more) Caqti_request.t * 'a -> request
+
+  val select_image : Relation.t -> int32 list -> request Lwt.t
+  val select_preimage : Relation.t -> int32 list -> request Lwt.t
 end

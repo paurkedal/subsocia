@@ -16,10 +16,17 @@
 
 open Cmdliner
 open Command_common
+open Lwt.Infix
 open Printf
 open Subsocia_common
 open Subsocia_version
 open Unprime
+
+let (>>=??) m f = m >>= function Ok x -> f x | Error _ as r -> Lwt.return r
+
+let env _ = function
+ | "." -> Caqti_request.L !Subsocia_direct.schema_prefix
+ | _ -> raise Not_found
 
 let schema_dir =
   try Sys.getenv "SUBSOCIA_SCHEMA_DIR"
@@ -43,22 +50,25 @@ let db_schema_cmd =
                     instead of to the individual schema files." ["dir"]) in
   Term.(pure db_schema $ do_dir_t)
 
-let load_sql (module C : Caqti1_lwt.CONNECTION) sql =
+let load_sql (module C : Caqti_lwt.CONNECTION) sql =
   Lwt_io.with_file ~mode:Lwt_io.input sql @@ fun ic ->
   let rec loop () =
-    match%lwt Caqti_lwt_sql_io.read_sql_statement Lwt_io.read_char_opt ic with
-    | None -> Lwt.return_unit
-    | Some stmt -> C.exec (Caqti1_query.oneshot_sql stmt) [||] >> loop () in
+    (match%lwt Caqti_lwt_sql_io.read_sql_statement Lwt_io.read_char_opt ic with
+     | None ->
+        Lwt.return_ok ()
+     | Some stmt ->
+        C.exec (Caqti_request.exec ~oneshot:true Caqti_type.unit stmt) ())
+    >>=?? loop in
   loop ()
 
 let db_init disable_transaction = run0 @@ fun (module C) ->
   let uri = Uri.of_string Subsocia_config.database_uri#get in
-  let%lwt cc = Caqti1_lwt.connect uri in
+  let%lwt cc = Caqti_lwt.connect uri >>= Caqti_lwt.of_result in
   Lwt_list.iter_s
     (fun fn ->
       let fp = Filename.concat schema_dir fn in
       Lwt_log.info_f "Loading %s." fp >>
-      load_sql cc fp)
+      load_sql cc fp >>= Caqti_lwt.of_result)
     (upgradable_sql_schemas @ idempotent_sql_schemas) >>
   Lwt_list.iter_s
     (fun fn ->
@@ -77,37 +87,28 @@ let db_init disable_transaction = run0 @@ fun (module C) ->
 
 let db_init_cmd = Term.(pure db_init $ disable_transaction_t)
 
-let get_schema_version_q = Subsocia_direct.format_query
-  "SELECT global_value FROM @global_integer \
-   WHERE global_name = 'schema_version'"
-let get_schema_version (module C : Caqti1_lwt.CONNECTION) =
-  C.find get_schema_version_q C.Tuple.(int 0) [||]
-
-let string_of_query_info = function
-  | `Oneshot s -> String.trim s
-  | `Prepared (_, s) -> String.trim s
+let get_schema_version_q =
+  Caqti_request.find ~env Caqti_type.unit Caqti_type.int
+    "SELECT global_value FROM $.global_integer \
+     WHERE global_name = 'schema_version'"
+let get_schema_version (module C : Caqti_lwt.CONNECTION) =
+  C.find get_schema_version_q ()
 
 let db_upgrade () = Lwt_main.run begin
   let uri = Uri.of_string Subsocia_config.database_uri#get in
-  let%lwt c = Caqti1_lwt.connect uri in
-  let module C : Caqti1_lwt.CONNECTION = (val c) in
-  let%lwt db_schema_version = get_schema_version c in
+  let%lwt c = Caqti_lwt.connect uri >>= Caqti_lwt.of_result in
+  let module C : Caqti_lwt.CONNECTION = (val c) in
+  let%lwt db_schema_version = get_schema_version c >>= Caqti_lwt.of_result in
   let have_error = ref false in
   let load fp =
     if !have_error then Lwt_io.printlf "Skipped: %s" fp else
-    try%lwt
-      load_sql c fp >>
-      Lwt_io.printlf "Updated: %s" fp
-    with
-    | Caqti1_errors.Execute_failed (_, qi, msg) ->
-      have_error := true;
-      Lwt_io.printlf "Failed: %s" fp >>
-      Lwt_io.printlf "<<- %s" (string_of_query_info qi) >>
-      Lwt_io.printlf "->> %s" (String.trim msg)
-    | exc ->
-      have_error := true;
-      Lwt_io.printlf "Failed: %s" fp >>
-      Lwt_io.printlf "Exception: %s" (Printexc.to_string exc) in
+    (match%lwt load_sql c fp with
+     | Ok () ->
+        Lwt_io.printlf "Updated: %s" fp
+     | Error err ->
+        have_error := true;
+        Lwt_io.printlf "Failed: %s" fp >>
+        Lwt_io.printlf "Error: %s" (Caqti_error.show err)) in
   for%lwt v = db_schema_version to schema_version - 1 do
     load (Filename.concat schema_upgrade_dir (sprintf "from-%d.sql" v))
   done >>

@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,6 +15,7 @@
  *)
 
 open Cmdliner
+open Lwt.Infix
 open Panograph_i18n
 open Subsocia_common
 
@@ -26,6 +27,16 @@ let langs = [Lang.of_string "en"] (* TODO: Use $LANG *)
 
 let run f = Lwt_main.run (f (connect ()))
 let run0 f = Lwt_main.run (f (connect ())); 0
+
+let run_int_exn f = Lwt_main.run
+  (try%lwt f (connect ()) with
+   | Caqti_error.Exn err ->
+      Lwt_io.printl (Caqti_error.show err) >|= fun () -> 69)
+
+let run_exn f = run_int_exn (fun c -> f c >|= fun () -> 0)
+
+let run_bool_exn f =
+  run_int_exn (fun c -> f c >|= function false -> 0 | true -> 1)
 
 let disable_transaction_t =
   Arg.(value & flag &

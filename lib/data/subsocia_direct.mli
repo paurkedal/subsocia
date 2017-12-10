@@ -17,7 +17,6 @@
 module type S = Subsocia_direct_intf.S
 
 val schema_prefix : string ref
-val format_query : string -> Caqti1_query.query
 val fetch_grade : float
 
 val connect : Uri.t -> (module S)

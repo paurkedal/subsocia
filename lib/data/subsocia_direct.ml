@@ -14,7 +14,6 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Caqti1_lwt
 open Panograph_i18n
 open Printf
 open Lwt.Infix
@@ -26,6 +25,19 @@ open Unprime_char
 open Unprime_list
 open Unprime_option
 
+let (>|=?) m f =
+  m >|= function Ok x -> Ok (f x) | Error _ as r -> r
+
+let (>>=?) m f =
+  m >>= function Ok x -> (f x >|= fun y -> Ok y) | Error _ as r -> Lwt.return r
+
+let (>>=??) m f =
+  m >>= function Ok x -> f x | Error _ as r -> Lwt.return r
+
+let rec lwt_list_iter_rs f = function
+ | [] -> Lwt.return_ok ()
+ | x :: xs -> f x >>=?? fun () -> lwt_list_iter_rs f xs
+
 let fetch_grade = 1e-3 *. cache_second
 let attribute_type_grade = fetch_grade
 let entity_type_grade = fetch_grade
@@ -36,31 +48,7 @@ let attribution_grade = fetch_grade
 let schema_prefix = ref "subsocia."
 
 let int_of_bool x = if x then 1 else 0
-
-let format_query sql = Caqti1_query.prepare_fun @@ fun lang ->
-  let buf = Buffer.create (String.length sql) in
-  let n = String.length sql in
-  begin match lang with
-  | `Pgsql ->
-    let p = ref 0 in
-    for i = 0 to n - 1 do
-      match sql.[i] with
-      | '?' -> incr p; bprintf buf "$%d" !p
-      | '@' when i + 1 < n && Char.is_alpha sql.[i + 1] ->
-        Buffer.add_string buf !schema_prefix
-      | ch -> Buffer.add_char buf ch
-    done
-  | `Sqlite ->
-    for i = 0 to n - 1 do
-      match sql.[i] with
-      | '@' when i + 1 < n && Char.is_alpha sql.[i + 1] -> ()
-      | ch -> Buffer.add_char buf ch
-    done
-  | _ -> raise Caqti1_query.Missing_query_string
-  end;
-  Buffer.contents buf
-
-let format_query_f fmt = ksprintf format_query fmt
+let bool_of_int = function 0 -> false | 1 -> true | _ -> assert false
 
 (* TODO: Read custom mapping from a configuration file. These are only the
  * currently shipped catalogs. *)
@@ -85,454 +73,501 @@ let tsconfig_of_lang2 = function
 module type S = Subsocia_direct_intf.S
 
 module Q = struct
-  open Caqti1_query
 
-  let q = format_query
+  let env di = function
+   | "." ->
+      (match Caqti_driver_info.dialect_tag di with
+       | `Pgsql -> Caqti_request.L !schema_prefix
+       | _ -> Caqti_request.S [])
+   | _ -> raise Not_found
 
-  let begin_   = prepare_sql "BEGIN"
-  let commit   = prepare_sql "COMMIT"
-  let rollback = prepare_sql "ROLLBACK"
+  let (-->!) tA (tR : unit Caqti_type.t) = Caqti_request.exec ~env tA
+  let (-->) tA tR = Caqti_request.find ~env tA tR
+  let (-->?) tA tR = Caqti_request.find_opt ~env tA tR
+  let (-->*) tA tR = Caqti_request.collect ~env tA tR
+
+  let table name = Caqti_request.(S [L !schema_prefix; L name])
+
+  open Caqti_type
 
   (* Attribute Type *)
 
-  let at_by_id =
-    q "SELECT attribute_name, value_type, value_mult FROM @attribute_type \
-       WHERE attribute_type_id = ?"
-  let at_by_name =
-    q "SELECT attribute_type_id, value_type, value_mult FROM @attribute_type \
-       WHERE attribute_name = ?"
-  let at_create =
-    q "INSERT INTO @attribute_type (attribute_name, value_type, value_mult, \
-                                    fts_config) \
-       VALUES (?, ?, ?, ?) RETURNING attribute_type_id"
-  let at_delete =
-    q "DELETE FROM @attribute_type WHERE attribute_type_id = ?"
-  let at_all =
-    q "SELECT attribute_type_id FROM @attribute_type"
+  let at_by_id = (int32 --> tup3 string string int)
+    "SELECT attribute_name, value_type, value_mult FROM $.attribute_type \
+     WHERE attribute_type_id = ?"
+  let at_by_name = (string -->? tup3 int32 string int)
+    "SELECT attribute_type_id, value_type, value_mult FROM $.attribute_type \
+     WHERE attribute_name = ?"
+  let at_create = (tup4 string string int (option string) --> int32)
+    "INSERT INTO $.attribute_type (attribute_name, value_type, value_mult, \
+                                   fts_config) \
+     VALUES (?, ?, ?, ?) RETURNING attribute_type_id"
+  let at_delete = (int32 -->! unit)
+    "DELETE FROM $.attribute_type WHERE attribute_type_id = ?"
+  let at_all = (unit -->* int32)
+    "SELECT attribute_type_id FROM $.attribute_type"
 
   (* Attribute Uniqueness *)
 
-  let au_all =
-    q "SELECT attribute_uniqueness_id FROM @attribute_uniqueness"
-  let au_affected =
-    q "SELECT attribute_type_id FROM @attribute_uniqueness \
-       WHERE attribute_uniqueness_id = ? ORDER BY attribute_type_id"
-  let au_affecting =
-    q "SELECT attribute_uniqueness_id FROM @attribute_uniqueness \
-       WHERE attribute_type_id = ?"
-  let au_force =
-    let ht = Hashtbl.create 7 in
-    fun n ->
-      assert (n > 0);
-      try Hashtbl.find ht n with
-      | Not_found ->
-        let buf = Buffer.create 512 in
-        Buffer.add_string buf
-          "INSERT INTO @attribute_uniqueness \
-           SELECT attribute_uniqueness_id, attribute_type_id \
-           FROM (SELECT nextval('subsocia.attribute_uniqueness_id_seq')) \
+  let au_all = (unit -->* int32)
+    "SELECT attribute_uniqueness_id FROM $.attribute_uniqueness"
+  let au_affected = (int32 -->* int32)
+    "SELECT attribute_type_id FROM $.attribute_uniqueness \
+     WHERE attribute_uniqueness_id = ? ORDER BY attribute_type_id"
+  let au_affecting = (int32 -->* int32)
+    "SELECT attribute_uniqueness_id FROM $.attribute_uniqueness \
+     WHERE attribute_type_id = ?"
+
+  let au_force_query l =
+    let open Caqti_request in
+    let rec mk_values i =
+      let value = S [L"("; P i; L"::int)"] in
+      if i = 0 then value :: mk_values (i + 1) else
+      if i < l then L", " :: value :: mk_values (i + 1) else [] in
+    let values = mk_values 0 in
+    S[L"INSERT INTO "; table "attribute_uniqueness";
+      L"SELECT attribute_uniqueness_id, attribute_type_id \
+        FROM (SELECT nextval('"; table "attribute_uniqueness_id_seq"; L"')) \
                   AS seq(attribute_uniqueness_id) \
-                CROSS JOIN (VALUES (?::int)";
-        for i = 1 to n - 1 do Buffer.add_string buf ", (?::int)" done;
-        Buffer.add_string buf
-          ") AS ats(attribute_type_id) RETURNING attribute_type_id";
-        let query = q (Buffer.contents buf) in
-        Hashtbl.add ht n query;
-        query
-  let au_relax =
-    q "DELETE FROM @attribute_uniqueness WHERE attribute_uniqueness_id = ?"
+              CROSS JOIN (VALUES "; S values; L") AS ats(attribute_type_id) \
+        RETURNING attribute_type_id"]
+
+  type _ au_force_cache =
+    Au_force_cache : {
+      request: ('a, int32, [`One]) Caqti_request.t;
+      next: ('a * int32) au_force_cache Lazy.t;
+    } -> 'a au_force_cache
+
+  let au_force_cache : unit au_force_cache =
+    let rec build : type a. a Caqti_type.t -> a au_force_cache = fun t ->
+      let request =
+        let l = Caqti_type.length t in
+        if l = 0 then Caqti_request.find t int32 "" else
+        let q _ = au_force_query l in
+        Caqti_request.create t int32 Caqti_mult.one q in
+      let next = lazy (build (tup2 t int32)) in
+      Au_force_cache {request; next} in
+    build Caqti_type.unit
+
+  type au_force_ex =
+    Au_force_ex : {
+      request: ('a, int32, [`One]) Caqti_request.t;
+      param: 'a;
+    } -> au_force_ex
+
+  let au_force at_ids =
+    let rec loop : type a. a au_force_cache -> a -> int32 list -> au_force_ex =
+      fun (Au_force_cache {request; next}) param ->
+      (function
+       | [] -> Au_force_ex {request; param}
+       | id :: ids -> loop (Lazy.force next) (param, id) ids) in
+    loop au_force_cache () at_ids
+
+  let au_relax = (int32 -->! unit)
+    "DELETE FROM $.attribute_uniqueness WHERE attribute_uniqueness_id = ?"
 
   (* Entity types *)
 
-  let et_id_of_name =
-    q "SELECT entity_type_id FROM @entity_type WHERE entity_type_name = ?"
-  let et_name_of_id =
-    q "SELECT entity_type_name FROM @entity_type WHERE entity_type_id = ?"
-  let et_create =
-    q "INSERT INTO @entity_type (entity_type_name) VALUES (?) \
-       RETURNING entity_type_id"
-  let et_delete =
-    q "DELETE FROM @entity_type WHERE entity_type_id = ?"
-  let et_all =
-    q "SELECT entity_type_id FROM @entity_type"
-  let et_entity_name_tmpl =
-    q "SELECT entity_name_tmpl FROM @entity_type WHERE entity_type_id = ?"
-  let et_set_entity_name_tmpl =
-    q "UPDATE @entity_type SET entity_name_tmpl = ? WHERE entity_type_id = ?"
+  let et_id_of_name = (string -->? int32)
+    "SELECT entity_type_id FROM $.entity_type WHERE entity_type_name = ?"
+  let et_name_of_id = (int32 --> string)
+    "SELECT entity_type_name FROM $.entity_type WHERE entity_type_id = ?"
+  let et_create = (string --> int32)
+    "INSERT INTO $.entity_type (entity_type_name) VALUES (?) \
+     RETURNING entity_type_id"
+  let et_delete = (int32 -->! unit)
+    "DELETE FROM $.entity_type WHERE entity_type_id = ?"
+  let et_all = (unit -->* int32)
+    "SELECT entity_type_id FROM $.entity_type"
+  let et_entity_name_tmpl = (int32 --> string)
+    "SELECT entity_name_tmpl FROM $.entity_type WHERE entity_type_id = ?"
+  let et_set_entity_name_tmpl = (tup2 string int32 -->! unit)
+    "UPDATE $.entity_type SET entity_name_tmpl = ? WHERE entity_type_id = ?"
 
-  let et_can_dsub =
-    q "SELECT dsub_mult, dsuper_mult \
-       FROM @inclusion_type \
-       WHERE dsub_type_id = ? AND dsuper_type_id = ?"
-  let et_dsub =
-    q "SELECT dsub_type_id, dsub_mult, dsuper_mult \
-       FROM @inclusion_type WHERE dsuper_type_id = ?"
-  let et_dsuper =
-    q "SELECT dsuper_type_id, dsub_mult, dsuper_mult \
-       FROM @inclusion_type WHERE dsub_type_id = ?"
-  let et_dsub_elements =
-    q "SELECT dsub_type_id, dsuper_type_id, dsub_mult, dsuper_mult \
-       FROM @inclusion_type"
-  let et_allow_dsub =
-    q "INSERT INTO @inclusion_type \
-        (dsub_mult, dsuper_mult, dsub_type_id, dsuper_type_id) \
-       VALUES (?, ?, ?, ?)"
-  let et_disallow_dsub =
-    q "DELETE FROM @inclusion_type \
-       WHERE dsub_type_id = ? AND dsuper_type_id = ?"
+  let et_can_dsub = (tup2 int32 int32 -->? tup2 int int)
+    "SELECT dsub_mult, dsuper_mult \
+     FROM $.inclusion_type \
+     WHERE dsub_type_id = ? AND dsuper_type_id = ?"
+  let et_dsub = (int32 -->* tup3 int32 int int)
+    "SELECT dsub_type_id, dsub_mult, dsuper_mult \
+     FROM $.inclusion_type WHERE dsuper_type_id = ?"
+  let et_dsuper = (int32 -->* tup3 int32 int int)
+    "SELECT dsuper_type_id, dsub_mult, dsuper_mult \
+     FROM $.inclusion_type WHERE dsub_type_id = ?"
+  let et_dsub_elements = (unit -->* tup4 int32 int32 int int)
+    "SELECT dsub_type_id, dsuper_type_id, dsub_mult, dsuper_mult \
+     FROM $.inclusion_type"
+  let et_allow_dsub = (tup4 int int int32 int32 -->! unit)
+    "INSERT INTO $.inclusion_type \
+      (dsub_mult, dsuper_mult, dsub_type_id, dsuper_type_id) \
+     VALUES (?, ?, ?, ?)"
+  let et_disallow_dsub = (tup2 int32 int32 -->! unit)
+    "DELETE FROM $.inclusion_type \
+     WHERE dsub_type_id = ? AND dsuper_type_id = ?"
 
-  let et_can_attribute =
-    q "SELECT 1 FROM @attribution_type \
-       WHERE attribute_type_id = ? AND domain_id = ? AND codomain_id = ?"
-  let et_allowed_attributes =
-    q "SELECT attribute_type_id FROM @attribution_type \
-       WHERE domain_id = ? AND codomain_id = ?"
-  let et_allowed_preimage =
-    q "SELECT attribute_type_id, domain_id FROM @attribution_type \
-       WHERE codomain_id = ?"
-  let et_allowed_image =
-    q "SELECT attribute_type_id, codomain_id FROM @attribution_type \
-       WHERE domain_id = ?"
-  let et_allowed_mappings =
-    q "SELECT domain_id, codomain_id FROM @attribution_type \
-       WHERE attribute_type_id = ?"
-  let et_allowed_attributions =
-    q "SELECT attribute_type_id, domain_id, codomain_id \
-       FROM @attribution_type"
-  let et_allow_attribution =
-    q "INSERT INTO @attribution_type \
-        (attribute_type_id, domain_id, codomain_id) \
-       VALUES (?, ?, ?)"
-  let et_disallow_attribution =
-    q "DELETE FROM @attribution_type \
-       WHERE attribute_type_id = ? AND domain_id = ? AND codomain_id = ?"
+  let et_can_attribute = (tup3 int32 int32 int32 --> int)
+    "SELECT count(*) FROM $.attribution_type \
+     WHERE attribute_type_id = ? AND domain_id = ? AND codomain_id = ?"
+  let et_allowed_attributes = (tup2 int32 int32 -->* int32)
+    "SELECT attribute_type_id FROM $.attribution_type \
+     WHERE domain_id = ? AND codomain_id = ?"
+  let et_allowed_preimage = (int32 -->* tup2 int32 int32)
+    "SELECT attribute_type_id, domain_id FROM $.attribution_type \
+     WHERE codomain_id = ?"
+  let et_allowed_image = (int32 -->* tup2 int32 int32)
+    "SELECT attribute_type_id, codomain_id FROM $.attribution_type \
+     WHERE domain_id = ?"
+  let et_allowed_mappings = (int32 -->* tup2 int32 int32)
+    "SELECT domain_id, codomain_id FROM $.attribution_type \
+     WHERE attribute_type_id = ?"
+  let et_allowed_attributions = (unit -->* tup3 int32 int32 int32)
+    "SELECT attribute_type_id, domain_id, codomain_id \
+     FROM $.attribution_type"
+  let et_allow_attribution = (tup3 int32 int32 int32 -->! unit)
+    "INSERT INTO $.attribution_type \
+      (attribute_type_id, domain_id, codomain_id) \
+     VALUES (?, ?, ?)"
+  let et_disallow_attribution = (tup3 int32 int32 int32 -->! unit)
+    "DELETE FROM $.attribution_type \
+     WHERE attribute_type_id = ? AND domain_id = ? AND codomain_id = ?"
 
   (* Entites *)
 
-  let e_is_dsub =
-    q "SELECT 1 FROM @inclusion WHERE dsub_id = ? AND dsuper_id = ?"
+  let e_is_dsub = (tup2 int32 int32 --> int)
+    "SELECT count(*) FROM $.inclusion WHERE dsub_id = ? AND dsuper_id = ?"
 
-  let e_dsuper_any =
-    q "SELECT dsuper_id FROM @inclusion WHERE dsub_id = ?"
-  let e_dsub_any =
-    q "SELECT dsub_id FROM @inclusion WHERE dsuper_id = ?"
+  let e_dsuper_any = (int32 -->* int32)
+    "SELECT dsuper_id FROM $.inclusion WHERE dsub_id = ?"
+  let e_dsub_any = (int32 -->* int32)
+    "SELECT dsub_id FROM $.inclusion WHERE dsuper_id = ?"
 
-  let e_dsuper_typed =
-    q "SELECT entity_id \
-       FROM @inclusion JOIN @entity ON dsuper_id = entity_id \
-       WHERE dsub_id = ? AND entity_type_id = ?"
-  let e_dsub_typed =
-    q "SELECT entity_id \
-       FROM @inclusion JOIN @entity ON dsub_id = entity_id \
-       WHERE dsuper_id = ? AND entity_type_id = ?"
+  let e_dsuper_typed = (tup2 int32 int32 -->* int32)
+    "SELECT entity_id \
+     FROM $.inclusion JOIN $.entity ON dsuper_id = entity_id \
+     WHERE dsub_id = ? AND entity_type_id = ?"
+  let e_dsub_typed = (tup2 int32 int32 -->* int32)
+    "SELECT entity_id \
+     FROM $.inclusion JOIN $.entity ON dsub_id = entity_id \
+     WHERE dsuper_id = ? AND entity_type_id = ?"
 
-  let e_type = q "SELECT entity_type_id FROM @entity WHERE entity_id = ?"
-  let e_rank = q "SELECT entity_rank FROM @entity WHERE entity_id = ?"
-  let e_access = q "SELECT access_id FROM @entity WHERE entity_id = ?"
+  let e_type = (int32 --> int32)
+    "SELECT entity_type_id FROM $.entity WHERE entity_id = ?"
+  let e_rank = (int32 --> int)
+    "SELECT entity_rank FROM $.entity WHERE entity_id = ?"
+  let e_access = (int32 --> int32)
+    "SELECT access_id FROM $.entity WHERE entity_id = ?"
 
-  let e_set_entity_rank =
-    q "UPDATE @entity SET entity_rank = ? WHERE entity_id = ?"
+  let e_set_entity_rank = (tup2 int int32 -->! unit)
+    "UPDATE $.entity SET entity_rank = ? WHERE entity_id = ?"
 
-  let e_type_members =
-    q "SELECT entity_id FROM @entity WHERE entity_type_id = ?"
+  let e_type_members = (int32 -->* int32)
+    "SELECT entity_id FROM $.entity WHERE entity_type_id = ?"
 
-  let e_minimums =
-    q "SELECT entity_id FROM @entity \
-       WHERE NOT EXISTS \
-        (SELECT 0 FROM @inclusion WHERE dsuper_id = entity_id)"
+  let e_minimums = (unit -->* int32)
+    "SELECT entity_id FROM $.entity \
+     WHERE NOT EXISTS \
+      (SELECT 0 FROM $.inclusion WHERE dsuper_id = entity_id)"
 
-  let e_select_precedes =
-    q "WITH RECURSIVE successors(entity_id) AS ( \
-          SELECT i.dsuper_id AS entity_id \
-          FROM @inclusion i \
-          JOIN @entity e ON e.entity_id = i.dsuper_id \
-          WHERE i.is_subsumed = false \
-            AND e.entity_rank >= ? \
-            AND i.dsub_id = ? \
+  let e_select_precedes = (tup3 int int32 int32 --> int)
+    "WITH RECURSIVE successors(entity_id) AS ( \
+        SELECT i.dsuper_id AS entity_id \
+        FROM $.inclusion i \
+        JOIN $.entity e ON e.entity_id = i.dsuper_id \
+        WHERE i.is_subsumed = false \
+          AND e.entity_rank >= $1 \
+          AND i.dsub_id = $2 \
+      UNION \
+        SELECT i.dsuper_id \
+        FROM $.inclusion i \
+        JOIN $.entity e ON e.entity_id = i.dsuper_id \
+        JOIN successors c ON i.dsub_id = c.entity_id \
+        WHERE i.is_subsumed = false \
+          AND e.entity_rank >= $1 \
+     ) \
+     SELECT count(*) FROM successors WHERE entity_id = $3 LIMIT 1"
+
+  let e_create_entity = (int32 --> int32)
+    "INSERT INTO $.entity (entity_type_id) \
+     VALUES (?) RETURNING entity_id"
+
+  let e_set_entity_access = (tup2 int32 int32 -->! unit)
+    "UPDATE $.entity SET access_id = ? WHERE entity_id = ?"
+
+  let e_delete_entity = (int32 -->! unit)
+    "DELETE FROM $.entity WHERE entity_id = ?"
+
+  let e_maybe_insert_inclusion = (tup2 int32 int32 -->! unit)
+    "INSERT INTO $.inclusion (dsub_id, dsuper_id) SELECT $1, $2 \
+     WHERE NOT EXISTS \
+      (SELECT 0 FROM $.inclusion WHERE dsub_id = $1 AND dsuper_id = $2)"
+
+  let e_delete_inclusion = (tup2 int32 int32 -->! unit)
+    "DELETE FROM $.inclusion WHERE dsub_id = ? AND dsuper_id = ?"
+
+  (* Params: (sub_id, super_id) *)
+  let e_subsume_inclusion = (tup2 int32 int32 -->! unit)
+    "WITH RECURSIVE \
+      lb(id) AS ( \
+          SELECT $1::integer AS id \
         UNION \
-          SELECT i.dsuper_id \
-          FROM @inclusion i \
-          JOIN @entity e ON e.entity_id = i.dsuper_id \
-          JOIN successors c ON i.dsub_id = c.entity_id \
+          SELECT i.dsub_id AS id \
+          FROM lb JOIN $.inclusion i ON i.dsuper_id = lb.id \
           WHERE i.is_subsumed = false \
-            AND e.entity_rank >= ? \
-       ) \
-       SELECT 0 FROM successors WHERE entity_id = ? LIMIT 1"
+      ), \
+      ub(id) AS ( \
+          SELECT $2::integer AS id \
+        UNION \
+          SELECT i.dsuper_id AS id \
+          FROM ub JOIN $.inclusion i ON i.dsub_id = ub.id \
+          WHERE i.is_subsumed = false \
+      ) \
+    UPDATE $.inclusion i SET is_subsumed = true \
+    WHERE (i.dsub_id <> $1::integer OR i.dsuper_id <> $2::integer) \
+      AND i.dsub_id IN (SELECT * FROM lb) \
+      AND i.dsuper_id IN (SELECT * FROM ub) \
+      AND i.is_subsumed = false"
 
-  let e_create_entity =
-    q "INSERT INTO @entity (entity_type_id) \
-       VALUES (?) RETURNING entity_id"
+  let e_is_subsumed = (tup2 int32 int32 --> bool)
+    "SELECT is_subsumed FROM $.inclusion WHERE dsub_id = ? AND dsuper_id = ?"
 
-  let e_set_entity_access =
-    q "UPDATE @entity SET access_id = ? WHERE entity_id = ?"
-
-  let e_delete_entity =
-    q "DELETE FROM @entity WHERE entity_id = ?"
-
-  let e_maybe_insert_inclusion =
-    q "INSERT INTO @inclusion (dsub_id, dsuper_id) SELECT ?, ? \
-       WHERE NOT EXISTS (SELECT 0 FROM @inclusion \
-                         WHERE dsub_id = ? AND dsuper_id = ?)"
-
-  let e_delete_inclusion =
-    q "DELETE FROM @inclusion WHERE dsub_id = ? AND dsuper_id = ?"
-
-  (* Params: sub_id, super_id, sub_id, super_id *)
-  let e_subsume_inclusion =
-    q "WITH RECURSIVE \
-        lb(id) AS ( \
-            SELECT ?::integer AS id \
-          UNION \
-            SELECT i.dsub_id AS id \
-            FROM lb JOIN @inclusion i ON i.dsuper_id = lb.id \
-            WHERE i.is_subsumed = false \
-        ), \
-        ub(id) AS ( \
-            SELECT ?::integer AS id \
-          UNION \
-            SELECT i.dsuper_id AS id \
-            FROM ub JOIN @inclusion i ON i.dsub_id = ub.id \
-            WHERE i.is_subsumed = false \
-        ) \
-      UPDATE @inclusion i SET is_subsumed = true \
-      WHERE (i.dsub_id <> ?::integer OR i.dsuper_id <> ?::integer) \
+  (* Params: (sub_id, super_id) *)
+  let e_unsubsume_inclusion = (tup2 int32 int32 -->! unit)
+    "WITH RECURSIVE \
+      lb(id) AS ( \
+          SELECT $1::integer AS id \
+        UNION \
+          SELECT i.dsub_id AS id \
+          FROM lb JOIN $.inclusion i ON i.dsuper_id = lb.id \
+          WHERE is_subsumed = false \
+      ), \
+      ub(id) AS ( \
+          SELECT $2::integer AS id \
+        UNION \
+          SELECT i.dsuper_id AS id \
+          FROM ub JOIN $.inclusion i ON i.dsub_id = ub.id \
+          WHERE is_subsumed = false \
+      ) \
+    UPDATE $.inclusion i SET is_subsumed = false \
+      WHERE i.is_subsumed = true \
         AND i.dsub_id IN (SELECT * FROM lb) \
         AND i.dsuper_id IN (SELECT * FROM ub) \
-        AND i.is_subsumed = false"
+        AND NOT EXISTS ( \
+          WITH RECURSIVE acc(id) AS ( \
+              SELECT i.dsub_id AS id \
+            UNION \
+              SELECT j.dsuper_id AS id \
+              FROM $.inclusion j JOIN acc ON j.dsub_id = acc.id \
+              WHERE (j.dsub_id <> $1::integer OR j.dsuper_id <> $2::integer) \
+                AND (j.dsub_id <> i.dsub_id OR j.dsuper_id <> i.dsuper_id) \
+          ) \
+          SELECT 1 FROM acc WHERE acc.id = i.dsuper_id \
+        )"
 
-  let e_is_subsumed =
-    q "SELECT is_subsumed FROM @inclusion WHERE dsub_id = ? AND dsuper_id = ?"
+  let e_select_attribution_bool = (tup3 int32 int32 int32 -->? bool)
+    "SELECT value FROM $.attribution_bool \
+     WHERE input_id = ? AND output_id = ? AND attribute_type_id = ?"
+  let e_select_attribution_int = (tup3 int32 int32 int32 -->? int)
+    "SELECT value FROM $.attribution_int \
+     WHERE input_id = ? AND output_id = ? AND attribute_type_id = ?"
+  let e_select_attribution_string = (tup3 int32 int32 int32 -->? string)
+    "SELECT value FROM $.attribution_string \
+     WHERE input_id = ? AND output_id = ? AND attribute_type_id = ?"
 
-  (* Params: sub_id, super_id, sub_id, super_id *)
-  let e_unsubsume_inclusion =
-    q "WITH RECURSIVE \
-        lb(id) AS ( \
-            SELECT ?::integer AS id \
-          UNION \
-            SELECT i.dsub_id AS id \
-            FROM lb JOIN @inclusion i ON i.dsuper_id = lb.id \
-            WHERE is_subsumed = false \
-        ), \
-        ub(id) AS ( \
-            SELECT ?::integer AS id \
-          UNION \
-            SELECT i.dsuper_id AS id \
-            FROM ub JOIN @inclusion i ON i.dsub_id = ub.id \
-            WHERE is_subsumed = false \
-        ) \
-      UPDATE @inclusion i SET is_subsumed = false \
-        WHERE i.is_subsumed = true \
-          AND i.dsub_id IN (SELECT * FROM lb) \
-          AND i.dsuper_id IN (SELECT * FROM ub) \
-          AND NOT EXISTS ( \
-            WITH RECURSIVE acc(id) AS ( \
-                SELECT i.dsub_id AS id \
-              UNION \
-                SELECT j.dsuper_id AS id \
-                FROM @inclusion j JOIN acc ON j.dsub_id = acc.id \
-                WHERE (j.dsub_id <> ?::integer OR j.dsuper_id <> ?::integer) \
-                  AND (j.dsub_id <> i.dsub_id OR j.dsuper_id <> i.dsuper_id) \
-            ) \
-            SELECT 1 FROM acc WHERE acc.id = i.dsuper_id \
-          )"
+  let e_insert_attribution_bool = (tup4 int32 bool int32 int32 -->! unit)
+    "INSERT INTO $.attribution_bool \
+      (attribute_type_id, value, input_id, output_id) \
+     VALUES (?, ?, ?, ?)"
+  let e_insert_attribution_int = (tup4 int32 int int32 int32 -->! unit)
+    "INSERT INTO $.attribution_int \
+      (attribute_type_id, value, input_id, output_id) \
+     VALUES (?, ?, ?, ?)"
+  let e_insert_attribution_string = (tup4 int32 string int32 int32 -->! unit)
+    "INSERT INTO $.attribution_string \
+      (attribute_type_id, value, input_id, output_id) \
+     VALUES (?, ?, ?, ?)"
 
-  let e_select_attribution_bool =
-    q "SELECT value FROM @attribution_bool \
-       WHERE input_id = ? AND output_id = ? AND attribute_type_id = ?"
-  let e_select_attribution_int =
-    q "SELECT value FROM @attribution_int \
-       WHERE input_id = ? AND output_id = ? AND attribute_type_id = ?"
-  let e_select_attribution_string =
-    q "SELECT value FROM @attribution_string \
-       WHERE input_id = ? AND output_id = ? AND attribute_type_id = ?"
-
-  let e_insert_attribution_bool =
-    q "INSERT INTO @attribution_bool \
-        (attribute_type_id, value, input_id, output_id) \
-       VALUES (?, ?, ?, ?)"
-  let e_insert_attribution_int =
-    q "INSERT INTO @attribution_int \
-        (attribute_type_id, value, input_id, output_id) \
-       VALUES (?, ?, ?, ?)"
-  let e_insert_attribution_string =
-    q "INSERT INTO @attribution_string \
-        (attribute_type_id, value, input_id, output_id) \
-       VALUES (?, ?, ?, ?)"
-
-  let e_delete_attribution_bool =
-    q "DELETE FROM @attribution_bool \
-       WHERE attribute_type_id = ? AND value = ? \
-         AND input_id = ? AND output_id = ?"
-  let e_delete_attribution_int =
-    q "DELETE FROM @attribution_int \
-       WHERE attribute_type_id = ? AND value = ? \
-         AND input_id = ? AND output_id = ?"
-  let e_delete_attribution_string =
-    q "DELETE FROM @attribution_string \
-       WHERE attribute_type_id = ? AND value = ? \
-         AND input_id = ? AND output_id = ?"
+  let e_delete_attribution_bool = (tup4 int32 bool int32 int32 -->! unit)
+    "DELETE FROM $.attribution_bool \
+     WHERE attribute_type_id = ? AND value = ? \
+       AND input_id = ? AND output_id = ?"
+  let e_delete_attribution_int = (tup4 int32 int int32 int32 -->! unit)
+    "DELETE FROM $.attribution_int \
+     WHERE attribute_type_id = ? AND value = ? \
+       AND input_id = ? AND output_id = ?"
+  let e_delete_attribution_string = (tup4 int32 string int32 int32 -->! unit)
+    "DELETE FROM $.attribution_string \
+     WHERE attribute_type_id = ? AND value = ? \
+       AND input_id = ? AND output_id = ?"
 
   let ap1_ops = [|"="; "<="; ">="|]
   let ap1_eq = 0
   let ap1_leq = 1
   let ap1_geq = 2
 
-  let e_asub_present_bool =
-    q("SELECT output_id FROM @attribution_bool \
-       WHERE input_id = ? AND attribute_type_id = ?")
-  let e_asub_present_int =
-    q("SELECT output_id FROM @attribution_int \
-       WHERE input_id = ? AND attribute_type_id = ?")
-  let e_asub_present_string =
-    q("SELECT output_id FROM @attribution_string \
-       WHERE input_id = ? AND attribute_type_id = ?")
+  let e_asub_present_bool = (tup2 int32 int32 -->? int32)
+    "SELECT output_id FROM $.attribution_bool \
+     WHERE input_id = ? AND attribute_type_id = ?"
+  let e_asub_present_int = (tup2 int32 int32 -->? int32)
+    "SELECT output_id FROM $.attribution_int \
+     WHERE input_id = ? AND attribute_type_id = ?"
+  let e_asub_present_string = (tup2 int32 int32 -->? int32)
+    "SELECT output_id FROM $.attribution_string \
+     WHERE input_id = ? AND attribute_type_id = ?"
 
-  let e_asuper_present_bool =
-    q("SELECT input_id FROM @attribution_bool \
-       WHERE output_id = ? AND attribute_type_id = ?")
-  let e_asuper_present_int =
-    q("SELECT input_id FROM @attribution_int \
-       WHERE output_id = ? AND attribute_type_id = ?")
-  let e_asuper_present_string =
-    q("SELECT input_id FROM @attribution_string \
-       WHERE output_id = ? AND attribute_type_id = ?")
+  let e_asuper_present_bool = (tup2 int32 int32 -->? int32)
+    "SELECT input_id FROM $.attribution_bool \
+     WHERE output_id = ? AND attribute_type_id = ?"
+  let e_asuper_present_int = (tup2 int32 int32 -->? int32)
+    "SELECT input_id FROM $.attribution_int \
+     WHERE output_id = ? AND attribute_type_id = ?"
+  let e_asuper_present_string = (tup2 int32 int32 -->? int32)
+    "SELECT input_id FROM $.attribution_string \
+     WHERE output_id = ? AND attribute_type_id = ?"
 
   let e_asub1_bool = ap1_ops |> Array.map @@ fun op ->
-    q("SELECT output_id FROM @attribution_bool \
-       WHERE input_id = ? AND attribute_type_id = ? AND value "^op^" ?")
+    (tup3 int32 int32 bool -->* int32)
+    ("SELECT output_id FROM $.attribution_bool \
+      WHERE input_id = ? AND attribute_type_id = ? AND value "^op^" ?")
   let e_asub1_int = ap1_ops |> Array.map @@ fun op ->
-    q("SELECT output_id FROM @attribution_int \
-       WHERE input_id = ? AND attribute_type_id = ? AND value "^op^" ?")
+    (tup3 int32 int32 int -->* int32)
+    ("SELECT output_id FROM $.attribution_int \
+      WHERE input_id = ? AND attribute_type_id = ? AND value "^op^" ?")
   let e_asub1_string = ap1_ops |> Array.map @@ fun op ->
-    q("SELECT output_id FROM @attribution_string \
-       WHERE input_id = ? AND attribute_type_id = ? AND value "^op^" ?")
+    (tup3 int32 int32 string -->* int32)
+    ("SELECT output_id FROM $.attribution_string \
+      WHERE input_id = ? AND attribute_type_id = ? AND value "^op^" ?")
 
   let e_asuper1_bool = ap1_ops |> Array.map @@ fun op ->
-    q("SELECT input_id FROM @attribution_bool \
-       WHERE output_id = ? AND attribute_type_id = ? AND value "^op^" ?")
+    (tup3 int32 int32 bool -->* int32)
+    ("SELECT input_id FROM $.attribution_bool \
+      WHERE output_id = ? AND attribute_type_id = ? AND value "^op^" ?")
   let e_asuper1_int = ap1_ops |> Array.map @@ fun op ->
-    q("SELECT input_id FROM @attribution_int \
-       WHERE output_id = ? AND attribute_type_id = ? AND value "^op^" ?")
+    (tup3 int32 int32 int -->* int32)
+    ("SELECT input_id FROM $.attribution_int \
+      WHERE output_id = ? AND attribute_type_id = ? AND value "^op^" ?")
   let e_asuper1_string = ap1_ops |> Array.map @@ fun op ->
-    q("SELECT input_id FROM @attribution_string \
-       WHERE output_id = ? AND attribute_type_id = ? AND value "^op^" ?")
+    (tup3 int32 int32 string -->* int32)
+    ("SELECT input_id FROM $.attribution_string \
+      WHERE output_id = ? AND attribute_type_id = ? AND value "^op^" ?")
 
-  let e_asub2_between_int =
-    q "SELECT output_id FROM @attribution_int \
-       WHERE input_id = ? AND attribute_type_id = ? \
-         AND value >= ? AND value < ?"
-  let e_asub2_between_string =
-    q "SELECT output_id FROM @attribution_string \
-       WHERE input_id = ? AND attribute_type_id = ? \
-         AND value >= ? AND value < ?"
+  let e_asub2_between_int = (tup4 int32 int32 int int -->* int32)
+    "SELECT output_id FROM $.attribution_int \
+     WHERE input_id = ? AND attribute_type_id = ? \
+       AND value >= ? AND value < ?"
+  let e_asub2_between_string = (tup4 int32 int32 string string -->* int32)
+    "SELECT output_id FROM $.attribution_string \
+     WHERE input_id = ? AND attribute_type_id = ? \
+       AND value >= ? AND value < ?"
 
-  let e_asuper2_between_int =
-    q "SELECT input_id FROM @attribution_int \
-       WHERE output_id = ? AND attribute_type_id = ? \
-         AND value >= ? AND value < ?"
-  let e_asuper2_between_string =
-    q "SELECT input_id FROM @attribution_string \
-       WHERE output_id = ? AND attribute_type_id = ? \
-         AND value >= ? AND value < ?"
+  let e_asuper2_between_int = (tup4 int32 int32 int int -->* int32)
+    "SELECT input_id FROM $.attribution_int \
+     WHERE output_id = ? AND attribute_type_id = ? \
+       AND value >= ? AND value < ?"
+  let e_asuper2_between_string = (tup4 int32 int32 string string -->* int32)
+    "SELECT input_id FROM $.attribution_string \
+     WHERE output_id = ? AND attribute_type_id = ? \
+       AND value >= ? AND value < ?"
 
-  let e_asub1_search =
-    q "SELECT output_id FROM @attribution_string \
-       WHERE input_id = ? AND attribute_type_id = ? \
-         AND value SIMILAR TO ?"
-  let e_asuper1_search =
-    q "SELECT input_id FROM @attribution_string \
-       WHERE output_id = ? AND attribute_type_id = ? \
-         AND value SIMILAR TO ?"
+  let e_asub1_search = (tup3 int32 int32 string -->* int32)
+    "SELECT output_id FROM $.attribution_string \
+     WHERE input_id = ? AND attribute_type_id = ? \
+       AND value SIMILAR TO ?"
+  let e_asuper1_search = (tup3 int32 int32 string -->* int32)
+    "SELECT input_id FROM $.attribution_string \
+     WHERE output_id = ? AND attribute_type_id = ? \
+       AND value SIMILAR TO ?"
 
-  let e_asub1_search_fts =
-    q "SELECT output_id FROM @attribution_string_fts \
-       WHERE input_id = ? \
-         AND fts_vector @@ to_tsquery(fts_config::regconfig, ?)"
-  let e_asuper1_search_fts =
-    q "SELECT input_id FROM @attribution_string_fts \
-       WHERE output_id = ? \
-         AND fts_vector @@ to_tsquery(fts_config::regconfig, ?)"
+  let e_asub1_search_fts = (tup2 int32 string -->* int32)
+    "SELECT output_id FROM $.attribution_string_fts \
+     WHERE input_id = ? \
+       AND fts_vector @@ to_tsquery(fts_config::regconfig, ?)"
+  let e_asuper1_search_fts = (tup2 int32 string -->* int32)
+    "SELECT input_id FROM $.attribution_string_fts \
+     WHERE output_id = ? \
+       AND fts_vector @@ to_tsquery(fts_config::regconfig, ?)"
 
-  let _asub_fts with_et with_super with_limit =
-    format_query_f
+  let _asub_fts with_et with_super with_lim tA =
+    (tup4 string int32 tA float -->* tup2 int32 float) @@
+    sprintf
       "SELECT * FROM
         (SELECT a.output_id, \
                 ts_rank(fts_vector, to_tsquery(fts_config::regconfig, ?)) AS r \
-         FROM @attribution_string_fts AS a%s%s WHERE a.input_id = ?%s%s \
+         FROM $.attribution_string_fts AS a%s%s WHERE a.input_id = ?%s%s \
          ORDER BY r DESC%s) AS sq
        WHERE r > ?"
-      (if with_et then " JOIN @entity ON a.output_id = entity_id" else "")
-      (if with_super then " JOIN @transitive_reflexive_inclusion AS c \
+      (if with_et then " JOIN $.entity ON a.output_id = entity_id" else "")
+      (if with_super then " JOIN $.transitive_reflexive_inclusion AS c \
                               ON c.tsub_id = a.output_id" else "")
       (if with_et then " AND entity_type_id = ?" else "")
       (if with_super then " AND c.tsuper_id = ?" else "")
-      (if with_limit then " LIMIT ?" else "")
+      (if with_lim then " LIMIT ?" else "")
 
-  let _asuper_fts with_et with_super with_limit =
-    format_query_f
+  let _asuper_fts with_et with_super with_lim tA =
+    (tup4 string int32 tA float -->* tup2 int32 float) @@
+    sprintf
       "SELECT * FROM
         (SELECT a.input_id, \
                 ts_rank(fts_vector, to_tsquery(fts_config::regconfig, ?)) AS r \
-         FROM @attribution_string_fts AS a%s%s WHERE a.output_id = ?%s%s \
+         FROM $.attribution_string_fts AS a%s%s WHERE a.output_id = ?%s%s \
          ORDER BY r DESC%s) AS sq
        WHERE r > ?"
-      (if with_et then " JOIN @entity ON a.input_id = entity_id" else "")
-      (if with_super then " JOIN @transitive_reflexive_inclusion AS c \
+      (if with_et then " JOIN $.entity ON a.input_id = entity_id" else "")
+      (if with_super then " JOIN $.transitive_reflexive_inclusion AS c \
                               ON c.tsub_id = a.input_id" else "")
       (if with_et then " AND entity_type_id = ?" else "")
       (if with_super then " AND c.tsuper_id = ?" else "")
-      (if with_limit then " LIMIT ?" else "")
+      (if with_lim then " LIMIT ?" else "")
 
-  let e_asub_fts                = _asub_fts   false false false
-  let e_asuper_fts              = _asuper_fts false false false
-  let e_asub_fts_limit          = _asub_fts   false false true
-  let e_asuper_fts_limit        = _asuper_fts false false true
-  let e_asub_fts_super          = _asub_fts   false true  false
-  let e_asuper_fts_super        = _asuper_fts false true  false
-  let e_asub_fts_super_limit    = _asub_fts   false true  true
-  let e_asuper_fts_super_limit  = _asuper_fts false true  true
-  let e_asub_fts_et             = _asub_fts   true  false false
-  let e_asuper_fts_et           = _asuper_fts true  false false
-  let e_asub_fts_et_limit       = _asub_fts   true  false true
-  let e_asuper_fts_et_limit     = _asuper_fts true  false true
-  let e_asub_fts_et_super       = _asub_fts   true  true  false
-  let e_asuper_fts_super_et     = _asuper_fts true  true  false
-  let e_asub_fts_et_super_limit = _asub_fts   true  true  true
-  let e_asuper_fts_et_super_limit=_asuper_fts true  true  true
+  let e_asub_fts                = _asub_fts   false false false unit
+  let e_asuper_fts              = _asuper_fts false false false unit
+  let e_asub_fts_lim            = _asub_fts   false false true  int
+  let e_asuper_fts_lim          = _asuper_fts false false true  int
+  let e_asub_fts_super          = _asub_fts   false true  false int32
+  let e_asuper_fts_super        = _asuper_fts false true  false int32
+  let e_asub_fts_super_lim      = _asub_fts   false true  true  (tup2 int32 int)
+  let e_asuper_fts_super_lim    = _asuper_fts false true  true  (tup2 int32 int)
+  let e_asub_fts_et             = _asub_fts   true  false false int32
+  let e_asuper_fts_et           = _asuper_fts true  false false int32
+  let e_asub_fts_et_lim         = _asub_fts   true  false true  (tup2 int32 int)
+  let e_asuper_fts_et_lim       = _asuper_fts true  false true  (tup2 int32 int)
+  let e_asub_fts_et_super       = _asub_fts   true  true  false (tup2 int32 int32)
+  let e_asuper_fts_et_super     = _asuper_fts true  true  false (tup2 int32 int32)
+  let e_asub_fts_et_super_lim   = _asub_fts   true  true  true  (tup3 int32 int32 int)
+  let e_asuper_fts_et_super_lim = _asuper_fts true  true  true  (tup3 int32 int32 int)
 
-  let e_mapping1_bool =
-    q "SELECT output_id, value FROM @attribution_bool \
-       WHERE input_id = ? AND attribute_type_id = ?"
-  let e_mapping1_int =
-    q "SELECT output_id, value FROM @attribution_int \
-       WHERE input_id = ? AND attribute_type_id = ?"
-  let e_mapping1_string =
-    q "SELECT output_id, value FROM @attribution_string \
-       WHERE input_id = ? AND attribute_type_id = ?"
+  let e_mapping1_bool = (tup2 int32 int32 -->* tup2 int32 bool)
+    "SELECT output_id, value FROM $.attribution_bool \
+     WHERE input_id = ? AND attribute_type_id = ?"
+  let e_mapping1_int = (tup2 int32 int32 -->* tup2 int32 int)
+    "SELECT output_id, value FROM $.attribution_int \
+     WHERE input_id = ? AND attribute_type_id = ?"
+  let e_mapping1_string = (tup2 int32 int32 -->* tup2 int32 string)
+    "SELECT output_id, value FROM $.attribution_string \
+     WHERE input_id = ? AND attribute_type_id = ?"
 
-  let e_premapping1_bool =
-    q "SELECT input_id, value FROM @attribution_bool \
-       WHERE output_id = ? AND attribute_type_id = ?"
-  let e_premapping1_int =
-    q "SELECT input_id, value FROM @attribution_int \
-       WHERE output_id = ? AND attribute_type_id = ?"
-  let e_premapping1_string =
-    q "SELECT input_id, value FROM @attribution_string \
-       WHERE output_id = ? AND attribute_type_id = ?"
+  let e_premapping1_bool = (tup2 int32 int32 -->* tup2 int32 bool)
+    "SELECT input_id, value FROM $.attribution_bool \
+     WHERE output_id = ? AND attribute_type_id = ?"
+  let e_premapping1_int = (tup2 int32 int32 -->* tup2 int32 int)
+    "SELECT input_id, value FROM $.attribution_int \
+     WHERE output_id = ? AND attribute_type_id = ?"
+  let e_premapping1_string = (tup2 int32 int32 -->* tup2 int32 string)
+    "SELECT input_id, value FROM $.attribution_string \
+     WHERE output_id = ? AND attribute_type_id = ?"
 
-  let fts_clear =
-    q "DELETE FROM subsocia.attribution_string_fts \
-       WHERE input_id = ? AND output_id = ?"
-  let fts_insert =
-    q "INSERT INTO subsocia.attribution_string_fts \
-                    (input_id, output_id, fts_config, fts_vector) \
-       SELECT a.input_id, a.output_id, at.fts_config, \
-              to_tsvector(at.fts_config::regconfig, string_agg(value, '$')) \
-       FROM subsocia.attribution_string AS a \
-         NATURAL JOIN subsocia.attribute_type AS at \
-       WHERE NOT at.fts_config IS NULL \
-         AND a.input_id = ? AND a.output_id = ? \
-       GROUP BY a.input_id, a.output_id, at.fts_config"
+  let fts_clear = (tup2 int32 int32 -->! unit)
+    "DELETE FROM subsocia.attribution_string_fts \
+     WHERE input_id = ? AND output_id = ?"
+  let fts_insert = (tup2 int32 int32 -->! unit)
+    "INSERT INTO subsocia.attribution_string_fts \
+                  (input_id, output_id, fts_config, fts_vector) \
+     SELECT a.input_id, a.output_id, at.fts_config, \
+            to_tsvector(at.fts_config::regconfig, string_agg(value, '$')) \
+     FROM subsocia.attribution_string AS a \
+       NATURAL JOIN subsocia.attribute_type AS at \
+     WHERE NOT at.fts_config IS NULL \
+       AND a.input_id = ? AND a.output_id = ? \
+     GROUP BY a.input_id, a.output_id, at.fts_config"
 end
 
 module type CACHE = sig
@@ -704,18 +739,28 @@ module B = struct
   end
 end
 
+module type CONNECTION = Caqti_lwt.CONNECTION
+
 module type Param = sig
- val with_db : transaction: bool ->
-               ((module Caqti1_lwt.CONNECTION) -> 'a Lwt.t) -> 'a Lwt.t
+  val with_db :
+    transaction: bool ->
+    ((module CONNECTION) -> ('a, ([> Caqti_error.t] as 'e)) result Lwt.t) ->
+    ('a, 'e) result Lwt.t
 end
 
 module Make (P : Param) = struct
   let inclusion_cache = Cache.create ~cache_metric 61
 
   let with_db ?conn ?(transaction = false) f =
-    match conn with
-    | None -> P.with_db ~transaction f
-    | Some conn -> f conn
+    (match conn with
+     | None -> P.with_db ~transaction f
+     | Some conn -> f conn)
+
+  let with_db_exn ?conn ?transaction f =
+    with_db ?conn ?transaction f >>=
+    (function
+     | Ok y -> Lwt.return y
+     | Error err -> raise (Caqti_error.Exn err))
 
   module Attribute_type = struct
     open B.Attribute_type
@@ -724,11 +769,8 @@ module Make (P : Param) = struct
     let name at = Lwt.return at.at_name
 
     let of_soid', of_soid_cache = Cache.memo_lwt_conn @@ fun ?conn at_id ->
-      with_db ?conn @@ fun (module C : CONNECTION) ->
-      C.find Q.at_by_id
-             C.Tuple.(fun tup -> string 0 tup, string 1 tup, int 2 tup)
-             C.Param.([|int32 at_id|])
-        >|= fun (at_name, value_type, value_mult) ->
+      with_db_exn ?conn @@ fun (module C : CONNECTION) ->
+      C.find Q.at_by_id at_id >|=? fun (at_name, value_type, value_mult) ->
       let Type.Ex at_value_type = Type.of_string value_type in
       let at_value_mult = Multiplicity.of_int value_mult in
       Beacon.embed attribute_type_grade @@ fun at_beacon ->
@@ -737,20 +779,18 @@ module Make (P : Param) = struct
     let of_soid id = of_soid' id
 
     let of_name, of_name_cache = memo_1lwt @@ fun at_name ->
-      with_db @@ fun (module C : CONNECTION) ->
-      C.find_opt Q.at_by_name
-                 C.Tuple.(fun tup -> int32 0 tup, string 1 tup, int 2 tup)
-                 C.Param.([|string at_name|]) >|=
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.find_opt Q.at_by_name at_name >|=?
       Option.map begin fun (at_id, value_type, value_mult) ->
         let Type.Ex at_value_type = Type.of_string value_type in
         let at_value_mult = Multiplicity.of_int value_mult in
         Beacon.embed attribute_type_grade @@ fun at_beacon ->
-          (Ex {at_id; at_name; at_value_type; at_value_mult; at_beacon})
+        Ex {at_id; at_name; at_value_type; at_value_mult; at_beacon}
       end
 
-    let create : type a. ?mult: Multiplicity.t -> a Type.t -> string ->
-                 a t Lwt.t =
-        fun ?(mult = Multiplicity.May) vt at_name ->
+    let create
+        : type a. ?mult: Multiplicity.t -> a Type.t -> string -> a t Lwt.t =
+      fun ?(mult = Multiplicity.May) vt at_name ->
       let fts =
         match vt with
         | Type.String ->
@@ -758,22 +798,21 @@ module Make (P : Param) = struct
           if len < 3 || at_name.[len - 3] <> '.' then Some "simple" else
           Some (tsconfig_of_lang2 (String.sub at_name (len - 2) 2))
         | _ -> None in
-      with_db @@ fun ((module C : CONNECTION) as conn) ->
-      C.find Q.at_create C.Tuple.(int32 0)
-             C.Param.([|string at_name; string (Type.to_string vt);
-                        int (Multiplicity.to_int mult); option string fts|])
-        >>= of_soid' ~conn >|= assert_coerce vt
+      with_db_exn @@ fun ((module C : CONNECTION) as conn) ->
+      C.find Q.at_create
+        (at_name, Type.to_string vt, Multiplicity.to_int mult, fts)
+        >>=? of_soid' ~conn >|=? assert_coerce vt
 
     let delete at =
-      with_db @@ fun (module C : CONNECTION) ->
-      C.exec Q.at_delete C.Param.([|int32 at.at_id|])
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.exec Q.at_delete at.at_id
 
     let all () =
-      let%lwt at_ids =
-        with_db @@ fun (module C : CONNECTION) ->
-        C.fold Q.at_all (fun t acc -> C.Tuple.int32 0 t :: acc) [||] [] in
-      Pwt_list.fold_s (fun id acc -> of_soid id >|= fun at -> Set.add at acc)
-                      at_ids Set.empty
+      with_db_exn @@ fun ((module C : CONNECTION) as conn) ->
+      C.fold Q.at_all List.cons () [] >>=? fun at_ids ->
+      Pwt_list.fold_s
+        (fun id acc -> of_soid' ~conn id >|= fun at -> Set.add at acc)
+        at_ids Set.empty
 
     (**/**)
     let id at = at.at_id
@@ -787,56 +826,54 @@ module Make (P : Param) = struct
     let soid = Lwt.return
 
     let all, all_cache = memo_1lwt @@ fun () ->
-      with_db @@ fun (module C : CONNECTION) ->
-      C.fold Q.au_all C.Tuple.(fun t -> Set.add (int32 0 t)) [||] Set.empty
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.fold Q.au_all Set.add () Set.empty
 
     let affecting', affecting_cache = memo_1lwt @@ fun at_id ->
-      with_db @@ fun (module C : CONNECTION) ->
-      C.fold Q.au_affecting C.Tuple.(fun t -> Set.add (int32 0 t))
-             C.Param.[|int32 at_id|] Set.empty
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.fold Q.au_affecting Set.add at_id Set.empty
 
     let affecting at = affecting' (Attribute_type.id at)
 
-    let affected, affected_cache = memo_1lwt @@ fun au ->
+    let affected, affected_cache = memo_1lwt @@ fun au_id ->
       begin
-        with_db @@ fun (module C : CONNECTION) ->
-        C.fold Q.au_affected C.Tuple.(fun t -> List.cons (int32 0 t))
-               C.Param.[|int32 au|] []
-      end >>= Lwt_list.rev_map_s Attribute_type.of_id >|=
-              B.Attribute_type.Set.of_ordered_elements
+        with_db_exn @@ fun (module C : CONNECTION) ->
+        C.fold Q.au_affected List.cons au_id []
+      end
+      >>= Lwt_list.rev_map_s Attribute_type.of_id
+      >|= B.Attribute_type.Set.of_ordered_elements
 
     let find atset =
       let B.Attribute_type.Ex at = B.Attribute_type.Set.min_elt atset in
       affecting at >>=
       Set.filter_s (fun au -> affected au >|= B.Attribute_type.Set.equal atset)
         >|= fun auset ->
-      match Set.cardinal auset with
-      | 0 -> None
-      | 1 -> Some (Set.min_elt auset)
-      | _ -> assert false
+      (match Set.cardinal auset with
+       | 0 -> None
+       | 1 -> Some (Set.min_elt auset)
+       | _ -> assert false)
 
     let force atset =
       (* TODO: Enforce non-duplication of constraints. *)
       let ats = B.Attribute_type.Set.elements atset in
+      let Q.(Au_force_ex {request; param}) =
+        Q.au_force
+          (List.map (fun (B.Attribute_type.Ex at) -> Attribute_type.id at) ats)
+      in
       begin
-        with_db @@ fun (module C : CONNECTION) ->
-        C.fold (Q.au_force (B.Attribute_type.Set.cardinal atset))
-               C.Tuple.(fun t _ -> Some (int32 0 t))
-               (Array.map (fun (B.Attribute_type.Ex at) ->
-                            C.Param.int32 (Attribute_type.id at))
-                          (Array.of_list ats))
-               None
-      end >|= fun au_opt ->
-      assert (au_opt <> None);
+        with_db_exn @@ fun (module C : CONNECTION) ->
+        C.fold request (fun at_id _ -> Some at_id) param None
+      end >|= fun au_id_opt ->
+      assert (au_id_opt <> None);
       Cache.clear all_cache;
       Cache.clear affecting_cache;
-      Option.get au_opt
+      Option.get au_id_opt
 
-    let relax au =
-      with_db @@ fun (module C : CONNECTION) ->
-      C.exec Q.au_relax C.Param.[|int32 au|] >|= fun () ->
+    let relax au_id =
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.exec Q.au_relax au_id >|=? fun () ->
       Cache.clear all_cache;
-      Cache.remove affected_cache au;
+      Cache.remove affected_cache au_id;
       Cache.clear affecting_cache
 
     (**/**)
@@ -861,147 +898,123 @@ module Make (P : Param) = struct
     let of_name, of_name_cache =
       memo_1lwt @@ fun name ->
       let name = if name = "unit" then "root" else name in (* TODO: Remove *)
-      with_db @@ fun (module C) ->
-      C.find_opt Q.et_id_of_name
-                 C.Tuple.(int32 0) C.Param.([|string name|])
+      with_db_exn @@ fun (module C) ->
+      C.find_opt Q.et_id_of_name name
 
     let name, name_cache =
       memo_1lwt @@ fun et ->
-      with_db @@ fun (module C) ->
-      C.find Q.et_name_of_id C.Tuple.(string 0) C.Param.([|int32 et|])
+      with_db_exn @@ fun (module C) ->
+      C.find Q.et_name_of_id et
 
     let create etn =
-      with_db @@ fun (module C) ->
-      C.find Q.et_create C.Tuple.(int32 0) C.Param.([|string etn|])
+      with_db_exn @@ fun (module C) ->
+      C.find Q.et_create etn
 
     let delete et =
-      with_db @@ fun (module C) ->
-      C.exec Q.et_delete C.Param.([|int32 et|])
+      with_db_exn @@ fun (module C) ->
+      C.exec Q.et_delete et
 
     let all () =
-      with_db @@ fun (module C) ->
-      C.fold Q.et_all (fun tup -> Set.add (C.Tuple.int32 0 tup)) [||]
-             Set.empty
+      with_db_exn @@ fun (module C) ->
+      C.fold Q.et_all Set.add () Set.empty
 
     let entity_name_tmpl, entity_name_tmpl_cache = memo_1lwt @@ fun et ->
-      with_db @@ fun (module C) ->
-      C.find Q.et_entity_name_tmpl C.Tuple.(string 0) C.Param.([|int32 et|])
+      with_db_exn @@ fun (module C) ->
+      C.find Q.et_entity_name_tmpl et
 
     let set_entity_name_tmpl et name =
-      with_db @@ fun (module C) ->
-      C.exec Q.et_set_entity_name_tmpl C.Param.([|string name; int32 et|])
+      with_db_exn @@ fun (module C) ->
+      C.exec Q.et_set_entity_name_tmpl (name, et)
 
     let can_dsub, can_dsub_cache =
       memo_2lwt @@ fun (et0, et1) ->
-      with_db @@ fun (module C) ->
-      let mult i tup = Multiplicity.of_int (C.Tuple.int i tup) in
-      C.find_opt Q.et_can_dsub C.Tuple.(fun tup -> mult 0 tup, mult 1 tup)
-                 C.Param.([|int32 et0; int32 et1|])
+      (with_db_exn @@ fun (module C) -> C.find_opt Q.et_can_dsub (et0, et1))
+      >|= Option.map (fun (m0, m1) -> Multiplicity.(of_int m0, of_int m1))
 
     let dsub, dsub_cache =
       memo_1lwt @@ fun et ->
-      with_db @@ fun (module C) ->
-      let mult i tup = Multiplicity.of_int (C.Tuple.int i tup) in
-      C.fold Q.et_dsub
-             C.Tuple.(fun tup -> Map.add (int32 0 tup) (mult 1 tup, mult 2 tup))
-             C.Param.([|int32 et|])
-             Map.empty
+      with_db_exn @@ fun (module C) ->
+      let aux (id, m0, m1) = Map.add id Multiplicity.(of_int m0, of_int m1) in
+      C.fold Q.et_dsub aux et Map.empty
 
     let dsuper, dsuper_cache =
       memo_1lwt @@ fun et ->
-      with_db @@ fun (module C) ->
-      let mult i tup = Multiplicity.of_int (C.Tuple.int i tup) in
-      C.fold Q.et_dsuper
-             C.Tuple.(fun tup -> Map.add (int32 0 tup) (mult 1 tup, mult 2 tup))
-             C.Param.([|int32 et|])
-             Map.empty
+      with_db_exn @@ fun (module C) ->
+      let aux (id, m0, m1) = Map.add id Multiplicity.(of_int m0, of_int m1) in
+      C.fold Q.et_dsuper aux et Map.empty
 
     let dsub_elements () =
-      with_db @@ fun (module C) ->
-      let mult i tup = Multiplicity.of_int (C.Tuple.int i tup) in
-      C.fold Q.et_dsub_elements
-             C.Tuple.(fun tup acc -> (int32 0 tup, int32 1 tup,
-                                      mult 2 tup, mult 3 tup) :: acc)
-             [||] []
+      with_db_exn @@ fun (module C) ->
+      let aux (id0, id1, m0, m1) acc =
+        (id0, id1, Multiplicity.of_int m0, Multiplicity.of_int m1) :: acc in
+      C.fold Q.et_dsub_elements aux () []
 
     let allow_dsub mu0 mu1 et0 et1 =
-      with_db @@ fun (module C) ->
+      with_db_exn @@ fun (module C) ->
       let mu0, mu1 = Multiplicity.(to_int mu0, to_int mu1) in
-      C.exec Q.et_allow_dsub
-             C.Param.([|int mu0; int mu1; int32 et0; int32 et1|])
+      C.exec Q.et_allow_dsub (mu0, mu1, et0, et1)
 
     let disallow_dsub et0 et1 =
-      with_db @@ fun (module C) ->
-      C.exec Q.et_disallow_dsub C.Param.([|int32 et0; int32 et1|])
+      with_db_exn @@ fun (module C) ->
+      C.exec Q.et_disallow_dsub (et0, et1)
 
     let allowed_attributes, allowed_attributes_cache =
       memo_2lwt @@ fun (et, et') ->
-      with_db @@ fun ((module C) as conn) ->
-      let aux tup at_map =
-        let%lwt at = Attribute_type.of_soid' ~conn (C.Tuple.int32 0 tup) in
+      with_db_exn @@ fun ((module C) as conn) ->
+      let aux at_map at_id =
+        let%lwt at = Attribute_type.of_soid' ~conn at_id in
         Lwt.return (B.Attribute_type.Set.add at at_map) in
-      C.fold_s Q.et_allowed_attributes aux C.Param.([|int32 et; int32 et'|])
-               B.Attribute_type.Set.empty
+      C.fold Q.et_allowed_attributes List.cons (et, et') [] >>=? fun at_ids ->
+      Lwt_list.fold_left_s aux B.Attribute_type.Set.empty at_ids
 
     let allowed_preimage, allowed_preimage_cache =
       memo_1lwt @@ fun et ->
-      with_db @@ fun ((module C) as conn) ->
-      let aux tup acc =
-        let%lwt at = Attribute_type.of_soid' ~conn (C.Tuple.int32 0 tup) in
-        let et = C.Tuple.int32 1 tup in
+      with_db_exn @@ fun ((module C) as conn) ->
+      let aux acc (at_id, et) =
+        let%lwt at = Attribute_type.of_soid' ~conn at_id in
         let ats' = try Map.find et acc with Not_found -> [] in
         Lwt.return (Map.add et (at :: ats') acc) in
-      C.fold_s Q.et_allowed_preimage aux C.Param.([|int32 et|]) Map.empty
+      C.fold Q.et_allowed_preimage List.cons et [] >>=? fun bindings ->
+      Lwt_list.fold_left_s aux Map.empty bindings
 
     let allowed_image, allowed_image_cache =
       memo_1lwt @@ fun et ->
-      with_db @@ fun ((module C) as conn) ->
-      let aux tup acc =
-        let%lwt at = Attribute_type.of_soid' ~conn (C.Tuple.int32 0 tup) in
-        let et = C.Tuple.int32 1 tup in
+      with_db_exn @@ fun ((module C) as conn) ->
+      let aux acc (at_id, et) =
+        let%lwt at = Attribute_type.of_soid' ~conn at_id in
         let ats' = try Map.find et acc with Not_found -> [] in
         Lwt.return (Map.add et (at :: ats') acc) in
-      C.fold_s Q.et_allowed_image aux C.Param.([|int32 et|]) Map.empty
+      C.fold Q.et_allowed_image List.cons et [] >>=? fun bindings ->
+      Lwt_list.fold_left_s aux Map.empty bindings
 
     let allowed_mappings', allowed_mappings_cache =
       memo_1lwt @@ fun (B.Attribute_type.Ex at) ->
-      with_db @@ fun (module C) ->
-      let extract tup acc =
-        let et0 = C.Tuple.int32 0 tup in
-        let et1 = C.Tuple.int32 1 tup in
-        Lwt.return ((et0, et1) :: acc) in
-      C.fold_s Q.et_allowed_mappings extract
-               C.Param.([|int32 at.B.Attribute_type.at_id|]) []
+      with_db_exn @@ fun (module C) ->
+      C.fold Q.et_allowed_mappings List.cons at.B.Attribute_type.at_id []
 
     let allowed_mappings at = allowed_mappings' (B.Attribute_type.Ex at)
 
     let can_attribute', can_attribute_cache =
       memo_3lwt @@ fun (at, et, et') ->
-      with_db @@ fun (module C) ->
-      C.find_opt Q.et_can_attribute (fun _ -> ())
-                 C.Param.([|int32 at; int32 et; int32 et'|])
-          >|= (<>) None
+      with_db_exn @@ fun (module C) ->
+      C.find Q.et_can_attribute (at, et, et') >|=? bool_of_int
 
     let can_attribute at et et' =
       can_attribute' at.B.Attribute_type.at_id et et'
 
     let allowed_attributions () =
-      with_db @@ fun ((module C) as conn) ->
-      let aux tup acc =
-        let et0, et1 = C.Tuple.(int32 1 tup, int32 2 tup) in
-        Attribute_type.of_soid' ~conn C.Tuple.(int32 0 tup) >|= fun at ->
-        (at, et0, et1) :: acc in
-      C.fold_s Q.et_allowed_attributions aux [||] []
+      with_db_exn @@ fun ((module C) as conn) ->
+      let aux (at_id, et0, et1) =
+        Attribute_type.of_soid' ~conn at_id >|= fun at -> (at, et0, et1) in
+      C.fold Q.et_allowed_attributions List.cons () [] >>=? Lwt_list.map_s aux
 
     let allow_attribution at et et' =
-      with_db @@ fun (module C) ->
-      C.exec Q.et_allow_attribution
-             C.Param.([|int32 at.B.Attribute_type.at_id; int32 et; int32 et'|])
+      with_db_exn @@ fun (module C) ->
+      C.exec Q.et_allow_attribution (at.B.Attribute_type.at_id, et, et')
 
     let disallow_attribution at et et' =
-      with_db @@ fun (module C) ->
-      C.exec Q.et_disallow_attribution
-             C.Param.([|int32 at.B.Attribute_type.at_id; int32 et; int32 et'|])
+      with_db_exn @@ fun (module C) ->
+      C.exec Q.et_disallow_attribution (at.B.Attribute_type.at_id, et, et')
 
     let display_name ~langs ?pl = name (* FIXME *)
 
@@ -1026,42 +1039,36 @@ module Make (P : Param) = struct
     let root = of_soid root_id
 
     let entity_type, entity_type_cache = memo_1lwt @@ fun e ->
-      with_db @@ fun (module C) ->
-      C.find Q.e_type C.Tuple.(int32 0) C.Param.([|int32 e|])
+      with_db_exn @@ fun (module C) ->
+      C.find Q.e_type e
 
     let rank, rank_cache = memo_1lwt @@ fun e ->
-      with_db @@ fun (module C) ->
-      C.find Q.e_rank C.Tuple.(int 0) C.Param.([|int32 e|])
+      with_db_exn @@ fun (module C) ->
+      C.find Q.e_rank e
 
     let type_members, type_members_cache = memo_1lwt @@ fun entity_type_id ->
-      with_db @@ fun (module C) ->
-      let add tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_type_members add C.Param.([|int32 entity_type_id|]) Set.empty
+      with_db_exn @@ fun (module C) ->
+      C.fold Q.e_type_members Set.add entity_type_id Set.empty
 
     let minimums, minimums_cache = memo_0lwt @@ fun () ->
-      with_db @@ fun (module C) ->
-      let add tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_minimums add [||] Set.empty
+      with_db_exn @@ fun (module C) ->
+      C.fold Q.e_minimums Set.add () Set.empty
 
     let dsub_any, dsub_any_cache = memo_1lwt @@ fun e ->
-      with_db @@ fun (module C) ->
-      let add tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_dsub_any add C.Param.([|int32 e|]) Set.empty
+      with_db_exn @@ fun (module C) ->
+      C.fold Q.e_dsub_any Set.add e Set.empty
 
     let dsuper_any, dsuper_any_cache = memo_1lwt @@ fun e ->
-      with_db @@ fun (module C) ->
-      let add tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_dsuper_any add C.Param.([|int32 e|]) Set.empty
+      with_db_exn @@ fun (module C) ->
+      C.fold Q.e_dsuper_any Set.add e Set.empty
 
     let dsub_typed, dsub_typed_cache = memo_2lwt @@ fun (et, e) ->
-      with_db @@ fun (module C) ->
-      let add tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_dsub_typed add C.Param.([|int32 e; int32 et|]) Set.empty
+      with_db_exn @@ fun (module C) ->
+      C.fold Q.e_dsub_typed Set.add (e, et) Set.empty
 
     let dsuper_typed, dsuper_typed_cache = memo_2lwt @@ fun (et, e) ->
-      with_db @@ fun (module C) ->
-      let add tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_dsuper_typed add C.Param.([|int32 e; int32 et|]) Set.empty
+      with_db_exn @@ fun (module C) ->
+      C.fold Q.e_dsuper_typed Set.add (e, et) Set.empty
 
     let dsub ?et e =
       match et with None -> dsub_any e | Some et -> dsub_typed et e
@@ -1070,21 +1077,20 @@ module Make (P : Param) = struct
       match et with None -> dsuper_any e | Some et -> dsuper_typed et e
 
     let create entity_type =
-      with_db @@ fun (module C) ->
-        C.find Q.e_create_entity C.Tuple.(int32 0)
-               C.Param.([|int32 entity_type|])
+      with_db_exn @@ fun (module C) ->
+      C.find Q.e_create_entity entity_type
 
     let delete e =
-      with_db @@ fun (module C) ->
-      C.exec Q.e_delete_entity C.Param.([|int32 e|]) >|= fun () ->
+      with_db_exn @@ fun (module C) ->
+      C.exec Q.e_delete_entity e >|=? fun r ->
       Cache.clear minimums_cache;
       Cache.clear dsub_any_cache;
-      Cache.clear dsub_typed_cache
+      Cache.clear dsub_typed_cache;
+      r
 
     let is_dsub, is_dsub_cache = memo_2lwt @@ fun (e, e') ->
-      with_db @@ fun (module C) ->
-      C.find_opt Q.e_is_dsub (fun _ -> ()) C.Param.[|int32 e; int32 e'|]
-        >|= (<>) None
+      with_db_exn @@ fun (module C) ->
+      C.find Q.e_is_dsub (e, e') >|=? bool_of_int
 
     let is_sub subentity superentity =
       if subentity = superentity then Lwt.return_true else
@@ -1092,11 +1098,9 @@ module Make (P : Param) = struct
       try Lwt.return (Cache.find inclusion_cache k)
       with Not_found ->
         let%lwt r_lim = rank superentity in
-        let%lwt c = with_db @@ fun (module C) ->
-          C.find_opt Q.e_select_precedes (fun _ -> ())
-                     C.Param.([|int r_lim; int32 subentity;
-                                int r_lim; int32 superentity|]) >|=
-          function None -> false | Some () -> true in
+        let%lwt c = with_db_exn @@ fun (module C) ->
+          C.find Q.e_select_precedes (r_lim, subentity, superentity)
+            >|=? bool_of_int in
         Cache.replace inclusion_cache preceq_grade k c;
         Lwt.return c
 
@@ -1111,417 +1115,334 @@ module Make (P : Param) = struct
 
     let get_values_bool, get_values_bool_cache =
       memo_3lwt @@ fun (e, e', at_id) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      C.fold Q.e_select_attribution_bool
-             C.Tuple.(fun tup -> Values.add (bool 0 tup))
-             C.Param.([|int32 e; int32 e'; int32 at_id|])
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.fold Q.e_select_attribution_bool Values.add (e, e', at_id)
              (Values.empty Type.Bool)
 
     let get_values_int, get_values_int_cache =
       memo_3lwt @@ fun (e, e', at_id) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      C.fold Q.e_select_attribution_int
-             C.Tuple.(fun tup -> Values.add (int 0 tup))
-             C.Param.([|int32 e; int32 e'; int32 at_id|])
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.fold Q.e_select_attribution_int Values.add (e, e', at_id)
              (Values.empty Type.Int)
 
     let get_values_string, get_values_string_cache =
       memo_3lwt @@ fun (e, e', at_id) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      C.fold Q.e_select_attribution_string
-             C.Tuple.(fun tup -> Values.add (string 0 tup))
-             C.Param.([|int32 e; int32 e'; int32 at_id|])
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.fold Q.e_select_attribution_string Values.add (e, e', at_id)
              (Values.empty Type.String)
 
-    let get_values (type a) (at : a B.Attribute_type.t) e e' : a Values.t Lwt.t =
-      match B.Attribute_type.value_type at with
-      | Type.Bool -> get_values_bool e e' at.B.Attribute_type.at_id
-      | Type.Int -> get_values_int e e' at.B.Attribute_type.at_id
-      | Type.String -> get_values_string e e' at.B.Attribute_type.at_id
+    let get_values (type a) (at : a B.Attribute_type.t) e e'
+        : a Values.t Lwt.t =
+      (match B.Attribute_type.value_type at with
+       | Type.Bool -> get_values_bool e e' at.B.Attribute_type.at_id
+       | Type.Int -> get_values_int e e' at.B.Attribute_type.at_id
+       | Type.String -> get_values_string e e' at.B.Attribute_type.at_id)
 
     (* TODO: Cache? *)
     let image_generic p es =
-      let%lwt q = Attribution_sql.select_image p es in
-      with_db @@ fun (module C : CONNECTION) ->
-      C.fold q (fun t -> Set.add (C.Tuple.int32 0 t)) [||] Set.empty
+      (match%lwt Attribution_sql.select_image p es with
+       | Attribution_sql.Empty -> Lwt.return Set.empty
+       | Attribution_sql.Request (request, param) ->
+          with_db_exn @@ fun (module C : CONNECTION) ->
+          C.fold request Set.add param Set.empty)
 
     (* TODO: Cache? *)
     let preimage_generic p es =
-      let%lwt q = Attribution_sql.select_preimage p es in
-      with_db @@ fun (module C : CONNECTION) ->
-      C.fold q (fun t -> Set.add (C.Tuple.int32 0 t)) [||] Set.empty
+      (match%lwt Attribution_sql.select_preimage p es with
+       | Attribution_sql.Empty -> Lwt.return Set.empty
+       | Attribution_sql.Request (request, param) ->
+          with_db_exn @@ fun (module C : CONNECTION) ->
+          C.fold request Set.add param Set.empty)
 
     let asub_conj e ps = image_generic (B.Relation.Inter ps) [e]
     let asuper_conj e ps = preimage_generic (B.Relation.Inter ps) [e]
 
     let asub_present_bool, asub_present_bool_cache =
       memo_2lwt @@ fun (e, at_id) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asub_present_bool f C.Param.([|int32 e; int32 at_id|])
-             Set.empty
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.fold Q.e_asub_present_bool Set.add (e, at_id) Set.empty
 
     let asub_present_int, asub_present_int_cache =
       memo_2lwt @@ fun (e, at_id) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asub_present_int f C.Param.([|int32 e; int32 at_id|])
-             Set.empty
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.fold Q.e_asub_present_int Set.add (e, at_id) Set.empty
 
     let asub_present_string, asub_present_string_cache =
       memo_2lwt @@ fun (e, at_id) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asub_present_string f C.Param.([|int32 e; int32 at_id|])
-             Set.empty
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.fold Q.e_asub_present_string Set.add (e, at_id) Set.empty
 
     let asub1_bool, asub1_bool_cache =
       memo_4lwt @@ fun (op, at_id, x, e) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asub1_bool.(op) f
-             C.Param.([|int32 e; int32 at_id; bool x|])
-             Set.empty
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.fold Q.e_asub1_bool.(op) Set.add (e, at_id, x) Set.empty
 
     let asub1_int, asub1_int_cache =
       memo_4lwt @@ fun (op, at_id, x, e) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asub1_int.(op) f
-             C.Param.([|int32 e; int32 at_id; int x|])
-             Set.empty
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.fold Q.e_asub1_int.(op) Set.add (e, at_id, x) Set.empty
 
     let asub1_string, asub1_string_cache =
       memo_4lwt @@ fun (op, at_id, x, e) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asub1_string.(op) f
-             C.Param.([|int32 e; int32 at_id; string x|])
-             Set.empty
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.fold Q.e_asub1_string.(op) Set.add (e, at_id, x) Set.empty
 
     let asub1 op (type a) (at : a B.Attribute_type.t) (x : a) e : Set.t Lwt.t =
-      match B.Attribute_type.value_type at with
-      | Type.Bool -> asub1_bool op (Attribute_type.id at) x e
-      | Type.Int -> asub1_int op (Attribute_type.id at) x e
-      | Type.String -> asub1_string op (Attribute_type.id at) x e
+      (match B.Attribute_type.value_type at with
+       | Type.Bool -> asub1_bool op (Attribute_type.id at) x e
+       | Type.Int -> asub1_int op (Attribute_type.id at) x e
+       | Type.String -> asub1_string op (Attribute_type.id at) x e)
 
     let asub2_between_int, asub2_between_int_cache =
       memo_4lwt @@ fun (e, at_id, x0, x1) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asub2_between_int f
-             C.Param.[|int32 e; int32 at_id; int x0; int x1|] Set.empty
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.fold Q.e_asub2_between_int Set.add (e, at_id, x0, x1) Set.empty
 
     let asub2_between_string, asub2_between_string_cache =
       memo_4lwt @@ fun (e, at_id, x0, x1) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asub2_between_string f
-             C.Param.[|int32 e; int32 at_id; string x0; string x1|] Set.empty
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.fold Q.e_asub2_between_string Set.add (e, at_id, x0, x1) Set.empty
 
     let asub2_between (type a) e (at : a B.Attribute_type.t)
         : a -> a -> Set.t Lwt.t =
-      match B.Attribute_type.value_type at with
-      | Type.Bool -> fun x0 x1 ->
-        if x0 = x1 then asub1_bool Q.ap1_eq at.B.Attribute_type.at_id x0 e else
-        if x0 < x1 then asub_present_bool at.B.Attribute_type.at_id e else
-        Lwt.return Set.empty
-      | Type.Int -> asub2_between_int e at.B.Attribute_type.at_id
-      | Type.String -> asub2_between_string e at.B.Attribute_type.at_id
+      (match B.Attribute_type.value_type at with
+       | Type.Bool -> fun x0 x1 ->
+          if x0 = x1 then
+            asub1_bool Q.ap1_eq at.B.Attribute_type.at_id x0 e else
+          if x0 < x1 then
+            asub_present_bool at.B.Attribute_type.at_id e else
+          Lwt.return Set.empty
+       | Type.Int -> asub2_between_int e at.B.Attribute_type.at_id
+       | Type.String -> asub2_between_string e at.B.Attribute_type.at_id)
 
     let asub1_search, asub1_search_cache =
       memo_3lwt @@ fun (at_id, x, e) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asub1_search f
-             C.Param.[|int32 e; int32 at_id; string x|] Set.empty
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.fold Q.e_asub1_search Set.add (e, at_id, x) Set.empty
 
     let asub1_search_fts, asub1_search_fts_cache =
       memo_2lwt @@ fun (x, e) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asub1_search_fts f C.Param.[|int32 e; string x|] Set.empty
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.fold Q.e_asub1_search_fts Set.add (e, x) Set.empty
 
     let image1 p e =
-      match p with
-      | B.Relation.Inter _ | B.Relation.In _ -> image_generic p [e]
-      | B.Relation.Present at ->
-        begin match B.Attribute_type.value_type at with
-        | Type.Bool -> asub_present_bool e at.B.Attribute_type.at_id
-        | Type.Int -> asub_present_int e at.B.Attribute_type.at_id
-        | Type.String -> asub_present_string e at.B.Attribute_type.at_id
-        end
-      | B.Relation.Eq (at, x) -> asub1 Q.ap1_eq at x e
-      | B.Relation.Leq (at, x) -> asub1 Q.ap1_leq at x e
-      | B.Relation.Geq (at, x) -> asub1 Q.ap1_geq at x e
-      | B.Relation.Between (at, x0, x1) -> asub2_between e at x0 x1
-      | B.Relation.Search (at, x) ->
-        asub1_search (Attribute_type.id at) x e
-      | B.Relation.Search_fts x -> asub1_search_fts x e
+      (match p with
+       | B.Relation.Inter _ | B.Relation.In _ -> image_generic p [e]
+       | B.Relation.Present at ->
+          (match B.Attribute_type.value_type at with
+           | Type.Bool -> asub_present_bool e at.B.Attribute_type.at_id
+           | Type.Int -> asub_present_int e at.B.Attribute_type.at_id
+           | Type.String -> asub_present_string e at.B.Attribute_type.at_id)
+       | B.Relation.Eq (at, x) -> asub1 Q.ap1_eq at x e
+       | B.Relation.Leq (at, x) -> asub1 Q.ap1_leq at x e
+       | B.Relation.Geq (at, x) -> asub1 Q.ap1_geq at x e
+       | B.Relation.Between (at, x0, x1) -> asub2_between e at x0 x1
+       | B.Relation.Search (at, x) ->
+          asub1_search (Attribute_type.id at) x e
+       | B.Relation.Search_fts x -> asub1_search_fts x e)
 
     let image1_eq at e = asub1 Q.ap1_eq at e
 
     let asuper_present_bool, asuper_present_bool_cache =
       memo_2lwt @@ fun (e, at_id) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asuper_present_bool f C.Param.([|int32 e; int32 at_id|])
-             Set.empty
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.fold Q.e_asuper_present_bool Set.add (e, at_id) Set.empty
 
     let asuper_present_int, asuper_present_int_cache =
       memo_2lwt @@ fun (e, at_id) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asuper_present_int f C.Param.([|int32 e; int32 at_id|])
-             Set.empty
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.fold Q.e_asuper_present_int Set.add (e, at_id) Set.empty
 
     let asuper_present_string, asuper_present_string_cache =
       memo_2lwt @@ fun (e, at_id) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asuper_present_string f C.Param.([|int32 e; int32 at_id|])
-             Set.empty
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.fold Q.e_asuper_present_string Set.add (e, at_id) Set.empty
 
     let asuper1_bool, asuper1_bool_cache =
       memo_4lwt @@ fun (op, at_id, x, e) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asuper1_bool.(op) f
-             C.Param.([|int32 e; int32 at_id; bool x|])
-             Set.empty
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.fold Q.e_asuper1_bool.(op) Set.add (e, at_id, x) Set.empty
 
     let asuper1_int, asuper1_int_cache =
       memo_4lwt @@ fun (op, at_id, x, e) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asuper1_int.(op) f
-             C.Param.([|int32 e; int32 at_id; int x|])
-             Set.empty
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.fold Q.e_asuper1_int.(op) Set.add (e, at_id, x) Set.empty
 
     let asuper1_string, asuper1_string_cache =
       memo_4lwt @@ fun (op, at_id, x, e) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asuper1_string.(op) f
-             C.Param.([|int32 e; int32 at_id; string x|])
-             Set.empty
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.fold Q.e_asuper1_string.(op) Set.add (e, at_id, x) Set.empty
 
-    let asuper1 op (type a) (at : a B.Attribute_type.t) (x : a) e : Set.t Lwt.t =
-      match B.Attribute_type.value_type at with
-      | Type.Bool -> asuper1_bool op (Attribute_type.id at) x e
-      | Type.Int -> asuper1_int op (Attribute_type.id at) x e
-      | Type.String -> asuper1_string op (Attribute_type.id at) x e
+    let asuper1 op (type a) (at : a B.Attribute_type.t) (x : a) e
+        : Set.t Lwt.t =
+      (match B.Attribute_type.value_type at with
+       | Type.Bool -> asuper1_bool op (Attribute_type.id at) x e
+       | Type.Int -> asuper1_int op (Attribute_type.id at) x e
+       | Type.String -> asuper1_string op (Attribute_type.id at) x e)
 
     let asuper2_between_int, asuper2_between_int_cache =
       memo_4lwt @@ fun (e, at_id, x0, x1) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asuper2_between_int f
-             C.Param.[|int32 e; int32 at_id; int x0; int x1|] Set.empty
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.fold Q.e_asuper2_between_int Set.add (e, at_id, x0, x1) Set.empty
 
     let asuper2_between_string, asuper2_between_string_cache =
       memo_4lwt @@ fun (e, at_id, x0, x1) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asuper2_between_string f
-             C.Param.[|int32 e; int32 at_id; string x0; string x1|] Set.empty
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.fold Q.e_asuper2_between_string Set.add (e, at_id, x0, x1) Set.empty
 
     let asuper2_between (type a) e (at : a B.Attribute_type.t)
         : a -> a -> Set.t Lwt.t =
-      match B.Attribute_type.value_type at with
-      | Type.Bool -> fun x0 x1 ->
-        if x0 = x1 then asuper1_bool Q.ap1_eq at.B.Attribute_type.at_id x0 e else
-        if x0 < x1 then asuper_present_bool at.B.Attribute_type.at_id e else
-        Lwt.return Set.empty
-      | Type.Int -> asuper2_between_int e at.B.Attribute_type.at_id
-      | Type.String -> asuper2_between_string e at.B.Attribute_type.at_id
+      (match B.Attribute_type.value_type at with
+       | Type.Bool -> fun x0 x1 ->
+          if x0 = x1 then
+            asuper1_bool Q.ap1_eq at.B.Attribute_type.at_id x0 e else
+          if x0 < x1 then
+            asuper_present_bool at.B.Attribute_type.at_id e else
+          Lwt.return Set.empty
+       | Type.Int -> asuper2_between_int e at.B.Attribute_type.at_id
+       | Type.String -> asuper2_between_string e at.B.Attribute_type.at_id)
 
     let asuper1_search, asuper1_search_cache =
       memo_3lwt @@ fun (at_id, x, e) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asuper1_search f
-             C.Param.[|int32 e; int32 at_id; string x|] Set.empty
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.fold Q.e_asuper1_search Set.add (e, at_id, x) Set.empty
 
     let asuper1_search_fts, asuper1_search_fts_cache =
       memo_2lwt @@ fun (x, e) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup = Set.add (C.Tuple.int32 0 tup) in
-      C.fold Q.e_asuper1_search_fts f C.Param.[|int32 e; string x|] Set.empty
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.fold Q.e_asuper1_search_fts Set.add (e, x) Set.empty
 
     let preimage1 p e =
-      match p with
-      | B.Relation.Inter _ | B.Relation.In _ -> preimage_generic p [e]
-      | B.Relation.Present at ->
-        begin match B.Attribute_type.value_type at with
-        | Type.Bool -> asuper_present_bool e at.B.Attribute_type.at_id
-        | Type.Int -> asuper_present_int e at.B.Attribute_type.at_id
-        | Type.String -> asuper_present_string e at.B.Attribute_type.at_id
-        end
-      | B.Relation.Eq (at, x) -> asuper1 Q.ap1_eq at x e
-      | B.Relation.Leq (at, x) -> asuper1 Q.ap1_leq at x e
-      | B.Relation.Geq (at, x) -> asuper1 Q.ap1_geq at x e
-      | B.Relation.Between (at, x0, x1) -> asuper2_between e at x0 x1
-      | B.Relation.Search (at, x) ->
-        asuper1_search (Attribute_type.id at) x e
-      | B.Relation.Search_fts x -> asuper1_search_fts x e
+      (match p with
+       | B.Relation.Inter _ | B.Relation.In _ -> preimage_generic p [e]
+       | B.Relation.Present at ->
+          (match B.Attribute_type.value_type at with
+           | Type.Bool -> asuper_present_bool e at.B.Attribute_type.at_id
+           | Type.Int -> asuper_present_int e at.B.Attribute_type.at_id
+           | Type.String -> asuper_present_string e at.B.Attribute_type.at_id)
+       | B.Relation.Eq (at, x) -> asuper1 Q.ap1_eq at x e
+       | B.Relation.Leq (at, x) -> asuper1 Q.ap1_leq at x e
+       | B.Relation.Geq (at, x) -> asuper1 Q.ap1_geq at x e
+       | B.Relation.Between (at, x0, x1) -> asuper2_between e at x0 x1
+       | B.Relation.Search (at, x) ->
+          asuper1_search (Attribute_type.id at) x e
+       | B.Relation.Search_fts x -> asuper1_search_fts x e)
 
     let preimage1_eq at e = asuper1 Q.ap1_eq at e
 
     let image1_fts, image1_fts_cache =
       memo_6lwt @@ fun (et, super, cutoff, limit, fts, e) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup = List.cons C.Tuple.(int32 0 tup, float 1 tup) in
-      begin match et, super, limit with
-      | None, None, None ->
-        C.fold Q.e_asub_fts f
-               C.Param.[|string fts; int32 e;
-                         float cutoff|] []
-      | None, None, Some limit ->
-        C.fold Q.e_asub_fts_limit f
-               C.Param.[|string fts; int32 e; int limit;
-                         float cutoff|] []
-      | None, Some s, None ->
-        C.fold Q.e_asub_fts_super f
-               C.Param.[|string fts; int32 e; int32 s;
-                         float cutoff|] []
-      | None, Some s, Some limit ->
-        C.fold Q.e_asub_fts_super_limit f
-               C.Param.[|string fts; int32 e; int32 s; int limit;
-                         float cutoff|] []
-      | Some et, None, None ->
-        C.fold Q.e_asub_fts_et f
-               C.Param.[|string fts; int32 e; int32 et;
-                         float cutoff|] []
-      | Some et, None, Some limit ->
-        C.fold Q.e_asub_fts_et_limit f
-               C.Param.[|string fts; int32 e; int32 et; int limit;
-                         float cutoff|] []
-      | Some et, Some s, None ->
-        C.fold Q.e_asub_fts_et_super f
-               C.Param.[|string fts; int32 e; int32 et; int32 s;
-                         float cutoff|] []
-      | Some et, Some s, Some limit ->
-        C.fold Q.e_asub_fts_et_super_limit f
-               C.Param.[|string fts; int32 e; int32 et; int32 s; int limit;
-                         float cutoff|] []
-      end >|= List.rev
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      let arg x = (fts, e, x, cutoff) in
+      (match et, super, limit with
+       | None, None, None ->
+          C.fold Q.e_asub_fts List.cons (arg ()) []
+       | None, None, Some lim ->
+          C.fold Q.e_asub_fts_lim List.cons (arg lim) []
+       | None, Some s, None ->
+          C.fold Q.e_asub_fts_super List.cons (arg s) []
+       | None, Some s, Some lim ->
+          C.fold Q.e_asub_fts_super_lim List.cons (arg (s, lim)) []
+       | Some et, None, None ->
+          C.fold Q.e_asub_fts_et List.cons (arg et) []
+       | Some et, None, Some lim ->
+          C.fold Q.e_asub_fts_et_lim List.cons (arg (et, lim)) []
+       | Some et, Some s, None ->
+          C.fold Q.e_asub_fts_et_super List.cons (arg (et, s)) []
+       | Some et, Some s, Some lim ->
+          C.fold Q.e_asub_fts_et_super_lim List.cons (arg (et, s, lim)) [])
+      >|=? List.rev
+
     let image1_fts ?entity_type ?super ?(cutoff = 0.0) ?limit =
       image1_fts entity_type super cutoff limit
 
     let preimage1_fts, preimage1_fts_cache =
       memo_6lwt @@ fun (et, super, cutoff, limit, fts, e) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup = List.cons C.Tuple.(int32 0 tup, float 1 tup) in
-      begin match et, super, limit with
-      | None, None, None ->
-        C.fold Q.e_asuper_fts f
-               C.Param.[|string fts; int32 e;
-                         float cutoff|] []
-      | None, None, Some limit ->
-        C.fold Q.e_asuper_fts_limit f
-               C.Param.[|string fts; int32 e; int limit;
-                         float cutoff|] []
-      | None, Some s, None ->
-        C.fold Q.e_asuper_fts_super f
-               C.Param.[|string fts; int32 e; int32 s;
-                         float cutoff|] []
-      | None, Some s, Some limit ->
-        C.fold Q.e_asuper_fts_super_limit f
-               C.Param.[|string fts; int32 e; int32 s; int limit;
-                        float cutoff|] []
-      | Some et, None, None ->
-        C.fold Q.e_asuper_fts f
-               C.Param.[|string fts; int32 e; int32 et;
-                         float cutoff|] []
-      | Some et, None, Some limit ->
-        C.fold Q.e_asuper_fts_limit f
-               C.Param.[|string fts; int32 e; int32 et; int limit;
-                         float cutoff|] []
-      | Some et, Some s, None ->
-        C.fold Q.e_asuper_fts_super f
-               C.Param.[|string fts; int32 e; int32 et; int32 s;
-                         float cutoff|] []
-      | Some et, Some s, Some limit ->
-        C.fold Q.e_asuper_fts_super_limit f
-               C.Param.[|string fts; int32 e; int32 et; int32 s; int limit;
-                         float cutoff|] []
-      end >|= List.rev
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      let arg x = (fts, e, x, cutoff) in
+      (match et, super, limit with
+       | None, None, None ->
+          C.fold Q.e_asuper_fts List.cons (arg ()) []
+       | None, None, Some lim ->
+          C.fold Q.e_asuper_fts_lim List.cons (arg lim) []
+       | None, Some s, None ->
+          C.fold Q.e_asuper_fts_super List.cons (arg s) []
+       | None, Some s, Some lim ->
+          C.fold Q.e_asuper_fts_super_lim List.cons (arg (s, lim)) []
+       | Some et, None, None ->
+          C.fold Q.e_asuper_fts_et List.cons (arg et) []
+       | Some et, None, Some lim ->
+          C.fold Q.e_asuper_fts_et_lim List.cons (arg (et, lim)) []
+       | Some et, Some s, None ->
+          C.fold Q.e_asuper_fts_et_super List.cons (arg (et, s)) []
+       | Some et, Some s, Some lim ->
+          C.fold Q.e_asuper_fts_et_super_lim List.cons (arg (et, s, lim)) [])
+      >|=? List.rev
+
     let preimage1_fts ?entity_type ?super ?(cutoff = 0.0) ?limit =
       preimage1_fts entity_type super cutoff limit
 
     let mapping1_bool, mapping1_bool_cache =
       memo_2lwt @@ fun (e, at_id) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup m =
-        let e', v = C.Tuple.(int32 0 tup, bool 1 tup) in
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      let aux (e', v) m =
         let vs = try Map.find e' m with Not_found -> Values.empty Type.Bool in
         Map.add e' (Values.add v vs) m in
-      C.fold Q.e_mapping1_bool f C.Param.([|int32 e; int32 at_id|])
-             Map.empty
+      C.fold Q.e_mapping1_bool aux (e, at_id) Map.empty
 
     let mapping1_int, mapping1_int_cache =
       memo_2lwt @@ fun (e, at_id) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup m =
-        let e', v = C.Tuple.(int32 0 tup, int 1 tup) in
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      let aux (e', v) m =
         let vs = try Map.find e' m with Not_found -> Values.empty Type.Int in
         Map.add e' (Values.add v vs) m in
-      C.fold Q.e_mapping1_int f C.Param.([|int32 e; int32 at_id|])
-             Map.empty
+      C.fold Q.e_mapping1_int aux (e, at_id) Map.empty
 
     let mapping1_string, mapping1_string_cache =
       memo_2lwt @@ fun (e, at_id) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup m =
-        let e', v = C.Tuple.(int32 0 tup, string 1 tup) in
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      let aux (e', v) m =
         let vs = try Map.find e' m with Not_found -> Values.empty Type.String in
         Map.add e' (Values.add v vs) m in
-      C.fold Q.e_mapping1_string f C.Param.([|int32 e; int32 at_id|]) Map.empty
+      C.fold Q.e_mapping1_string aux (e, at_id) Map.empty
 
     let mapping1 (type a) (at : a B.Attribute_type.t) e
-          : a Values.t Map.t Lwt.t =
-      match B.Attribute_type.value_type at with
-      | Type.Bool -> mapping1_bool e at.B.Attribute_type.at_id
-      | Type.Int -> mapping1_int e at.B.Attribute_type.at_id
-      | Type.String -> mapping1_string e at.B.Attribute_type.at_id
+        : a Values.t Map.t Lwt.t =
+      (match B.Attribute_type.value_type at with
+       | Type.Bool -> mapping1_bool e at.B.Attribute_type.at_id
+       | Type.Int -> mapping1_int e at.B.Attribute_type.at_id
+       | Type.String -> mapping1_string e at.B.Attribute_type.at_id)
 
     let premapping1_bool, premapping1_bool_cache =
       memo_2lwt @@ fun (e, at_id) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup m =
-        let e', v = C.Tuple.(int32 0 tup, bool 1 tup) in
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      let aux (e', v) m =
         let vs = try Map.find e' m with Not_found -> Values.empty Type.Bool in
         Map.add e' (Values.add v vs) m in
-      C.fold Q.e_premapping1_bool f C.Param.([|int32 e; int32 at_id|])
-             Map.empty
+      C.fold Q.e_premapping1_bool aux (e, at_id) Map.empty
 
     let premapping1_int, premapping1_int_cache =
       memo_2lwt @@ fun (e, at_id) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup m =
-        let e', v = C.Tuple.(int32 0 tup, int 1 tup) in
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      let aux (e', v) m =
         let vs = try Map.find e' m with Not_found -> Values.empty Type.Int in
         Map.add e' (Values.add v vs) m in
-      C.fold Q.e_premapping1_int f C.Param.([|int32 e; int32 at_id|])
-             Map.empty
+      C.fold Q.e_premapping1_int aux (e, at_id) Map.empty
 
     let premapping1_string, premapping1_string_cache =
       memo_2lwt @@ fun (e, at_id) ->
-      with_db @@ fun (module C : CONNECTION) ->
-      let f tup m =
-        let e', v = C.Tuple.(int32 0 tup, string 1 tup) in
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      let aux (e', v) m =
         let vs = try Map.find e' m with Not_found -> Values.empty Type.String in
         Map.add e' (Values.add v vs) m in
-      C.fold Q.e_premapping1_string f C.Param.([|int32 e; int32 at_id|])
-             Map.empty
+      C.fold Q.e_premapping1_string aux (e, at_id) Map.empty
 
     let premapping1 (type a) (at : a B.Attribute_type.t) e
-          : a Values.t Map.t Lwt.t =
-      match B.Attribute_type.value_type at with
-      | Type.Bool -> premapping1_bool e at.B.Attribute_type.at_id
-      | Type.Int -> premapping1_int e at.B.Attribute_type.at_id
-      | Type.String -> premapping1_string e at.B.Attribute_type.at_id
+        : a Values.t Map.t Lwt.t =
+      (match B.Attribute_type.value_type at with
+       | Type.Bool -> premapping1_bool e at.B.Attribute_type.at_id
+       | Type.Int -> premapping1_int e at.B.Attribute_type.at_id
+       | Type.String -> premapping1_string e at.B.Attribute_type.at_id)
 
     let clear_bool_caches () =
       Cache.clear get_values_bool_cache;
@@ -1569,9 +1490,8 @@ module Make (P : Param) = struct
     (* Modifying Functions *)
 
     let set_rank r e =
-      with_db (fun (module C) ->
-                C.exec Q.e_set_entity_rank C.Param.[|int r; int32 e|])
-        >|= fun () -> Cache.replace rank_cache fetch_grade e r
+      with_db_exn (fun (module C) -> C.exec Q.e_set_entity_rank (r, e))
+      >|= fun () -> Cache.replace rank_cache fetch_grade e r
 
     let rec raise_rank r_min e =
       let%lwt r = rank e in
@@ -1598,31 +1518,26 @@ module Make (P : Param) = struct
       end
 
     let force_dsub' subentity superentity (module C : CONNECTION) =
-      C.exec Q.e_maybe_insert_inclusion
-        C.Param.[|int32 subentity; int32 superentity;
-                  int32 subentity; int32 superentity|] >>
-      C.exec Q.e_subsume_inclusion
-        C.Param.[|int32 subentity; int32 superentity;
-                  int32 subentity; int32 superentity|] >|=
-      fun () ->
-        clear_inclusion_caches ();
-        emit_changed subentity `Dsuper;
-        emit_changed superentity `Dsub
+      begin
+        C.exec Q.e_maybe_insert_inclusion (subentity, superentity) >>=?? fun()->
+        C.exec Q.e_subsume_inclusion (subentity, superentity)
+      end >|= fun result ->
+      clear_inclusion_caches ();
+      emit_changed subentity `Dsuper;
+      emit_changed superentity `Dsub;
+      result
 
     let relax_dsub' subentity superentity (module C : CONNECTION) =
-      let%lwt is_subsumed =
-        C.find Q.e_is_subsumed C.Tuple.(bool 0)
-               C.Param.[|int32 subentity; int32 superentity|] in
-      (if is_subsumed then Lwt.return_unit else
-        C.exec Q.e_unsubsume_inclusion
-               C.Param.[|int32 subentity; int32 superentity;
-                         int32 subentity; int32 superentity|]) >>
-      C.exec Q.e_delete_inclusion
-        C.Param.[|int32 subentity; int32 superentity|] >|=
-      fun () ->
-        clear_inclusion_caches ();
-        emit_changed subentity `Dsuper;
-        emit_changed superentity `Dsub
+      begin
+        C.find Q.e_is_subsumed (subentity, superentity) >>=?? fun is_subsumed ->
+        (if is_subsumed then Lwt.return_ok () else
+         C.exec Q.e_unsubsume_inclusion (subentity, superentity)) >>=?? fun() ->
+        C.exec Q.e_delete_inclusion (subentity, superentity)
+      end >|= fun result ->
+      clear_inclusion_caches ();
+      emit_changed subentity `Dsuper;
+      emit_changed superentity `Dsub;
+      result
 
     let force_dsub subentity superentity =
       let%lwt is_super = is_sub superentity subentity in
@@ -1630,10 +1545,10 @@ module Make (P : Param) = struct
       let%lwt subentity_rank = rank subentity in
       let%lwt superentity_rank = rank superentity in
       raise_rank (max subentity_rank (superentity_rank + 1)) subentity >>
-      with_db (force_dsub' subentity superentity)
+      with_db_exn (force_dsub' subentity superentity)
 
     let relax_dsub subentity superentity =
-      with_db (relax_dsub' subentity superentity) >>
+      with_db_exn (relax_dsub' subentity superentity) >>= fun () ->
       let%lwt subentity_rank = rank subentity in
       let%lwt superentity_rank = rank superentity in
       if subentity_rank > superentity_rank + 1 then Lwt.return_unit
@@ -1667,27 +1582,24 @@ module Make (P : Param) = struct
       clear_attr_caches at;
       emit_changed e `Asuper;
       emit_changed e' `Asub;
-      match at.B.Attribute_type.at_value_type with
-      | Type.String ->
-        C.exec Q.fts_clear C.Param.[|int32 e; int32 e'|] >>
-        C.exec Q.fts_insert C.Param.[|int32 e; int32 e'|]
-      | _ -> Lwt.return_unit
+      (match at.B.Attribute_type.at_value_type with
+       | Type.String ->
+          C.exec Q.fts_clear (e, e') >>=?? fun () ->
+          C.exec Q.fts_insert (e, e')
+       | _ -> Lwt.return_ok ())
 
     let add_values' (module C : CONNECTION) (type a)
                     (at : a B.Attribute_type.t) (xs : a list) e e' =
-      let aux q conv =
-        Lwt_list.iter_s
-          (fun x ->
-            let p = C.Param.([|int32 at.B.Attribute_type.at_id; conv x;
-                               int32 e; int32 e'|]) in
-            C.exec q p)
-          xs in
-      begin match at.B.Attribute_type.at_value_type with
-      | Type.Bool -> aux Q.e_insert_attribution_int
-                     (fun x -> C.Param.int (if x then 1 else 0))
-      | Type.Int -> aux Q.e_insert_attribution_int C.Param.int
-      | Type.String -> aux Q.e_insert_attribution_string C.Param.string
-      end >>
+      let at_id = at.B.Attribute_type.at_id in
+      let insert_value (x : a) =
+        (match at.B.Attribute_type.at_value_type with
+         | Type.Bool ->
+            C.exec Q.e_insert_attribution_int (at_id, (if x then 1 else 0), e, e')
+         | Type.Int ->
+            C.exec Q.e_insert_attribution_int (at_id, x, e, e')
+         | Type.String ->
+            C.exec Q.e_insert_attribution_string (at_id, x, e, e')) in
+      lwt_list_iter_rs insert_value xs >>=?? fun () ->
       post_attribute_update (module C) at e e'
 
     let check_mult at e e' =
@@ -1705,37 +1617,33 @@ module Make (P : Param) = struct
       let xs = Values.elements xs in (* TODO: Optimise. *)
       let%lwt xs_pres = get_values at e e' in
       let%lwt xs =
-        match%lwt check_mult at e e' with
-        | Multiplicity.May1 | Multiplicity.Must1 ->
-          if Values.is_empty xs_pres
-          then Lwt.return xs
-          else lwt_failure_f "add_values: Attribute already set.";
-        | Multiplicity.May | Multiplicity.Must ->
-          let ht = Hashtbl.create 7 in
-          Values.iter (fun x -> Hashtbl.add ht x ()) xs_pres;
-          Lwt.return @@
-            List.filter
-              (fun x -> if Hashtbl.mem ht x then false else
-                        (Hashtbl.add ht x (); true)) xs in
+        (match%lwt check_mult at e e' with
+         | Multiplicity.May1 | Multiplicity.Must1 ->
+            if Values.is_empty xs_pres
+            then Lwt.return xs
+            else lwt_failure_f "add_values: Attribute already set.";
+         | Multiplicity.May | Multiplicity.Must ->
+            let ht = Hashtbl.create 7 in
+            Values.iter (fun x -> Hashtbl.add ht x ()) xs_pres;
+            let once x =
+              if Hashtbl.mem ht x then false else (Hashtbl.add ht x (); true) in
+            Lwt.return (List.filter once xs)) in
       if xs = [] then Lwt.return_unit else
       check_uniqueness_for_add at xs e e' >> (* FIXME: Transaction. *)
-      with_db ~transaction:true (fun conn -> add_values' conn at xs e e')
+      with_db_exn ~transaction:true (fun conn -> add_values' conn at xs e e')
 
     let remove_values' (module C : CONNECTION) (type a)
                        (at : a B.Attribute_type.t) (xs : a list) e e' =
-      let aux q conv =
-        Lwt_list.iter_s
-          (fun x ->
-            let p = C.Param.([|int32 at.B.Attribute_type.at_id; conv x;
-                               int32 e; int32 e'|]) in
-            C.exec q p)
-          xs in
-      begin match at.B.Attribute_type.at_value_type with
-      | Type.Bool -> aux Q.e_delete_attribution_int
-                     (fun x -> C.Param.int (if x then 1 else 0))
-      | Type.Int -> aux Q.e_delete_attribution_int C.Param.int
-      | Type.String -> aux Q.e_delete_attribution_string C.Param.string
-      end >>
+      let at_id = at.B.Attribute_type.at_id in
+      let delete_value (x : a) =
+        (match at.B.Attribute_type.at_value_type with
+         | Type.Bool ->
+            C.exec Q.e_delete_attribution_int (at_id, (if x then 1 else 0), e, e')
+         | Type.Int ->
+            C.exec Q.e_delete_attribution_int (at_id, x, e, e')
+         | Type.String ->
+            C.exec Q.e_delete_attribution_string (at_id, x, e, e')) in
+      lwt_list_iter_rs delete_value xs >>=?? fun () ->
       post_attribute_update (module C) at e e'
 
     let remove_values (type a) (at : a B.Attribute_type.t)
@@ -1749,7 +1657,7 @@ module Make (P : Param) = struct
           (fun x -> if not (Hashtbl.mem ht x) then false else
                     (Hashtbl.remove ht x; true)) xs in
       if xs = [] then Lwt.return_unit else
-      with_db ~transaction:true (fun conn -> remove_values' conn at xs e e')
+      with_db_exn ~transaction:true (fun conn -> remove_values' conn at xs e e')
 
     let set_values (type a) (at : a B.Attribute_type.t) (xs : a Values.t) e e' =
       let xs = Values.elements xs in (* TODO: Optimise. *)
@@ -1773,11 +1681,11 @@ module Make (P : Param) = struct
       let xs_del =
         Hashtbl.fold (fun x keep acc -> if keep then acc else x :: acc) ht [] in
       check_uniqueness_for_add at xs_ins e e' >> (* FIXME: Transaction. *)
-      with_db ~transaction:true begin fun c ->
-        (if xs_del = [] then Lwt.return_unit
-                        else remove_values' c at xs_del e e') >>
-        (if xs_ins = [] then Lwt.return_unit
-                        else add_values' c at xs_ins e e')
+      with_db_exn ~transaction:true begin fun c ->
+        (if xs_del = [] then Lwt.return_ok ()
+         else remove_values' c at xs_del e e') >>=?? fun () ->
+        (if xs_ins = [] then Lwt.return_ok ()
+         else add_values' c at xs_ins e e')
       end
 
     (**/**)
@@ -1790,27 +1698,27 @@ let connect uri =
   (module struct
     module M = Make (struct
       let wrap_transaction f (module C : CONNECTION) =
-        C.exec Q.begin_ [||] >>
+        C.start () >>=?? fun () ->
         begin try%lwt
           let%lwt r = f (module C : CONNECTION) in
-          C.exec Q.commit [||] >>
+          C.commit () >>=?? fun () ->
           Lwt.return r
         with exc ->
           Lwt_log.debug_f "Raised in transaction: %s" (Printexc.to_string exc) >>
-          C.exec Q.rollback [||] >>
+          C.rollback () >>=?? fun () ->
           Lwt.fail exc
         end
 
       let pool =
-        let connect () = Caqti1_lwt.connect uri in
+        let connect () = Caqti_lwt.connect uri in
         let disconnect (module C : CONNECTION) = C.disconnect () in
         let validate (module C : CONNECTION) = C.validate () in
         let check (module C : CONNECTION) = C.check in
-        Caqti1_lwt.Pool.create ~validate ~check connect disconnect
+        Caqti_lwt.Pool.create ~validate ~check connect disconnect
 
       let with_db ~transaction f =
-        if transaction then Caqti1_lwt.Pool.use (wrap_transaction f) pool
-                       else Caqti1_lwt.Pool.use f pool
+        if transaction then Caqti_lwt.Pool.use (wrap_transaction f) pool
+                       else Caqti_lwt.Pool.use f pool
     end)
 
     module Attribute_type = struct
@@ -1849,7 +1757,7 @@ let connect uri =
        and type 'a Entity.Map.t = 'a Entity.Map.t
 
     let transaction f =
-      M.with_db @@ fun ((module C : CONNECTION) as conn) ->
+      M.with_db_exn @@ fun ((module C : CONNECTION) as conn) ->
       let module C' = struct
         module M = Make (struct
           let lock = Lwt_mutex.create ()
@@ -1874,7 +1782,7 @@ let connect uri =
           include M.Entity
         end
       end in
-      f (module C' : T)
+      f (module C' : T) >|= fun y -> Ok y
 
     let entity_changed = Int32_event_table.event Entity.changed_event_table
   end : S)
