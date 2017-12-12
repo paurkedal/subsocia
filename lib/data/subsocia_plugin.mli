@@ -14,10 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-[@@@ocaml.deprecated]
+(** Internal. *)
 
 val load_base_plugins : unit -> unit
-
 val load_cmd_plugins : unit -> unit
-
 val load_web_plugins : unit -> unit

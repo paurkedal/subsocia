@@ -16,22 +16,38 @@
 
 (* TODO: Plugins should register themselves. *)
 
-let loaded_plugins = Hashtbl.create 7
+let debug =
+  try bool_of_string (Sys.getenv "SUBSOCIA_DEBUG_DYNLOAD")
+  with Not_found -> false
 
-let load_plugin pkg =
-  Lwt_log.ign_debug_f "Loading plugin %s." pkg;
-  let aux () =
-    if Hashtbl.mem loaded_plugins pkg then Some () else
-    (Hashtbl.add loaded_plugins pkg (); None) in
-  Caqti1_plugin.ensure_plugin aux pkg
+let backend_predicates () =
+  (match Sys.backend_type with
+   | Sys.Native -> ["native"]
+   | Sys.Bytecode -> ["byte"]
+   | Sys.Other _ -> [])
+
+let assume_linked = [
+  "subsocia.data";
+  "subsocia.web-server";
+  "subsocia.web-module";
+  "subsocia.web-debug-module";
+]
+
+let init = lazy begin
+  let predicates = backend_predicates () in
+  Findlib.record_package_predicates predicates;
+  List.iter (Findlib.record_package Findlib.Record_core)
+            (Findlib.package_deep_ancestors predicates assume_linked);
+end
 
 let load_base_plugins () =
-  List.iter load_plugin Subsocia_config.plugins#get
+  Lazy.force init;
+  Fl_dynload.load_packages ~debug Subsocia_config.plugins#get
 
 let load_cmd_plugins () =
   load_base_plugins ();
-  List.iter load_plugin Subsocia_config.Cmd.plugins#get
+  Fl_dynload.load_packages ~debug Subsocia_config.Cmd.plugins#get
 
 let load_web_plugins () =
   load_base_plugins ();
-  List.iter load_plugin Subsocia_config.Web.plugins#get
+  Fl_dynload.load_packages ~debug Subsocia_config.Web.plugins#get

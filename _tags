@@ -22,6 +22,7 @@ true: bin_annot, eliom_ppx
 <lib/data/*.ml*>: thread, \
     package(caqti), package(caqti-lwt), \
     package(config-file), \
+    package(findlib), \
     package(panograph), \
     package(prime.unstable), \
     package(react), \
