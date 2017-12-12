@@ -36,7 +36,7 @@ true: bin_annot, eliom_ppx
     package(panograph.client), \
     use_subsocia
 <tests/*>: thread, \
-    package(caqti.v1), package(caqti-lwt.v1), \
+    package(caqti.v1), package(caqti-lwt.v1), package(caqti-dynload), \
     package(config-file), \
     package(extunix), \
     package(lwt.ppx), \
