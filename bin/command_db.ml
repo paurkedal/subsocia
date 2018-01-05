@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -63,12 +63,12 @@ let load_sql (module C : Caqti_lwt.CONNECTION) sql =
 
 let db_init disable_transaction = run0 @@ fun (module C) ->
   let uri = Uri.of_string Subsocia_config.database_uri#get in
-  let%lwt cc = Caqti_lwt.connect uri >>= Caqti_lwt.of_result in
+  let%lwt cc = Caqti_lwt.connect uri >>= Caqti_lwt.or_fail in
   Lwt_list.iter_s
     (fun fn ->
       let fp = Filename.concat schema_dir fn in
       Lwt_log.info_f "Loading %s." fp >>
-      load_sql cc fp >>= Caqti_lwt.of_result)
+      load_sql cc fp >>= Caqti_lwt.or_fail)
     (upgradable_sql_schemas @ idempotent_sql_schemas) >>
   Lwt_list.iter_s
     (fun fn ->
@@ -96,9 +96,9 @@ let get_schema_version (module C : Caqti_lwt.CONNECTION) =
 
 let db_upgrade () = Lwt_main.run begin
   let uri = Uri.of_string Subsocia_config.database_uri#get in
-  let%lwt c = Caqti_lwt.connect uri >>= Caqti_lwt.of_result in
+  let%lwt c = Caqti_lwt.connect uri >>= Caqti_lwt.or_fail in
   let module C : Caqti_lwt.CONNECTION = (val c) in
-  let%lwt db_schema_version = get_schema_version c >>= Caqti_lwt.of_result in
+  let%lwt db_schema_version = get_schema_version c >>= Caqti_lwt.or_fail in
   let have_error = ref false in
   let load fp =
     if !have_error then Lwt_io.printlf "Skipped: %s" fp else
