@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -52,7 +52,7 @@ module Make (Arg : Arg) = struct
   open Arg
   open Templ
 
-  type bind = Bind : 'a Caqti_type.t * 'a -> bind
+  type bind = Bind : int * 'a Caqti_type.t * 'a -> bind
 
   let table_for_adjacency = function
    | Relation.Inter _ -> assert false
@@ -85,10 +85,10 @@ module Make (Arg : Arg) = struct
      | Type.Bool, false -> fun bind -> (L"false", bind)
      | Type.Int, i -> fun bind -> (fL "%d" i, bind)
      | Type.String, s ->
-        fun (Bind (param_type, param)) ->
+        fun (Bind (param_length, param_type, param)) ->
         let param_type = Caqti_type.(tup2 param_type string) in
         let param = (param, s) in
-        (L"?", Bind (param_type, param)))
+        (P param_length, Bind (param_length + 1, param_type, param)))
 
   let sql_of_cond0 i at bind =
     Attribute_type.soid at >|= fun at_id ->
@@ -119,12 +119,14 @@ module Make (Arg : Arg) = struct
     (S [fL "q%d.attribute_type_id = %ld AND " i at_id;
         L"("; concat (L" OR ") (List.rev rev_qs); L")"], bind)
 
-  let sql_of_fts i x (Bind (param_type, param)) =
+  let sql_of_fts i x (Bind (param_length, param_type, param)) =
     let param_type = Caqti_type.(tup2 param_type string) in
     let param = (param, x) in
-    let query =
-      fL "q%d.fts_vector @@ to_tsquery(q%d.fts_config::regconfig, ?)" i i in
-    Lwt.return (query, Bind (param_type, param))
+    let query = S [
+      fL "q%d.fts_vector @@ to_tsquery(q%d.fts_config::regconfig, " i i;
+      P param_length; L")"
+    ] in
+    Lwt.return (query, Bind (param_length + 1, param_type, param))
 
   let sql_of_conjunction preds bind =
     let aux (i, rev_conds, bind) rel =
@@ -155,8 +157,8 @@ module Make (Arg : Arg) = struct
   let select_image pred_with_inter ids =
     if ids = [] then Lwt.return Empty else
     let preds = flatten pred_with_inter in
-    let%lwt expr_conds, Bind (param_type, param) =
-      sql_of_conjunction preds (Bind (Caqti_type.unit, ())) in
+    let%lwt expr_conds, Bind (_, param_type, param) =
+      sql_of_conjunction preds (Bind (0, Caqti_type.unit, ())) in
     let id_cond =
       S[L"("; concat (L" OR ") (List.map (fL"q0.input_id = %ld") ids); L")"] in
     let query = S [
@@ -172,8 +174,8 @@ module Make (Arg : Arg) = struct
   let select_preimage pred_with_inter ids =
     if ids = [] then Lwt.return Empty else
     let preds = flatten pred_with_inter in
-    let%lwt expr_conds, Bind (param_type, param) =
-      sql_of_conjunction preds (Bind (Caqti_type.unit, ())) in
+    let%lwt expr_conds, Bind (_, param_type, param) =
+      sql_of_conjunction preds (Bind (0, Caqti_type.unit, ())) in
     let id_cond =
       S[L"("; concat (L" OR ") (List.map (fL"q0.output_id = %ld") ids); L")"] in
     let query = S [

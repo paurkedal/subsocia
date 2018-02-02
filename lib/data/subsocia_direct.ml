@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -363,13 +363,13 @@ module Q = struct
           SELECT 1 FROM acc WHERE acc.id = i.dsuper_id \
         )"
 
-  let e_select_attribution_bool = (tup3 int32 int32 int32 -->? bool)
+  let e_select_attribution_bool = (tup3 int32 int32 int32 -->* bool)
     "SELECT value FROM $.attribution_bool \
      WHERE input_id = ? AND output_id = ? AND attribute_type_id = ?"
-  let e_select_attribution_int = (tup3 int32 int32 int32 -->? int)
+  let e_select_attribution_int = (tup3 int32 int32 int32 -->* int)
     "SELECT value FROM $.attribution_int \
      WHERE input_id = ? AND output_id = ? AND attribute_type_id = ?"
-  let e_select_attribution_string = (tup3 int32 int32 int32 -->? string)
+  let e_select_attribution_string = (tup3 int32 int32 int32 -->* string)
     "SELECT value FROM $.attribution_string \
      WHERE input_id = ? AND output_id = ? AND attribute_type_id = ?"
 
@@ -404,23 +404,23 @@ module Q = struct
   let ap1_leq = 1
   let ap1_geq = 2
 
-  let e_asub_present_bool = (tup2 int32 int32 -->? int32)
+  let e_asub_present_bool = (tup2 int32 int32 -->* int32)
     "SELECT output_id FROM $.attribution_bool \
      WHERE input_id = ? AND attribute_type_id = ?"
-  let e_asub_present_int = (tup2 int32 int32 -->? int32)
+  let e_asub_present_int = (tup2 int32 int32 -->* int32)
     "SELECT output_id FROM $.attribution_int \
      WHERE input_id = ? AND attribute_type_id = ?"
-  let e_asub_present_string = (tup2 int32 int32 -->? int32)
+  let e_asub_present_string = (tup2 int32 int32 -->* int32)
     "SELECT output_id FROM $.attribution_string \
      WHERE input_id = ? AND attribute_type_id = ?"
 
-  let e_asuper_present_bool = (tup2 int32 int32 -->? int32)
+  let e_asuper_present_bool = (tup2 int32 int32 -->* int32)
     "SELECT input_id FROM $.attribution_bool \
      WHERE output_id = ? AND attribute_type_id = ?"
-  let e_asuper_present_int = (tup2 int32 int32 -->? int32)
+  let e_asuper_present_int = (tup2 int32 int32 -->* int32)
     "SELECT input_id FROM $.attribution_int \
      WHERE output_id = ? AND attribute_type_id = ?"
-  let e_asuper_present_string = (tup2 int32 int32 -->? int32)
+  let e_asuper_present_string = (tup2 int32 int32 -->* int32)
     "SELECT input_id FROM $.attribution_string \
      WHERE output_id = ? AND attribute_type_id = ?"
 
