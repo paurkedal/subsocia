@@ -10,7 +10,7 @@ exists_if = "subsocia.cma"
 package "data" (
   version = "%%VERSION_NUM%%"
   description = "People, organization, and authorization"
-  requires = "caqti caqti-lwt config-file react subsocia uri"
+  requires = "caqti caqti-lwt config-file findlib.dynload react subsocia uri"
   directory = "data"
   archive(byte) = "subsocia-data.cma"
   archive(native) = "subsocia-data.cmxa"

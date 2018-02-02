@@ -17,6 +17,7 @@ depends: [
   "config-file"
   "eliom" {>= "6.0" & < "7.0"}
   "extunix"
+  "findlib.dynload"
   "lwt"
   "ocamlbuild" {build}
   "ounit"
