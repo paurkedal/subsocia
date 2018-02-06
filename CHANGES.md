@@ -1,5 +1,10 @@
 # Change Log
 
+## [0.16.0] - 2018-02-06
+
+- Convert to Caqti v2.
+- Rewrite plugin system to use findlib directly.
+
 ## [0.15.1] - 2017-12-06
 
 - Fix deprecations for Caqti 0.8.0 and use future-proof findlib names.
@@ -89,7 +94,8 @@
 - `Entity.type_` with new name `Entity.entity_type`.
 
 
-[Unreleased]: https://github.com/paurkedal/subsocia/compare/0.14.0...HEAD
+[0.16.0]: https://github.com/paurkedal/subsocia/compare/0.15.1...0.16.0
+[0.15.1]: https://github.com/paurkedal/subsocia/compare/0.15.0...0.15.1
 [0.15.0]: https://github.com/paurkedal/subsocia/compare/0.14.0...0.15.0
 [0.14.0]: https://github.com/paurkedal/subsocia/compare/0.13.3...0.14.0
 [0.13.3]: https://github.com/paurkedal/subsocia/compare/0.13.2...0.13.3
