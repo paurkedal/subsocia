@@ -32,12 +32,12 @@ module type Arg = sig
   module Relation : RELATION with module Attribute_type := Attribute_type
 end
 
-module Templ = struct
+module Query = struct
 
-  type template = Caqti_request.template =
+  type query = Caqti_request.query =
     | L of string
     | P of int
-    | S of template list
+    | S of query list
 
   let fL fmt = ksprintf (fun s -> L s) fmt
 
@@ -50,7 +50,7 @@ end
 
 module Make (Arg : Arg) = struct
   open Arg
-  open Templ
+  open Query
 
   type bind = Bind : int * 'a Caqti_type.t * 'a -> bind
 
@@ -78,7 +78,7 @@ module Make (Arg : Arg) = struct
           List.mapi make_join preds))
 
   let sql_of_value
-      : type a. a Attribute_type.t -> a -> bind -> template * bind =
+      : type a. a Attribute_type.t -> a -> bind -> query * bind =
     fun at x ->
     (match Attribute_type.value_type at, x with
      | Type.Bool, true -> fun bind -> (L"true", bind)
