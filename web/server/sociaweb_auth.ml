@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,6 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Lwt.Infix
 open Subsocia_connection
 open Subsocia_selector
 open Unprime_option
@@ -91,7 +92,7 @@ let set_authenticalia subject auth =
   | Some amg ->
     let%lwt at_unique_name = Const.at_unique_name in
     let%lwt auth_top = auth_method_group auth.auth_method in
-    Entity.force_sub subject amg >>
+    Entity.force_sub subject amg >>= fun () ->
     Entity.set_value at_unique_name auth.auth_identity amg subject
 
 let autoreg_entity_of_authenticalia auth =
@@ -105,11 +106,11 @@ let autoreg_entity_of_authenticalia auth =
 let get_operator_opt () =
   match%lwt get_authenticalia_opt () with
   | None ->
-    Log_auth.debug_f "Not authenticated." >>
+    Log_auth.debug_f "Not authenticated." >>= fun () ->
     Lwt.return_none
   | Some auth ->
     Log_auth.debug_f "Authenicated %s with %s."
-                     auth.auth_identity auth.auth_method >>
+                     auth.auth_identity auth.auth_method >>= fun () ->
     autoreg_entity_of_authenticalia auth
 
 let get_operator () =

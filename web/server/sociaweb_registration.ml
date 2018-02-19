@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,6 +16,7 @@
 
 open Eliom_content
 open Eliom_content.Html
+open Lwt.Infix
 open Sociaweb_auth
 open Sociaweb_request
 open Sociaweb_services
@@ -60,7 +61,7 @@ let () =
   begin match%lwt get_operator_opt () with
   | None -> Lwt.return_unit
   | Some _ -> http_error 400 "Already registered."
-  end >>
+  end >>= fun () ->
   let%lwt auth = get_authenticalia () in
   let%lwt at_unique_name = Const.at_unique_name in
   let%lwt at_first_name = Const.at_first_name in
@@ -71,11 +72,11 @@ let () =
   let%lwt e_new_user = Entity.create et_person in
   let%lwt e_new_user_id = Entity.soid e_new_user in
   let%lwt e_new_users = Const.e_new_users in
-  Entity.force_dsub e_new_user e_new_users >>
-  Entity.set_value at_first_name first_name e_root e_new_user >>
-  Entity.set_value at_last_name  last_name  e_root e_new_user >>
-  Entity.set_value at_email      email      e_root e_new_user >>
-  set_authenticalia e_new_user auth >>
+  Entity.force_dsub e_new_user e_new_users >>= fun () ->
+  Entity.set_value at_first_name first_name e_root e_new_user >>= fun () ->
+  Entity.set_value at_last_name  last_name  e_root e_new_user >>= fun () ->
+  Entity.set_value at_email      email      e_root e_new_user >>= fun () ->
+  set_authenticalia e_new_user auth >>= fun () ->
   Lwt.return @@
     Eliom_tools.F.html
       ~title:"Welcome"

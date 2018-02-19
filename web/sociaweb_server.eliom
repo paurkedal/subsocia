@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,6 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Lwt.Infix
 open Sociaweb_request
 open Subsocia_connection
 
@@ -39,14 +40,16 @@ let force_dsub ~operator (lb_id, ub_id) =
   let%lwt ub = entity_for_edit ~operator ub_id in
   let%lwt lb = entity_for_view ~operator lb_id in
   let%lwt user_name = Entity.display_name ~langs:[] operator in
-  Lwt_log.info_f "%s adds inclusion #%ld ⊆ #%ld" user_name lb_id ub_id >>
+  Lwt_log.info_f "%s adds inclusion #%ld ⊆ #%ld" user_name lb_id ub_id
+    >>= fun () ->
   Entity.force_dsub lb ub
 
 let relax_dsub ~operator (lb_id, ub_id) =
   let%lwt ub = entity_for_edit ~operator ub_id in
   let%lwt lb = entity_for_view ~operator lb_id in
   let%lwt user_name = Entity.display_name ~langs:[] operator in
-  Lwt_log.info_f "%s removes inclusion #%ld ⊆ #%ld" user_name lb_id ub_id >>
+  Lwt_log.info_f "%s removes inclusion #%ld ⊆ #%ld" user_name lb_id ub_id
+    >>= fun () ->
   Entity.relax_dsub lb ub
 
 let%client force_dsub = ~%(auth_sf [%json: int32 * int32] force_dsub)

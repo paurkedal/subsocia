@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -198,7 +198,8 @@ let entity_handler entity_id_opt () =
   let do_search = [%client function
    | None -> Lwt_result.return ()
    | Some (_, entity_id) ->
-      Eliom_client.change_page ~service:entities_service (Some entity_id) () >>
+      Eliom_client.change_page ~service:entities_service (Some entity_id) ()
+        >>= fun () ->
       Lwt_result.return ()
   ] in
   let%lwt search_inp, search_handle = entity_completion_input do_search in

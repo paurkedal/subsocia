@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,6 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+open Lwt.Infix
 open Sociaweb_request
 open Subsocia_common
 open Subsocia_connection
@@ -73,8 +74,9 @@ let restapi_service =
 let _ =
   Eliom_registration.Any.register ~service:restapi_service
     @@ fun (subject, (must, (may, query))) () ->
-  Lwt_log.debug_f "Checking %s against [%s] and optional [%s] groups"
-                  subject (String.concat ", " must) (String.concat ", " may) >>
+  Lwt_log.debug_f
+    "Checking %s against [%s] and optional [%s] groups"
+    subject (String.concat ", " must) (String.concat ", " may) >>= fun () ->
   let%lwt root = Entity.root in
   let allowed_ans = Lazy.force allowed_attributes in
   let%lwt must_ok, may_ok, query_res =

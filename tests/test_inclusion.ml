@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -72,9 +72,9 @@ let test n =
       end else
         Lwt.return_unit
     done
-  done >>
-  Perf.stop_lwt "insert" >>
-  Perf.start_lwt "update" >>
+  done >>= fun () ->
+  Perf.stop_lwt "insert" >>= fun () ->
+  Perf.start_lwt "update" >>= fun () ->
   for%lwt i = 0 to n - 1 do
     for%lwt j = 0 to i - 1 do
       if Random.int 4 = 0 then begin
@@ -85,9 +85,9 @@ let test n =
       end else
         Lwt.return_unit
     done
-  done >>
-  Perf.stop_lwt "update" >>
-  Perf.start_lwt "closure" >>
+  done >>= fun () ->
+  Perf.stop_lwt "update" >>= fun () ->
+  Perf.start_lwt "closure" >>= fun () ->
   Lwt.return begin
     for i = 0 to n - 1 do
       for j = 0 to i - 1 do
@@ -97,9 +97,9 @@ let test n =
         done
       done
     done
-  end >>
-  Perf.stop_lwt "closure" >>
-  Perf.start_lwt "is_sub" >>
+  end >>= fun () ->
+  Perf.stop_lwt "closure" >>= fun () ->
+  Perf.start_lwt "is_sub" >>= fun () ->
   for%lwt i = 0 to n - 1 do
     for%lwt j = 0 to i - 1 do
       Perf.step ~dn:2 "is_sub";
@@ -112,14 +112,14 @@ let test n =
       assert (not issup);
       Lwt.return_unit
     done
-  done >>
-  Perf.stop_lwt "is_sub" >>
-  Perf.start_lwt "delete" >>
+  done >>= fun () ->
+  Perf.stop_lwt "is_sub" >>= fun () ->
+  Perf.start_lwt "delete" >>= fun () ->
   for%lwt i = n - 1 downto 0 do
     Perf.step "delete";
     Entity.delete ea.(i)
-  done >>
-  Perf.stop_lwt "delete" >>
+  done >>= fun () ->
+  Perf.stop_lwt "delete" >>= fun () ->
   Lwt.return_unit
 
 let run () = Lwt_main.run (test 100); Perf.show ()

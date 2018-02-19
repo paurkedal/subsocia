@@ -2,6 +2,6 @@ true: eliom_ppx, package(lwt.ppx)
 <client/*.ml>: package(js_of_ocaml.ppx)
 <server/*.ml>: thread
 "server/sociaweb_server.ml": \
-    package(ppx_deriving), package(js_of_ocaml.deriving.ppx)
+    package(ppx_deriving), package(js_of_ocaml-ppx.deriving)
 "server/sociaweb_content.ml": \
-    package(ppx_deriving), package(js_of_ocaml.deriving.ppx)
+    package(ppx_deriving), package(js_of_ocaml-ppx.deriving)
