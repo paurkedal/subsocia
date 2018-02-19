@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.16.1] - 2018-02-19
+
+- Update to work with Eliom 6.3.0 and Caqti 0.10.0.
+
 ## [0.16.0] - 2018-02-06
 
 - Convert to Caqti v2.
@@ -94,6 +98,7 @@
 - `Entity.type_` with new name `Entity.entity_type`.
 
 
+[0.16.1]: https://github.com/paurkedal/subsocia/compare/0.16.0...0.16.1
 [0.16.0]: https://github.com/paurkedal/subsocia/compare/0.15.1...0.16.0
 [0.15.1]: https://github.com/paurkedal/subsocia/compare/0.15.0...0.15.1
 [0.15.0]: https://github.com/paurkedal/subsocia/compare/0.14.0...0.15.0
