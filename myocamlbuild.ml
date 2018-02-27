@@ -49,10 +49,10 @@ let local_rules () =
       let src = env "%.eliomi" and dst = env "%.eliom" in
       cp src dst
     end;
-  Pathname.define_context "web/type" ["lib/data"];
-  Pathname.define_context "web/server" ["lib/data"];
-  Pathname.define_context "bin" ["lib/data"];
-  Pathname.define_context "tests" ["lib/data"]
+  Pathname.define_context "web/type" ["lib-data"];
+  Pathname.define_context "web/server" ["lib-data"];
+  Pathname.define_context "bin" ["lib-data"];
+  Pathname.define_context "tests" ["lib-data"]
 
 let () = Ocamlbuild_plugin.dispatch @@ fun hook ->
   M.dispatcher ~oasis_executables hook;
@@ -61,7 +61,7 @@ let () = Ocamlbuild_plugin.dispatch @@ fun hook ->
    | After_rules ->
       local_rules ();
       ocaml_lib "lib/subsocia";
-      ocaml_lib "lib/data/subsocia-data";
+      ocaml_lib "lib-data/subsocia-data";
       (match Sys.getenv "TERM" with
        | exception Not_found -> ()
        | "" | "dumb" -> ()

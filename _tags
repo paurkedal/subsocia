@@ -21,7 +21,7 @@ true: bin_annot, eliom_ppx
     package(lwt.ppx), \
     package(panograph), \
     package(yojson)
-<lib/data/*.ml*>: thread, \
+<lib-data/*.ml*>: thread, \
     package(caqti), \
     package(caqti-lwt), \
     package(config-file), \

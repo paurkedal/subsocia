@@ -32,7 +32,7 @@ let build = Pkg.build ~cmd:build_cmd ()
 let () = Pkg.describe "subsocia" ~licenses ~opams ~build @@ fun c ->
   Modules.of_file "lib/subsocia.oclib"
     >>= fun subsocia_modules ->
-  Modules.of_file "lib/data/subsocia-data.oclib"
+  Modules.of_file "lib-data/subsocia-data.oclib"
     >>= fun subsocia_data_modules ->
   Modules.of_file "web/server/subsocia-web-server.oclib"
     >>= fun web_server_modules ->
@@ -43,7 +43,7 @@ let () = Pkg.describe "subsocia" ~licenses ~opams ~build @@ fun c ->
   Modules.mllib subsocia_modules "lib/subsocia.mllib"
     >>= fun subsocia_mllib ->
   Modules.mllib subsocia_data_modules
-    ~dst_dir:"data/" "lib/data/subsocia-data.mllib"
+    ~dst_dir:"data/" "lib-data/subsocia-data.mllib"
     >>= fun subsocia_data_mllib ->
   Modules.mllib web_server_modules
     ~dst_dir:"web/server/" "web/server/subsocia-web-server.mllib"
