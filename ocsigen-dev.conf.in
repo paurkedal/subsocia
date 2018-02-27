@@ -19,7 +19,6 @@
     <extension findlib-package="extunix"/>
     <extension findlib-package="panograph"/>
     <extension findlib-package="panograph.server"/>
-    <extension findlib-package="rpclib"/>
     <extension findlib-package="yojson"/>
     <library module="_build/lib/subsocia.cma"/>
     <library module="_build/lib/data/subsocia-data.cmxs"/>

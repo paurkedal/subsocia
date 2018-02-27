@@ -1,11 +1,5 @@
 "subsocia_derived.ml": ppx(ppx_lwt)
-"subsocia_rpc_client.ml": ppx(ppx_lwt)
-"subsocia_rpc_server.ml": ppx(ppx_lwt)
 "subsocia_schema.ml": ppx(ppx_lwt)
 "subsocia_selector.ml": ppx(ppx_lwt)
 "data/subsocia_attribution_sql.ml": ppx(ppx_lwt)
 "data/subsocia_direct.ml": ppx(ppx_lwt)
-
-<subsocia_{common,rpc_types}.ml>: syntax(camlp4o), package(rpclib.syntax)
-"subsocia_rpc_primitives.ml": syntax(camlp4o), package(rpclib.idl)
-<subsocia_rpc_primitives.*>: syntax(camlp4o), package(rpclib)

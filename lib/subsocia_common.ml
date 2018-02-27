@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -25,7 +25,7 @@ module type SET = Prime_enumset.S_with_monadic with type 'a monad = 'a Lwt.t
 module type MAP = Prime_enummap.S_with_monadic with type 'a monad = 'a Lwt.t
 
 module Multiplicity = struct
-  type t = May1 | Must1 | May | Must with rpc
+  type t = May1 | Must1 | May | Must
 
   let ( * ) a b =
     match a, b with
@@ -87,9 +87,6 @@ module Type = struct
     | "int" -> Ex Int
     | "string" -> Ex String
     | _ -> invalid_arg "Type.of_string"
-
-  let rpc_of_ex (Ex t) = Rpc.rpc_of_string (to_string t)
-  let ex_of_rpc r = of_string (Rpc.string_of_rpc r)
 end
 
 module Value = struct
@@ -146,20 +143,6 @@ module Value = struct
       | `String s -> s
       | _ -> invalid_arg "Value.of_json_string"
       end
-
-  let rpc_of_ex = function
-    | Ex (Type.Bool, x) -> Rpc.rpc_of_bool x
-    | Ex (Type.Int, x) -> Rpc.rpc_of_int x
-    | Ex (Type.String, x) -> Rpc.rpc_of_string x
-
-  let ex_of_rpc rpc =
-    match Rpc.t_of_rpc rpc with
-    | Rpc.Bool x -> Ex (Type.Bool, x)
-    | Rpc.Int x -> Ex (Type.Int, Int64.to_int x)
-    | Rpc.String x -> Ex (Type.String, x)
-    | _ -> failwith "Value.ex_of_rpc: Protocol error."
-
-  let typed_of_rpc t rpc = coerce t (ex_of_rpc rpc)
 
   (**/**)
   let typed_to_poly = to_json
@@ -239,28 +222,6 @@ module Values = struct
   let to_json_string t vs = Yojson.Basic.to_string (to_json t vs)
 
   let of_json_string t s = of_json t (Yojson.Basic.from_string s)
-
-  let ex_of_rpc rpc =
-    let aux0 t = Ex (t, empty t) in
-    let auxn t = function
-      | Rpc.Enum evs ->
-        Ex (t, of_ordered_elements t (List.map (Value.typed_of_rpc t) evs))
-      | _ -> failwith "Subsocia_common.Values.ex_of_rpc: Protocol error." in
-    match rpc with
-    | Rpc.Enum (Rpc.Bool _ :: _) -> auxn Type.Bool rpc
-    | Rpc.Enum (Rpc.Int _ :: _) -> auxn Type.Int rpc
-    | Rpc.Enum (Rpc.String _ :: _) -> auxn Type.String rpc
-    | Rpc.String "bool" -> aux0 Type.Bool
-    | Rpc.String "int" -> aux0 Type.Int
-    | Rpc.String "string" -> aux0 Type.String
-    | _ -> failwith "Subsocia_common.Values.ex_of_rpc: Protocol Error."
-
-  let rpc_of_ex (Ex (t, vs)) =
-    if is_empty vs then Rpc.String (Type.to_string t) else
-    match t with
-    | Type.Bool -> Rpc.Enum (List.map Rpc.rpc_of_bool (elements vs))
-    | Type.Int -> Rpc.Enum (List.map Rpc.rpc_of_int (elements vs))
-    | Type.String -> Rpc.Enum (List.map Rpc.rpc_of_string (elements vs))
 end
 
 module Int32_set = Prime_enumset.Make_monadic (Int32) (Lwt)

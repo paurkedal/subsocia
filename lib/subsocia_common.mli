@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -34,9 +34,6 @@ module Multiplicity : sig
 
   val of_char : char -> t
   val to_char : t -> char
-
-  val t_of_rpc : Rpc.t -> t
-  val rpc_of_t : t -> Rpc.t
 end
 
 module Type : sig
@@ -50,9 +47,6 @@ module Type : sig
 
   val to_string : 'a t -> string
   val of_string : string -> ex
-
-  val rpc_of_ex : ex -> Rpc.t
-  val ex_of_rpc : Rpc.t -> ex
 end
 
 module Value : sig
@@ -74,9 +68,6 @@ module Value : sig
   val to_json_string : 'a Type.t -> 'a -> string
 
   val of_json_string : 'a Type.t -> string -> 'a
-
-  val rpc_of_ex : ex -> Rpc.t
-  val ex_of_rpc : Rpc.t -> ex
 
   (**/**)
   val typed_to_poly : 'a Type.t -> 'a ->
@@ -123,9 +114,6 @@ module Values : sig
   val to_json_string : 'a Type.t -> 'a t -> string
 
   val of_json_string : 'a Type.t -> string -> 'a t
-
-  val rpc_of_ex : ex -> Rpc.t
-  val ex_of_rpc : Rpc.t -> ex
 end
 
 module Int_set : SET with type elt = int

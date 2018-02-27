@@ -12,7 +12,7 @@ let licenses = List.map Pkg.std_file ["COPYING.LESSER"; "COPYING"]
 let opams = [
   Pkg.opam_file
     ~lint_deps_excluding:(Some [
-      "adpkg"; "findlib"; "ocamlfind"; "ounit"; "oUnit"; "rpc"; "rpclib"
+      "adpkg"; "findlib"; "ocamlfind"; "ounit"; "oUnit";
     ])
     "subsocia.opam"
 ]

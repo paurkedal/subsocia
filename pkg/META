@@ -1,6 +1,6 @@
 description = "People, organizational data, and access control"
 version = "%%VERSION_NUM%%"
-requires = "extunix lwt panograph prime.unstable rpclib yojson"
+requires = "extunix lwt panograph prime.unstable yojson"
 archive(byte) = "subsocia.cma"
 archive(native) = "subsocia.cmxa"
 plugin(byte) = "subsocia.cma"

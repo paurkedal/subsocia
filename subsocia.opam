@@ -24,7 +24,6 @@ depends: [
   "panograph"
   "prime"
   "react"
-  "rpc"
   "topkg" {build}
   "uri"
   "yojson"
