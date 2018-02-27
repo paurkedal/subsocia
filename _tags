@@ -23,6 +23,7 @@ true: bin_annot, eliom_ppx
     package(caqti), package(caqti-lwt), \
     package(config-file), \
     package(findlib), \
+    package(findlib.dynload), \
     package(panograph), \
     package(prime.unstable), \
     package(react), \

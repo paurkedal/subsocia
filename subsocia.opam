@@ -11,7 +11,7 @@ build: ["ocaml" "pkg/pkg.ml" "build" "--pinned" "%{pinned}%"]
 depends: [
   "adpkg" {build}
   "caqti" {>= "0.6.0"}
-  "caqti-dynload"
+  "caqti-dynload" {test}
   "caqti-lwt"
   "cmdliner"
   "config-file"
