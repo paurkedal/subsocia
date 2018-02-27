@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.17.0] - 2018-02-27
+
+- Removed RPC API.
+- Update to Lwt 3.
+- Fix a injection of exception into lwt threads.
+
 ## [0.16.1] - 2018-02-19
 
 - Update to work with Eliom 6.3.0 and Caqti 0.10.0.
