@@ -760,7 +760,9 @@ module Make (P : Param) = struct
     with_db ?conn ?transaction f >>=
     (function
      | Ok y -> Lwt.return y
-     | Error err -> raise (Caqti_error.Exn err))
+     | Error err ->
+        Lwt_log.debug (Caqti_error.show err) >>= fun () ->
+        Lwt.fail (Caqti_error.Exn err))
 
   module Attribute_type = struct
     open B.Attribute_type
