@@ -3,10 +3,13 @@ true: bin_annot, eliom_ppx
 "lib": include
 
 <bin/*>: thread, \
-    package(caqti), package(caqti-lwt), package(caqti-dynload), \
+    package(caqti), \
+    package(caqti-dynload), \
+    package(caqti-lwt), \
     package(cmdliner), \
     package(config-file), \
     package(extunix), \
+    package(lwt.ppx), \
     package(panograph), \
     package(uri), \
     package(yojson), \
@@ -15,13 +18,16 @@ true: bin_annot, eliom_ppx
     package(extunix), \
     package(lwt), \
     package(lwt.log), \
+    package(lwt.ppx), \
     package(panograph), \
     package(yojson)
 <lib/data/*.ml*>: thread, \
-    package(caqti), package(caqti-lwt), \
+    package(caqti), \
+    package(caqti-lwt), \
     package(config-file), \
     package(findlib), \
     package(findlib.dynload), \
+    package(lwt.ppx), \
     package(panograph), \
     package(prime.unstable), \
     package(react), \
