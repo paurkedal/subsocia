@@ -67,13 +67,13 @@ let db_init disable_transaction = run0 @@ fun (module C) ->
   Lwt_list.iter_s
     (fun fn ->
       let fp = Filename.concat schema_dir fn in
-      Lwt_log.info_f "Loading %s." fp >>
+      Lwt_log.info_f "Loading %s." fp >>= fun () ->
       load_sql cc fp >>= Caqti_lwt.or_fail)
-    (upgradable_sql_schemas @ idempotent_sql_schemas) >>
+    (upgradable_sql_schemas @ idempotent_sql_schemas) >>= fun () ->
   Lwt_list.iter_s
     (fun fn ->
       let fp = Filename.concat schema_dir fn in
-      Lwt_log.info_f "Loading %s." fp >>
+      Lwt_log.info_f "Loading %s." fp >>= fun () ->
       let schema = Subsocia_schema.load fp in
       if disable_transaction then
         let module Schema = Subsocia_schema.Make (C) in
@@ -107,23 +107,23 @@ let db_upgrade () = Lwt_main.run begin
         Lwt_io.printlf "Updated: %s" fp
      | Error err ->
         have_error := true;
-        Lwt_io.printlf "Failed: %s" fp >>
+        Lwt_io.printlf "Failed: %s" fp >>= fun () ->
         Lwt_io.printlf "Error: %s" (Caqti_error.show err)) in
   for%lwt v = db_schema_version to schema_version - 1 do
     load (Filename.concat schema_upgrade_dir (sprintf "from-%d.sql" v))
-  done >>
+  done >>= fun () ->
   Lwt_list.iter_s (load % Filename.concat schema_dir)
-                  idempotent_sql_schemas >>
+                  idempotent_sql_schemas >>= fun () ->
   if !have_error then
     Lwt_io.printf "\n\
       You may need to inspect the database and schema and apply the failed\n\
       update manually.  Make sure also include the the update of the\n\
       'schema_version' in the global_integer table.\n\n\
       If this looks like a bug, please file an issue at\n%s.\n"
-      issues_url >>
+      issues_url >>= fun () ->
     Lwt.return 69
   else
-    Lwt_io.printlf "All updates succeeded." >>
+    Lwt_io.printlf "All updates succeeded." >>= fun () ->
     Lwt.return 0
 end
 

@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -30,8 +30,8 @@ let et_info etn = run @@ fun (module C) ->
    | Some et ->
       let%lwt soid = C.Entity_type.soid et in
       let%lwt name_tmpl = C.Entity_type.entity_name_tmpl et in
-      Lwt_io.printlf "Entity type #%ld %s " soid etn >>
-      Lwt_io.printlf "Name template: %s" name_tmpl >>
+      Lwt_io.printlf "Entity type #%ld %s " soid etn >>= fun () ->
+      Lwt_io.printlf "Name template: %s" name_tmpl >>= fun () ->
       Lwt.return (`Ok 0)
 
 let et_info_cmd = Term.(ret (const et_info $ et_name_t))
@@ -51,7 +51,7 @@ let et_modify etn ent_opt = run @@ fun (module C) ->
     begin match ent_opt with
     | None -> Lwt.return_unit
     | Some ent -> C.Entity_type.set_entity_name_tmpl et ent
-    end >>
+    end >>= fun () ->
     Lwt.return (`Ok 0)
 
 let et_modify_cmd =
@@ -71,8 +71,8 @@ let et_delete etn = run @@ fun (module C) ->
     Lwt.return (`Error (false, sprintf "No type is named %s." etn))
   | Some et ->
     let%lwt et_id = C.Entity_type.soid et in
-    C.Entity_type.delete et >>
-    Lwt_log.info_f "Deleted type #%ld = %s." et_id etn >>
+    C.Entity_type.delete et >>= fun () ->
+    Lwt_log.info_f "Deleted type #%ld = %s." et_id etn >>= fun () ->
     Lwt.return (`Ok 0)
 
 let et_delete_cmd =

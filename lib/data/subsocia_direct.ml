@@ -1497,7 +1497,7 @@ module Make (P : Param) = struct
       let%lwt r = rank e in
       if r >= r_min then Lwt.return_unit else
       begin
-        dsub e >>= Set.iter_s (raise_rank (r_min + 1)) >>
+        dsub e >>= Set.iter_s (raise_rank (r_min + 1)) >>= fun () ->
         set_rank r_min e
       end
 
@@ -1509,7 +1509,7 @@ module Make (P : Param) = struct
       let%lwt esS = dsuper e in
       let%lwt r' = Set.fold_s update_rank esS 0 in
       if r' = r then Lwt.return_unit else begin
-        set_rank r' e >>
+        set_rank r' e >>= fun () ->
         dsub e >>= Set.iter_s begin fun eP ->
           let%lwt rP = rank eP in
           if rP = r + 1 then lower_rank eP
@@ -1544,7 +1544,7 @@ module Make (P : Param) = struct
       if is_super then Lwt.fail (Invalid_argument "cyclic constraint") else
       let%lwt subentity_rank = rank subentity in
       let%lwt superentity_rank = rank superentity in
-      raise_rank (max subentity_rank (superentity_rank + 1)) subentity >>
+      raise_rank (max subentity_rank (superentity_rank + 1)) subentity >>= fun () ->
       with_db_exn (force_dsub' subentity superentity)
 
     let relax_dsub subentity superentity =
@@ -1629,7 +1629,8 @@ module Make (P : Param) = struct
               if Hashtbl.mem ht x then false else (Hashtbl.add ht x (); true) in
             Lwt.return (List.filter once xs)) in
       if xs = [] then Lwt.return_unit else
-      check_uniqueness_for_add at xs e e' >> (* FIXME: Transaction. *)
+      (* FIXME: Transaction. *)
+      check_uniqueness_for_add at xs e e' >>= fun () ->
       with_db_exn ~transaction:true (fun conn -> add_values' conn at xs e e')
 
     let remove_values' (module C : CONNECTION) (type a)
@@ -1667,7 +1668,7 @@ module Make (P : Param) = struct
         lwt_failure_f "add_values: Attribute already set.";
       | Multiplicity.May | Multiplicity.Must ->
         Lwt.return_unit
-      end >>
+      end >>= fun () ->
       let%lwt xs_pres = get_values at e e' in
       let ht = Hashtbl.create 7 in
       Values.iter (fun x -> Hashtbl.add ht x false) xs_pres;
@@ -1680,7 +1681,8 @@ module Make (P : Param) = struct
           xs in
       let xs_del =
         Hashtbl.fold (fun x keep acc -> if keep then acc else x :: acc) ht [] in
-      check_uniqueness_for_add at xs_ins e e' >> (* FIXME: Transaction. *)
+      (* FIXME: Transaction. *)
+      check_uniqueness_for_add at xs_ins e e' >>= fun () ->
       with_db_exn ~transaction:true begin fun c ->
         (if xs_del = [] then Lwt.return_ok ()
          else remove_values' c at xs_del e e') >>=?? fun () ->
@@ -1704,7 +1706,8 @@ let connect uri =
           C.commit () >>=?? fun () ->
           Lwt.return r
         with exc ->
-          Lwt_log.debug_f "Raised in transaction: %s" (Printexc.to_string exc) >>
+          Lwt_log.debug_f "Raised in transaction: %s" (Printexc.to_string exc)
+            >>= fun () ->
           C.rollback () >>=?? fun () ->
           Lwt.fail exc
         end

@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -48,11 +48,11 @@ let au_force atns = run @@ fun (module C : S) ->
   | None ->
     let%lwt au = C.Attribute_uniqueness.force ats in
     let%lwt au_idstr = C.Attribute_uniqueness.soid_string au in
-    Lwt_io.eprintlf "Created constraint %s." au_idstr >>
+    Lwt_io.eprintlf "Created constraint %s." au_idstr >>= fun () ->
     Lwt.return 0
   | Some au ->
     let%lwt au_idstr = C.Attribute_uniqueness.soid_string au in
-    Lwt_io.eprintlf "Already constrained by %s." au_idstr >>
+    Lwt_io.eprintlf "Already constrained by %s." au_idstr >>= fun () ->
     Lwt.return 1
 
 let au_force_cmd =
@@ -65,12 +65,12 @@ let au_relax atns = run @@ fun (module C : S) ->
   let ats = List.fold C.Attribute_type.Set.add ats C.Attribute_type.Set.empty in
   match%lwt C.Attribute_uniqueness.find ats with
   | Some au ->
-    C.Attribute_uniqueness.relax au >>
+    C.Attribute_uniqueness.relax au >>= fun () ->
     let%lwt au_idstr = C.Attribute_uniqueness.soid_string au in
-    Lwt_io.eprintlf "Removed constraint %s." au_idstr >>
+    Lwt_io.eprintlf "Removed constraint %s." au_idstr >>= fun () ->
     Lwt.return 0
   | None ->
-    Lwt_io.eprintlf "No matching constraint." >>
+    Lwt_io.eprintlf "No matching constraint." >>= fun () ->
     Lwt.return 1
 
 let au_relax_cmd =
@@ -86,10 +86,11 @@ let au_list () = run @@ fun (module C : S) ->
     Lwt_io.print atn in
   let show_au au =
     let%lwt ats = C.Attribute_uniqueness.affected au in
-    Lwt_io.print "{" >>
-    C.Attribute_type.Set.iter_s (show_at (ref 0)) ats >>
+    Lwt_io.print "{" >>= fun () ->
+    C.Attribute_type.Set.iter_s (show_at (ref 0)) ats >>= fun () ->
     Lwt_io.printl "}" in
-  C.Attribute_uniqueness.all () >>= C.Attribute_uniqueness.Set.iter_s show_au >>
+  C.Attribute_uniqueness.all () >>= C.Attribute_uniqueness.Set.iter_s show_au
+    >>= fun () ->
   Lwt.return 0
 
 let au_list_cmd = Term.(pure au_list $ pure ())

@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -39,12 +39,12 @@ let at_create_cmd =
 let at_delete atn = run @@ fun (module C) ->
   match%lwt C.Attribute_type.of_name atn with
   | Some (C.Attribute_type.Ex at) ->
-    C.Attribute_type.delete at >>
+    C.Attribute_type.delete at >>= fun () ->
     let%lwt at_idstr = C.Attribute_type.(soid at >|= Soid.to_string) in
-    Lwt_log.info_f "Delete attribute type %s %s." at_idstr atn >>
+    Lwt_log.info_f "Delete attribute type %s %s." at_idstr atn >>= fun () ->
     Lwt.return 0
   | None ->
-    Lwt_log.error_f "No attribute type is named %s." atn >>
+    Lwt_log.error_f "No attribute type is named %s." atn >>= fun () ->
     Lwt.return 1
 
 let at_delete_cmd =
@@ -61,7 +61,7 @@ let at_list verbose = run @@ fun (module C) ->
       | Multiplicity.Must1 -> ""
       | m -> Multiplicity.to_string m in
     let vt = C.Attribute_type.value_type at in
-    Lwt_io.printlf "%s : %s%s" atn (Type.to_string vt) ms >>
+    Lwt_io.printlf "%s : %s%s" atn (Type.to_string vt) ms >>= fun () ->
     if%lwt Lwt.return verbose then begin
       let show_mapping (et0, et1) =
         let%lwt etn0 = C.Entity_type.name et0 in
@@ -69,7 +69,7 @@ let at_list verbose = run @@ fun (module C) ->
         Lwt_io.printlf "  %s -> %s" etn0 etn1 in
       C.Entity_type.allowed_mappings at >>= Lwt_list.iter_s show_mapping
     end in
-  C.Attribute_type.all () >>= C.Attribute_type.Set.iter_s show >>
+  C.Attribute_type.all () >>= C.Attribute_type.Set.iter_s show >>= fun () ->
   Lwt.return 0
 
 let at_list_cmd =

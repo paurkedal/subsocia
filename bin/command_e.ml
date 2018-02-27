@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -114,7 +114,7 @@ module Entity_utils (C : Subsocia_intf.S) = struct
 
   let show_entity_list pfx =
     Entity.Set.iter_s begin fun e ->
-      Lwt_io.print pfx >>
+      Lwt_io.print pfx >>= fun () ->
       begin match%lwt Entity.paths e with
       | [] -> Entity.display_name e
       | p :: _ -> Lwt.return (string_of_selector p)
@@ -126,13 +126,13 @@ module Entity_utils (C : Subsocia_intf.S) = struct
     let%lwt et = C.Entity.entity_type e in
     let%lwt etn = C.Entity_type.name et in
     let%lwt e_idstr = Entity.soid_string e in
-    Lwt_io.printlf "%s %s : %s" e_idstr name etn >>
+    Lwt_io.printlf "%s %s : %s" e_idstr name etn >>= fun () ->
     ( if not eds.eds_paths then Lwt.return_unit else
       let%lwt paths = Entity.paths e in
       Lwt_list.iter_s (fun p -> Lwt_io.printf "  = %s\n" (string_of_selector p))
-                      paths ) >>
+                      paths ) >>= fun () ->
     ( if not eds.eds_super then Lwt.return_unit else
-      C.Entity.dsuper e >>= show_entity_list "  ⊂ " ) >>
+      C.Entity.dsuper e >>= show_entity_list "  ⊂ " ) >>= fun () ->
     ( if not eds.eds_sub then Lwt.return_unit else
       C.Entity.dsub e >>= show_entity_list "  ⊃ " )
 
@@ -156,7 +156,7 @@ let e_ls sel_opt = run_exn @@ fun (module C) ->
             let avr = Value.typed_to_string vt av in
             Lwt_io.printf "{%s=%s}" an avr)
           vs)
-      ats >>
+      ats >>= fun () ->
     Lwt_io.printl "" in
   let show_au au =
     let%lwt ats =
@@ -176,7 +176,7 @@ let e_search sel eds = run_bool_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let%lwt root = C.Entity.root in
   let%lwt es = U.Entity.select_from sel (C.Entity.Set.singleton root) in
-  C.Entity.Set.iter_s (U.show_entity eds) es >>
+  C.Entity.Set.iter_s (U.show_entity eds) es >>= fun () ->
   Lwt.return (not (C.Entity.Set.is_empty es))
 
 let e_search_cmd =
@@ -200,7 +200,7 @@ let e_fts q etn super limit cutoff = run_bool_exn @@ fun (module C) ->
     let%lwt et = C.Entity.entity_type e in
     let%lwt etn = C.Entity_type.name et in
     Lwt_io.printlf "%8.3g %s : %s" rank name etn in
-  Lwt_list.iter_s show es >>
+  Lwt_list.iter_s show es >>= fun () ->
   Lwt.return (es <> [])
 
 let e_fts_cmd =
@@ -227,7 +227,7 @@ let e_create etn add_dsupers add_sels = run_exn @@ fun (module C) ->
   let%lwt add_sels = Lwt_list.map_p U.lookup_add_selector add_sels in
   let%lwt add_dsupers = Lwt_list.map_p U.Entity.select_one add_dsupers in
   let%lwt e = C.Entity.create et in
-  Lwt_list.iter_s (C.Entity.force_dsub e) add_dsupers >>
+  Lwt_list.iter_s (C.Entity.force_dsub e) add_dsupers >>= fun () ->
   Lwt_list.iter_s (U.update_attributes e) add_sels
 
 let e_create_cmd =
@@ -257,9 +257,10 @@ let e_modify sel add_dsupers del_dsupers add_sels del_sels =
   let%lwt add_sels = Lwt_list.map_p U.lookup_add_selector add_sels in
   let%lwt del_sels = Lwt_list.map_p U.lookup_delete_selector del_sels in
   let%lwt e = U.Entity.select_one sel in
-  Lwt_list.iter_s (fun e_sub -> C.Entity.force_dsub e e_sub) add_dsupers >>
-  Lwt_list.iter_s (U.update_attributes e) add_sels >>
-  Lwt_list.iter_s (U.update_attributes e) del_sels >>
+  Lwt_list.iter_s (fun e_sub -> C.Entity.force_dsub e e_sub) add_dsupers
+    >>= fun () ->
+  Lwt_list.iter_s (U.update_attributes e) add_sels >>= fun () ->
+  Lwt_list.iter_s (U.update_attributes e) del_sels >>= fun () ->
   Lwt_list.iter_s (fun e_sub -> C.Entity.relax_dsub e e_sub) del_dsupers
 
 let e_modify_cmd =

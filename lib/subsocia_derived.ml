@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -266,7 +266,7 @@ module Make (Base : Subsocia_intf.S) = struct
       let rec iter_s' visit max_depth f e =
         if visit e then Lwt.return_unit else
         try%lwt
-          f e >>
+          f e >>= fun () ->
           if max_depth = 0 then Lwt.return_unit else
           Dir.iter_s (iter_s' visit (max_depth - 1) f) e
         with Prune -> Lwt.return_unit
