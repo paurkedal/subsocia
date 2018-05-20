@@ -1,7 +1,7 @@
 opam-version: "1.2"
 name: "subsocia"
-authors: ["Petter A. Urkedal"]
-maintainer: "paurkedal@gmail.com"
+author: "Petter A. Urkedal <paurkedal@gmail.com>"
+maintainer: "Petter A. Urkedal <paurkedal@gmail.com>"
 homepage: "https://github.com/paurkedal/subsocia/"
 bug-reports: "https://github.com/paurkedal/subsocia/issues"
 dev-repo: "https://github.com/paurkedal/subsocia.git"
