@@ -158,59 +158,99 @@ module String_map = Prime_enummap.Make_monadic (String) (Lwt)
 module Values = struct
 
   type 'a t =
-    T : (module Prime_enumset.S with type elt = 'a and type t = 'b) * 'b -> 'a t
+    | Bool : Bool_set.t -> bool t
+    | Int : Int_set.t -> int t
+    | String : String_set.t -> string t
 
-  type ex = Ex : 'a Type.t * 'a t -> ex
+  type ex = Ex : 'a t -> ex
 
-  let coerce : type a. a Type.t -> ex -> a t = fun t ex ->
-    match t, ex with
-    | Type.Bool, Ex (Type.Bool, vs) -> vs
-    | Type.Int, Ex (Type.Int, vs) -> vs
-    | Type.String, Ex (Type.String, vs) -> vs
-    | _ -> failwith "Subsocia_common.Values.must_coerce: Type mismatch."
+  let coerce : type a. a Type.t -> ex -> a t = fun typ ex ->
+    (match typ, ex with
+     | Type.Bool, Ex (Bool _ as xs) -> xs
+     | Type.Int, Ex (Int _ as xs) -> xs
+     | Type.String, Ex (String _ as xs) -> xs
+     | _ -> failwith "Subsocia_common.Values.coerce: Type mismatch.")
 
-  let impl : type a. a Type.t -> (module Prime_enumset.S with type elt = a) =
-    function
-    | Type.Bool ->   (module Bool_set)
-    | Type.Int ->    (module Int_set)
-    | Type.String -> (module String_set)
+  let empty : type a. a Type.t -> a t = function
+   | Type.Bool -> Bool Bool_set.empty
+   | Type.Int -> Int Int_set.empty
+   | Type.String -> String String_set.empty
 
-  let empty : type a. a Type.t -> a t = fun t ->
-    let module S = (val impl t) in
-    T ((module S), S.empty)
+  let singleton : type a. a Type.t -> a -> a t = function
+   | Type.Bool -> fun x -> Bool (Bool_set.singleton x)
+   | Type.Int -> fun x -> Int (Int_set.singleton x)
+   | Type.String -> fun x -> String (String_set.singleton x)
 
-  let singleton : type a. a Type.t -> a -> a t = fun t v ->
-    let module S = (val impl t) in
-    T ((module S), S.singleton v)
+  type ('set, 'elt) set = (module SET with type t = 'set and type elt = 'elt)
 
-  let is_empty (type a) (T ((module S), s) : a t) = S.is_empty s
-  let contains (type a) (x : a) (T ((module S), s) : a t) = S.contains x s
-  let locate (type a) (x : a) (T ((module S), s) : a t) = S.locate x s
-  let cardinal (type a) (T ((module S), s) : a t) = S.cardinal s
-  let min_elt (type a) (T ((module S), s) : a t) = S.min_elt s
-  let max_elt (type a) (T ((module S), s) : a t) = S.max_elt s
-  let add (type a) (x : a) (T ((module S), s) : a t) = T ((module S), S.add x s)
-  let remove (type a) x (T ((module S), s) : a t) = T ((module S), S.remove x s)
-  let iter (type a) f (T ((module S), s) : a t) = S.iter f s
-  let fold (type a) f (T ((module S), s) : a t) acc = S.fold f s acc
-  let fold_rev (type a) f (T ((module S), s) : a t) acc = S.fold_rev f s acc
-  let for_all (type a) f (T ((module S), s) : a t) = S.for_all f s
-  let exists (type a) f (T ((module S), s) : a t) = S.exists f s
-  let filter (type a) f (T ((module S), s) : a t) = T ((module S), S.filter f s)
-  let union (type a) (T ((module SA), sA) : a t) (T ((module SB), sB) : a t) =
-    T ((module SB), SA.fold SB.add sA sB)
-  let inter (type a) (T ((module SA), sA) : a t) (T ((module SB), sB) : a t) =
-    T ((module SB), SB.filter (fun x -> SA.contains x sA) sB)
-  let choose (type a) (T ((module S), s) : a t) = S.choose s
-  let elements (type a) (T ((module S), s) : a t) = S.elements s
+  type ('e, 'a) prop = {v: 's. ('s, 'e) set -> 's -> 'a}
+  let lift_prop : type e. (e, 'a) prop -> e t -> 'a =
+    fun f -> function
+     | Bool xs -> f.v (module Bool_set) xs
+     | Int xs -> f.v (module Int_set) xs
+     | String xs -> f.v (module String_set) xs
 
-  let of_elements : type a. a Type.t -> a list -> a t = fun t xs ->
-    let module S = (val impl t) in
-    T ((module S), List.fold S.add xs S.empty)
+  type 'e endo = {v: 's. ('s, 'e) set -> 's -> 's}
+  let lift_endo : type e. e endo -> e t -> e t =
+    fun f -> function
+     | Bool xs -> Bool (f.v (module Bool_set) xs)
+     | Int xs -> Int (f.v (module Int_set) xs)
+     | String xs -> String (f.v (module String_set) xs)
 
-  let of_ordered_elements : type a. a Type.t -> a list -> a t = fun t s ->
-    let module S = (val impl t) in
-    T ((module S), S.of_ordered_elements s)
+  type 'e bina = {v: 's. ('s, 'e) set -> 's -> 's -> 's}
+  let lift_bina : type e. e bina -> e t -> e t -> e t =
+    fun f a b ->
+    (match a, b with
+     | Bool xs, Bool ys -> Bool (f.v (module Bool_set) xs ys)
+     | Int xs, Int ys -> Int (f.v (module Int_set) xs ys)
+     | String xs, String ys -> String (f.v (module String_set) xs ys))
+
+  let is_empty (type a) s =
+    lift_prop {v = fun (type s) ((module S) : (s, a) set) s -> S.is_empty s} s
+  let add (type a) x =
+    lift_endo {v = fun (type s) ((module S) : (s, a) set) s -> S.add x s}
+  let remove (type a) x =
+    lift_endo {v = fun (type s) ((module S) : (s, a) set) s -> S.remove x s}
+  let contains (type a) x =
+    lift_prop {v = fun (type s) ((module S) : (s, a) set) s -> S.contains x s}
+  let locate (type a) x =
+    lift_prop {v = fun (type s) ((module S) : (s, a) set) s -> S.locate x s}
+  let cardinal (type a) s =
+    lift_prop {v = fun (type s) ((module S) : (s, a) set) s -> S.cardinal s} s
+  let min_elt (type a) s =
+    lift_prop {v = fun (type s) ((module S) : (s, a) set) s -> S.min_elt s} s
+  let max_elt (type a) s =
+    lift_prop {v = fun (type s) ((module S) : (s, a) set) s -> S.max_elt s} s
+  let iter (type a) f =
+    lift_prop {v = fun (type s) ((module S) : (s, a) set) s -> S.iter f s}
+  let fold (type a) f =
+    lift_prop {v = fun (type s) ((module S) : (s, a) set) s -> S.fold f s}
+  let fold_rev (type a) f =
+    lift_prop {v = fun (type s) ((module S) : (s, a) set) s -> S.fold_rev f s}
+  let exists (type a) f =
+    lift_prop {v = fun (type s) ((module S) : (s, a) set) s -> S.exists f s}
+  let for_all (type a) f =
+    lift_prop {v = fun (type s) ((module S) : (s, a) set) s -> S.for_all f s}
+  let filter (type a) f =
+    lift_endo {v = fun (type s) ((module S) : (s, a) set) s -> S.filter f s}
+  let union (type a) s =
+    lift_bina {v = fun (type s) ((module S) : (s, a) set) s t -> S.union s t} s
+  let inter (type a) s =
+    lift_bina {v = fun (type s) ((module S) : (s, a) set) s t -> S.inter s t} s
+  let choose (type a) s =
+    lift_prop {v = fun (type s) ((module S) : (s, a) set) s -> S.choose s} s
+  let elements (type a) s =
+    lift_prop {v = fun (type s) ((module S) : (s, a) set) s -> S.elements s} s
+
+  let of_elements : type e. e Type.t -> e list -> e t = function
+   | Type.Bool -> fun xs -> Bool Bool_set.(List.fold add xs empty)
+   | Type.Int -> fun xs -> Int Int_set.(List.fold add xs empty)
+   | Type.String -> fun xs -> String String_set.(List.fold add xs empty)
+
+  let of_ordered_elements : type e. e Type.t -> e list -> e t = function
+   | Type.Bool -> fun xs -> Bool (Bool_set.of_ordered_elements xs)
+   | Type.Int -> fun xs -> Int (Int_set.of_ordered_elements xs)
+   | Type.String -> fun xs -> String (String_set.of_ordered_elements xs)
 
   let to_json t vs =
     `List (fold_rev (fun v acc -> Value.to_json t v :: acc) vs [])

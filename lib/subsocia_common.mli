@@ -77,7 +77,7 @@ end
 
 module Values : sig
   type 'a t
-  type ex = Ex : 'a Type.t * 'a t -> ex
+  type ex = Ex : 'a t -> ex
 
   val empty : 'a Type.t -> 'a t
   val is_empty : 'a t -> bool
