@@ -82,7 +82,7 @@ let entity_of_authenticalia auth =
     let%lwt at_unique_name = Const.at_unique_name in
     let%lwt s = Entity.image1_eq at_unique_name auth.auth_identity amg in
     match Entity.Set.cardinal s with
-    | 1 -> Lwt.return (Some (Entity.Set.min_elt s))
+    | 1 -> Lwt.return (Some (Entity.Set.min_elt_exn s))
     | 0 -> Lwt.return_none
     | _ -> http_error 500 "Duplicate registration."
 

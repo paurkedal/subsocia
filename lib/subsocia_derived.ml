@@ -167,7 +167,7 @@ module Make (Base : Subsocia_intf.S) = struct
       let%lwt at_unique_name = at_unique_name in
       let%lwt es = Entity.image1_eq at_unique_name en from in
       match Entity.Set.cardinal es with
-      | 1 -> Lwt.return (Entity.Set.min_elt es)
+      | 1 -> Lwt.return (Entity.Set.min_elt_exn es)
       | 0 -> _fail "Missing initial entity %s" en
       | _ -> _fail "Multiple matches for unique name %s" en
 
@@ -191,14 +191,14 @@ module Make (Base : Subsocia_intf.S) = struct
       let%lwt vs = get_values at e e' in
       let n = Values.cardinal vs in
       if n = 0 then Lwt.return_none else
-      if n = 1 then Lwt.return (Some (Values.min_elt vs)) else
+      if n = 1 then Lwt.return (Some (Values.min_elt_exn vs)) else
       let%lwt an = Attribute_type.name at in
       _fail "Multiple matches for attribute %s" an
 
     let getattr_one e' e at =
       let%lwt vs = get_values at e' e in
       let n = Values.cardinal vs in
-      if n = 1 then Lwt.return (Values.min_elt vs) else
+      if n = 1 then Lwt.return (Values.min_elt_exn vs) else
       let%lwt an = Attribute_type.name at in
       if n = 0 then _fail "No matches for attribute %s" an
                else _fail "Multiple matches for attribute %s" an
@@ -225,7 +225,7 @@ module Make (Base : Subsocia_intf.S) = struct
       let%lwt at_unique_name = Const.at_unique_name in
       let%lwt es = Entity.image1_eq at_unique_name en super in
       match Entity.Set.cardinal es with
-      | 1 -> Lwt.return (Some (Entity.Set.min_elt es))
+      | 1 -> Lwt.return (Some (Entity.Set.min_elt_exn es))
       | 0 -> Lwt.return_none
       | _ -> _fail "Multiple matches for unique name %s" en
 
@@ -394,18 +394,18 @@ module Make (Base : Subsocia_intf.S) = struct
             Entity.premapping1 at e >>=
             Base.Entity.Map.search_s
               (fun e' vs ->
-                if Entity.Set.contains e' context then
-                  Lwt.return (Some (Values.min_elt vs))
+                if Entity.Set.mem e' context then
+                  Lwt.return (Some (Values.min_elt_exn vs))
                 else
                   match%lwt display_name_tmpl ~context ~langs e' with
                   | None ->
                     Lwt.return_none
                   | Some name ->
-                    Lwt.return (Some (name ^ " / " ^ Values.min_elt vs)))
+                    Lwt.return (Some (name ^ " / " ^ Values.min_elt_exn vs)))
           | None ->
             let%lwt vs = Entity.get_values at root e in
             if Values.is_empty vs then Lwt.return_none
-                                  else Lwt.return (Some (Values.min_elt vs)) in
+                                  else Lwt.return (Some (Values.min_elt_exn vs)) in
 
       let tn, an =
         match Prime_string.cut_affix "/" spec with

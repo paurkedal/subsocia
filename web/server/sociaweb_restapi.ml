@@ -88,7 +88,7 @@ let _ =
         | None -> Lwt.return false
         | Some group -> Entity.is_sub user group in
       let get_attribute an =
-        if not (String_set.contains an allowed_ans) then Lwt.return_none else
+        if not (String_set.mem an allowed_ans) then Lwt.return_none else
         match%lwt Attribute_type.of_name an with
         | None -> Lwt.return_none
         | Some (Attribute_type.Ex at) ->

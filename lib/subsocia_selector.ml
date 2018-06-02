@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -166,7 +166,7 @@ let rec dconj_of_selector = function
   | Select_inter (selA, selB) -> fun m ->
     dconj_of_selector selA (dconj_of_selector selB m)
   | Select_image (Attribute_present an) -> fun m ->
-    if String_map.contains an m then
+    if String_map.mem an m then
       invalid_arg_f "Conflicting wildcard for %s." an;
     String_map.add an None m
   | Select_image (Attribute_eq (an, v)) -> fun m ->
@@ -287,7 +287,7 @@ module Selector_utils (C : Subsocia_intf.S) = struct
     let%lwt root = C.Entity.root in
     let%lwt es = select_from sel (C.Entity.Set.singleton root) in
     match C.Entity.Set.cardinal es with
-    | 1 -> Lwt.return (C.Entity.Set.min_elt es)
+    | 1 -> Lwt.return (C.Entity.Set.min_elt_exn es)
     | 0 -> lwt_failure_f "No entity matches %s." (string_of_selector sel)
     | n -> lwt_failure_f "%d entities matches %s, need one."
                          n (string_of_selector sel)
@@ -297,7 +297,7 @@ module Selector_utils (C : Subsocia_intf.S) = struct
     let%lwt es = select_from sel (C.Entity.Set.singleton root) in
     match C.Entity.Set.cardinal es with
     | 0 -> Lwt.return_none
-    | 1 -> Lwt.return (Some (C.Entity.Set.min_elt es))
+    | 1 -> Lwt.return (Some (C.Entity.Set.min_elt_exn es))
     | n -> lwt_failure_f "%d entities matches %s, need one."
                          n (string_of_selector sel)
 end

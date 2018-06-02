@@ -211,16 +211,16 @@ module Values = struct
     lift_endo {v = fun (type s) ((module S) : (s, a) set) s -> S.add x s}
   let remove (type a) x =
     lift_endo {v = fun (type s) ((module S) : (s, a) set) s -> S.remove x s}
-  let contains (type a) x =
-    lift_prop {v = fun (type s) ((module S) : (s, a) set) s -> S.contains x s}
+  let mem (type a) x =
+    lift_prop {v = fun (type s) ((module S) : (s, a) set) s -> S.mem x s}
   let locate (type a) x =
     lift_prop {v = fun (type s) ((module S) : (s, a) set) s -> S.locate x s}
   let cardinal (type a) s =
     lift_prop {v = fun (type s) ((module S) : (s, a) set) s -> S.cardinal s} s
-  let min_elt (type a) s =
-    lift_prop {v = fun (type s) ((module S) : (s, a) set) s -> S.min_elt s} s
-  let max_elt (type a) s =
-    lift_prop {v = fun (type s) ((module S) : (s, a) set) s -> S.max_elt s} s
+  let min_elt_exn (type a) s =
+    lift_prop {v = fun (type s) ((module S) : (s, a) set) s -> S.min_elt_exn s} s
+  let max_elt_exn (type a) s =
+    lift_prop {v = fun (type s) ((module S) : (s, a) set) s -> S.max_elt_exn s} s
   let iter (type a) f =
     lift_prop {v = fun (type s) ((module S) : (s, a) set) s -> S.iter f s}
   let fold (type a) f =
@@ -262,6 +262,10 @@ module Values = struct
   let to_json_string t vs = Yojson.Basic.to_string (to_json t vs)
 
   let of_json_string t s = of_json t (Yojson.Basic.from_string s)
+
+  let contains = mem
+  let min_elt = min_elt_exn
+  let max_elt = max_elt_exn
 end
 
 module Int32_set = Prime_enumset.Make_monadic (Int32) (Lwt)

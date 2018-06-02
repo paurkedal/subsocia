@@ -84,11 +84,11 @@ module Values : sig
   val singleton : 'a Type.t -> 'a -> 'a t
   val add : 'a -> 'a t -> 'a t
   val remove : 'a -> 'a t -> 'a t
-  val contains : 'a -> 'a t -> bool
+  val mem : 'a -> 'a t -> bool
   val locate : 'a -> 'a t -> bool * int
   val cardinal : 'a t -> int
-  val min_elt : 'a t -> 'a
-  val max_elt : 'a t -> 'a
+  val min_elt_exn : 'a t -> 'a
+  val max_elt_exn : 'a t -> 'a
   val iter : ('a -> unit) -> 'a t -> unit
   val fold : ('a -> 'b -> 'b) -> 'a t -> 'b -> 'b
   val for_all : ('a -> bool) -> 'a t -> bool
@@ -114,6 +114,11 @@ module Values : sig
   val to_json_string : 'a Type.t -> 'a t -> string
 
   val of_json_string : 'a Type.t -> string -> 'a t
+
+  (* 2018-06 *)
+  val contains : 'a -> 'a t -> bool [@@ocaml.deprecated "Renamed to mem."]
+  val min_elt : 'a t -> 'a [@@ocaml.deprecated "Renamed to min_elt_exn."]
+  val max_elt : 'a t -> 'a [@@ocaml.deprecated "Renamed to max_elt_exn."]
 end
 
 module Int_set : SET with type elt = int

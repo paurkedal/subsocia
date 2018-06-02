@@ -575,7 +575,7 @@ module type CACHE = sig
   val create :  cache_metric: Prime_cache_metric.t -> int -> ('a, 'b) t
   val clear : ('a, 'b) t -> unit
   val find : ('a, 'b) t -> 'a -> 'b
-  val find_o : ('a, 'b) t -> 'a -> 'b option
+  val app : ('a, 'b) t -> 'a -> 'b option
   val replace : ('a, 'b) t -> float -> 'a -> 'b -> unit
   val remove : ('a, 'b) t -> 'a -> unit
   val memo_lwt : ('a -> 'b Lwt.t) -> ('a -> 'b Lwt.t) * ('a, 'b) t
@@ -612,7 +612,7 @@ module Disabled_cache = struct
   let create ~cache_metric n = ()
   let clear _ = ()
   let find _ _ = raise Not_found
-  let find_o _ _ = None
+  let app _ _ = None
   let replace _ _ _ _ = ()
   let remove _ _ = ()
   let memo_lwt f = f, ()
@@ -846,13 +846,13 @@ module Make (P : Param) = struct
       >|= B.Attribute_type.Set.of_ordered_elements
 
     let find atset =
-      let B.Attribute_type.Ex at = B.Attribute_type.Set.min_elt atset in
+      let B.Attribute_type.Ex at = B.Attribute_type.Set.min_elt_exn atset in
       affecting at >>=
       Set.filter_s (fun au -> affected au >|= B.Attribute_type.Set.equal atset)
         >|= fun auset ->
       (match Set.cardinal auset with
        | 0 -> None
-       | 1 -> Some (Set.min_elt auset)
+       | 1 -> Some (Set.min_elt_exn auset)
        | _ -> assert false)
 
     let force atset =
