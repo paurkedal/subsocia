@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -18,7 +18,6 @@
   open Lexing
   open Printf
   open Subsocia_parser
-  open Subsocia_selector_types
 
   let lexical_error lexbuf s =
     let pos = lexbuf.lex_start_p in

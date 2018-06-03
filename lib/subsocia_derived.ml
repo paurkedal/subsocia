@@ -21,7 +21,6 @@ open Subsocia_common
 open Subsocia_derived_intf
 open Subsocia_selector_types
 open Unprime_list
-open Unprime_option
 
 let _fail fmt = ksprintf (fun s -> Lwt.fail (Failure s)) fmt
 

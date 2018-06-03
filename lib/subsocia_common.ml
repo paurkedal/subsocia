@@ -14,10 +14,6 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Subsocia_prereq
-open Panograph_i18n
-open Printf
-open Unprime_char
 open Unprime_list
 open Unprime_string
 

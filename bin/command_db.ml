@@ -18,7 +18,6 @@ open Cmdliner
 open Command_common
 open Lwt.Infix
 open Printf
-open Subsocia_common
 open Subsocia_version
 open Unprime
 

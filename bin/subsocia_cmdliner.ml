@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,11 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Cmdliner
 open Subsocia_common
-open Subsocia_prereq
 open Subsocia_selector
-open Subsocia_selector_types
 
 let value_type_parser s =
   try `Ok (Type.of_string s) with Invalid_argument msg -> `Error msg

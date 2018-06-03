@@ -19,20 +19,15 @@ open Sociaweb_request
 open Subsocia_connection
 
 [%%shared
-  open Eliom_content
-  open Eliom_content.Html
   open Lwt.Infix
-  open Panograph_i18n
-  open Panograph_types
-  open Printf
   open Sociaweb_content
   open Sociaweb_server
   open Sociaweb_services
+]
+[%%server
+  open Eliom_content.Html
   open Subsocia_common
   open Subsocia_selector
-  open Unprime
-  open Unprime_list
-  open Unprime_option
 ]
 
 [%%server
@@ -90,7 +85,6 @@ open Subsocia_connection
     fold_closure_from Entity.Set.add Entity.dsuper e Entity.Set.empty
 
   let render_attribution ~cri lb ub =
-    let open Html in
     let%lwt lbt = Entity.entity_type lb in
     let%lwt ubt = Entity.entity_type ub in
     let%lwt ats = Entity_type.allowed_attributes ubt lbt in
@@ -143,7 +137,6 @@ open Subsocia_connection
            F.tr [F.td [dsuper_block]]]
 
   let render_browser ~cri ?(enable_edit = true) ent =
-    let open Html in
     let%lwt dsub, m = Entity.dsub ent >>= ordered_entities ~cri in
     let%lwt dsub_frags = Lwt_list.map_s (neighbour_link ~cri) dsub in
     let%lwt name = Entity.display_name ~langs:cri.cri_langs ent in

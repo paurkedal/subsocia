@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,16 +15,17 @@
  *)
 
 [%%shared
-  open Eliom_client
   open Eliom_content.Html
-  open Lwt.Infix
-  open Sociaweb_services
-  open Unprime_char
   open Unprime_list
-  open Unprime_option
-  open Unprime_string
 ]
-
+[%%server
+  open Lwt.Infix
+  open Eliom_client
+  open Sociaweb_auth
+  open Sociaweb_services
+  open Subsocia_connection
+  open Unprime_option
+]
 [%%client
   (* Dummy implementation for the client needed for server-client type checking,
    * since server-only parts are also incleded in .inferred.mli. *)
@@ -36,9 +37,6 @@
 ]
 
 [%%server
-  open Sociaweb_auth
-  open Sociaweb_request
-  open Subsocia_connection
 
   let ignore_cv (x : unit Eliom_client_value.t) = ignore x
 

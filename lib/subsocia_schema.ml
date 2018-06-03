@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -18,7 +18,6 @@ open Lwt.Infix
 open Subsocia_common
 open Subsocia_prereq
 open Subsocia_selector
-open Subsocia_selector_types
 open Unprime_list
 
 module Log = struct

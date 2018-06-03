@@ -16,8 +16,6 @@
 
 (** Common types, modules, and utilities. *)
 
-open Panograph_i18n
-
 module type SET = Prime_enumset.S_with_monadic with type 'a monad = 'a Lwt.t
 module type MAP = Prime_enummap.S_with_monadic with type 'a monad = 'a Lwt.t
 
