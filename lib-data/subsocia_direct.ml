@@ -487,11 +487,11 @@ module Q = struct
   let _asub_fts with_et with_super with_lim tA =
     (tup4 string int32 tA float -->* tup2 int32 float) @@
     sprintf
-      "SELECT * FROM
+      "SELECT * FROM \
         (SELECT a.output_id, \
                 ts_rank(fts_vector, to_tsquery(fts_config::regconfig, ?)) AS r \
          FROM $.attribution_string_fts AS a%s%s WHERE a.input_id = ?%s%s \
-         ORDER BY r DESC%s) AS sq
+         ORDER BY r DESC%s) AS sq \
        WHERE r > ?"
       (if with_et then " JOIN $.entity ON a.output_id = entity_id" else "")
       (if with_super then " JOIN $.transitive_reflexive_inclusion AS c \
@@ -503,11 +503,11 @@ module Q = struct
   let _asuper_fts with_et with_super with_lim tA =
     (tup4 string int32 tA float -->* tup2 int32 float) @@
     sprintf
-      "SELECT * FROM
+      "SELECT * FROM \
         (SELECT a.input_id, \
                 ts_rank(fts_vector, to_tsquery(fts_config::regconfig, ?)) AS r \
          FROM $.attribution_string_fts AS a%s%s WHERE a.output_id = ?%s%s \
-         ORDER BY r DESC%s) AS sq
+         ORDER BY r DESC%s) AS sq \
        WHERE r > ?"
       (if with_et then " JOIN $.entity ON a.input_id = entity_id" else "")
       (if with_super then " JOIN $.transitive_reflexive_inclusion AS c \
