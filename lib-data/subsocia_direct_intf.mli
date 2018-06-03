@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -27,4 +27,6 @@ module type S = sig
      and module Entity = Entity
 
   val transaction : ((module T) -> 'a Lwt.t) -> 'a Lwt.t
+
+  val clear_caches : unit -> unit
 end

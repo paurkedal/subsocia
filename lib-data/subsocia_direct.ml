@@ -797,6 +797,10 @@ module Make (P : Param) = struct
         (fun id acc -> of_soid' ~conn id >|= fun at -> Set.add at acc)
         at_ids Set.empty
 
+    let clear_caches () =
+      Cache.clear of_soid_cache;
+      Cache.clear of_name_cache
+
     (**/**)
     let id at = at.at_id
     let of_id = of_soid
@@ -858,6 +862,11 @@ module Make (P : Param) = struct
       Cache.clear all_cache;
       Cache.remove affected_cache au_id;
       Cache.clear affecting_cache
+
+    let clear_caches () =
+      Cache.clear all_cache;
+      Cache.clear affecting_cache;
+      Cache.clear affected_cache
 
     (**/**)
     let id au = au
@@ -1001,6 +1010,19 @@ module Make (P : Param) = struct
 
     let display_name ~langs:_ ?pl:_ = name (* FIXME *)
 
+    let clear_caches () =
+      Cache.clear of_name_cache;
+      Cache.clear name_cache;
+      Cache.clear entity_name_tmpl_cache;
+      Cache.clear can_dsub_cache;
+      Cache.clear dsub_cache;
+      Cache.clear dsuper_cache;
+      Cache.clear allowed_attributes_cache;
+      Cache.clear allowed_preimage_cache;
+      Cache.clear allowed_image_cache;
+      Cache.clear allowed_mappings_cache;
+      Cache.clear can_attribute_cache
+
     (**/**)
     let of_id et = Lwt.return et
     let id et = et
@@ -1086,6 +1108,11 @@ module Make (P : Param) = struct
             >|=? bool_of_int in
         Cache.replace inclusion_cache preceq_grade k c;
         Lwt.return c
+
+    let clear_misc_caches () =
+      Cache.clear entity_type_cache;
+      Cache.clear rank_cache;
+      Cache.clear type_members_cache
 
     let clear_inclusion_caches () =
       Cache.clear minimums_cache;
@@ -1673,10 +1700,23 @@ module Make (P : Param) = struct
          else add_values' c at xs_ins e e')
       end
 
+    let clear_caches () =
+      clear_misc_caches ();
+      clear_inclusion_caches ();
+      clear_bool_caches ();
+      clear_int_caches ();
+      clear_string_caches ()
+
     (**/**)
     let of_id e = Lwt.return e
     let id e = e
   end
+
+  let clear_caches () =
+    Attribute_type.clear_caches ();
+    Attribute_uniqueness.clear_caches ();
+    Entity_type.clear_caches ();
+    Entity.clear_caches ()
 end
 
 let connect uri =
@@ -1724,6 +1764,7 @@ let connect uri =
       include B.Entity
       include M.Entity
     end
+    let clear_caches = M.clear_caches
 
     module type T = Subsocia_intf.S_SOID
       with type soid := int32
