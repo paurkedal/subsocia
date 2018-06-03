@@ -1596,7 +1596,7 @@ module Make (P : Param) = struct
       let insert_value (x : a) =
         (match at.B.Attribute_type.at_value_type with
          | Type.Bool ->
-            C.exec Q.e_insert_attribution_int (at_id, (if x then 1 else 0), e, e')
+            C.exec Q.e_insert_attribution_bool (at_id, x, e, e')
          | Type.Int ->
             C.exec Q.e_insert_attribution_int (at_id, x, e, e')
          | Type.String ->
@@ -1641,7 +1641,7 @@ module Make (P : Param) = struct
       let delete_value (x : a) =
         (match at.B.Attribute_type.at_value_type with
          | Type.Bool ->
-            C.exec Q.e_delete_attribution_int (at_id, (if x then 1 else 0), e, e')
+            C.exec Q.e_delete_attribution_bool (at_id, x, e, e')
          | Type.Int ->
             C.exec Q.e_delete_attribution_int (at_id, x, e, e')
          | Type.String ->
