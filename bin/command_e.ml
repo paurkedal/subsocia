@@ -141,9 +141,7 @@ end
 let e_ls sel_opt = run_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let sel = Option.get_or Select_root sel_opt in
-  let%lwt root = C.Entity.root in
   let%lwt e = U.Entity.select_one sel in
-  let%lwt et = C.Entity.entity_type e in
   let%lwt aus = C.Attribute_uniqueness.all () in
   let show_e ats e' =
     Lwt_list.iter_s

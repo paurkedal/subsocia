@@ -91,7 +91,6 @@ let set_authenticalia subject auth =
   | None -> http_error 500 "Missing group for authentication method."
   | Some amg ->
     let%lwt at_unique_name = Const.at_unique_name in
-    let%lwt auth_top = auth_method_group auth.auth_method in
     Entity.force_sub subject amg >>= fun () ->
     Entity.set_value at_unique_name auth.auth_identity amg subject
 

@@ -38,14 +38,10 @@ let rec lwt_list_iter_rs f = function
 
 let fetch_grade = 1e-3 *. cache_second
 let attribute_type_grade = fetch_grade
-let entity_type_grade = fetch_grade
-let entity_grade = fetch_grade
 let preceq_grade = 1e-2 *. cache_second (* TODO: Highly non-constant. *)
-let attribution_grade = fetch_grade
 
 let schema_prefix = ref "subsocia."
 
-let int_of_bool x = if x then 1 else 0
 let bool_of_int = function 0 -> false | 1 -> true | _ -> assert false
 
 (* TODO: Read custom mapping from a configuration file. These are only the
@@ -79,7 +75,7 @@ module Q = struct
        | _ -> Caqti_request.S [])
    | _ -> raise Not_found
 
-  let (-->!) tA (tR : unit Caqti_type.t) = Caqti_request.exec ~env tA
+  let (-->!) tA (_ : unit Caqti_type.t) = Caqti_request.exec ~env tA
   let (-->) tA tR = Caqti_request.find ~env tA tR
   let (-->?) tA tR = Caqti_request.find_opt ~env tA tR
   let (-->*) tA tR = Caqti_request.collect ~env tA tR
@@ -252,8 +248,6 @@ module Q = struct
     "SELECT entity_type_id FROM $.entity WHERE entity_id = ?"
   let e_rank = (int32 --> int)
     "SELECT entity_rank FROM $.entity WHERE entity_id = ?"
-  let e_access = (int32 --> int32)
-    "SELECT access_id FROM $.entity WHERE entity_id = ?"
 
   let e_set_entity_rank = (tup2 int int32 -->! unit)
     "UPDATE $.entity SET entity_rank = ? WHERE entity_id = ?"
@@ -287,9 +281,6 @@ module Q = struct
   let e_create_entity = (int32 --> int32)
     "INSERT INTO $.entity (entity_type_id) \
      VALUES (?) RETURNING entity_id"
-
-  let e_set_entity_access = (tup2 int32 int32 -->! unit)
-    "UPDATE $.entity SET access_id = ? WHERE entity_id = ?"
 
   let e_delete_entity = (int32 -->! unit)
     "DELETE FROM $.entity WHERE entity_id = ?"
@@ -573,7 +564,6 @@ module type CACHE = sig
   val create :  cache_metric: Prime_cache_metric.t -> int -> ('a, 'b) t
   val clear : ('a, 'b) t -> unit
   val find : ('a, 'b) t -> 'a -> 'b
-  val app : ('a, 'b) t -> 'a -> 'b option
   val replace : ('a, 'b) t -> float -> 'a -> 'b -> unit
   val remove : ('a, 'b) t -> 'a -> unit
   val memo_lwt : ('a -> 'b Lwt.t) -> ('a -> 'b Lwt.t) * ('a, 'b) t
@@ -607,10 +597,9 @@ end
 
 module Disabled_cache = struct
   type ('a, 'b) t = unit
-  let create ~cache_metric n = ()
+  let create ~cache_metric:_ _n = ()
   let clear _ = ()
   let find _ _ = raise Not_found
-  let app _ _ = None
   let replace _ _ _ _ = ()
   let remove _ _ = ()
   let memo_lwt f = f, ()
@@ -644,14 +633,6 @@ module B = struct
       at_beacon : Beacon.t;
     }
     type ex = Ex : 'a t -> ex
-
-    let dummy = {
-      at_id = Int32.zero;
-      at_name = "";
-      at_value_type = Type.Bool;
-      at_value_mult = Multiplicity.May;
-      at_beacon = Beacon.dummy;
-    }
 
     let value_type at = at.at_value_type
     let value_mult at = at.at_value_mult
@@ -1016,7 +997,7 @@ module Make (P : Param) = struct
       with_db_exn @@ fun (module C) ->
       C.exec Q.et_disallow_attribution (at.B.Attribute_type.at_id, et, et')
 
-    let display_name ~langs ?pl = name (* FIXME *)
+    let display_name ~langs:_ ?pl:_ = name (* FIXME *)
 
     (**/**)
     let of_id et = Lwt.return et

@@ -328,12 +328,6 @@ module Make (Base : Subsocia_intf.S) = struct
     let can_edit_entity = has_role_for_entity "subsocia.admin"
     let can_search_below = has_role_for_entity "subsocia.user"
 
-    let path_candidates = [
-      ["unique_name"];
-      ["role"];
-      ["first_name"; "last_name"]
-    ]
-
     let unique_premapping1 au e =
 
       let build_attribute at vs =
@@ -341,7 +335,7 @@ module Make (Base : Subsocia_intf.S) = struct
         Lwt.return Relation.(Eq (at, v)) in
 
       let rec intersect_attributes = function
-        | [] -> fun e' acc ->
+        | [] -> fun _e' acc ->
             Lwt.return_some Relation.(Inter acc)
         | (Attribute_type.Ex at) :: ats -> fun e' acc ->
             let%lwt vs = get_values at e' e in
@@ -389,7 +383,7 @@ module Make (Base : Subsocia_intf.S) = struct
         | Some at0 ->
           let%lwt at = Attribute_type.coerce_lwt Type.String at0 in
           match tn with
-          | Some tn ->
+          | Some _tn ->
             Entity.premapping1 at e >>=
             Base.Entity.Map.search_s
               (fun e' vs ->

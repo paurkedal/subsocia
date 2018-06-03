@@ -62,7 +62,6 @@ let () =
   | Some _ -> http_error 400 "Already registered."
   end >>= fun () ->
   let%lwt auth = get_authenticalia () in
-  let%lwt at_unique_name = Const.at_unique_name in
   let%lwt at_first_name = Const.at_first_name in
   let%lwt at_last_name = Const.at_last_name in
   let%lwt at_email = Const.at_email in

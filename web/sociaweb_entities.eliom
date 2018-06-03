@@ -195,7 +195,7 @@ let entity_handler entity_id_opt () =
         >>= fun () ->
       Lwt_result.return ()
   ] in
-  let%lwt search_inp, search_handle = entity_completion_input do_search in
+  let%lwt search_inp, _search_handle = entity_completion_input do_search in
   let search_div = F.div ~a:[F.a_class ["soc-search"]] [
     F.label [F.pcdata "Search"]; F.br ();
     search_inp;
