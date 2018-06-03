@@ -238,10 +238,11 @@ module Values = struct
   let elements (type a) s =
     lift_prop {v = fun (type s) ((module S) : (s, a) set) s -> S.elements s} s
 
-  let of_elements : type e. e Type.t -> e list -> e t = function
-   | Type.Bool -> fun xs -> Bool Bool_set.(List.fold add xs empty)
-   | Type.Int -> fun xs -> Int Int_set.(List.fold add xs empty)
-   | Type.String -> fun xs -> String String_set.(List.fold add xs empty)
+  let of_elements : type e. e Type.t -> e list -> e t = fun t xs ->
+    (match t with
+     | Type.Bool -> Bool (List.fold Bool_set.add xs Bool_set.empty)
+     | Type.Int -> Int (List.fold Int_set.add xs Int_set.empty)
+     | Type.String -> String (List.fold String_set.add xs String_set.empty))
 
   let of_ordered_elements : type e. e Type.t -> e list -> e t = function
    | Type.Bool -> fun xs -> Bool (Bool_set.of_ordered_elements xs)

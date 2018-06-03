@@ -62,6 +62,7 @@ let () = Ocamlbuild_plugin.dispatch @@ fun hook ->
       local_rules ();
       ocaml_lib "lib/subsocia";
       ocaml_lib "lib-data/subsocia-data";
+      flag ["ocaml"; "compile"] (S[A"-w"; A"+A-4-42-44-48"]);
       (match Sys.getenv "TERM" with
        | exception Not_found -> ()
        | "" | "dumb" -> ()

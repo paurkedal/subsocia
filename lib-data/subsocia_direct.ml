@@ -617,8 +617,10 @@ let memo_2lwt f = let g, c = memo_1lwt f in (fun x0 x1 -> g (x0, x1)), c
 let memo_3lwt f = let g, c = memo_1lwt f in (fun x0 x1 x2 -> g (x0, x1, x2)), c
 let memo_4lwt f = let g, c = memo_1lwt f in
                   (fun x0 x1 x2 x3 -> g (x0, x1, x2, x3)), c
+(*
 let memo_5lwt f = let g, c = memo_1lwt f in
                   (fun x0 x1 x2 x3 x4 -> g (x0, x1, x2, x3, x4)), c
+*)
 let memo_6lwt f = let g, c = memo_1lwt f in
                   (fun x0 x1 x2 x3 x4 x5 -> g (x0, x1, x2, x3, x4, x5)), c
 
@@ -1136,7 +1138,7 @@ module Make (P : Param) = struct
           C.fold request Set.add param Set.empty)
 
     let asub_conj e ps = image_generic (B.Relation.Inter ps) [e]
-    let asuper_conj e ps = preimage_generic (B.Relation.Inter ps) [e]
+    (* let asuper_conj e ps = preimage_generic (B.Relation.Inter ps) [e] *)
 
     let asub_present_bool, asub_present_bool_cache =
       memo_2lwt @@ fun (e, at_id) ->
@@ -1745,7 +1747,7 @@ let connect uri =
       let module C' = struct
         module M = Make (struct
           let lock = Lwt_mutex.create ()
-          let with_db ~transaction f =
+          let with_db ~transaction:_ f =
             Lwt_mutex.with_lock lock (fun () -> f conn)
         end)
         module Attribute_type = struct

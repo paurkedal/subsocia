@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,7 +16,6 @@
 
 (** Parser and evaluator of expressions to select entities. *)
 
-open Subsocia_common
 open Subsocia_selector_types
 
 val selector_of_string : string -> selector

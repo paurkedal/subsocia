@@ -210,7 +210,7 @@ let entities_self_handler () () =
   let%lwt operator = authenticate () in
   let%lwt operator_id = Entity.soid operator in
   Lwt.return (Eliom_registration.Redirection
-    (Eliom_service.preapply entities_service (Some operator_id)))
+    (Eliom_service.preapply ~service:entities_service (Some operator_id)))
 
 let () =
   let open Eliom_registration in
