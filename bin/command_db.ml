@@ -56,11 +56,11 @@ let load_sql (module C : Caqti_lwt.CONNECTION) sql =
      | None ->
         Lwt.return_ok ()
      | Some stmt ->
-        C.exec (Caqti_request.exec ~oneshot:true Caqti_type.unit stmt) ())
-    >>=?? loop in
+        C.exec (Caqti_request.exec ~oneshot:true Caqti_type.unit stmt) ()
+        >>=?? loop) in
   loop ()
 
-let db_init disable_transaction = run0 @@ fun (module C) ->
+let db_init disable_transaction = Lwt_main.run begin
   let uri = Uri.of_string Subsocia_config.database_uri#get in
   let%lwt cc = Caqti_lwt.connect uri >>= Caqti_lwt.or_fail in
   Lwt_list.iter_s
@@ -69,6 +69,8 @@ let db_init disable_transaction = run0 @@ fun (module C) ->
       Lwt_log.info_f "Loading %s." fp >>= fun () ->
       load_sql cc fp >>= Caqti_lwt.or_fail)
     (upgradable_sql_schemas @ idempotent_sql_schemas) >>= fun () ->
+  (let module C = (val cc) in C.disconnect ()) >>= fun () ->
+  let module C = (val connect ()) in
   Lwt_list.iter_s
     (fun fn ->
       let fp = Filename.concat schema_dir fn in
@@ -82,7 +84,9 @@ let db_init disable_transaction = run0 @@ fun (module C) ->
           (fun (module C) ->
             let module Schema = Subsocia_schema.Make (C) in
             Schema.exec schema))
-    subsocia_schemas
+    subsocia_schemas >|= fun () ->
+  0
+end
 
 let db_init_cmd = Term.(pure db_init $ disable_transaction_t)
 
