@@ -119,7 +119,7 @@ module Q = struct
       if i = 0 then value :: mk_values (i + 1) else
       if i < l then L", " :: value :: mk_values (i + 1) else [] in
     let values = mk_values 0 in
-    S[L"INSERT INTO "; table "attribute_uniqueness";
+    S[L"INSERT INTO "; table "attribute_uniqueness ";
       L"SELECT attribute_uniqueness_id, attribute_type_id \
         FROM (SELECT nextval('"; table "attribute_uniqueness_id_seq"; L"')) \
                   AS seq(attribute_uniqueness_id) \
