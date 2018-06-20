@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -245,7 +245,10 @@ module type ENTITY = sig
   (** [is_root e] is true iff [e] is the root element. *)
 
   val root : t Lwt.t
-  (** [root] is the root element. *)
+  [@@@ocaml.deprecated "Use get_root."]
+
+  val get_root : unit -> t Lwt.t
+  (** [get_root ()] returns the root element. *)
 
   val minimums : unit -> Set.t Lwt.t
 
