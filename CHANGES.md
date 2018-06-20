@@ -1,5 +1,14 @@
 # Change Log
 
+## [0.17.1] - 2018-06-20
+
+- Fix loop termination in init.db.
+- Fix SQL code affecting insertion of attribute uniqueness.
+- Fix insert and delete for bool attributes.
+- Fix caqti-dynload package dependency.
+- Add function to clear DB caches.
+- Remove newlines from SQL code.
+
 ## [0.17.0] - 2018-02-27
 
 - Removed RPC API.
