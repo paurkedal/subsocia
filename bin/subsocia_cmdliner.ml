@@ -18,8 +18,8 @@ open Subsocia_common
 open Subsocia_selector
 
 let value_type_parser s =
-  try `Ok (Type.of_string s) with Invalid_argument msg -> `Error msg
-let value_type_printer fmtr (Type.Ex vt) =
+  try `Ok (Type.any_of_string s) with Invalid_argument msg -> `Error msg
+let value_type_printer fmtr (Type.Any vt) =
   Format.pp_print_string fmtr (Type.to_string vt)
 let value_type_conv = value_type_parser, value_type_printer
 

@@ -754,7 +754,7 @@ module Make (P : Param) = struct
     let of_soid', of_soid_cache = Cache.memo_lwt_conn @@ fun ?conn at_id ->
       with_db_exn ?conn @@ fun (module C : CONNECTION) ->
       C.find Q.at_by_id at_id >|=? fun (at_name, value_type, value_mult) ->
-      let Type.Ex at_value_type = Type.of_string value_type in
+      let Type.Any at_value_type = Type.any_of_string value_type in
       let at_value_mult = Multiplicity.of_int value_mult in
       Beacon.embed attribute_type_grade @@ fun at_beacon ->
       Ex {at_id; at_name; at_value_type; at_value_mult; at_beacon}
@@ -765,7 +765,7 @@ module Make (P : Param) = struct
       with_db_exn @@ fun (module C : CONNECTION) ->
       C.find_opt Q.at_by_name at_name >|=?
       Option.map begin fun (at_id, value_type, value_mult) ->
-        let Type.Ex at_value_type = Type.of_string value_type in
+        let Type.Any at_value_type = Type.any_of_string value_type in
         let at_value_mult = Multiplicity.of_int value_mult in
         Beacon.embed attribute_type_grade @@ fun at_beacon ->
         Ex {at_id; at_name; at_value_type; at_value_mult; at_beacon}

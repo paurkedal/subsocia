@@ -41,21 +41,28 @@ module Type : sig
     | Int : int t
     | String : string t
 
+  type any = Any : 'a t -> any
   type ex = Ex : 'a t -> ex
+    [@@ocaml.deprecated "Replaced by any."] [@@ocaml.warning "-3"]
 
   val to_string : 'a t -> string
+  val any_of_string : string -> any
+
   val of_string : string -> ex
+    [@@ocaml.deprecated "Replaced by any_of_string."] [@@ocaml.warning "-3"]
 end
 
 module Value : sig
   type ex = Ex : 'a Type.t * 'a -> ex
+    [@@ocaml.deprecated] [@@ocaml.warning "-3"]
 
   val typed_to_string : 'a Type.t -> 'a -> string
   val typed_of_string : 'a Type.t -> string -> 'a
 
   val to_string : ex -> string
+    [@@ocaml.deprecated "Use typed_to_string."] [@@ocaml.warning "-3"]
 
-  val coerce : 'a Type.t -> ex -> 'a
+  val coerce : 'a Type.t -> ex -> 'a [@@ocaml.deprecated] [@@ocaml.warning "-3"]
 
   val to_json : 'a Type.t ->
     'a -> [> `Bool of bool | `Int of int | `String of string]
@@ -75,7 +82,9 @@ end
 
 module Values : sig
   type 'a t
+  type any = Any : 'a t -> any
   type ex = Ex : 'a t -> ex
+    [@@ocaml.deprecated "Replaced by any."] [@@ocaml.warning "-3"]
 
   val empty : 'a Type.t -> 'a t
   val is_empty : 'a t -> bool
@@ -100,6 +109,8 @@ module Values : sig
   val of_ordered_elements : 'a Type.t -> 'a list -> 'a t
 
   val coerce : 'a Type.t -> ex -> 'a t
+    [@@ocaml.deprecated "Use coerce_exn."] [@@ocaml.warning "-3"]
+  val coerce_exn : 'a Type.t -> any -> 'a t
 
   val to_json : 'a Type.t ->
     'a t ->

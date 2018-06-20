@@ -117,7 +117,7 @@ module Make (C : Subsocia_intf.S) = struct
 
   let exec_schema_entry = function
     | `At_create (atn, tn) ->
-      let Type.Ex t = Type.of_string tn in
+      let Type.Any t = Type.any_of_string tn in
       C.Attribute_type.create t atn >|= fun _ -> ()
     | `At_delete atn ->
       C.Attribute_type.of_name atn >>=

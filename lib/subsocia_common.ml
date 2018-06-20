@@ -71,6 +71,7 @@ module Type = struct
     | Int : int t
     | String : string t
 
+  type any = Any : 'a t -> any
   type ex = Ex : 'a t -> ex
 
   let to_string : type a. a t -> string = function
@@ -83,6 +84,12 @@ module Type = struct
     | "int" -> Ex Int
     | "string" -> Ex String
     | _ -> invalid_arg "Type.of_string"
+
+  let any_of_string = function
+    | "bool" -> Any Bool
+    | "int" -> Any Int
+    | "string" -> Any String
+    | _ -> invalid_arg "Type.any_of_string"
 end
 
 module Value = struct
@@ -158,6 +165,7 @@ module Values = struct
     | Int : Int_set.t -> int t
     | String : String_set.t -> string t
 
+  type any = Any : 'a t -> any
   type ex = Ex : 'a t -> ex
 
   let coerce : type a. a Type.t -> ex -> a t = fun typ ex ->
@@ -165,6 +173,13 @@ module Values = struct
      | Type.Bool, Ex (Bool _ as xs) -> xs
      | Type.Int, Ex (Int _ as xs) -> xs
      | Type.String, Ex (String _ as xs) -> xs
+     | _ -> failwith "Subsocia_common.Values.coerce: Type mismatch.")
+
+  let coerce_exn : type a. a Type.t -> any -> a t = fun typ any ->
+    (match typ, any with
+     | Type.Bool, Any (Bool _ as xs) -> xs
+     | Type.Int, Any (Int _ as xs) -> xs
+     | Type.String, Any (String _ as xs) -> xs
      | _ -> failwith "Subsocia_common.Values.coerce: Type mismatch.")
 
   let empty : type a. a Type.t -> a t = function

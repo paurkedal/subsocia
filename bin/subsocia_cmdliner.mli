@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -18,7 +18,7 @@ open Cmdliner
 open Subsocia_common
 open Subsocia_selector_types
 
-val value_type_conv : Type.ex Arg.converter
+val value_type_conv : Type.any Arg.converter
 
 val multiplicity_conv : Multiplicity.t Arg.converter
 

@@ -20,7 +20,7 @@ open Lwt.Infix
 open Subsocia_cmdliner
 open Subsocia_common
 
-let at_create (Type.Ex vt) atn mult = run0 @@ fun (module C) ->
+let at_create (Type.Any vt) atn mult = run0 @@ fun (module C) ->
   C.Attribute_type.create ~mult vt atn >>= fun at ->
   let%lwt at_idstr = C.Attribute_type.(soid at >|= Soid.to_string) in
   Lwt_log.info_f "Created attribute type %s %s." at_idstr atn
