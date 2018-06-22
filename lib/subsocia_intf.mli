@@ -16,7 +16,6 @@
 
 (** Signatures for the core API. *)
 
-open Panograph_i18n
 open Subsocia_common
 
 module type SOID = sig
@@ -50,10 +49,6 @@ module type ATTRIBUTE_TYPE = sig
   val create : ?mult: Multiplicity.t -> 'a Type.t -> string -> 'a t Lwt.t
   val delete : 'a t -> unit Lwt.t
   val all : unit -> Set.t Lwt.t
-
-  (**/**)
-  val of_id : int32 -> ex Lwt.t [@@ocaml.deprecated "Renamed to of_soid."]
-  val id : 'a t -> int32 [@@ocaml.deprecated "Use soid."]
 end
 
 module type ATTRIBUTE_UNIQUENESS = sig
@@ -75,10 +70,6 @@ module type ATTRIBUTE_UNIQUENESS = sig
   val all : unit -> Set.t Lwt.t
   val affecting : 'a Attribute_type.t -> Set.t Lwt.t
   val affected : t -> Attribute_type.Set.t Lwt.t
-
-  (**/**)
-  val of_id : int32 -> t Lwt.t [@@ocaml.deprecated "Renamed to of_soid."]
-  val id : t -> int32 [@@ocaml.deprecated "Use soid."]
 end
 
 module type RELATION = sig
@@ -194,12 +185,6 @@ module type ENTITY_TYPE = sig
       are no longer allowed from entities of type [et] to entities of type
       [et'].  Current attributions of this type will remain until cleaned up,
       but algorithms are free to disregard them. *)
-
-  (**/**)
-  val display_name : langs: lang list -> ?pl: bool -> t -> string Lwt.t
-    [@@ocaml.deprecated "Use name."]
-  val of_id : int32 -> t Lwt.t [@@ocaml.deprecated "Renamed to of_soid."]
-  val id : t -> int32 [@@ocaml.deprecated "Use soid."]
 end
 
 module type ENTITY = sig
@@ -332,10 +317,6 @@ module type ENTITY = sig
   val premapping1 : 'a Attribute_type.t -> t -> 'a Values.t Map.t Lwt.t
   (** [premapping1 at e] is a map of [at]-values indexed by attribution
       superentities of [e] which loose those values along [at]. *)
-
-  (**/**)
-  val of_id : int32 -> t Lwt.t [@@ocaml.deprecated "Renamed to of_soid."]
-  val id : t -> int32 [@@ocaml.deprecated "Use soid."]
 end
 
 module type S = sig

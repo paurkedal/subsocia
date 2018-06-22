@@ -801,9 +801,7 @@ module Make (P : Param) = struct
       Cache.clear of_soid_cache;
       Cache.clear of_name_cache
 
-    (**/**)
     let id at = at.at_id
-    let of_id = of_soid
   end
 
   module Attribute_uniqueness = struct
@@ -827,7 +825,7 @@ module Make (P : Param) = struct
         with_db_exn @@ fun (module C : CONNECTION) ->
         C.fold Q.au_affected List.cons au_id []
       end
-      >>= Lwt_list.rev_map_s Attribute_type.of_id
+      >>= Lwt_list.rev_map_s Attribute_type.of_soid
       >|= B.Attribute_type.Set.of_ordered_elements
 
     let find atset =
@@ -867,10 +865,6 @@ module Make (P : Param) = struct
       Cache.clear all_cache;
       Cache.clear affecting_cache;
       Cache.clear affected_cache
-
-    (**/**)
-    let id au = au
-    let of_id = of_soid
   end
 
   module Attribution_sql = Subsocia_attribution_sql.Make (struct
@@ -1008,8 +1002,6 @@ module Make (P : Param) = struct
       with_db_exn @@ fun (module C) ->
       C.exec Q.et_disallow_attribution (at.B.Attribute_type.at_id, et, et')
 
-    let display_name ~langs:_ ?pl:_ = name (* FIXME *)
-
     let clear_caches () =
       Cache.clear of_name_cache;
       Cache.clear name_cache;
@@ -1022,10 +1014,6 @@ module Make (P : Param) = struct
       Cache.clear allowed_image_cache;
       Cache.clear allowed_mappings_cache;
       Cache.clear can_attribute_cache
-
-    (**/**)
-    let of_id et = Lwt.return et
-    let id et = et
   end
 
   module Entity = struct
@@ -1707,10 +1695,6 @@ module Make (P : Param) = struct
       clear_bool_caches ();
       clear_int_caches ();
       clear_string_caches ()
-
-    (**/**)
-    let of_id e = Lwt.return e
-    let id e = e
   end
 
   let clear_caches () =

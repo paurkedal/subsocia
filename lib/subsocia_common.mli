@@ -73,11 +73,6 @@ module Value : sig
   val to_json_string : 'a Type.t -> 'a -> string
 
   val of_json_string : 'a Type.t -> string -> 'a
-
-  (**/**)
-  val typed_to_poly : 'a Type.t -> 'a ->
-                      [> `Bool of bool | `Int of int | `String of string]
-    [@@ocaml.deprecated "Renamed to to_json."]
 end
 
 module Values : sig

@@ -146,9 +146,6 @@ module Value = struct
       | `String s -> s
       | _ -> invalid_arg "Value.of_json_string"
       end
-
-  (**/**)
-  let typed_to_poly = to_json
 end
 
 module Bool_compare = struct type t = bool let compare = compare end
