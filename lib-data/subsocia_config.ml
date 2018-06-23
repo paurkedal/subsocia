@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -34,57 +34,6 @@ module Cmd = struct
     new Config_file.list_cp Config_file.string_wrappers ~group
       ["cmd"; "plugins"] []
       "List of extra plugins loaded by the command-line utility."
-end
-
-module Web = struct
-  let plugins =
-    new Config_file.list_cp Config_file.string_wrappers ~group
-      ["web"; "plugins"] []
-      "List of extra plugins loaded by the web server."
-  let auth_top =
-    new Config_file.string_cp ~group
-      ["web"; "auth_top"] "auth"
-      "Group under which authentication methods are placed."
-  let hba_method_header =
-    new Config_file.option_cp Config_file.string_wrappers ~group
-      ["web"; "hba_method_header"] None
-      "HTTP header containing the authentication method if not fixed."
-  let hba_method =
-    new Config_file.option_cp Config_file.string_wrappers ~group
-      ["web"; "hba_method"] (Some "default")
-      "Authentication method if hba_method_header is unset or not the \
-       header is missing."
-  let hba_identity_header =
-    new Config_file.option_cp Config_file.string_wrappers ~group
-      ["web"; "hba_identity_header"] (Some "Host")
-      "HTTP header containing the identity of an authenticated user. \
-       If unset, disables header-based authentication."
-  let restapi_allowed_attributes =
-    new Config_file.list_cp Config_file.string_wrappers ~group
-      ["web"; "restapi_allowed_attributes"] []
-      "Attributes which are exposed by the REST API. This must be \
-       valid JSON identifiers due to the way they are returned."
-
-  let member_types =
-    new Config_file.list_cp Config_file.string_wrappers ~group
-      ["web"; "member_types"] ["person"]
-      "A list of types of entities which can be assigned group membership via \
-       the web interface. If empty, all entities can be assigned membership."
-
-  let default_entity =
-    new Config_file.string_cp ~group
-      ["web"; "default_entity"] "/"
-      "Path to the entity to which the /entities URL redirects."
-
-  let completion_cutoff =
-    new Config_file.float_cp ~group
-      ["web"; "completion_cutoff"] 0.001
-      "Full-text search score cut-off to use in web interface."
-  let completion_limit =
-    new Config_file.int_cp ~group
-      ["web"; "completion_limit"] 10
-      "Maximum number of results to return for full-text search in web \
-       interface."
 end
 
 let () =

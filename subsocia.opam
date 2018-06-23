@@ -9,17 +9,14 @@ license: "LGPL-3 with OCaml linking exception"
 
 build: ["ocaml" "pkg/pkg.ml" "build" "--pinned" "%{pinned}%"]
 depends: [
-  "adpkg" {build}
   "caqti" {>= "0.6.0"}
   "caqti-dynload"
   "caqti-lwt"
   "cmdliner"
   "config-file"
-  "eliom" {>= "6.0" & < "7.0"}
   "extunix"
   "ocamlfind"
   "lwt"
-  "ocamlbuild" {build}
   "ounit"
   "panograph"
   "prime"

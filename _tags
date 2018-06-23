@@ -1,4 +1,4 @@
-true: bin_annot, eliom_ppx
+true: bin_annot
 
 "lib": include
 
@@ -31,15 +31,6 @@ true: bin_annot, eliom_ppx
     package(panograph), \
     package(prime.unstable), \
     package(react), \
-    use_subsocia
-<web/server/*.ml*>: thread, \
-    package(config-file), \
-    package(eliom.server), \
-    package(panograph.server), \
-    use_subsocia, use_subsocia-data
-<web/client/*>: \
-    package(eliom.client), \
-    package(panograph.client), \
     use_subsocia
 <tests/*>: thread, \
     package(caqti), package(caqti-lwt), package(caqti-dynload), \

@@ -4,5 +4,4 @@
 *.native
 *.odocl
 /_build
-/_var
 /subsocia.install

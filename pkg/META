@@ -18,39 +18,3 @@ package "data" (
   plugin(native) = "subsocia-data.cmxs"
   exists_if = "subsocia-data.cma"
 )
-
-package "web-server" (
-  version = "%%VERSION_NUM%%"
-  description = "People, organization, and authorization"
-  requires = "eliom.server panograph.server prime subsocia subsocia.data"
-  directory = "web/server"
-  archive(byte) = "subsocia-web-server.cma"
-  archive(native) = "subsocia-web-server.cmxa"
-  plugin(byte) = "subsocia-web-server.cma"
-  plugin(native) = "subsocia-web-server.cmxs"
-  exists_if = "subsocia-web-server.cma"
-)
-
-package "web-module" (
-  version = "%%VERSION_NUM%%"
-  description = "People, organization, and authorization"
-  requires = "subsocia.web-server"
-  directory = "web/server"
-  archive(byte) = "subsocia-web-module.cma"
-  archive(native) = "subsocia-web-module.cmxa"
-  plugin(byte) = "subsocia-web-module.cma"
-  plugin(native) = "subsocia-web-module.cmxs"
-  exists_if = "subsocia-web-module.cma"
-)
-
-package "web-debug-module" (
-  version = "%%VERSION_NUM%%"
-  description = "People, organization, and authorization"
-  requires = "eliom.server"
-  directory = "web/server"
-  archive(byte) = "subsocia-web-debug-module.cma"
-  archive(native) = "subsocia-web-debug-module.cmx"
-  plugin(byte) = "subsocia-web-debug-module.cma"
-  plugin(native) = "subsocia-web-debug-module.cmxs"
-  exists_if = "subsocia-web-debug-module.cma"
-)

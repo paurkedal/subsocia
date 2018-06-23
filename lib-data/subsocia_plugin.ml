@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -28,9 +28,6 @@ let backend_predicates () =
 
 let assume_linked = [
   "subsocia.data";
-  "subsocia.web-server";
-  "subsocia.web-module";
-  "subsocia.web-debug-module";
 ]
 
 let init = lazy begin
@@ -47,7 +44,3 @@ let load_base_plugins () =
 let load_cmd_plugins () =
   load_base_plugins ();
   Fl_dynload.load_packages ~debug Subsocia_config.Cmd.plugins#get
-
-let load_web_plugins () =
-  load_base_plugins ();
-  Fl_dynload.load_packages ~debug Subsocia_config.Web.plugins#get
