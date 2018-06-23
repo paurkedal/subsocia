@@ -1,8 +1,5 @@
-try Topdirs.dir_directory (Sys.getenv "OCAML_TOPLEVEL_PATH")
-with Not_found -> ();;
 #use "topfind"
 #thread
-
 #require "config-file"
 #require "lwt.unix"
 #require "lwt.simple-top"
@@ -11,15 +8,15 @@ with Not_found -> ();;
 #require "findlib"
 #require "findlib.dynload"
 #require "prime.unstable"
-#require "rpclib"
 #require "panograph"
 #require "caqti"
 #require "caqti-lwt"
 #require "caqti-driver-postgresql"
 #require "yojson"
-
-#directory "_build/lib"
-#directory "_build/lib/data"
+#directory "_build/default/lib"
+#directory "_build/default/lib/.subsocia.objs"
+#directory "_build/default/lib-data"
+#directory "_build/default/lib-data/.subsocia_data.objs"
 #load "subsocia.cma"
 #load "subsocia-data.cma"
 

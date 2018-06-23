@@ -1,7 +1,3 @@
-*.byte
-*.docdir
-*.mllib
-*.native
-*.odocl
+.merlin
 /_build
 /subsocia.install

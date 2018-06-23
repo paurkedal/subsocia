@@ -1,0 +1,13 @@
+(jbuild_version 1)
+
+(install
+ ((section share)
+  (files
+   ((schema/subsocia_tables.sql as schema/subsocia_tables.sql)
+    (schema/subsocia_views.sql as schema/subsocia_views.sql)
+    (schema/subsocia_core.sscm as schema/subsocia_core.sscm)
+    (schema/upgrade/from-0.sql as schema/upgrade/from-0.sql)
+    (schema/upgrade/from-1.sql as schema/upgrade/from-1.sql)
+    (schema/upgrade/from-2.sql as schema/upgrade/from-2.sql)
+    (schema/upgrade/from-3.sql as schema/upgrade/from-3.sql)
+   ))))

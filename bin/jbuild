@@ -1,0 +1,11 @@
+(jbuild_version 1)
+
+(executable
+ ((name command)
+  (public_name subsocia)
+  (preprocess (pps (lwt.ppx)))
+  (libraries
+   (cmdliner
+    uri
+    subsocia
+    subsocia_data))))
