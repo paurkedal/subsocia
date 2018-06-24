@@ -2,10 +2,13 @@
 
 (executable
  ((name testsuite)
+  (preprocess (pps (lwt.ppx)))
   (libraries
-   (lwt.ppx
+   (caqti-dynload
+    lwt.ppx
     oUnit
-    subsocia))))
+    subsocia
+    subsocia.data))))
 
 (alias
  ((name runtest)
