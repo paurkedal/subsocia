@@ -106,6 +106,8 @@ module Type = struct
      | String, _ -> false)
 
   let compare t1 t2 = compare (enum t1) (enum t2)
+
+  let pp ppf vt = Format.pp_print_string ppf (to_string vt)
 end
 
 module Value = struct
@@ -188,12 +190,12 @@ module Values = struct
      | Type.String, Ex (String _ as xs) -> xs
      | _ -> failwith "Subsocia_common.Values.coerce: Type mismatch.")
 
-  let coerce_exn : type a. a Type.t -> any -> a t = fun typ any ->
+  let coerce_any : type a. a Type.t -> any -> a t option = fun typ any ->
     (match typ, any with
-     | Type.Bool, Any (Bool _ as xs) -> xs
-     | Type.Int, Any (Int _ as xs) -> xs
-     | Type.String, Any (String _ as xs) -> xs
-     | _ -> failwith "Subsocia_common.Values.coerce: Type mismatch.")
+     | Type.Bool, Any (Bool _ as xs) -> Some xs
+     | Type.Int, Any (Int _ as xs) -> Some xs
+     | Type.String, Any (String _ as xs) -> Some xs
+     | _ -> None)
 
   let empty : type a. a Type.t -> a t = function
    | Type.Bool -> Bool Bool_set.empty

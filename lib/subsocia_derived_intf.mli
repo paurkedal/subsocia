@@ -43,13 +43,7 @@ module type NESTED_ITERABLE = sig
                  (t -> 'a option Lwt.t) -> t -> 'a option Lwt.t
 end
 
-module type ATTRIBUTE_TYPE = sig
-  include Subsocia_intf.ATTRIBUTE_TYPE
-
-  val coerce : 'a Type.t -> ex -> 'a t option
-  val required : string -> ex Lwt.t
-  val typed_required : 'a Type.t -> string -> 'a t Lwt.t
-end
+module type ATTRIBUTE_TYPE = Subsocia_intf.ATTRIBUTE_TYPE
 
 module type ATTRIBUTE_UNIQUENESS = sig
   include Subsocia_intf.ATTRIBUTE_UNIQUENESS
@@ -75,7 +69,7 @@ module type RELATION = sig
   val to_selector : t -> selector Lwt.t
   (** [to_selector r] constructs a one-step selector corresponding to [r] if
       possible.
-      @raise Failure if [r] contains a search term. *)
+      @raise Subsocia_error.Exn if [r] contains a search term. *)
 end
 
 module type ENTITY_TYPE = sig

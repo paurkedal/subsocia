@@ -17,32 +17,11 @@
 open Cmdliner
 open Command_common
 open Lwt.Infix
-open Subsocia_prereq
 open Unprime_list
 
-module type S = sig
-  include Subsocia_derived_intf.S
-  val attribute_type_of_arg : string -> Attribute_type.ex Lwt.t
-end
-
-module Make (Base : Subsocia_intf.S) : S = struct
-  include Subsocia_derived.Make (Base)
-
-  let attribute_type_of_arg atn =
-    match%lwt Attribute_type.of_name atn with
-    | Some at -> Lwt.return at
-    | None -> lwt_failure_f "These is no attribute type named %s." atn
-end
-
-let run f =
-  Lwt_main.run begin
-    let module Base = (val connect ()) in
-    let module C = Make (Base) in
-    f (module C : S)
-  end
-
-let au_force atns = run @@ fun (module C : S) ->
-  let%lwt ats = Lwt_list.map_s C.attribute_type_of_arg atns in
+let au_force atns = run_int_exn @@ fun (module C) ->
+  let module C = Subsocia_derived.Make (C) in
+  let%lwt ats = Lwt_list.map_s C.Attribute_type.any_of_name_exn atns in
   let ats = List.fold C.Attribute_type.Set.add ats C.Attribute_type.Set.empty in
   match%lwt C.Attribute_uniqueness.find ats with
   | None ->
@@ -60,8 +39,9 @@ let au_force_cmd =
                     info ~docv:"ATTRIBUTE-TYPES" []) in
   Term.(pure au_force $ atns_t)
 
-let au_relax atns = run @@ fun (module C : S) ->
-  let%lwt ats = Lwt_list.map_s C.attribute_type_of_arg atns in
+let au_relax atns = run_int_exn @@ fun (module C) ->
+  let module C = Subsocia_derived.Make (C) in
+  let%lwt ats = Lwt_list.map_s C.Attribute_type.any_of_name_exn atns in
   let ats = List.fold C.Attribute_type.Set.add ats C.Attribute_type.Set.empty in
   match%lwt C.Attribute_uniqueness.find ats with
   | Some au ->
@@ -78,8 +58,8 @@ let au_relax_cmd =
                     info ~docv:"ATTRIBUTE-TYPES" []) in
   Term.(pure au_relax $ atns_t)
 
-let au_list () = run @@ fun (module C : S) ->
-  let show_at pos (C.Attribute_type.Ex at) =
+let au_list () = run_exn @@ fun (module C) ->
+  let show_at pos (C.Attribute_type.Any at) =
     let%lwt () = if !pos = 0 then Lwt.return_unit else Lwt_io.print ", " in
     let () = incr pos in
     let%lwt atn = C.Attribute_type.name at in
@@ -90,7 +70,5 @@ let au_list () = run @@ fun (module C : S) ->
     C.Attribute_type.Set.iter_s (show_at (ref 0)) ats >>= fun () ->
     Lwt_io.printl "}" in
   C.Attribute_uniqueness.all () >>= C.Attribute_uniqueness.Set.iter_s show_au
-    >>= fun () ->
-  Lwt.return 0
 
 let au_list_cmd = Term.(pure au_list $ pure ())

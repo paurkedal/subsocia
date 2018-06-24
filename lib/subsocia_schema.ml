@@ -16,7 +16,6 @@
 
 open Lwt.Infix
 open Subsocia_common
-open Subsocia_prereq
 open Subsocia_selector
 open Unprime_list
 
@@ -31,15 +30,10 @@ let load = Subsocia_lexer.parse_schema
 module Make (C : Subsocia_intf.S) = struct
   module Su = Selector_utils (C)
 
-  let req_at atn =
-    match%lwt C.Attribute_type.of_name atn with
-    | Some at -> Lwt.return at
-    | None -> lwt_failure_f "No attribute type is named %s." atn
-
   let req_et etn =
     match%lwt C.Entity_type.of_name etn with
     | Some et -> Lwt.return et
-    | None -> lwt_failure_f "No entity type is named %s." etn
+    | None -> Subsocia_error.fail_lwt "No entity type is named %s." etn
 
   let exec_et_adjust et = function
     | `Allow_inclusion (etn', mu, mu') ->
@@ -50,16 +44,16 @@ module Make (C : Subsocia_intf.S) = struct
       C.Entity_type.disallow_dsub et et'
     | `Allow_attribution (etn', atn) ->
       let%lwt et' = req_et etn' in
-      let%lwt C.Attribute_type.Ex at = req_at atn in
+      let%lwt C.Attribute_type.Any at = C.Attribute_type.any_of_name_exn atn in
       C.Entity_type.allow_attribution at et' et
     | `Disallow_attribution (etn', atn) ->
       let%lwt et' = req_et etn' in
-      let%lwt C.Attribute_type.Ex at = req_at atn in
+      let%lwt C.Attribute_type.Any at = C.Attribute_type.any_of_name_exn atn in
       C.Entity_type.disallow_attribution at et' et
     | `Aux_string ("display", tmpl) ->
       C.Entity_type.set_entity_name_tmpl et tmpl
     | `Aux_string (p, _) ->
-      lwt_failure_f "Entity types have no property %s." p
+      Subsocia_error.fail_lwt "Entity types have no property %s." p
 
   let add_set_helper f e asel =
     let sel', attrs = add_selector_of_selector asel in
@@ -69,15 +63,13 @@ module Make (C : Subsocia_intf.S) = struct
       | Some sel' -> Su.select_one sel' in
     String_map.iter_s
       (fun an vs ->
-        match%lwt C.Attribute_type.of_name an with
-        | None -> lwt_failure_f "No attribute type is named %s." an
-        | Some (C.Attribute_type.Ex at) ->
-          let t = C.Attribute_type.value_type at in
-          let f = match f with `Add -> C.Entity.add_values
-                             | `Set -> C.Entity.set_values in
-          let vs = List.map (Value.typed_of_string t) vs in
-          let vs = Values.of_elements t vs in
-          f at vs e' e)
+        let%lwt C.Attribute_type.Any at = C.Attribute_type.any_of_name_exn an in
+        let t = C.Attribute_type.value_type at in
+        let f = match f with `Add -> C.Entity.add_values
+                           | `Set -> C.Entity.set_values in
+        let vs = List.map (Value.typed_of_string t) vs in
+        let vs = Values.of_elements t vs in
+        f at vs e' e)
       attrs
 
   let del_helper e sel =
@@ -88,23 +80,21 @@ module Make (C : Subsocia_intf.S) = struct
       | Some sel' -> Su.select_one sel' in
     String_map.iter_s
       (fun an vs_opt ->
-        match%lwt C.Attribute_type.of_name an with
-        | None -> lwt_failure_f "No attribute type is named %s." an
-        | Some (C.Attribute_type.Ex at) ->
-          match vs_opt with
-          | None ->
+        let%lwt C.Attribute_type.Any at = C.Attribute_type.any_of_name_exn an in
+        (match vs_opt with
+         | None ->
             let vs = Values.empty (C.Attribute_type.value_type at) in
             C.Entity.set_values at vs e' e
-          | Some vs ->
+         | Some vs ->
             let t = C.Attribute_type.value_type at in
             let vs = List.map (Value.typed_of_string t) vs in
             let vs = Values.of_elements t vs in
-            C.Entity.remove_values at vs e' e)
+            C.Entity.remove_values at vs e' e))
       attrs
 
   let exec_mod e = function
     | `Aux_selector (p, _) ->
-      lwt_failure_f "Entities have no property %s." p
+      Subsocia_error.fail_lwt "Entities have no property %s." p
     | `Add_sub sel ->
       let%lwt e' = Su.select_one sel in
       C.Entity.force_dsub e e'
@@ -120,11 +110,10 @@ module Make (C : Subsocia_intf.S) = struct
       let Type.Any t = Type.any_of_string tn in
       C.Attribute_type.create t atn >|= fun _ -> ()
     | `At_delete atn ->
-      C.Attribute_type.of_name atn >>=
-      Pwt_option.iter_s
-        (fun (C.Attribute_type.Ex at) -> C.Attribute_type.delete at)
+      let%lwt C.Attribute_type.Any at = C.Attribute_type.any_of_name_exn atn in
+      C.Attribute_type.delete at
     | `Au_force atns ->
-      let%lwt ats = Lwt_list.map_s req_at atns in
+      let%lwt ats = Lwt_list.map_s C.Attribute_type.any_of_name_exn atns in
       let ats = List.fold C.Attribute_type.Set.add ats
                           C.Attribute_type.Set.empty in
       begin match%lwt C.Attribute_uniqueness.find ats with
@@ -136,7 +125,7 @@ module Make (C : Subsocia_intf.S) = struct
         C.Attribute_uniqueness.force ats >|= ignore
       end
     | `Au_relax atns ->
-      let%lwt ats = Lwt_list.map_s req_at atns in
+      let%lwt ats = Lwt_list.map_s C.Attribute_type.any_of_name_exn atns in
       let ats = List.fold C.Attribute_type.Set.add ats
                           C.Attribute_type.Set.empty in
       begin match%lwt C.Attribute_uniqueness.find ats with
@@ -161,12 +150,12 @@ module Make (C : Subsocia_intf.S) = struct
       let%lwt et1 = req_et etn1 in
       C.Entity_type.disallow_dsub et0 et1
     | `Et_allow_attribution (atn, etn0, etn1) ->
-      let%lwt C.Attribute_type.Ex at = req_at atn in
+      let%lwt C.Attribute_type.Any at = C.Attribute_type.any_of_name_exn atn in
       let%lwt et0 = req_et etn0 in
       let%lwt et1 = req_et etn1 in
       C.Entity_type.allow_attribution at et0 et1
     | `Et_disallow_attribution (atn, etn0, etn1) ->
-      let%lwt C.Attribute_type.Ex at = req_at atn in
+      let%lwt C.Attribute_type.Any at = C.Attribute_type.any_of_name_exn atn in
       let%lwt et0 = req_et etn0 in
       let%lwt et1 = req_et etn1 in
       C.Entity_type.disallow_attribution at et0 et1
@@ -182,7 +171,7 @@ module Make (C : Subsocia_intf.S) = struct
       let%lwt e1 = Su.select_one sel1 in
       C.Entity.relax_dsub e0 e1
     | `E_add_value (atn, vr, sel0, sel1) ->
-      let%lwt C.Attribute_type.Ex at = req_at atn in
+      let%lwt C.Attribute_type.Any at = C.Attribute_type.any_of_name_exn atn in
       let vt = C.Attribute_type.value_type at in
       let v = Value.typed_of_string vt vr in
       let%lwt e0 = Su.select_one sel0 in
@@ -190,7 +179,7 @@ module Make (C : Subsocia_intf.S) = struct
       let vs = Values.singleton (C.Attribute_type.value_type at) v in
       C.Entity.add_values at vs e0 e1
     | `E_remove_value (atn, vr, sel0, sel1) ->
-      let%lwt C.Attribute_type.Ex at = req_at atn in
+      let%lwt C.Attribute_type.Any at = C.Attribute_type.any_of_name_exn atn in
       let vt = C.Attribute_type.value_type at in
       let v = Value.typed_of_string vt vr in
       let%lwt e0 = Su.select_one sel0 in
@@ -208,7 +197,7 @@ module Make (C : Subsocia_intf.S) = struct
         let%lwt e = C.Entity.create et in
         Lwt_list.iter_s (exec_mod e) addl
       | None ->
-        lwt_failure_f "No entity type is called %s." etn
+        Subsocia_error.fail_lwt "No entity type is called %s." etn
       end
     | `Modify (sel, modl) ->
       let%lwt e = Su.select_one sel in

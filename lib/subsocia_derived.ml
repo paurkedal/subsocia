@@ -22,7 +22,8 @@ open Subsocia_derived_intf
 open Subsocia_selector_types
 open Unprime_list
 
-let _fail fmt = ksprintf (fun s -> Lwt.fail (Failure s)) fmt
+let _fail fmt =
+  ksprintf (fun s -> Lwt.fail (Subsocia_error.Exn (`Msg s))) fmt
 
 module Make (Base : Subsocia_intf.S) = struct
   open Base
@@ -30,37 +31,15 @@ module Make (Base : Subsocia_intf.S) = struct
   module Attribute_type = struct
     include Base.Attribute_type
 
-    let coerce (type a) (t : a Type.t) at0 : a Attribute_type.t option =
-      let Attribute_type.Ex at1 = at0 in
-      match t, Attribute_type.value_type at1, at1 with
-      | Type.Bool, Type.Bool, at -> Some at
-      | Type.Bool, _, _ -> None
-      | Type.Int, Type.Int, at -> Some at
-      | Type.Int, _, _ -> None
-      | Type.String, Type.String, at -> Some at
-      | Type.String, _, _ -> None
-
-    let coerce_lwt (type a) (t : a Type.t) (Ex at1 as at0)
+    let coerce_any_lwt (type a) (t : a Type.t) (Any at1 as at0)
         : a Attribute_type.t Lwt.t =
-      match coerce t at0 with
+      match coerce_any t at0 with
       | Some at -> Lwt.return at
       | None ->
         let%lwt an = Attribute_type.name at1 in
         let tn = Type.to_string (Attribute_type.value_type at1) in
         let tn' = Type.to_string t in
         _fail "Wrong type for %s : %s, expected %s." an tn tn'
-
-    let required atn =
-      match%lwt Base.Attribute_type.of_name atn with
-      | Some at -> Lwt.return at
-      | None -> _fail "Missing required attribute type %s" atn
-
-    let typed_required vt atn =
-      let%lwt at0 = required atn in
-      match coerce vt at0 with
-      | None -> _fail "Required attribute %s must have type %s"
-                      atn (Type.to_string vt)
-      | Some at -> Lwt.return at
   end
 
   module Attribute_uniqueness = struct
@@ -127,7 +106,8 @@ module Make (Base : Subsocia_intf.S) = struct
         let%lwt sel_max = to_selector (Leq (at, v_max)) in
         Lwt.return (Select_inter (sel_min, sel_max))
       | Search _ | Search_fts _ ->
-        Lwt.fail_with "Search to not supported for selectors." (* FIXME *)
+        (* FIXME *)
+        Subsocia_error.fail_lwt "Search to not supported for selectors."
   end
 
   module Entity_type = struct
@@ -145,7 +125,7 @@ module Make (Base : Subsocia_intf.S) = struct
 
     let _et = Entity_type.required
 
-    let _at_string = Attribute_type.typed_required Type.String
+    let _at_string = Attribute_type.of_name_exn Type.String
 
     (* Predefined attribute types. *)
     let at_unique_name = _at_string "unique_name"
@@ -337,7 +317,7 @@ module Make (Base : Subsocia_intf.S) = struct
       let rec intersect_attributes = function
         | [] -> fun _e' acc ->
             Lwt.return_some Relation.(Inter acc)
-        | (Attribute_type.Ex at) :: ats -> fun e' acc ->
+        | (Attribute_type.Any at) :: ats -> fun e' acc ->
             let%lwt vs = get_values at e' e in
             if Values.is_empty vs then Lwt.return_none else
             let%lwt sel = build_attribute at vs in
@@ -347,7 +327,7 @@ module Make (Base : Subsocia_intf.S) = struct
         Attribute_uniqueness.affected au >|= Attribute_type.Set.elements with
       | [] ->
           assert false
-      | (Attribute_type.Ex at) :: ats ->
+      | (Attribute_type.Any at) :: ats ->
           premapping1 at e
             >>= Map.map_s (fun vs -> build_attribute at vs >|= fun r -> [r])
             >>= Map.fmapi_s (intersect_attributes ats)
@@ -360,7 +340,7 @@ module Make (Base : Subsocia_intf.S) = struct
                     |> List.rev_map snd |> List.rev_flatten in
       let%lwt aus =
         Pwt_list.fold_s
-          (fun (Attribute_type.Ex at) acc ->
+          (fun (Attribute_type.Any at) acc ->
             Attribute_uniqueness.affecting at >|= fun aus ->
             Attribute_uniqueness.Set.union aus acc)
           ats
@@ -378,10 +358,11 @@ module Make (Base : Subsocia_intf.S) = struct
       let%lwt root = Entity.root in
 
       let aux ?tn an =
-        match%lwt Base.Attribute_type.of_name an with
-        | None -> Lwt.return_none
-        | Some at0 ->
-          let%lwt at = Attribute_type.coerce_lwt Type.String at0 in
+        match%lwt Base.Attribute_type.any_of_name_exn an with
+        | exception Subsocia_error.Exn (`Attribute_type_missing _) ->
+          Lwt.return_none
+        | at0 ->
+          let%lwt at = Attribute_type.coerce_any_lwt Type.String at0 in
           match tn with
           | Some _tn ->
             Entity.premapping1 at e >>=

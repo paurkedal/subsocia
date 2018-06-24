@@ -19,15 +19,10 @@ open Command_common
 open Lwt.Infix
 open Subsocia_common
 
-let req what name = function
-  | None -> Lwt.fail (Failure ("There is no " ^ what ^ " named " ^ name ^ "."))
-  | Some x -> Lwt.return x
-
 let an_allow atn etn0 etn1 = run_exn @@ fun (module C) ->
-  let%lwt C.Attribute_type.Ex at =
-    C.Attribute_type.of_name atn >>= req "attribute type" atn in
-  let%lwt et0 = C.Entity_type.of_name etn0 >>= req "entity type" etn0 in
-  let%lwt et1 = C.Entity_type.of_name etn1 >>= req "entity type" etn1 in
+  let%lwt C.Attribute_type.Any at = C.Attribute_type.any_of_name_exn atn in
+  let%lwt et0 = C.Entity_type.of_name_exn etn0 in
+  let%lwt et1 = C.Entity_type.of_name_exn etn1 in
   C.Entity_type.allow_attribution at et0 et1
 
 let an_allow_cmd =
@@ -40,10 +35,9 @@ let an_allow_cmd =
   Term.(pure an_allow $ atn_t $ etn0_t $ etn1_t)
 
 let an_disallow atn etn0 etn1 = run_exn @@ fun (module C) ->
-  let%lwt C.Attribute_type.Ex at =
-    C.Attribute_type.of_name atn >>= req "attribute type" atn in
-  let%lwt et0 = C.Entity_type.of_name etn0 >>= req "entity type" etn0 in
-  let%lwt et1 = C.Entity_type.of_name etn1 >>= req "entity type" etn1 in
+  let%lwt C.Attribute_type.Any at = C.Attribute_type.any_of_name_exn atn in
+  let%lwt et0 = C.Entity_type.of_name_exn etn0 in
+  let%lwt et1 = C.Entity_type.of_name_exn etn1 in
   C.Entity_type.disallow_attribution at et0 et1
 
 let an_disallow_cmd =
@@ -57,7 +51,7 @@ let an_disallow_cmd =
 
 let an_list () = run_exn @@ fun (module C) ->
   C.Entity_type.allowed_attributions () >>=
-  Lwt_list.iter_s @@ fun (C.Attribute_type.Ex at, et0, et1) ->
+  Lwt_list.iter_s @@ fun (C.Attribute_type.Any at, et0, et1) ->
   let mu = C.Attribute_type.value_mult at in
   let%lwt atn = C.Attribute_type.name at in
   let%lwt etn0 = C.Entity_type.name et0 in

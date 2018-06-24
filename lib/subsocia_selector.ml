@@ -215,23 +215,18 @@ let selector_of_delete_selector (ctx, assignments) =
 
 module Selector_utils (C : Subsocia_intf.S) = struct
 
-  let req_at an =
-    match%lwt C.Attribute_type.of_name an with
-    | None -> Lwt.fail (Failure ("No attribute type is named " ^ an))
-    | Some at -> Lwt.return at
-
   let entype_ap = function
     | Attribute_present an ->
-      req_at an >|= fun (C.Attribute_type.Ex at) ->
+      C.Attribute_type.any_of_name_exn an >|= fun (C.Attribute_type.Any at) ->
       C.Relation.Present at
     | Attribute_eq (an, s) ->
-      req_at an >|= fun (C.Attribute_type.Ex at) ->
+      C.Attribute_type.any_of_name_exn an >|= fun (C.Attribute_type.Any at) ->
       C.Relation.Eq (at, Value.typed_of_string (C.Attribute_type.value_type at) s)
     | Attribute_leq (an, s) ->
-      req_at an >|= fun (C.Attribute_type.Ex at) ->
+      C.Attribute_type.any_of_name_exn an >|= fun (C.Attribute_type.Any at) ->
       C.Relation.Leq (at, Value.typed_of_string (C.Attribute_type.value_type at) s)
     | Attribute_geq (an, s) ->
-      req_at an >|= fun (C.Attribute_type.Ex at) ->
+      C.Attribute_type.any_of_name_exn an >|= fun (C.Attribute_type.Any at) ->
       C.Relation.Geq (at, Value.typed_of_string (C.Attribute_type.value_type at) s)
 
   [@@@ocaml.warning "-3"] (* due to Select_id *)
@@ -257,10 +252,7 @@ module Selector_utils (C : Subsocia_intf.S) = struct
         (fun e1 acc -> C.Entity.preimage1 p e1 >|= C.Entity.Set.union acc)
         es C.Entity.Set.empty
     | Select_type etn -> fun es ->
-      let%lwt et =
-        match%lwt C.Entity_type.of_name etn with
-        | Some et -> Lwt.return et
-        | None -> Lwt.fail (Failure ("No type named " ^ etn)) in
+      let%lwt et = C.Entity_type.of_name_exn etn in
       C.Entity.Set.filter_s
         (fun e -> C.Entity.entity_type e >|=
                   fun et' -> C.Entity_type.compare et et' = 0)
@@ -290,18 +282,21 @@ module Selector_utils (C : Subsocia_intf.S) = struct
   let select_one sel =
     let%lwt root = C.Entity.root in
     let%lwt es = select_from sel (C.Entity.Set.singleton root) in
-    match C.Entity.Set.cardinal es with
-    | 1 -> Lwt.return (C.Entity.Set.min_elt_exn es)
-    | 0 -> lwt_failure_f "No entity matches %s." (string_of_selector sel)
-    | n -> lwt_failure_f "%d entities matches %s, need one."
-                         n (string_of_selector sel)
+    (match C.Entity.Set.cardinal es with
+     | 1 -> Lwt.return (C.Entity.Set.min_elt_exn es)
+     | 0 ->
+        Subsocia_error.fail_lwt "No entity matches %s." (string_of_selector sel)
+     | n ->
+        Subsocia_error.fail_lwt "%d entities matches %s, need one."
+                                n (string_of_selector sel))
 
   let select_opt sel =
     let%lwt root = C.Entity.root in
     let%lwt es = select_from sel (C.Entity.Set.singleton root) in
-    match C.Entity.Set.cardinal es with
-    | 0 -> Lwt.return_none
-    | 1 -> Lwt.return (Some (C.Entity.Set.min_elt_exn es))
-    | n -> lwt_failure_f "%d entities matches %s, need one."
-                         n (string_of_selector sel)
+    (match C.Entity.Set.cardinal es with
+     | 0 -> Lwt.return_none
+     | 1 -> Lwt.return (Some (C.Entity.Set.min_elt_exn es))
+     | n ->
+        Subsocia_error.fail_lwt "%d entities matches %s, need one."
+                                n (string_of_selector sel))
 end

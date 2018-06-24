@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,10 +14,22 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-val invalid_arg_f : ('a, unit, string, 'b) format4 -> 'a
+open Subsocia_common
 
-val cache_hertz : float
-val cache_second : float
-val cache_metric : Prime_cache_metric.t
+type t =
+  [ `Msg of string
+  | `Attribute_type_missing of string
+  | `Attribute_type_mismatch of string * Type.any * Type.any
+  | `Entity_type_missing of string ]
 
-module Beacon : Prime_beacon.S
+exception Exn of t
+(** Exception raised by various functions suffixed by [_exn]. *)
+
+val pp : Format.formatter -> t -> unit
+(** [pp ppf error] prints a human readable presenation of [error] to [ppf]. *)
+
+val show : t -> string
+(** [show error] is a human readable presentation of [error]. *)
+
+(**/**) (* internal use *)
+val fail_lwt : ('a, Format.formatter, unit, 'b Lwt.t) format4 -> 'a

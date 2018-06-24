@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,7 +17,6 @@
 open Printf
 
 let invalid_arg_f fmt = ksprintf invalid_arg fmt
-let lwt_failure_f fmt = ksprintf (fun s -> Lwt.fail (Failure s)) fmt
 
 let cache_hertz = Int64.to_float ExtUnixSpecific.(sysconf CLK_TCK)
 let cache_second = 1.0 /. cache_hertz

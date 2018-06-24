@@ -34,15 +34,35 @@ end
 module type ATTRIBUTE_TYPE = sig
   type soid
   type 'a t
-  type ex = Ex : 'a t -> ex
+  type any = Any : 'a t -> any
 
-  module Set : SET with type elt = ex
-  module Map : MAP with type key = ex
+  module Set : SET with type elt = any
+  module Map : MAP with type key = any
   module Soid : SOID with type soid := soid
 
-  val of_soid : soid -> ex Lwt.t
+  val of_soid_exn : 'a Type.t -> soid -> 'a t Lwt.t
+  (** [of_soid_exn vt soid] is the attribute type of ID [soid].
+      @raise Subsocia_error.Exn
+        if [soid] is invalid or if [vt] is not the type of values held by the
+        attribute. *)
+
+  val of_name_exn : 'a Type.t -> string -> 'a t Lwt.t
+  (** [of_name_exn vt name] is the attribute type named [name].
+      @raise Subsocia_error.Exn
+        if there is no attribute type named [name] or if it does not hold values
+        of type [vt]. *)
+
+  val any_of_soid_exn : soid -> any Lwt.t
+  (** [any_of_soid_exn name] is the attribute type named [name].
+      @raise Subsocia_error.Exn if [soid] is not a valid attribute type ID. *)
+
+  val any_of_name_exn : string -> any Lwt.t
+  (** [any_of_name_exn name] is the attribute type named [name].
+      @raise Subsocia_error.Exn if [name] does not name an attribute type. *)
+
+  val coerce_any : 'a Type.t -> any -> 'a t option
+
   val soid : 'a t -> soid Lwt.t
-  val of_name : string -> ex option Lwt.t
   val name : 'a t -> string Lwt.t
   val value_type : 'a t -> 'a Type.t
   val value_mult : 'a t -> Multiplicity.t
@@ -102,6 +122,10 @@ module type ENTITY_TYPE = sig
 
   val of_name : string -> t option Lwt.t
   (** [of_name etn] is the entity type named [etn] if any. *)
+
+  val of_name_exn : string -> t Lwt.t
+  (** [of_name_exn etn] is the entity type named [etn].
+      @raise Caqti_error.Exn if there is no such entity type. *)
 
   val name : t -> string Lwt.t
   (** [name et] is the name of [et]. *)
@@ -167,14 +191,14 @@ module type ENTITY_TYPE = sig
   (** [allowed_attributes et et'] is the set of attribute types allowed from
       [et] to [et']. *)
 
-  val allowed_preimage : t -> Attribute_type.ex list Map.t Lwt.t
-  val allowed_image : t -> Attribute_type.ex list Map.t Lwt.t
+  val allowed_preimage : t -> Attribute_type.any list Map.t Lwt.t
+  val allowed_image : t -> Attribute_type.any list Map.t Lwt.t
 
   val allowed_mappings : 'a Attribute_type.t -> (t * t) list Lwt.t
   (** [allowed_mappings at] is a list of domain and codomain of the valid
       attributions involving [at]. *)
 
-  val allowed_attributions : unit -> (Attribute_type.ex * t * t) list Lwt.t
+  val allowed_attributions : unit -> (Attribute_type.any * t * t) list Lwt.t
 
   val allow_attribution : 'a Attribute_type.t -> t -> t -> unit Lwt.t
   (** [allow_attribution at et et'] decleares that attributes of type [at] are

@@ -1,5 +1,28 @@
 # Change Log
 
+## unreleased
+
+Breaking changes:
+
+- The web interface has been moved to a separate project subsocia-eliom with
+  corresponding changes to findlib names.
+- `Subsocia_intf.ATTRIBUTE_TYPE.ex` has been replaced by `any` with
+  corresponding changes to some function signatures and the `Set` and `Map`
+  modules.
+- The `coerce`, `required`, and `typed_required` from
+  `Subsocia_derived_intf.ATTRIBUTE_TYPE` has
+  been replaced by `coerce_any`, `any_of_name_exn`, `of_name_exn` from
+  `Subsocia_intf.ATTRIBUTE_TYPE`.
+- `Subsocia_intf.ATTRIBUTE_TYPE.of_name` has been replaced by `of_name_exn`.
+- `Failure` exceptions have been replaced by `Subsocia_error.Exn`.
+- Removed various deprecated functions.
+
+Non-breaking changes:
+
+- Added `equal` and `compare` to `Type` and `Values`.
+- Added `Type.pp`.
+- Added module `Caqti_error`.
+
 ## [0.17.1] - 2018-06-21
 
 - Fix loop termination in init.db.

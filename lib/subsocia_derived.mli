@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -20,7 +20,7 @@ module Make (Base : Subsocia_intf.S) :
   Subsocia_derived_intf.S
     with type Attribute_type.soid = Base.Attribute_type.soid
      and type 'a Attribute_type.t = 'a Base.Attribute_type.t
-     and type Attribute_type.ex = Base.Attribute_type.ex
+     and type Attribute_type.any = Base.Attribute_type.any
      and module Attribute_type.Set = Base.Attribute_type.Set
      and module Attribute_type.Map = Base.Attribute_type.Map
      and type Attribute_uniqueness.soid = Base.Attribute_uniqueness.soid

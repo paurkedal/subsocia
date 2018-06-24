@@ -635,20 +635,24 @@ module B = struct
       at_beacon : Beacon.t;
     }
     type ex = Ex : 'a t -> ex
+    type any = Any : 'a t -> any
 
     let value_type at = at.at_value_type
     let value_mult at = at.at_value_mult
 
-    let assert_coerce : type a. a Type.t -> ex -> a t = fun vt (Ex at) ->
-      match vt, at.at_value_type with
-      | Type.Bool, Type.Bool -> at
-      | Type.Int, Type.Int -> at
-      | Type.String, Type.String -> at
-      | _, _ -> assert false
+    let coerce_any (type a) (t : a Type.t) at0 : a t option =
+      let Any at1 = at0 in
+      match t, value_type at1, at1 with
+      | Type.Bool, Type.Bool, at -> Some at
+      | Type.Bool, _, _ -> None
+      | Type.Int, Type.Int, at -> Some at
+      | Type.Int, _, _ -> None
+      | Type.String, Type.String, at -> Some at
+      | Type.String, _, _ -> None
 
     module Comparable = struct
-      type t = ex
-      let compare (Ex x) (Ex y) = compare x.at_id y.at_id
+      type t = any
+      let compare (Any x) (Any y) = compare x.at_id y.at_id
     end
     module Map = Prime_enummap.Make_monadic (Comparable) (Lwt)
     module Set = Prime_enumset.Make_monadic (Comparable) (Lwt)
@@ -751,25 +755,55 @@ module Make (P : Param) = struct
     let soid at = Lwt.return at.at_id
     let name at = Lwt.return at.at_name
 
-    let of_soid', of_soid_cache = Cache.memo_lwt_conn @@ fun ?conn at_id ->
-      with_db_exn ?conn @@ fun (module C : CONNECTION) ->
-      C.find Q.at_by_id at_id >|=? fun (at_name, value_type, value_mult) ->
-      let Type.Any at_value_type = Type.any_of_string value_type in
-      let at_value_mult = Multiplicity.of_int value_mult in
-      Beacon.embed attribute_type_grade @@ fun at_beacon ->
-      Ex {at_id; at_name; at_value_type; at_value_mult; at_beacon}
-
-    let of_soid id = of_soid' id
-
-    let of_name, of_name_cache = memo_1lwt @@ fun at_name ->
-      with_db_exn @@ fun (module C : CONNECTION) ->
-      C.find_opt Q.at_by_name at_name >|=?
-      Option.map begin fun (at_id, value_type, value_mult) ->
+    let any_of_soid_exn', any_of_soid_exn_cache = Cache.memo_lwt_conn @@
+      fun ?conn at_id ->
+        with_db_exn ?conn @@ fun (module C : CONNECTION) ->
+        C.find Q.at_by_id at_id >|=? fun (at_name, value_type, value_mult) ->
         let Type.Any at_value_type = Type.any_of_string value_type in
         let at_value_mult = Multiplicity.of_int value_mult in
         Beacon.embed attribute_type_grade @@ fun at_beacon ->
-        Ex {at_id; at_name; at_value_type; at_value_mult; at_beacon}
-      end
+        Any {at_id; at_name; at_value_type; at_value_mult; at_beacon}
+
+    let of_soid_exn' ?conn vt' id =
+      any_of_soid_exn' ?conn id >>= fun at ->
+      (match coerce_any vt' at with
+       | Some at -> Lwt.return at
+       | None ->
+          let Any at = at in
+          let vt, an = at.at_value_type, at.at_name in
+          let err = `Attribute_type_mismatch (an, Type.Any vt, Type.Any vt') in
+          Lwt.fail (Subsocia_error.Exn err))
+
+    let of_soid_exn id = of_soid_exn' id
+    let any_of_soid_exn id = any_of_soid_exn' id
+
+    let any_of_name, any_of_name_cache = memo_1lwt @@ fun at_name ->
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.find_opt Q.at_by_name at_name >|=?
+      (function
+       | None -> Error (`Attribute_type_missing at_name)
+       | Some (at_id, value_type, value_mult) ->
+          let Type.Any at_value_type = Type.any_of_string value_type in
+          let at_value_mult = Multiplicity.of_int value_mult in
+          Beacon.embed attribute_type_grade @@ fun at_beacon ->
+          Ok (Any {at_id; at_name; at_value_type; at_value_mult; at_beacon}))
+
+    let any_of_name_exn name =
+      any_of_name name >>=
+      (function
+       | Ok any -> Lwt.return any
+       | Error (`Attribute_type_missing _ as err) ->
+          Lwt.fail (Subsocia_error.Exn err))
+
+    let of_name_exn vt' name =
+      any_of_name_exn name >>= fun at ->
+      (match coerce_any vt' at with
+       | Some at -> Lwt.return at
+       | None ->
+          let Any at = at in
+          let vt, an = at.at_value_type, at.at_name in
+          let err = `Attribute_type_mismatch (an, Type.Any vt, Type.Any vt') in
+          Lwt.fail (Subsocia_error.Exn err))
 
     let create
         : type a. ?mult: Multiplicity.t -> a Type.t -> string -> a t Lwt.t =
@@ -784,7 +818,7 @@ module Make (P : Param) = struct
       with_db_exn @@ fun ((module C : CONNECTION) as conn) ->
       C.find Q.at_create
         (at_name, Type.to_string vt, Multiplicity.to_int mult, fts)
-        >>=? of_soid' ~conn >|=? assert_coerce vt
+        >>=? of_soid_exn' ~conn vt
 
     let delete at =
       with_db_exn @@ fun (module C : CONNECTION) ->
@@ -794,12 +828,12 @@ module Make (P : Param) = struct
       with_db_exn @@ fun ((module C : CONNECTION) as conn) ->
       C.fold Q.at_all List.cons () [] >>=? fun at_ids ->
       Pwt_list.fold_s
-        (fun id acc -> of_soid' ~conn id >|= fun at -> Set.add at acc)
+        (fun id acc -> any_of_soid_exn' ~conn id >|= fun at -> Set.add at acc)
         at_ids Set.empty
 
     let clear_caches () =
-      Cache.clear of_soid_cache;
-      Cache.clear of_name_cache
+      Cache.clear any_of_soid_exn_cache;
+      Cache.clear any_of_name_cache
 
     let id at = at.at_id
   end
@@ -825,13 +859,14 @@ module Make (P : Param) = struct
         with_db_exn @@ fun (module C : CONNECTION) ->
         C.fold Q.au_affected List.cons au_id []
       end
-      >>= Lwt_list.rev_map_s Attribute_type.of_soid
+      >>= Lwt_list.rev_map_s Attribute_type.any_of_soid_exn
       >|= B.Attribute_type.Set.of_ordered_elements
 
     let find atset =
-      let B.Attribute_type.Ex at = B.Attribute_type.Set.min_elt_exn atset in
+      let B.Attribute_type.Any at = B.Attribute_type.Set.min_elt_exn atset in
       affecting at >>=
-      Set.filter_s (fun au -> affected au >|= B.Attribute_type.Set.equal atset)
+      Set.filter_s
+        (fun au -> affected au >|= B.Attribute_type.Set.equal atset)
         >|= fun auset ->
       (match Set.cardinal auset with
        | 0 -> None
@@ -843,7 +878,7 @@ module Make (P : Param) = struct
       let ats = B.Attribute_type.Set.elements atset in
       let Q.(Au_force_ex {request; param}) =
         Q.au_force
-          (List.map (fun (B.Attribute_type.Ex at) -> Attribute_type.id at) ats)
+          (List.map (fun (B.Attribute_type.Any at) -> Attribute_type.id at) ats)
       in
       begin
         with_db_exn @@ fun (module C : CONNECTION) ->
@@ -886,6 +921,10 @@ module Make (P : Param) = struct
       let name = if name = "unit" then "root" else name in (* TODO: Remove *)
       with_db_exn @@ fun (module C) ->
       C.find_opt Q.et_id_of_name name
+    let of_name_exn name =
+      (match%lwt of_name name with
+       | Some et -> Lwt.return et
+       | None -> Lwt.fail (Subsocia_error.Exn (`Entity_type_missing name)))
 
     let name, name_cache =
       memo_1lwt @@ fun et ->
@@ -948,16 +987,17 @@ module Make (P : Param) = struct
       memo_2lwt @@ fun (et, et') ->
       with_db_exn @@ fun ((module C) as conn) ->
       let aux at_map at_id =
-        let%lwt at = Attribute_type.of_soid' ~conn at_id in
+        let%lwt at = Attribute_type.any_of_soid_exn' ~conn at_id in
         Lwt.return (B.Attribute_type.Set.add at at_map) in
-      C.fold Q.et_allowed_attributes List.cons (et, et') [] >>=? fun at_ids ->
+      C.fold Q.et_allowed_attributes List.cons (et, et') []
+        >>=? fun at_ids ->
       Lwt_list.fold_left_s aux B.Attribute_type.Set.empty at_ids
 
     let allowed_preimage, allowed_preimage_cache =
       memo_1lwt @@ fun et ->
       with_db_exn @@ fun ((module C) as conn) ->
       let aux acc (at_id, et) =
-        let%lwt at = Attribute_type.of_soid' ~conn at_id in
+        let%lwt at = Attribute_type.any_of_soid_exn' ~conn at_id in
         let ats' = try Map.find et acc with Not_found -> [] in
         Lwt.return (Map.add et (at :: ats') acc) in
       C.fold Q.et_allowed_preimage List.cons et [] >>=? fun bindings ->
@@ -967,7 +1007,7 @@ module Make (P : Param) = struct
       memo_1lwt @@ fun et ->
       with_db_exn @@ fun ((module C) as conn) ->
       let aux acc (at_id, et) =
-        let%lwt at = Attribute_type.of_soid' ~conn at_id in
+        let%lwt at = Attribute_type.any_of_soid_exn' ~conn at_id in
         let ats' = try Map.find et acc with Not_found -> [] in
         Lwt.return (Map.add et (at :: ats') acc) in
       C.fold Q.et_allowed_image List.cons et [] >>=? fun bindings ->
@@ -991,7 +1031,8 @@ module Make (P : Param) = struct
     let allowed_attributions () =
       with_db_exn @@ fun ((module C) as conn) ->
       let aux (at_id, et0, et1) =
-        Attribute_type.of_soid' ~conn at_id >|= fun at -> (at, et0, et1) in
+        Attribute_type.any_of_soid_exn' ~conn at_id >|= fun at ->
+        (at, et0, et1) in
       C.fold Q.et_allowed_attributions List.cons () [] >>=? Lwt_list.map_s aux
 
     let allow_attribution at et et' =
@@ -1559,10 +1600,10 @@ module Make (P : Param) = struct
       let is_violated au =
         let%lwt aff_ats =
           Attribute_uniqueness.affected au >|=
-          B.Attribute_type.Set.remove (B.Attribute_type.Ex new_at) in
+          B.Attribute_type.Set.remove (B.Attribute_type.Any new_at) in
         try%lwt
           let%lwt conds = Lwt_list.map_s
-            (fun (B.Attribute_type.Ex at) ->
+            (fun (B.Attribute_type.Any at) ->
               let%lwt avs = get_values at e e' in
               if Values.is_empty avs then Lwt.fail Not_found else
               Lwt.return (B.Relation.In (at, avs)))
@@ -1608,8 +1649,8 @@ module Make (P : Param) = struct
       | false ->
         let%lwt etn = Entity_type.name et in
         let%lwt etn' = Entity_type.name et' in
-        lwt_failure_f "add_values: %s is not allowed from %s to %s."
-                      at.B.Attribute_type.at_name etn etn'
+        Subsocia_error.fail_lwt "add_values: %s is not allowed from %s to %s."
+                                at.B.Attribute_type.at_name etn etn'
       | true -> Lwt.return (B.Attribute_type.value_mult at)
 
     let add_values (type a) (at : a B.Attribute_type.t) (xs : a Values.t) e e' =
@@ -1620,7 +1661,7 @@ module Make (P : Param) = struct
          | Multiplicity.May1 | Multiplicity.Must1 ->
             if Values.is_empty xs_pres
             then Lwt.return xs
-            else lwt_failure_f "add_values: Attribute already set.";
+            else Subsocia_error.fail_lwt "add_values: Attribute already set.";
          | Multiplicity.May | Multiplicity.Must ->
             let ht = Hashtbl.create 7 in
             Values.iter (fun x -> Hashtbl.add ht x ()) xs_pres;
@@ -1664,7 +1705,7 @@ module Make (P : Param) = struct
       begin match%lwt check_mult at e e' with
       | Multiplicity.May1 | Multiplicity.Must1 ->
         if List.length xs <= 1 then Lwt.return_unit else
-        lwt_failure_f "add_values: Attribute already set.";
+        Subsocia_error.fail_lwt "add_values: Attribute already set.";
       | Multiplicity.May | Multiplicity.Must ->
         Lwt.return_unit
       end >>= fun () ->
@@ -1754,7 +1795,7 @@ let connect uri =
     module type T = Subsocia_intf.S_SOID
       with type soid := int32
        and type 'a Attribute_type.t = 'a Attribute_type.t
-       and type Attribute_type.ex = Attribute_type.ex
+       and type Attribute_type.any = Attribute_type.any
        and type Attribute_type.Set.t = Attribute_type.Set.t
        and type 'a Attribute_type.Map.t = 'a Attribute_type.Map.t
        and type Attribute_uniqueness.t = Attribute_uniqueness.t
@@ -1797,4 +1838,4 @@ let connect uri =
       f (module C' : T) >|= fun y -> Ok y
 
     let entity_changed = Int32_event_table.event Entity.changed_event_table
-  end : S)
+  end : S) [@@ocaml.warning "-3"]

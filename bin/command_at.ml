@@ -37,15 +37,15 @@ let at_create_cmd =
   Term.(pure at_create $ vt_t $ atn_t $ mu_t)
 
 let at_delete atn = run @@ fun (module C) ->
-  match%lwt C.Attribute_type.of_name atn with
-  | Some (C.Attribute_type.Ex at) ->
-    C.Attribute_type.delete at >>= fun () ->
-    let%lwt at_idstr = C.Attribute_type.(soid at >|= Soid.to_string) in
-    Lwt_log.info_f "Delete attribute type %s %s." at_idstr atn >>= fun () ->
-    Lwt.return 0
-  | None ->
-    Lwt_log.error_f "No attribute type is named %s." atn >>= fun () ->
-    Lwt.return 1
+  (match%lwt C.Attribute_type.any_of_name_exn atn with
+   | exception Subsocia_error.Exn (`Attribute_type_missing _) ->
+      Lwt_log.error_f "No attribute type is named %s." atn >>= fun () ->
+      Lwt.return 1
+   | C.Attribute_type.Any at ->
+      C.Attribute_type.delete at >>= fun () ->
+      let%lwt at_idstr = C.Attribute_type.(soid at >|= Soid.to_string) in
+      Lwt_log.info_f "Delete attribute type %s %s." at_idstr atn >>= fun () ->
+      Lwt.return 0)
 
 let at_delete_cmd =
   let open Arg in
@@ -54,7 +54,7 @@ let at_delete_cmd =
   Term.(pure at_delete $ atn_t)
 
 let at_list verbose = run @@ fun (module C) ->
-  let show (C.Attribute_type.Ex at) =
+  let show (C.Attribute_type.Any at) =
     let%lwt atn = C.Attribute_type.name at in
     let ms =
       match C.Attribute_type.value_mult at with

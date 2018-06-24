@@ -78,7 +78,7 @@ module Entity_utils (C : Subsocia_intf.S) = struct
 
   let lookup_add_selector (ctx, asgn) =
     let aux (an, avs_str) =
-      let%lwt Attribute_type.Ex at = Attribute_type.required an in
+      let%lwt Attribute_type.Any at = Attribute_type.any_of_name_exn an in
       let t = Attribute_type.value_type at in
       Lwt.return @@ List.map
         (fun av_str -> Add_value (at, Value.typed_of_string t av_str))
@@ -92,7 +92,7 @@ module Entity_utils (C : Subsocia_intf.S) = struct
 
   let lookup_delete_selector (ctx, asgn) =
     let aux (an, avs_str) =
-      let%lwt Attribute_type.Ex at = Attribute_type.required an in
+      let%lwt Attribute_type.Any at = Attribute_type.any_of_name_exn an in
       let t = Attribute_type.value_type at in
       match avs_str with
       | Some avs_str ->
@@ -145,7 +145,7 @@ let e_ls sel_opt = run_exn @@ fun (module C) ->
   let%lwt aus = C.Attribute_uniqueness.all () in
   let show_e ats e' =
     Lwt_list.iter_s
-      (fun (C.Attribute_type.Ex at) ->
+      (fun (C.Attribute_type.Any at) ->
         let%lwt an = C.Attribute_type.name at in
         let%lwt vs = C.Entity.get_values at e e' >|= Values.elements in
         let vt = C.Attribute_type.value_type at in
@@ -160,7 +160,7 @@ let e_ls sel_opt = run_exn @@ fun (module C) ->
     let%lwt ats =
       C.Attribute_uniqueness.affected au >|= C.Attribute_type.Set.elements in
     let ps =
-      List.map (fun (C.Attribute_type.Ex at) -> C.Relation.Present at) ats in
+      List.map (fun (C.Attribute_type.Any at) -> C.Relation.Present at) ats in
     let%lwt es' = C.Entity.image1 (C.Relation.Inter ps) e in
     C.Entity.Set.iter_s (show_e ats) es' in
   C.Attribute_uniqueness.Set.iter_s show_au aus

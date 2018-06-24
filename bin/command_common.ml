@@ -29,6 +29,8 @@ let run0 f = Lwt_main.run (f (connect ())); 0
 
 let run_int_exn f = Lwt_main.run
   (try%lwt f (connect ()) with
+   | Failure msg ->
+      Lwt_io.printl msg >|= fun () -> 69
    | Caqti_error.Exn err ->
       Lwt_io.printl (Caqti_error.show err) >|= fun () -> 69)
 
