@@ -90,6 +90,22 @@ module Type = struct
     | "int" -> Any Int
     | "string" -> Any String
     | _ -> invalid_arg "Type.any_of_string"
+
+  let enum : type a. a t -> int = function
+   | Bool -> 0
+   | Int -> 1
+   | String -> 2
+
+  let equal (type a b) (t1 : a t) (t2 : b t) =
+    (match t1, t2 with
+     | Bool, Bool -> true
+     | Bool, _ -> false
+     | Int, Int -> true
+     | Int, _ -> false
+     | String, String -> true
+     | String, _ -> false)
+
+  let compare t1 t2 = compare (enum t1) (enum t2)
 end
 
 module Value = struct
@@ -198,6 +214,14 @@ module Values = struct
      | Int xs -> f.v (module Int_set) xs
      | String xs -> f.v (module String_set) xs
 
+  type ('e, 'a) prop2 = {v: 's. ('s, 'e) set -> 's -> 's -> 'a}
+  let lift_prop2 : type e. (e, 'a) prop2 -> e t -> e t -> 'a =
+    fun f s1 s2 ->
+    (match s1, s2 with
+     | Bool xs, Bool ys -> f.v (module Bool_set) xs ys
+     | Int xs, Int ys -> f.v (module Int_set) xs ys
+     | String xs, String ys -> f.v (module String_set) xs ys)
+
   type 'e endo = {v: 's. ('s, 'e) set -> 's -> 's}
   let lift_endo : type e. e endo -> e t -> e t =
     fun f -> function
@@ -249,6 +273,10 @@ module Values = struct
     lift_prop {v = fun (type s) ((module S) : (s, a) set) s -> S.choose s} s
   let elements (type a) s =
     lift_prop {v = fun (type s) ((module S) : (s, a) set) s -> S.elements s} s
+  let equal (type a) s =
+    lift_prop2 {v = fun (type s) ((module S) : (s, a) set) s t -> S.equal s t} s
+  let compare (type a) s =
+    lift_prop2 {v = fun (type s) ((module S) : (s, a) set) s t -> S.compare s t} s
 
   let of_elements : type e. e Type.t -> e list -> e t = fun t xs ->
     (match t with

@@ -50,6 +50,9 @@ module Type : sig
 
   val of_string : string -> ex
     [@@ocaml.deprecated "Replaced by any_of_string."] [@@ocaml.warning "-3"]
+
+  val equal : 'a t -> 'b t -> bool
+  val compare : 'a t -> 'b t -> int
 end
 
 module Value : sig
@@ -102,6 +105,8 @@ module Values : sig
   val elements : 'a t -> 'a list
   val of_elements : 'a Type.t -> 'a list -> 'a t
   val of_ordered_elements : 'a Type.t -> 'a list -> 'a t
+  val equal : 'a t -> 'a t -> bool
+  val compare : 'a t -> 'a t -> int
 
   val coerce : 'a Type.t -> ex -> 'a t
     [@@ocaml.deprecated "Use coerce_exn."] [@@ocaml.warning "-3"]
