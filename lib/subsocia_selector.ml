@@ -61,6 +61,7 @@ let bprint_attr dir op buf p k v =
     Buffer.add_string buf v;
   if p > p_equal then Buffer.add_char buf '}'
 
+[@@@ocaml.warning "-3"] (* due to Select_id *)
 let rec bprint_selector ?(is_prefix = false) buf p = function
   | Select_with (s0, s1) ->
     if p > p_slash then Buffer.add_char buf '{';
@@ -98,7 +99,7 @@ let rec bprint_selector ?(is_prefix = false) buf p = function
     Buffer.add_char buf ':';
     Buffer.add_string buf tn
   | Select_root -> if not is_prefix then Buffer.add_char buf '#'
-  | Select_id id [@ocaml.warning "-3"] -> bprintf buf "#%ld" id
+  | Select_id id -> bprintf buf "#%ld" id
   | Select_dsub ->
     if p > p_equal then Buffer.add_char buf '{';
     Buffer.add_char buf pred_char;
@@ -116,6 +117,7 @@ let rec bprint_selector ?(is_prefix = false) buf p = function
   | Select_inter (s0, s1) ->
     bprint_selector buf p_conj s0;
     bprint_selector buf p_conj s1
+[@@@ocaml.warning "+3"]
 
 let string_of_selector s =
   if s = Select_root then "/" else
@@ -232,6 +234,7 @@ module Selector_utils (C : Subsocia_intf.S) = struct
       req_at an >|= fun (C.Attribute_type.Ex at) ->
       C.Relation.Geq (at, Value.typed_of_string (C.Attribute_type.value_type at) s)
 
+  [@@@ocaml.warning "-3"] (* due to Select_id *)
   let rec select_from = function
     | Select_with (selA, selB) -> fun es ->
       select_from selA es >>= select_from selB
@@ -265,7 +268,7 @@ module Selector_utils (C : Subsocia_intf.S) = struct
     | Select_root -> fun es ->
       if C.Entity.Set.is_empty es then Lwt.return C.Entity.Set.empty else
       C.Entity.root >|= C.Entity.Set.singleton
-    | Select_id id [@ocaml.warning "-3"] -> fun es ->
+    | Select_id id -> fun es ->
       let soid =
         C.Entity.Soid.of_string (sprintf Subsocia_internal.e_soid_format id) in
       if C.Entity.Set.is_empty es then Lwt.return C.Entity.Set.empty else
@@ -278,6 +281,7 @@ module Selector_utils (C : Subsocia_intf.S) = struct
       C.Entity.Set.fold_s
         (fun e1 acc -> C.Entity.dsuper e1 >|= C.Entity.Set.union acc)
         es C.Entity.Set.empty
+  [@@@ocaml.warning "+3"]
 
   let select sel =
     let%lwt root = C.Entity.root in
