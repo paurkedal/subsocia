@@ -20,3 +20,9 @@
 
 (ocamlyacc (subsocia_parser))
 (ocamllex (subsocia_lexer))
+
+(rule
+ ((targets (subsocia_version.ml))
+  (deps (subsocia_version.ml.in subsocia_version.dev.sed))
+  (fallback)
+  (action (with-stdout-to ${@} (run sed -f subsocia_version.dev.sed ${<})))))

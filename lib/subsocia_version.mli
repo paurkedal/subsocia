@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,8 +16,8 @@
 
 (** Information about the package and installation. *)
 
-val pkg_version : string
-val pkg_datadir : string
+val pkg_version : string option
+val pkg_hash : string option
 
 val schema_version : int
 val schema_dir : string
@@ -26,7 +26,5 @@ val schema_upgrade_dir : string
 val upgradable_sql_schemas : string list
 val idempotent_sql_schemas : string list
 val subsocia_schemas : string list
-
-val static_dir : string
 
 val issues_url : string

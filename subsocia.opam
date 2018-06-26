@@ -7,16 +7,10 @@ bug-reports: "https://github.com/paurkedal/subsocia/issues"
 dev-repo: "https://github.com/paurkedal/subsocia.git"
 license: "LGPL-3 with OCaml linking exception"
 
-build: [
-  ["sed" "s;@SUBSOCIA_DATADIR@;%{subsocia:share}%;g"
-         "-i" "lib/subsocia_version.ml"]
-  ["jbuilder" "build" "-p" name "-j" jobs]
-]
-build-test: [
-  ["sed" "s;@SUBSOCIA_DATADIR@;%{subsocia:share}%;g"
-         "-i" "lib/subsocia_version.ml"]
-  ["jbuilder" "runtest" "-p" name "-j" jobs]
-]
+substs: ["lib/subsocia_version.ml"]
+build: ["jbuilder" "build" "-p" name "-j" jobs]
+build-test: ["jbuilder" "runtest" "-p" name "-j" jobs]
+
 depends: [
   "caqti" {>= "0.6.0"}
   "caqti-dynload"

@@ -14,23 +14,17 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-let pkg_version = "%%VERSION_NUM%%"
-let pkg_datadir =
-  try Unix.getenv "SUBSOCIA_DATADIR"
-  with Not_found ->
-    if "@SUBSOCIA_DATADIR@" <> "\x40SUBSOCIA_DATADIR@" then
-      "@SUBSOCIA_DATADIR@"
-    else
-      "."
+let pkg_version = match "%{subsocia:version}%" with "" -> None | h -> Some h
+let pkg_hash = match "%{subsocia:hash}%" with "" -> None | h -> Some h
+let pkg_share =
+  try Unix.getenv "SUBSOCIA_SHARE" with Not_found -> "%{subsocia:share}%"
 
 let schema_version = 4 (* NB: Also update schema/subsocia_tables.sql. *)
-let schema_dir = Filename.concat pkg_datadir "schema"
+let schema_dir = Filename.concat pkg_share "schema"
 let schema_upgrade_dir = Filename.concat schema_dir "upgrade"
 
 let upgradable_sql_schemas = ["subsocia_tables.sql"]
 let idempotent_sql_schemas = ["subsocia_views.sql"]
 let subsocia_schemas = ["subsocia_core.sscm"]
-
-let static_dir = Filename.concat pkg_datadir "static"
 
 let issues_url = "https://github.com/paurkedal/subsocia/issues"

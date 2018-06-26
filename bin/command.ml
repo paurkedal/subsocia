@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -151,7 +151,7 @@ let subcommands = [
 
 let main_cmd =
   Term.(ret @@ pure (`Error (true, "Missing subcommand."))),
-  Term.info ~version:Subsocia_version.pkg_version "subsocia"
+  Term.info ?version:Subsocia_version.pkg_version "subsocia"
 
 let () =
   Dynlink.allow_unsafe_modules true;
