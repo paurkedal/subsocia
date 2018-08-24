@@ -1,0 +1,27 @@
+(library
+  (name subsocia)
+  (public_name subsocia)
+  (wrapped false)
+  (modules_without_implementation
+    Subsocia_intf
+    Subsocia_derived_intf
+    Subsocia_schema_types
+    Subsocia_selector_types)
+  (preprocess (pps lwt_ppx))
+  (libraries
+    extunix
+    lwt
+    lwt.log
+    panograph
+    yojson))
+
+(ocamlyacc subsocia_parser)
+(ocamllex subsocia_lexer)
+
+(rule
+  (targets subsocia_version.ml)
+  (deps (:first-dep subsocia_version.ml.in) subsocia_version.dev.sed)
+  (mode fallback)
+  (action
+    (with-stdout-to %{targets}
+      (run sed -f subsocia_version.dev.sed %{first-dep}))))

@@ -1,0 +1,13 @@
+(executable
+  (name testsuite)
+  (preprocess (pps lwt_ppx))
+  (libraries
+    caqti-dynload
+    oUnit
+    subsocia
+    subsocia.data))
+
+(alias
+  (name runtest)
+  (deps testsuite.exe)
+  (action (run %{deps})))

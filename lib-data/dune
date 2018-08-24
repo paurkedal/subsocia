@@ -1,14 +1,12 @@
-(jbuild_version 1)
-
 (library
- ((name subsocia_data)
+  (name subsocia_data)
   (public_name subsocia.data)
   (wrapped false)
   (modules_without_implementation
-   (Subsocia_direct_intf))
-  (preprocess (pps (lwt_ppx)))
+    Subsocia_direct_intf)
+  (preprocess (pps lwt_ppx))
   (libraries
-   (caqti
+    caqti
     caqti-lwt
     config-file
     findlib
@@ -17,4 +15,4 @@
     panograph
     subsocia
     prime.unstable
-    react))))
+    react))
