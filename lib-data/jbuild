@@ -6,7 +6,7 @@
   (wrapped false)
   (modules_without_implementation
    (Subsocia_direct_intf))
-  (preprocess (pps (lwt.ppx)))
+  (preprocess (pps (lwt_ppx)))
   (libraries
    (caqti
     caqti-lwt
@@ -14,7 +14,6 @@
     findlib
     findlib.dynload
     lwt
-    lwt.ppx
     panograph
     subsocia
     prime.unstable

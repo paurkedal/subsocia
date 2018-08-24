@@ -9,12 +9,11 @@
     Subsocia_derived_intf
     Subsocia_schema_types
     Subsocia_selector_types))
-  (preprocess (pps (lwt.ppx)))
+  (preprocess (pps (lwt_ppx)))
   (libraries
    (extunix
     lwt
     lwt.log
-    lwt.ppx
     panograph
     yojson))))
 

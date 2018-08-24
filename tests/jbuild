@@ -2,10 +2,9 @@
 
 (executable
  ((name testsuite)
-  (preprocess (pps (lwt.ppx)))
+  (preprocess (pps (lwt_ppx)))
   (libraries
    (caqti-dynload
-    lwt.ppx
     oUnit
     subsocia
     subsocia.data))))

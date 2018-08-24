@@ -3,7 +3,7 @@
 (executable
  ((name command)
   (public_name subsocia)
-  (preprocess (pps (lwt.ppx)))
+  (preprocess (pps (lwt_ppx)))
   (libraries
    (cmdliner
     uri
