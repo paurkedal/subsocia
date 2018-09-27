@@ -1,17 +1,12 @@
-opam-version: "1.2"
+opam-version: "2.0"
 name: "subsocia"
-author: "Petter A. Urkedal <paurkedal@gmail.com>"
 maintainer: "Petter A. Urkedal <paurkedal@gmail.com>"
+authors: "Petter A. Urkedal <paurkedal@gmail.com>"
+license: "LGPL-3 with OCaml linking exception"
 homepage: "https://github.com/paurkedal/subsocia/"
 bug-reports: "https://github.com/paurkedal/subsocia/issues"
-dev-repo: "https://github.com/paurkedal/subsocia.git"
-license: "LGPL-3 with OCaml linking exception"
-
-substs: ["lib/subsocia_version.ml"]
-build: ["jbuilder" "build" "-p" name "-j" jobs]
-build-test: ["jbuilder" "runtest" "-p" name "-j" jobs]
-
 depends: [
+  "ocaml"
   "caqti" {>= "0.6.0"}
   "caqti-dynload"
   "caqti-lwt"
@@ -28,3 +23,9 @@ depends: [
   "uri"
   "yojson"
 ]
+build: [
+  ["jbuilder" "build" "-p" name "-j" jobs]
+  ["jbuilder" "runtest" "-p" name "-j" jobs] {with-test}
+]
+substs: "lib/subsocia_version.ml"
+dev-repo: "git+https://github.com/paurkedal/subsocia.git"
