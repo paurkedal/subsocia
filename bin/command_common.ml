@@ -25,14 +25,15 @@ let connect () =
 let langs = [Lang.of_string "en"] (* TODO: Use $LANG *)
 
 let run f = Lwt_main.run (f (connect ()))
-let run0 f = Lwt_main.run (f (connect ())); 0
 
 let run_int_exn f = Lwt_main.run
   (try%lwt f (connect ()) with
    | Failure msg ->
       Lwt_io.printl msg >|= fun () -> 69
    | Caqti_error.Exn err ->
-      Lwt_io.printl (Caqti_error.show err) >|= fun () -> 69)
+      Lwt_io.printl (Caqti_error.show err) >|= fun () -> 69
+   | Subsocia_error.Exn err ->
+      Lwt_io.printl (Subsocia_error.show err) >|= fun () -> 69)
 
 let run_exn f = run_int_exn (fun c -> f c >|= fun () -> 0)
 

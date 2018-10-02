@@ -31,7 +31,7 @@ open Command_e
 
 let load schema_path disable_transaction =
   let schema = Subsocia_schema.load schema_path in
-  run0 @@ fun (module C) ->
+  run_exn @@ fun (module C) ->
   if disable_transaction then
     let module Schema = Subsocia_schema.Make (C) in
     Schema.exec schema

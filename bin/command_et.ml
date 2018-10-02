@@ -36,7 +36,7 @@ let et_info etn = run @@ fun (module C) ->
 
 let et_info_cmd = Term.(ret (const et_info $ et_name_t))
 
-let et_create etn = run0 @@ fun (module C) ->
+let et_create etn = run_exn @@ fun (module C) ->
   let%lwt et = C.Entity_type.create etn in
   let%lwt et_idstr = C.Entity_type.(soid et >|= Soid.to_string) in
   Lwt_log.info_f "Created type %s = %s." et_idstr etn
@@ -81,7 +81,7 @@ let et_delete_cmd =
          info ~docv:"ET-NAME" ~doc:"Name of the entity to delete" []) in
   Term.(ret (const et_delete $ et_name_t))
 
-let et_list () = run0 @@ fun (module C) ->
+let et_list () = run_exn @@ fun (module C) ->
   C.Entity_type.all () >>=
   C.Entity_type.Set.iter_s
     (fun et -> C.Entity_type.name et >>= Lwt_io.printl)

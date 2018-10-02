@@ -59,7 +59,7 @@ let in_disallow_cmd =
                     info ~docv:"SUPER-TYPE" []) in
   Term.(ret (const in_disallow $ etn0_t $ etn1_t))
 
-let in_list etn0_opt etn1_opt = run @@ fun (module C) ->
+let in_list etn0_opt etn1_opt = run_int_exn @@ fun (module C) ->
   let get_et = function
     | None | Some "_" -> Lwt.return_none
     | Some etn ->

@@ -20,7 +20,7 @@ open Lwt.Infix
 open Subsocia_cmdliner
 open Subsocia_common
 
-let at_create (Type.Any vt) atn mult = run0 @@ fun (module C) ->
+let at_create (Type.Any vt) atn mult = run_exn @@ fun (module C) ->
   C.Attribute_type.create ~mult vt atn >>= fun at ->
   let%lwt at_idstr = C.Attribute_type.(soid at >|= Soid.to_string) in
   Lwt_log.info_f "Created attribute type %s %s." at_idstr atn
@@ -36,7 +36,7 @@ let at_create_cmd =
            ~doc:"The multiplicity of values accepted for this attribute." [] in
   Term.(const at_create $ vt_t $ atn_t $ mu_t)
 
-let at_delete atn = run @@ fun (module C) ->
+let at_delete atn = run_int_exn @@ fun (module C) ->
   (match%lwt C.Attribute_type.any_of_name_exn atn with
    | exception Subsocia_error.Exn (`Attribute_type_missing _) ->
       Lwt_log.error_f "No attribute type is named %s." atn >>= fun () ->
@@ -53,7 +53,7 @@ let at_delete_cmd =
     & info ~docv:"NAME" ~doc:"Name of the attribute to delete." [] in
   Term.(const at_delete $ atn_t)
 
-let at_list verbose = run @@ fun (module C) ->
+let at_list verbose = run_exn @@ fun (module C) ->
   let show (C.Attribute_type.Any at) =
     let%lwt atn = C.Attribute_type.name at in
     let ms =
@@ -69,8 +69,7 @@ let at_list verbose = run @@ fun (module C) ->
         Lwt_io.printlf "  %s -> %s" etn0 etn1 in
       C.Entity_type.allowed_mappings at >>= Lwt_list.iter_s show_mapping
     end in
-  C.Attribute_type.all () >>= C.Attribute_type.Set.iter_s show >>= fun () ->
-  Lwt.return 0
+  C.Attribute_type.all () >>= C.Attribute_type.Set.iter_s show
 
 let at_list_cmd =
   let open Arg in
