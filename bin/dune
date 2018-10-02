@@ -1,0 +1,10 @@
+(executable
+  (name command)
+  (public_name subsocia)
+  (preprocess (pps lwt_ppx))
+  (libraries
+    caqti-dynload
+    cmdliner
+    uri
+    subsocia
+    subsocia_data))

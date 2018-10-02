@@ -15,6 +15,7 @@ depends: [
   "extunix"
   "ocamlfind"
   "lwt"
+  "lwt_ppx"
   "ounit"
   "panograph"
   "prime"
