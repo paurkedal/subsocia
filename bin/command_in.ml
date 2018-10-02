@@ -50,14 +50,14 @@ let in_allow_cmd =
                     info ~docv:"SUB-TYPE" []) in
   let etn1_t = Arg.(required & pos 1 (some string) None &
                     info ~docv:"SUPER-TYPE" []) in
-  Term.(ret (pure in_allow $ etn0_t $ etn1_t))
+  Term.(ret (const in_allow $ etn0_t $ etn1_t))
 
 let in_disallow_cmd =
   let etn0_t = Arg.(required & pos 0 (some string) None &
                     info ~docv:"SUB-TYPE" []) in
   let etn1_t = Arg.(required & pos 1 (some string) None &
                     info ~docv:"SUPER-TYPE" []) in
-  Term.(ret (pure in_disallow $ etn0_t $ etn1_t))
+  Term.(ret (const in_disallow $ etn0_t $ etn1_t))
 
 let in_list etn0_opt etn1_opt = run @@ fun (module C) ->
   let get_et = function
@@ -105,5 +105,5 @@ let in_list_cmd =
                     info ~docv:"SUB-TYPE" []) in
   let etn1_t = Arg.(value & pos 1 (some string) None &
                     info ~docv:"SUPER-TYPE" []) in
-  Term.(pure in_list $ etn0_t $ etn1_t)
+  Term.(const in_list $ etn0_t $ etn1_t)
 

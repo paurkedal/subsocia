@@ -34,7 +34,7 @@ let at_create_cmd =
   let mu_t = value & pos 2 multiplicity_conv Multiplicity.May
     & info ~docv:"MULTIPLICITY"
            ~doc:"The multiplicity of values accepted for this attribute." [] in
-  Term.(pure at_create $ vt_t $ atn_t $ mu_t)
+  Term.(const at_create $ vt_t $ atn_t $ mu_t)
 
 let at_delete atn = run @@ fun (module C) ->
   (match%lwt C.Attribute_type.any_of_name_exn atn with
@@ -51,7 +51,7 @@ let at_delete_cmd =
   let open Arg in
   let atn_t = required & pos 0 (some string) None
     & info ~docv:"NAME" ~doc:"Name of the attribute to delete." [] in
-  Term.(pure at_delete $ atn_t)
+  Term.(const at_delete $ atn_t)
 
 let at_list verbose = run @@ fun (module C) ->
   let show (C.Attribute_type.Any at) =
@@ -76,4 +76,4 @@ let at_list_cmd =
   let open Arg in
   let v = value & flag
     & info ~doc:"Show allowed domain and codomain combinations." ["v"] in
-  Term.(pure at_list $ v)
+  Term.(const at_list $ v)

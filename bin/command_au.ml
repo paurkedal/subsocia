@@ -37,7 +37,7 @@ let au_force atns = run_int_exn @@ fun (module C) ->
 let au_force_cmd =
   let atns_t = Arg.(value & pos_all string [] &
                     info ~docv:"ATTRIBUTE-TYPES" []) in
-  Term.(pure au_force $ atns_t)
+  Term.(const au_force $ atns_t)
 
 let au_relax atns = run_int_exn @@ fun (module C) ->
   let module C = Subsocia_derived.Make (C) in
@@ -56,7 +56,7 @@ let au_relax atns = run_int_exn @@ fun (module C) ->
 let au_relax_cmd =
   let atns_t = Arg.(value & pos_all string [] &
                     info ~docv:"ATTRIBUTE-TYPES" []) in
-  Term.(pure au_relax $ atns_t)
+  Term.(const au_relax $ atns_t)
 
 let au_list () = run_exn @@ fun (module C) ->
   let show_at pos (C.Attribute_type.Any at) =
@@ -71,4 +71,4 @@ let au_list () = run_exn @@ fun (module C) ->
     Lwt_io.printl "}" in
   C.Attribute_uniqueness.all () >>= C.Attribute_uniqueness.Set.iter_s show_au
 
-let au_list_cmd = Term.(pure au_list $ pure ())
+let au_list_cmd = Term.(const au_list $ const ())

@@ -41,7 +41,7 @@ let et_create etn = run0 @@ fun (module C) ->
   let%lwt et_idstr = C.Entity_type.(soid et >|= Soid.to_string) in
   Lwt_log.info_f "Created type %s = %s." et_idstr etn
 
-let et_create_cmd = Term.(pure et_create $ et_name_t)
+let et_create_cmd = Term.(const et_create $ et_name_t)
 
 let et_modify etn ent_opt = run @@ fun (module C) ->
   match%lwt C.Entity_type.of_name etn with
@@ -63,7 +63,7 @@ let et_modify_cmd =
          info ~docv:"TEMPLATE"
               ~doc:"Template for the display name of entities of this type."
               ["name-template"]) in
-  Term.(ret (pure et_modify $ etn_t $ ent_t))
+  Term.(ret (const et_modify $ etn_t $ ent_t))
 
 let et_delete etn = run @@ fun (module C) ->
   match%lwt C.Entity_type.of_name etn with
@@ -79,12 +79,12 @@ let et_delete_cmd =
   let et_name_t =
     Arg.(required & pos 0 (some string) None &
          info ~docv:"ET-NAME" ~doc:"Name of the entity to delete" []) in
-  Term.(ret (pure et_delete $ et_name_t))
+  Term.(ret (const et_delete $ et_name_t))
 
 let et_list () = run0 @@ fun (module C) ->
   C.Entity_type.all () >>=
   C.Entity_type.Set.iter_s
     (fun et -> C.Entity_type.name et >>= Lwt_io.printl)
 
-let et_list_cmd = Term.(pure et_list $ pure ())
+let et_list_cmd = Term.(const et_list $ const ())
 

@@ -168,7 +168,7 @@ let e_ls sel_opt = run_exn @@ fun (module C) ->
 let e_ls_cmd =
   let sel_t = Arg.(value & pos 0 (some selector_conv) None &
                    info ~docv:"PATH" []) in
-  Term.(pure e_ls $ sel_t)
+  Term.(const e_ls $ sel_t)
 
 let e_search sel eds = run_bool_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
@@ -184,7 +184,7 @@ let e_search_cmd =
     "Extra information to show for each entity: all, paths, super, sub" in
   let eds_t = Arg.(value & opt eds_conv eds_default &
                    info ~docv:"COMMA-SEPARATED-LIST" ~doc ["D"]) in
-  Term.(pure e_search $ sel_t $ eds_t)
+  Term.(const e_search $ sel_t $ eds_t)
 
 let e_fts q etn super limit cutoff = run_bool_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
@@ -217,7 +217,7 @@ let e_fts_cmd =
   let doc = "Exclude results rank CUTOFF and below." in
   let cutoff_t = Arg.(value & opt (some float) None &
                       info ~docv:"CUTOFF" ~doc ["cutoff"]) in
-  Term.(pure e_fts $ q_t $ et_t $ super_t $ limit_t $ cutoff_t)
+  Term.(const e_fts $ q_t $ et_t $ super_t $ limit_t $ cutoff_t)
 
 let e_create etn add_dsupers add_sels = run_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
@@ -235,7 +235,7 @@ let e_create_cmd =
                     info ~docv:"PATH" ["s"]) in
   let attrs_t = Arg.(non_empty & opt_all add_selector_conv [] &
                     info ~docv:"APATH" ["a"]) in
-  Term.(pure e_create $ etn_t $ succs_t $ attrs_t)
+  Term.(const e_create $ etn_t $ succs_t $ attrs_t)
 
 let e_delete sel = run_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
@@ -245,7 +245,7 @@ let e_delete sel = run_exn @@ fun (module C) ->
 let e_delete_cmd =
   let sel_t = Arg.(required & pos 0 (some selector_conv) None &
                    info ~docv:"PATH" []) in
-  Term.(pure e_delete $ sel_t)
+  Term.(const e_delete $ sel_t)
 
 let e_modify sel add_dsupers del_dsupers add_sels del_sels =
   run_exn @@ fun (module C) ->
@@ -272,5 +272,5 @@ let e_modify_cmd =
                          info ~docv:"APATH" ["a"]) in
   let del_attrs_t = Arg.(value & opt_all delete_selector_conv [] &
                          info ~docv:"APATH" ["d"]) in
-  Term.(pure e_modify $ sel_t $ add_succs_t $ del_succs_t
+  Term.(const e_modify $ sel_t $ add_succs_t $ del_succs_t
                       $ add_attrs_t $ del_attrs_t)

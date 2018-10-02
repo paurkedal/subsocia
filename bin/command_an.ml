@@ -32,7 +32,7 @@ let an_allow_cmd =
                     info ~docv:"SUB-TYPE" []) in
   let etn1_t = Arg.(required & pos 2 (some string) None &
                     info ~docv:"SUPER-TYPE" []) in
-  Term.(pure an_allow $ atn_t $ etn0_t $ etn1_t)
+  Term.(const an_allow $ atn_t $ etn0_t $ etn1_t)
 
 let an_disallow atn etn0 etn1 = run_exn @@ fun (module C) ->
   let%lwt C.Attribute_type.Any at = C.Attribute_type.any_of_name_exn atn in
@@ -47,7 +47,7 @@ let an_disallow_cmd =
                     info ~docv:"SUB-TYPE" []) in
   let etn1_t = Arg.(required & pos 2 (some string) None &
                     info ~docv:"SUPER-TYPE" []) in
-  Term.(pure an_disallow $ atn_t $ etn0_t $ etn1_t)
+  Term.(const an_disallow $ atn_t $ etn0_t $ etn1_t)
 
 let an_list () = run_exn @@ fun (module C) ->
   C.Entity_type.allowed_attributions () >>=
@@ -58,4 +58,4 @@ let an_list () = run_exn @@ fun (module C) ->
   let%lwt etn1 = C.Entity_type.name et1 in
   Lwt_io.printlf "%s %s %s %s" (Multiplicity.to_string mu) atn etn0 etn1
 
-let an_list_cmd = Term.(pure an_list $ pure ())
+let an_list_cmd = Term.(const an_list $ const ())

@@ -47,7 +47,7 @@ let db_schema_cmd =
     Arg.(value & flag &
          info ~doc:"Print the path to the top-level directory \
                     instead of to the individual schema files." ["dir"]) in
-  Term.(pure db_schema $ do_dir_t)
+  Term.(const db_schema $ do_dir_t)
 
 let load_sql (module C : Caqti_lwt.CONNECTION) sql =
   Lwt_io.with_file ~mode:Lwt_io.input sql @@ fun ic ->
@@ -88,7 +88,7 @@ let db_init disable_transaction = Lwt_main.run begin
   0
 end
 
-let db_init_cmd = Term.(pure db_init $ disable_transaction_t)
+let db_init_cmd = Term.(const db_init $ disable_transaction_t)
 
 let get_schema_version_q =
   Caqti_request.find ~env Caqti_type.unit Caqti_type.int
@@ -130,4 +130,4 @@ let db_upgrade () = Lwt_main.run begin
     Lwt.return 0
 end
 
-let db_upgrade_cmd = Term.(pure db_upgrade $ pure ())
+let db_upgrade_cmd = Term.(const db_upgrade $ const ())

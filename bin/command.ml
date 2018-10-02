@@ -44,7 +44,7 @@ let load schema_path disable_transaction =
 let load_t =
   let schema_t = Arg.(required & pos 0 (some file) None &
                       info ~docv:"PATH" []) in
-  Term.(pure load $ schema_t $ disable_transaction_t)
+  Term.(const load $ schema_t $ disable_transaction_t)
 
 (* Main *)
 
@@ -150,7 +150,7 @@ let subcommands = [
 ]
 
 let main_cmd =
-  Term.(ret @@ pure (`Error (true, "Missing subcommand."))),
+  Term.(ret @@ const (`Error (true, "Missing subcommand."))),
   Term.info ?version:Subsocia_version.pkg_version "subsocia"
 
 let () =
