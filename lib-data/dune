@@ -11,6 +11,7 @@
     config-file
     findlib
     findlib.dynload
+    iso639
     lwt
     panograph
     subsocia

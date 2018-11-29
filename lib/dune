@@ -10,9 +10,11 @@
   (preprocess (pps lwt_ppx))
   (libraries
     extunix
+    iso639
     lwt
     lwt.log
     panograph
+    prime prime.unstable
     yojson))
 
 (ocamlyacc subsocia_parser)

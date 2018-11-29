@@ -16,7 +16,7 @@
 
 (** Signature for the derived API. *)
 
-open Panograph_i18n
+open Iso639
 open Subsocia_common
 open Subsocia_selector_types
 
@@ -121,7 +121,7 @@ module type ENTITY = sig
   val can_edit_entity : t -> t -> bool Lwt.t
   val can_search_below : t -> t -> bool Lwt.t
 
-  val display_name : ?context: Set.t -> ?langs: lang list -> t -> string Lwt.t
+  val display_name : ?context: Set.t -> ?langs: Lang.t list -> t -> string Lwt.t
   val candidate_dsupers : ?include_current: bool -> t -> Set.t Lwt.t
 end
 

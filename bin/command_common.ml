@@ -16,13 +16,12 @@
 
 open Cmdliner
 open Lwt.Infix
-open Panograph_i18n
 
 let connect () =
   let uri = Uri.of_string Subsocia_config.database_uri#get in
   Subsocia_direct.connect uri
 
-let langs = [Lang.of_string "en"] (* TODO: Use $LANG *)
+let langs = [Iso639.Lang.of_string_exn "eng"] (* TODO: Use $LANG *)
 
 let run f = Lwt_main.run (f (connect ()))
 

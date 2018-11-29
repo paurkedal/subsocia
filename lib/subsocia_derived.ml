@@ -14,9 +14,9 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Panograph_i18n
-open Printf
+open Iso639
 open Lwt.Infix
+open Printf
 open Subsocia_common
 open Subsocia_derived_intf
 open Subsocia_selector_types
@@ -389,7 +389,13 @@ module Make (Base : Subsocia_intf.S) = struct
         if Prime_string.has_suffix ".+" an then
           let an = Prime_string.slice 0 (String.length an - 2) an in
           Pwt_list.search_s
-            (fun lang -> aux ?tn (sprintf "%s.%s" an (Lang.to_string lang)))
+            (fun lang ->
+              (match%lwt aux ?tn (sprintf "%s.%s" an (Lang.to_string lang)) with
+               | Some s -> Lwt.return_some s
+               | None ->
+                  (match Lang.to_iso639p1 lang with
+                   | Some lc -> aux ?tn (sprintf "%s.%s" an lc)
+                   | None -> Lwt.return_none)))
             langs
         else
           aux ?tn an
