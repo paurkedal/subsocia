@@ -299,26 +299,28 @@ module type ENTITY = sig
       [e'] of type [at] with [xs]. *)
 
   val image1 : Relation.t -> t -> Set.t Lwt.t
-  (** [asub p e] are the attribution subentities of [e] along attributes for
-      which [p] holds. *)
+  (** [image1 p e] are the target entities of attributions with source [e] along
+      attributes for which [p] holds. *)
 
   val preimage1 : Relation.t -> t -> Set.t Lwt.t
-  (** [asub p e] are the attribution superentities of [e] along attributes for
-      which [p] holds. *)
+  (** [preimage1 p e] are the source entities of attributions with target [e]
+      along which [p] holds. *)
 
   val image1_eq : 'a Attribute_type.t -> 'a -> t -> Set.t Lwt.t
-  (** [image1_eq at v e] are the attribution subentities of [e] along [at]
-      gaining the value [v]. *)
+  (** [image1_eq at v e] are the target entities of attributions with source [e]
+      along which the attribute type [at] gains the value [v]. *)
 
   val preimage1_eq : 'a Attribute_type.t -> 'a -> t -> Set.t Lwt.t
-  (** [preimage1_eq at v e] are the attribution superentities of [e] along
-      [at] loosing the value [v]. *)
+  (** [preimage1_eq at v e] are the source entities of attributions with target
+      [e] along which the attribute type [at] looses the value [v]. *)
 
   val image1_fts : ?entity_type: Entity_type.t -> ?super: t ->
                    ?cutoff: float -> ?limit: int ->
                    Subsocia_fts.t -> t -> (t * float) list Lwt.t
-  (** [image1_fts q e] are relevance-weighted subentities along text
-      attributes matching a full-text search for [q], ordered by relevance.
+  (** [image1_fts q e] are relevance-weighted target entities of text
+      attributions with source [e] matching a full-text search for [q], ordered
+      by relevance.
+
       @param entity_type Only include entities of this type if specified.
       @param super Restrict the result to entities strictly below [super].
       @param limit The maximum number of entities to return. Default no limit.
@@ -327,20 +329,22 @@ module type ENTITY = sig
   val preimage1_fts : ?entity_type: Entity_type.t -> ?super: t ->
                       ?cutoff: float -> ?limit: int ->
                       Subsocia_fts.t -> t -> (t * float) list Lwt.t
-  (** [preimage1_fts q e] are relevance-weighted superentities along text
-      attributes matching a full-text search for [q], ordered by relevance.
+  (** [preimage1_fts q e] are relevance-weighted source entities of text
+      attributions with target [e] matching a full-text search for [q], ordered
+      by relevance.
+
       @param entity_type Only include entities of this type if specified.
       @param super Restrict the result to entities strictly below [super].
       @param limit The maximum number of entities to return. Default no limit.
       @param cutoff Results with [rank <= cutoff] are excluded. Default 0.0. *)
 
   val mapping1 : 'a Attribute_type.t -> t -> 'a Values.t Map.t Lwt.t
-  (** [mapping1 at e] is a map of [at]-values indexed by attribution
-      subentities of [e] which gain those values along [at]. *)
+  (** [mapping1 at e] is a map of values of [at]-attributions with source [e]
+      indexed by the attribution targets. *)
 
   val premapping1 : 'a Attribute_type.t -> t -> 'a Values.t Map.t Lwt.t
-  (** [premapping1 at e] is a map of [at]-values indexed by attribution
-      superentities of [e] which loose those values along [at]. *)
+  (** [premapping1 at e] is a map of values of [at]-attributions with target [e]
+      indexed by the attribution sources. *)
 end
 
 module type S = sig
