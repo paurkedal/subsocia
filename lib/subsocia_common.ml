@@ -309,10 +309,3 @@ end
 
 module Int32_set = Prime_enumset.Make_monadic (Int32) (Lwt)
 module Int32_map = Prime_enummap.Make_monadic (Int32) (Lwt)
-
-module Int32_hashable = struct
-  type t = int32
-  let equal = (=)
-  let hash = Hashtbl.hash
-end
-module Int32_event_table = Panograph_event_table.Make (Int32_hashable)

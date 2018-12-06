@@ -17,7 +17,12 @@
 module type S = sig
   include Subsocia_intf.S_SOID with type soid := int32
 
-  val entity_changed : Entity.t -> [`Dsub | `Dsuper | `Asub | `Asuper] React.E.t
+  type entity_change =
+    [ `Force_dsub of Entity.t * Entity.t
+    | `Relax_dsub of Entity.t * Entity.t
+    | `Change_values of Entity.t * Entity.t ]
+
+  val on_entity_change : (entity_change -> unit) -> unit
 
   module type T = Subsocia_intf.S
     with module Attribute_type = Attribute_type

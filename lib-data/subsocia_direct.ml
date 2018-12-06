@@ -1060,8 +1060,9 @@ module Make (P : Param) = struct
   module Entity = struct
     open B.Entity
 
-    let changed_event_table = Int32_event_table.create 97
-    let emit_changed = Int32_event_table.emit changed_event_table
+    let listeners = ref []
+    let on_change f = listeners := f :: !listeners
+    let emit_changed msg = List.iter (fun f -> f msg) !listeners
 
     let compare = Int32.compare
 
@@ -1563,8 +1564,7 @@ module Make (P : Param) = struct
         C.exec Q.e_subsume_inclusion (subentity, superentity)
       end >|= fun result ->
       clear_inclusion_caches ();
-      emit_changed subentity `Dsuper;
-      emit_changed superentity `Dsub;
+      emit_changed (`Force_dsub (subentity, superentity));
       result
 
     let relax_dsub' subentity superentity (module C : CONNECTION) =
@@ -1575,8 +1575,7 @@ module Make (P : Param) = struct
         C.exec Q.e_delete_inclusion (subentity, superentity)
       end >|= fun result ->
       clear_inclusion_caches ();
-      emit_changed subentity `Dsuper;
-      emit_changed superentity `Dsub;
+      emit_changed (`Relax_dsub (subentity, superentity));
       result
 
     let force_dsub subentity superentity =
@@ -1620,8 +1619,7 @@ module Make (P : Param) = struct
     let post_attribute_update (type a) (module C : CONNECTION)
                               (at : a B.Attribute_type.t) e e' =
       clear_attr_caches at;
-      emit_changed e `Asuper;
-      emit_changed e' `Asub;
+      emit_changed (`Change_values (e, e'));
       (match at.B.Attribute_type.at_value_type with
        | Type.String ->
           C.exec Q.fts_clear (e, e') >>=?? fun () ->
@@ -1837,5 +1835,11 @@ let connect uri =
       end in
       f (module C' : T) >|= fun y -> Ok y
 
-    let entity_changed = Int32_event_table.event Entity.changed_event_table
+    type entity_change =
+      [ `Force_dsub of Entity.t * Entity.t
+      | `Relax_dsub of Entity.t * Entity.t
+      | `Change_values of Entity.t * Entity.t ]
+
+    let on_entity_change = Entity.on_change
+
   end : S) [@@ocaml.warning "-3"]
