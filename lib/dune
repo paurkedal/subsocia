@@ -12,7 +12,7 @@
     extunix
     iso639
     lwt
-    lwt.log
+    lwt_log
     prime prime.unstable
     yojson))
 
