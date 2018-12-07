@@ -827,7 +827,7 @@ module Make (P : Param) = struct
     let all () =
       with_db_exn @@ fun ((module C : CONNECTION) as conn) ->
       C.fold Q.at_all List.cons () [] >>=? fun at_ids ->
-      Pwt_list.fold_s
+      Lwt_list.fold_s
         (fun id acc -> any_of_soid_exn' ~conn id >|= fun at -> Set.add at acc)
         at_ids Set.empty
 

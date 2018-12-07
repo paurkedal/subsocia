@@ -16,6 +16,7 @@
 
 open Lwt.Infix
 open Subsocia_common
+open Subsocia_prereq
 open Subsocia_selector
 open Unprime_list
 
@@ -140,7 +141,7 @@ module Make (C : Subsocia_intf.S) = struct
       Lwt_list.iter_s (exec_et_adjust et) adjusts
     | `Et_delete etn ->
       let%lwt et = C.Entity_type.of_name etn in
-      Pwt_option.iter_s C.Entity_type.delete et
+      Lwt_option.iter_s C.Entity_type.delete et
     | `Et_allow_dsub (etn0, etn1) ->
       let%lwt et0 = req_et etn0 in
       let%lwt et1 = req_et etn1 in

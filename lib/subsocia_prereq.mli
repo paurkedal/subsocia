@@ -14,6 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
+(** Internal *)
+
 val invalid_arg_f : ('a, unit, string, 'b) format4 -> 'a
 
 val cache_hertz : float
@@ -21,3 +23,15 @@ val cache_second : float
 val cache_metric : Prime_cache_metric.t
 
 module Beacon : Prime_beacon.S
+
+module Lwt_option : sig
+  val map_s : ('a -> 'b Lwt.t) -> 'a option -> 'b option Lwt.t
+  val iter_s : ('a -> unit Lwt.t) -> 'a option -> unit Lwt.t
+end
+
+module Lwt_list : sig
+  include module type of Lwt_list
+  val fold_s : ('a -> 'b -> 'b Lwt.t) -> 'a list -> 'b -> 'b Lwt.t
+  val search_s : ('a -> 'b option Lwt.t) -> 'a list -> 'b option Lwt.t
+  val flatten_map_p : ('a -> 'b list Lwt.t) -> 'a list -> 'b list Lwt.t
+end

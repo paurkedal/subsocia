@@ -19,6 +19,7 @@ open Command_common
 open Lwt.Infix
 open Subsocia_cmdliner
 open Subsocia_common
+open Subsocia_prereq
 open Subsocia_selector
 open Subsocia_selector_types
 open Unprime
@@ -189,8 +190,8 @@ let e_search_cmd =
 let e_fts q etn super limit cutoff = run_bool_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let%lwt root = C.Entity.root in
-  let%lwt entity_type = Pwt_option.map_s U.entity_type_of_arg etn in
-  let%lwt super = Pwt_option.map_s U.Entity.select_one super in
+  let%lwt entity_type = Lwt_option.map_s U.entity_type_of_arg etn in
+  let%lwt super = Lwt_option.map_s U.Entity.select_one super in
   let%lwt es = C.Entity.image1_fts ?entity_type ?super ?limit ?cutoff
                                    (Subsocia_fts.tsquery q) root in
   let show (e, rank) =

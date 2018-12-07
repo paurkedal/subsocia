@@ -13,7 +13,6 @@
     findlib.dynload
     iso639
     lwt
-    panograph
     subsocia
     prime.unstable
     react))

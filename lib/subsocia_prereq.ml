@@ -15,6 +15,8 @@
  *)
 
 open Printf
+open Unprime_option
+open Unprime_list
 
 let invalid_arg_f fmt = ksprintf invalid_arg fmt
 
@@ -42,3 +44,33 @@ let cache_metric =
   Prime_cache_metric.create ~current_time ~current_memory_pressure ()
 
 module Beacon = Prime_beacon.Make (struct let cache_metric = cache_metric end)
+
+module Lwt_option = struct
+  open Lwt.Infix
+
+  let map_s f = function
+   | None -> Lwt.return_none
+   | Some x -> f x >|= Option.some
+
+  let iter_s f = function
+   | None -> Lwt.return_unit
+   | Some x -> f x
+
+end
+
+module Lwt_list = struct
+  open Lwt.Infix
+  include Lwt_list
+
+  let rec fold_s f = function
+   | [] -> Lwt.return
+   | x :: xs -> fun acc -> f x acc >>= fold_s f xs
+
+  let rec search_s f = function
+   | [] -> Lwt.return None
+   | x :: xs ->
+      f x >>= (function Some _ as r -> Lwt.return r | None -> search_s f xs)
+
+  let flatten_map_p f xs =
+    Lwt_list.rev_map_p f xs >|= fun yss -> List.fold List.rev_append yss []
+end

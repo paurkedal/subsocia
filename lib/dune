@@ -13,7 +13,6 @@
     iso639
     lwt
     lwt.log
-    panograph
     prime prime.unstable
     yojson))
 

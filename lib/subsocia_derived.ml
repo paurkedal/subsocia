@@ -19,6 +19,7 @@ open Lwt.Infix
 open Printf
 open Subsocia_common
 open Subsocia_derived_intf
+open Subsocia_prereq
 open Subsocia_selector_types
 open Unprime_list
 
@@ -70,7 +71,7 @@ module Make (Base : Subsocia_intf.S) = struct
       | Inter [] -> assert false
       | Inter (r :: rs) ->
         to_selector r
-          >>= Pwt_list.fold_s
+          >>= Lwt_list.fold_s
                 (fun r rs_sel ->
                   to_selector r >|= fun r_sel ->
                   Select_inter (r_sel, rs_sel)) rs
@@ -339,7 +340,7 @@ module Make (Base : Subsocia_intf.S) = struct
       let ats = apm |> Entity_type.Map.bindings
                     |> List.rev_map snd |> List.rev_flatten in
       let%lwt aus =
-        Pwt_list.fold_s
+        Lwt_list.fold_s
           (fun (Attribute_type.Any at) acc ->
             Attribute_uniqueness.affecting at >|= fun aus ->
             Attribute_uniqueness.Set.union aus acc)
@@ -351,8 +352,8 @@ module Make (Base : Subsocia_intf.S) = struct
         Lwt.return (List.map (fun p' -> Select_with (p', p)) ps') in
       let try_au au =
         unique_premapping1 au e >|= Entity.Map.bindings
-          >>= Pwt_list.flatten_map_p try_r in
-      Pwt_list.flatten_map_p try_au (Attribute_uniqueness.Set.elements aus)
+          >>= Lwt_list.flatten_map_p try_r in
+      Lwt_list.flatten_map_p try_au (Attribute_uniqueness.Set.elements aus)
 
     let rec display_name_var ~context ~langs e spec =
       let%lwt root = Entity.root in
@@ -388,7 +389,7 @@ module Make (Base : Subsocia_intf.S) = struct
       match%lwt
         if Prime_string.has_suffix ".+" an then
           let an = Prime_string.slice 0 (String.length an - 2) an in
-          Pwt_list.search_s
+          Lwt_list.search_s
             (fun lang ->
               (match%lwt aux ?tn (sprintf "%s.%s" an (Lang.to_string lang)) with
                | Some s -> Lwt.return_some s
@@ -419,7 +420,7 @@ module Make (Base : Subsocia_intf.S) = struct
           Lwt.return None in
       let%lwt et = Base.Entity.entity_type e in
       let%lwt tmpl = Base.Entity_type.entity_name_tmpl et in
-      Pwt_list.search_s aux (Prime_string.chop_affix "|" tmpl)
+      Lwt_list.search_s aux (Prime_string.chop_affix "|" tmpl)
 
     let display_name ?(context = Entity.Set.empty) ?(langs = []) e =
       match%lwt display_name_tmpl ~context ~langs e with
