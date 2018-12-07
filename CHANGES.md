@@ -16,6 +16,8 @@ Breaking changes:
 - `Subsocia_intf.ATTRIBUTE_TYPE.of_name` has been replaced by `of_name_exn`.
 - `Failure` exceptions have been replaced by `Subsocia_error.Exn`.
 - Removed various deprecated functions.
+- Replaced `entity_changed` event table with plain callback registration
+  `on_entity_change`.
 
 Non-breaking changes:
 

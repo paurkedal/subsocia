@@ -13,6 +13,7 @@ depends: [
   "cmdliner"
   "config-file"
   "extunix"
+  "iso639"
   "ocamlfind"
   "lwt"
   "lwt_ppx"
