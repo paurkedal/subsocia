@@ -14,5 +14,4 @@
     iso639
     lwt
     subsocia
-    prime.unstable
-    react))
+    prime.unstable))
