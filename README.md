@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/paurkedal/subsocia.svg?style=svg)](https://circleci.com/gh/paurkedal/subsocia)
+
 # subsocia - People, organizational data, and access control
 
 ## Synopsis
