@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2017  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,8 +15,5 @@
  *)
 
 module type S = Subsocia_direct_intf.S
-
-val schema_prefix : string ref
-val fetch_grade : float
 
 val connect : Uri.t -> (module S)

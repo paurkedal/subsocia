@@ -34,4 +34,8 @@ module type S = sig
   val transaction : ((module T) -> 'a Lwt.t) -> 'a Lwt.t
 
   val clear_caches : unit -> unit
+
+  val db_uri : Uri.t
+
+  val db_schema : string option
 end

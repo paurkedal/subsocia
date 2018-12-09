@@ -25,9 +25,8 @@ let table_for_type : type a. a Type.t -> string = function
  | Type.Int -> "attribution_int"
  | Type.String -> "attribution_string"
 
-let schema_prefix = ref "subsocia." (* FIXME: import *)
-
 module type Arg = sig
+  val db_schema : string option
   module Attribute_type : ATTRIBUTE_TYPE with type soid = int32
   module Relation : RELATION with module Attribute_type := Attribute_type
 end
@@ -52,6 +51,8 @@ module Make (Arg : Arg) = struct
   open Arg
   open Query
 
+  let db_schema_prefix = match db_schema with None -> "" | Some s -> s ^ "."
+
   type bind = Bind : int * 'a Caqti_type.t * 'a -> bind
 
   let table_for_adjacency = function
@@ -70,11 +71,11 @@ module Make (Arg : Arg) = struct
       fL " JOIN %s%s AS q%d \
              ON q%d.output_id = q%d.output_id \
             AND q%d.input_id = q%d.input_id"
-        !schema_prefix (table_for_adjacency pred) (i + 1) (i + 1) i (i + 1) i in
+        db_schema_prefix (table_for_adjacency pred) (i + 1) (i + 1) i (i + 1) i in
     (function
      | [] -> assert false
      | pred :: preds ->
-        S(fL "%s%s AS q%d" !schema_prefix (table_for_adjacency pred) 0 ::
+        S(fL "%s%s AS q%d" db_schema_prefix (table_for_adjacency pred) 0 ::
           List.mapi make_join preds))
 
   let sql_of_value

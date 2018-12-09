@@ -40,8 +40,6 @@ let fetch_grade = 1e-3 *. cache_second
 let attribute_type_grade = fetch_grade
 let preceq_grade = 1e-2 *. cache_second (* TODO: Highly non-constant. *)
 
-let schema_prefix = ref "subsocia."
-
 let bool_of_int = function 0 -> false | 1 -> true | _ -> assert false
 
 (* TODO: Read custom mapping from a configuration file. These are only the
@@ -66,12 +64,14 @@ let tsconfig_of_lang2 = function
 
 module type S = Subsocia_direct_intf.S
 
-module Q = struct
+module Make_Q (P : sig val db_schema : string option end) = struct
+
+  let db_schema_prefix = match P.db_schema with None -> "" | Some s -> s ^ "."
 
   let env di = function
    | "." ->
       (match Caqti_driver_info.dialect_tag di with
-       | `Pgsql -> Caqti_request.L !schema_prefix
+       | `Pgsql -> Caqti_request.L db_schema_prefix
        | _ -> Caqti_request.S [])
    | _ -> raise Not_found
 
@@ -80,7 +80,7 @@ module Q = struct
   let (-->?) tA tR = Caqti_request.find_opt ~env tA tR
   let (-->*) tA tR = Caqti_request.collect ~env tA tR
 
-  let table name = Caqti_request.(S [L !schema_prefix; L name])
+  let table name = Caqti_request.(S [L db_schema_prefix; L name])
 
   open Caqti_type
 
@@ -545,15 +545,15 @@ module Q = struct
      WHERE output_id = ? AND attribute_type_id = ?"
 
   let fts_clear = (tup2 int32 int32 -->! unit)
-    "DELETE FROM subsocia.attribution_string_fts \
+    "DELETE FROM $.attribution_string_fts \
      WHERE input_id = ? AND output_id = ?"
   let fts_insert = (tup2 int32 int32 -->! unit)
-    "INSERT INTO subsocia.attribution_string_fts \
+    "INSERT INTO $.attribution_string_fts \
                   (input_id, output_id, fts_config, fts_vector) \
      SELECT a.input_id, a.output_id, at.fts_config, \
             to_tsvector(at.fts_config::regconfig, string_agg(value, '$')) \
-     FROM subsocia.attribution_string AS a \
-       NATURAL JOIN subsocia.attribute_type AS at \
+     FROM $.attribution_string AS a \
+       NATURAL JOIN $.attribute_type AS at \
      WHERE NOT at.fts_config IS NULL \
        AND a.input_id = ? AND a.output_id = ? \
      GROUP BY a.input_id, a.output_id, at.fts_config"
@@ -727,6 +727,9 @@ end
 module type CONNECTION = Caqti_lwt.CONNECTION
 
 module type Param = sig
+
+  val db_schema : string option
+
   val with_db :
     transaction: bool ->
     ((module CONNECTION) -> ('a, ([> Caqti_error.t] as 'e)) result Lwt.t) ->
@@ -734,6 +737,8 @@ module type Param = sig
 end
 
 module Make (P : Param) = struct
+  module Q = Make_Q (P)
+
   let inclusion_cache = Cache.create ~cache_metric 61
 
   let with_db ?conn ?(transaction = false) f =
@@ -903,6 +908,7 @@ module Make (P : Param) = struct
   end
 
   module Attribution_sql = Subsocia_attribution_sql.Make (struct
+    let db_schema = P.db_schema
     module Attribute_type = struct
       include B.Attribute_type
       include Attribute_type
@@ -1743,9 +1749,19 @@ module Make (P : Param) = struct
     Entity.clear_caches ()
 end
 
-let connect uri =
+let connect db_uri =
   (module struct
+
+    let db_uri, db_schema =
+      (match Uri.get_query_param db_uri "schema" with
+       | None -> db_uri, Some "subsocia"
+       | Some ""     -> Uri.remove_query_param db_uri "schema", None
+       | Some schema -> Uri.remove_query_param db_uri "schema", Some schema)
+
     module M = Make (struct
+
+      let db_schema = db_schema
+
       let wrap_transaction f (module C : CONNECTION) =
         C.start () >>=?? fun () ->
         begin try%lwt
@@ -1760,7 +1776,7 @@ let connect uri =
         end
 
       let pool =
-        let connect () = Caqti_lwt.connect uri in
+        let connect () = Caqti_lwt.connect db_uri in
         let disconnect (module C : CONNECTION) = C.disconnect () in
         let validate (module C : CONNECTION) = C.validate () in
         let check (module C : CONNECTION) = C.check in
@@ -1811,6 +1827,7 @@ let connect uri =
       M.with_db_exn @@ fun ((module C : CONNECTION) as conn) ->
       let module C' = struct
         module M = Make (struct
+          let db_schema = db_schema
           let lock = Lwt_mutex.create ()
           let with_db ~transaction:_ f =
             Lwt_mutex.with_lock lock (fun () -> f conn)

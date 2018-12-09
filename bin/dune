@@ -5,6 +5,7 @@
   (libraries
     caqti-dynload
     cmdliner
-    uri
+    re
     subsocia
-    subsocia_data))
+    subsocia_data
+    uri))

@@ -23,9 +23,15 @@ open Unprime
 
 let (>>=??) m f = m >>= function Ok x -> f x | Error _ as r -> Lwt.return r
 
-let env _ = function
- | "." -> Caqti_request.L !Subsocia_direct.schema_prefix
- | _ -> raise Not_found
+let db_schema_prefix =
+  (match Subsocia_connection.db_schema with
+   | None -> ""
+   | Some s -> s ^ ".")
+
+let env =
+  fun _ -> function
+   | "." -> Caqti_request.L db_schema_prefix
+   | _ -> raise Not_found
 
 let schema_dir =
   try Sys.getenv "SUBSOCIA_SCHEMA_DIR"
@@ -49,19 +55,31 @@ let db_schema_cmd =
                     instead of to the individual schema files." ["dir"]) in
   Term.(const db_schema $ do_dir_t)
 
+let subsocia_dot_re = Re.compile Re.(seq [bow; str "subsocia."])
+
 let load_sql (module C : Caqti_lwt.CONNECTION) sql =
   Lwt_io.with_file ~mode:Lwt_io.input sql @@ fun ic ->
   let rec loop () =
     (match%lwt Caqti_lwt_sql_io.read_sql_statement Lwt_io.read_char_opt ic with
      | None ->
         Lwt.return_ok ()
+     | Some "CREATE SCHEMA subsocia" ->
+        (match Subsocia_connection.db_schema with
+         | None -> loop ()
+         | Some schema ->
+            let stmt = "CREATE SCHEMA " ^ schema in
+            C.exec (Caqti_request.exec ~oneshot:true Caqti_type.unit stmt) ()
+            >>=?? loop)
      | Some stmt ->
+        let stmt =
+          if db_schema_prefix = "subsocia." then stmt else
+          Re.replace_string subsocia_dot_re ~by:db_schema_prefix stmt in
         C.exec (Caqti_request.exec ~oneshot:true Caqti_type.unit stmt) ()
         >>=?? loop) in
   loop ()
 
 let db_init disable_transaction = Lwt_main.run begin
-  let uri = Uri.of_string Subsocia_config.database_uri#get in
+  let uri = Subsocia_connection.db_uri in
   let%lwt cc = Caqti_lwt.connect uri >>= Caqti_lwt.or_fail in
   Lwt_list.iter_s
     (fun fn ->
@@ -98,7 +116,7 @@ let get_schema_version (module C : Caqti_lwt.CONNECTION) =
   C.find get_schema_version_q ()
 
 let db_upgrade () = Lwt_main.run begin
-  let uri = Uri.of_string Subsocia_config.database_uri#get in
+  let uri = Subsocia_connection.db_uri in
   let%lwt c = Caqti_lwt.connect uri >>= Caqti_lwt.or_fail in
   let module C : Caqti_lwt.CONNECTION = (val c) in
   let%lwt db_schema_version = get_schema_version c >>= Caqti_lwt.or_fail in

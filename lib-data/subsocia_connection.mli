@@ -23,6 +23,10 @@ module type S = sig
     | `Change_values of Entity.t * Entity.t ]
 
   val on_entity_change : (entity_change -> unit) -> unit
+
+  val db_uri : Uri.t
+
+  val db_schema : string option
 end
 
 val connect : Uri.t -> (module S)

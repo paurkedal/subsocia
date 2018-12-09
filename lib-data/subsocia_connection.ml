@@ -23,6 +23,10 @@ module type S = sig
     | `Change_values of Entity.t * Entity.t ]
 
   val on_entity_change : (entity_change -> unit) -> unit
+
+  val db_uri : Uri.t
+
+  val db_schema : string option
 end
 
 let connect uri = (module struct
@@ -31,6 +35,8 @@ let connect uri = (module struct
   include Subsocia_selector.Selector_utils (Base)
   type entity_change = Base.entity_change
   let on_entity_change = Base.on_entity_change
+  let db_uri = Base.db_uri
+  let db_schema = Base.db_schema
 end : S)
 
 let subsocia_uri = Uri.of_string Subsocia_config.database_uri#get

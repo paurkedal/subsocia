@@ -21,6 +21,7 @@ depends: [
   "ocaml"
   "ounit"
   "prime"
+  "re"
   "uri"
   "yojson"
 ]
