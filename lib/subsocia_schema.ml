@@ -60,7 +60,7 @@ module Make (C : Subsocia_intf.S) = struct
     let sel', attrs = add_selector_of_selector asel in
     let%lwt e' =
       match sel' with
-      | None -> C.Entity.root
+      | None -> C.Entity.get_root ()
       | Some sel' -> Su.select_one sel' in
     String_map.iter_s
       (fun an vs ->
@@ -77,7 +77,7 @@ module Make (C : Subsocia_intf.S) = struct
     let sel', attrs = delete_selector_of_selector sel in
     let%lwt e' =
       match sel' with
-      | None -> C.Entity.root
+      | None -> C.Entity.get_root ()
       | Some sel' -> Su.select_one sel' in
     String_map.iter_s
       (fun an vs_opt ->

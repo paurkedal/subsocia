@@ -86,7 +86,7 @@ module Entity_utils (C : Subsocia_intf.S) = struct
         avs_str in
     let%lwt asgn =
       List.flatten =|< Lwt_list.map_p aux (String_map.bindings asgn) in
-    let%lwt root = Entity.root in
+    let%lwt root = Entity.get_root () in
     match ctx with
     | None -> Lwt.return (root, asgn)
     | Some ctx -> Entity.select_one ctx >|= fun e_ctx -> (e_ctx, asgn)
@@ -103,7 +103,7 @@ module Entity_utils (C : Subsocia_intf.S) = struct
       | None -> Lwt.return [Clear_values at] in
     let%lwt asgn =
       List.flatten =|< Lwt_list.map_p aux (String_map.bindings asgn) in
-    let%lwt root = Entity.root in
+    let%lwt root = Entity.get_root () in
     match ctx with
     | None -> Lwt.return (root, asgn)
     | Some ctx -> Entity.select_one ctx >|= fun e_ctx -> (e_ctx, asgn)
@@ -173,7 +173,7 @@ let e_ls_cmd =
 
 let e_search sel eds = run_bool_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
-  let%lwt root = C.Entity.root in
+  let%lwt root = C.Entity.get_root () in
   let%lwt es = U.Entity.select_from sel (C.Entity.Set.singleton root) in
   C.Entity.Set.iter_s (U.show_entity eds) es >>= fun () ->
   Lwt.return (not (C.Entity.Set.is_empty es))
@@ -189,7 +189,7 @@ let e_search_cmd =
 
 let e_fts q etn super limit cutoff = run_bool_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
-  let%lwt root = C.Entity.root in
+  let%lwt root = C.Entity.get_root () in
   let%lwt entity_type = Lwt_option.map_s U.entity_type_of_arg etn in
   let%lwt super = Lwt_option.map_s U.Entity.select_one super in
   let%lwt es = C.Entity.image1_fts ?entity_type ?super ?limit ?cutoff

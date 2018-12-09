@@ -276,11 +276,11 @@ module Selector_utils (C : Subsocia_intf.S) = struct
   [@@@ocaml.warning "+3"]
 
   let select sel =
-    let%lwt root = C.Entity.root in
+    let%lwt root = C.Entity.get_root () in
     select_from sel (C.Entity.Set.singleton root)
 
   let select_one sel =
-    let%lwt root = C.Entity.root in
+    let%lwt root = C.Entity.get_root () in
     let%lwt es = select_from sel (C.Entity.Set.singleton root) in
     (match C.Entity.Set.cardinal es with
      | 1 -> Lwt.return (C.Entity.Set.min_elt_exn es)
@@ -291,7 +291,7 @@ module Selector_utils (C : Subsocia_intf.S) = struct
                                 n (string_of_selector sel))
 
   let select_opt sel =
-    let%lwt root = C.Entity.root in
+    let%lwt root = C.Entity.get_root () in
     let%lwt es = select_from sel (C.Entity.Set.singleton root) in
     (match C.Entity.Set.cardinal es with
      | 0 -> Lwt.return_none

@@ -142,8 +142,9 @@ module Make (Base : Subsocia_intf.S) = struct
     let et_auth_group = _et "auth_group"
     let et_person = _et "person"
 
-    let _e_un ?(from = Entity.root) en =
-      let%lwt from = from in
+    let _e_un ?from en =
+      let%lwt from =
+        match from with Some from -> from | None -> Entity.get_root () in
       let%lwt at_unique_name = at_unique_name in
       let%lwt es = Entity.image1_eq at_unique_name en from in
       match Entity.Set.cardinal es with
@@ -201,7 +202,7 @@ module Make (Base : Subsocia_intf.S) = struct
 
     let of_unique_name ?super en =
       let%lwt super =
-        match super with Some e -> Lwt.return e | None -> Entity.root in
+        match super with Some e -> Lwt.return e | None -> Entity.get_root () in
       let%lwt at_unique_name = Const.at_unique_name in
       let%lwt es = Entity.image1_eq at_unique_name en super in
       match Entity.Set.cardinal es with
@@ -356,7 +357,7 @@ module Make (Base : Subsocia_intf.S) = struct
       Lwt_list.flatten_map_p try_au (Attribute_uniqueness.Set.elements aus)
 
     let rec display_name_var ~context ~langs e spec =
-      let%lwt root = Entity.root in
+      let%lwt root = Entity.get_root () in
 
       let aux ?tn an =
         match%lwt Base.Attribute_type.any_of_name_exn an with

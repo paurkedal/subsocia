@@ -254,7 +254,7 @@ module type ENTITY = sig
   (** [is_root e] is true iff [e] is the root element. *)
 
   val root : t Lwt.t
-  [@@@ocaml.deprecated "Use get_root."]
+  [@@ocaml.deprecated "Use get_root."]
 
   val get_root : unit -> t Lwt.t
   (** [get_root ()] returns the root element. *)
