@@ -56,7 +56,7 @@ module Perf = struct
 end
 
 let test n =
-  let%lwt root = Entity.root in
+  let%lwt root = Entity.get_root () in
   let ea = Array.make n root in
   let ia = Array.init n (fun _ -> Array.make n false) in
   let%lwt org_group = Entity_type.of_name "org_group" >|= Option.get in
