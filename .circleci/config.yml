@@ -24,7 +24,9 @@ jobs:
           command: opam repo add paurkedal git://github.com/paurkedal/opam-repo-paurkedal.git
       - run:
           name: Pin package
-          command: opam pin add -yn subsocia .
+          command: |
+            version=`egrep '^## v[0-9]' CHANGES.md | head -1 | sed 's/^## v\(.*\) - .*/\1/'`
+            opam pin add -yn subsocia.${version} .
       - run:
           name: Install system dependencies
           command: |

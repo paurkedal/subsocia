@@ -25,7 +25,7 @@ Non-breaking changes:
 - Added `Type.pp`.
 - Added module `Caqti_error`.
 
-## [0.17.1] - 2018-06-21
+## v0.17.1 - 2018-06-21
 
 - Fix loop termination in init.db.
 - Fix SQL code affecting insertion of attribute uniqueness.
@@ -36,43 +36,43 @@ Non-breaking changes:
 - Deprecate module-level constants.
 - Deprecate Value.ex and rename ex to any in Type and Values.
 
-## [0.17.0] - 2018-02-27
+## v0.17.0 - 2018-02-27
 
 - Removed RPC API.
 - Update to Lwt 3.
 - Fix a injection of exception into lwt threads.
 
-## [0.16.1] - 2018-02-19
+## v0.16.1 - 2018-02-19
 
 - Update to work with Eliom 6.3.0 and Caqti 0.10.0.
 
-## [0.16.0] - 2018-02-06
+## v0.16.0 - 2018-02-06
 
 - Convert to Caqti v2.
 - Rewrite plugin system to use findlib directly.
 
-## [0.15.1] - 2017-12-06
+## v0.15.1 - 2017-12-06
 
 - Fix deprecations for Caqti 0.8.0 and use future-proof findlib names.
 
-## [0.15.0] - 2017-06-05
+## v0.15.0 - 2017-06-05
 
 - Update to Caqti 0.6.0.
 
-## [0.14.0] - 2016-12-15
+## v0.14.0 - 2016-12-15
 
 - Update to Eliom 6.
 
-## [0.13.3] - 2016-11-12
+## v0.13.3 - 2016-11-12
 
 - Fix server-client typing.
 
-## [0.13.2] - 2016-09-22
+## v0.13.2 - 2016-09-22
 
 - Added et-info subcommand.
 - Fixed filter construction for full-text search.
 
-## [0.13.1] - 2016-08-16
+## v0.13.1 - 2016-08-16
 
 ### Added
 - Added `Soid.compare`.
@@ -84,7 +84,7 @@ Non-breaking changes:
 ### Removed
 - `Subsocia_derived_intf.S.Base` component, indented only for internal use.
 
-## [0.13.0] - 2016-08-14
+## v0.13.0 - 2016-08-14
 
 ### Added
 - JSON conversions for values.
@@ -109,20 +109,20 @@ Non-breaking changes:
 - Removed `Attribute` module, containing only the deprecated `ex` type.
 - Removed deprecated `access` keyword from schema.
 
-## [0.12.3] - 2016-07-11
+## v0.12.3 - 2016-07-11
 - Update to latest adpkg.
 
-## [0.12.2] - 2016-06-30
+## v0.12.2 - 2016-06-30
 
 ### Fixes
 - Fix watermarking and `pkg_datadir` substitution.
 
-## [0.12.1] - 2016-06-29
+## v0.12.1 - 2016-06-29
 
 ### Fixes
 - Handle deep contexts for add- and delete-selectors.
 
-## [0.12.0] – 2016-06-12
+## v0.12.0 – 2016-06-12
 
 ### Added
 - `Entity_type.equal`, `Entity_type.required`, `Entity.equal`,
@@ -138,18 +138,3 @@ Non-breaking changes:
 
 ### Deprecated
 - `Entity.type_` with new name `Entity.entity_type`.
-
-
-[0.16.1]: https://github.com/paurkedal/subsocia/compare/0.16.0...0.16.1
-[0.16.0]: https://github.com/paurkedal/subsocia/compare/0.15.1...0.16.0
-[0.15.1]: https://github.com/paurkedal/subsocia/compare/0.15.0...0.15.1
-[0.15.0]: https://github.com/paurkedal/subsocia/compare/0.14.0...0.15.0
-[0.14.0]: https://github.com/paurkedal/subsocia/compare/0.13.3...0.14.0
-[0.13.3]: https://github.com/paurkedal/subsocia/compare/0.13.2...0.13.3
-[0.13.2]: https://github.com/paurkedal/subsocia/compare/0.13.1...0.13.2
-[0.13.1]: https://github.com/paurkedal/subsocia/compare/0.13.0...0.13.1
-[0.13.0]: https://github.com/paurkedal/subsocia/compare/0.12.3...0.13.0
-[0.12.3]: https://github.com/paurkedal/subsocia/compare/0.12.2...0.12.3
-[0.12.2]: https://github.com/paurkedal/subsocia/compare/0.12.1...0.12.2
-[0.12.1]: https://github.com/paurkedal/subsocia/compare/0.12.0...0.12.1
-[0.12.0]: https://github.com/paurkedal/subsocia/compare/0.11...0.12.0
