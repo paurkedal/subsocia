@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -19,31 +19,6 @@ open Unprime_option
 open Unprime_list
 
 let invalid_arg_f fmt = ksprintf invalid_arg fmt
-
-let cache_hertz = Int64.to_float ExtUnixSpecific.(sysconf CLK_TCK)
-let cache_second = 1.0 /. cache_hertz
-
-(*
-let cache_section = Lwt_log.Section.make "subsocia.cache"
-*)
-
-let cache_metric =
-  let current_time () =
-    let tms = Unix.times () in
-    Unix.(tms.tms_utime +. tms.tms_stime) in
-  let current_memory_pressure =
-    fun () -> cache_hertz (* 1 GHz / 1 Gword *) in
-(*
-  let report cs =
-    let open Prime_cache_metric in
-    Lwt_log.ign_debug_f ~section:cache_section
-      "Beacon collection: time = %g; p = %g; n_live = %d; n_dead = %d"
-      cs.cs_time cs.cs_memory_pressure
-      cs.cs_live_count cs.cs_dead_count in
-*)
-  Prime_cache_metric.create ~current_time ~current_memory_pressure ()
-
-module Beacon = Prime_beacon.Make (struct let cache_metric = cache_metric end)
 
 module Lwt_option = struct
   open Lwt.Infix

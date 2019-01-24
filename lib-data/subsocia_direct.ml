@@ -23,6 +23,28 @@ open Unprime
 open Unprime_list
 open Unprime_option
 
+let cache_hertz = Int64.to_float ExtUnixSpecific.(sysconf CLK_TCK)
+let cache_second = 1.0 /. cache_hertz
+(* let cache_section = Lwt_log.Section.make "subsocia.cache" *)
+
+let cache_metric =
+  let current_time () =
+    let tms = Unix.times () in
+    Unix.(tms.tms_utime +. tms.tms_stime) in
+  let current_memory_pressure =
+    fun () -> cache_hertz (* 1 GHz / 1 Gword *) in
+(*
+  let report cs =
+    let open Prime_cache_metric in
+    Lwt_log.ign_debug_f ~section:cache_section
+      "Beacon collection: time = %g; p = %g; n_live = %d; n_dead = %d"
+      cs.cs_time cs.cs_memory_pressure
+      cs.cs_live_count cs.cs_dead_count in
+*)
+  Prime_cache_metric.create ~current_time ~current_memory_pressure ()
+
+module Beacon = Prime_beacon.Make (struct let cache_metric = cache_metric end)
+
 let (>|=?) m f =
   m >|= function Ok x -> Ok (f x) | Error _ as r -> r
 

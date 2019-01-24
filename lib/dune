@@ -9,10 +9,8 @@
     Subsocia_selector_types)
   (preprocess (pps lwt_ppx))
   (libraries
-    extunix
     iso639
     lwt
-    lwt_log
     prime prime.unstable
     yojson))
 

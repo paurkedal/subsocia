@@ -9,9 +9,11 @@
     caqti
     caqti-lwt
     config-file
+    extunix
     findlib
     findlib.dynload
     iso639
     lwt
+    lwt_log
     subsocia
     prime.unstable))

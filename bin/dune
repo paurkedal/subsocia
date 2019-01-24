@@ -5,6 +5,8 @@
   (libraries
     caqti-dynload
     cmdliner
+    lwt
+    lwt_log
     re
     subsocia
     subsocia_data
