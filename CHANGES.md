@@ -1,6 +1,6 @@
 # Change Log
 
-## unreleased
+## v0.18.0 - 2019-01-24
 
 Breaking changes:
 
@@ -18,12 +18,17 @@ Breaking changes:
 - Removed various deprecated functions.
 - Replaced `entity_changed` event table with plain callback registration
   `on_entity_change`.
+- Some changes to the semi-internal API of `Subsocia_direct`.
 
 Non-breaking changes:
 
 - Added `equal` and `compare` to `Type` and `Values`.
 - Added `Type.pp`.
 - Added module `Caqti_error`.
+- Fix cache clearing after transactions.
+- Parametrised DB schema prefix.
+- Use `iso639` package for nationalization. Default language codes are now 3
+  letter, but falling back to 2 letter lookups for compatibility.
 
 ## v0.17.1 - 2018-06-21
 
