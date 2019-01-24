@@ -1,5 +1,9 @@
 # Change Log
 
+## v0.18.1 - 2019-01-24
+
+- Move `lwt_log` and extunix dependencies to subsocia.data.
+
 ## v0.18.0 - 2019-01-24
 
 Breaking changes:
