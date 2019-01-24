@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -1850,7 +1850,7 @@ let connect db_uri =
           include M.Entity
         end
       end in
-      f (module C' : T) >|= fun y -> Ok y
+      f (module C' : T) >|= fun y -> clear_caches (); Ok y
 
     type entity_change =
       [ `Force_dsub of Entity.t * Entity.t
