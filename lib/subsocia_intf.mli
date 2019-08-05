@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -345,6 +345,12 @@ module type ENTITY = sig
   val premapping1 : 'a Attribute_type.t -> t -> 'a Values.t Map.t Lwt.t
   (** [premapping1 at e] is a map of values of [at]-attributions with target [e]
       indexed by the attribution sources. *)
+
+  val connected_by : 'a Attribute_type.t -> 'a -> (t * t) list Lwt.t
+  (** [connected_by at vs] is the list of pairs of entities such that there is
+      an attribution of type [at] and value [v] from the first entity of the
+      pair to the second. The result of a call to this function is not
+      cached. *)
 end
 
 module type S = sig

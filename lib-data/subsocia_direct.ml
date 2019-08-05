@@ -566,6 +566,16 @@ module Make_Q (P : sig val db_schema : string option end) = struct
     "SELECT input_id, value FROM $.attribution_string \
      WHERE output_id = ? AND attribute_type_id = ?"
 
+  let e_connected_by_bool = (tup2 int32 bool -->* tup2 int32 int32)
+    "SELECT input_id, output_id FROM $.attribution_bool \
+     WHERE attribute_type = ? AND value = ?"
+  let e_connected_by_int = (tup2 int32 int -->* tup2 int32 int32)
+    "SELECT input_id, output_id FROM $.attribution_int \
+     WHERE attribute_type = ? AND value = ?"
+  let e_connected_by_string = (tup2 int32 string -->* tup2 int32 int32)
+    "SELECT input_id, output_id FROM $.attribution_string \
+     WHERE attribute_type = ? AND value = ?"
+
   let fts_clear = (tup2 int32 int32 -->! unit)
     "DELETE FROM $.attribution_string_fts \
      WHERE input_id = ? AND output_id = ?"
@@ -1512,6 +1522,27 @@ module Make (P : Param) = struct
        | Type.Bool -> premapping1_bool e at.B.Attribute_type.at_id
        | Type.Int -> premapping1_int e at.B.Attribute_type.at_id
        | Type.String -> premapping1_string e at.B.Attribute_type.at_id)
+
+    let connected_by_bool at_id v =
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.collect_list Q.e_connected_by_bool (at_id, v)
+
+    let connected_by_int at_id v =
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.collect_list Q.e_connected_by_int (at_id, v)
+
+    let connected_by_string at_id v =
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.collect_list Q.e_connected_by_string (at_id, v)
+
+    let connected_by (type a) (at : a B.Attribute_type.t) (v : a) =
+      (match B.Attribute_type.value_type at with
+       | Type.Bool ->
+          connected_by_bool at.B.Attribute_type.at_id v
+       | Type.Int ->
+          connected_by_int at.B.Attribute_type.at_id v
+       | Type.String ->
+          connected_by_string at.B.Attribute_type.at_id v)
 
     let clear_bool_caches () =
       Cache.clear get_values_bool_cache;
