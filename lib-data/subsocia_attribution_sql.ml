@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -32,19 +32,8 @@ module type Arg = sig
 end
 
 module Query = struct
-
-  type query = Caqti_request.query =
-    | L of string
-    | P of int
-    | S of query list
-
+  include Caqti_query
   let fL fmt = ksprintf (fun s -> L s) fmt
-
-  let concat sep = function
-   | [] -> assert false
-   | [x] -> x
-   | x :: xs -> S(x :: List.map (fun x -> S[sep; x]) xs)
-
 end
 
 module Make (Arg : Arg) = struct
@@ -79,7 +68,7 @@ module Make (Arg : Arg) = struct
           List.mapi make_join preds))
 
   let sql_of_value
-      : type a. a Attribute_type.t -> a -> bind -> query * bind =
+      : type a. a Attribute_type.t -> a -> bind -> Query.t * bind =
     fun at x ->
     (match Attribute_type.value_type at, x with
      | Type.Bool, true -> fun bind -> (L"true", bind)
@@ -118,7 +107,7 @@ module Make (Arg : Arg) = struct
       (S [fL "q%d.value = " i; qx] :: rev_qs, bind) in
     let rev_qs, bind = List.fold aux xs ([], bind) in
     (S [fL "q%d.attribute_type_id = %ld AND " i at_id;
-        L"("; concat (L" OR ") (List.rev rev_qs); L")"], bind)
+        L"("; concat " OR " (List.rev rev_qs); L")"], bind)
 
   let sql_of_fts i x (Bind (param_length, param_type, param)) =
     let param_type = Caqti_type.(tup2 param_type string) in
@@ -161,11 +150,11 @@ module Make (Arg : Arg) = struct
     let%lwt expr_conds, Bind (_, param_type, param) =
       sql_of_conjunction preds (Bind (0, Caqti_type.unit, ())) in
     let id_cond =
-      S[L"("; concat (L" OR ") (List.map (fL"q0.input_id = %ld") ids); L")"] in
+      S[L"("; concat " OR " (List.map (fL"q0.input_id = %ld") ids); L")"] in
     let query = S [
       L"SELECT q0.output_id";
       L" FROM "; make_fromlist preds;
-      L" WHERE "; concat (L" AND ") (id_cond :: expr_conds);
+      L" WHERE "; concat " AND " (id_cond :: expr_conds);
     ] in
     let request =
       Caqti_request.create ~oneshot:true
@@ -178,11 +167,11 @@ module Make (Arg : Arg) = struct
     let%lwt expr_conds, Bind (_, param_type, param) =
       sql_of_conjunction preds (Bind (0, Caqti_type.unit, ())) in
     let id_cond =
-      S[L"("; concat (L" OR ") (List.map (fL"q0.output_id = %ld") ids); L")"] in
+      S[L"("; concat " OR " (List.map (fL"q0.output_id = %ld") ids); L")"] in
     let query = S [
       L"SELECT q0.input_id";
       L" FROM "; make_fromlist preds;
-      L" WHERE "; concat (L" AND ") (id_cond :: expr_conds);
+      L" WHERE "; concat " AND " (id_cond :: expr_conds);
     ] in
     let request =
       Caqti_request.create ~oneshot:true

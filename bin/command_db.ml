@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2019  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -30,7 +30,7 @@ let db_schema_prefix =
 
 let env =
   fun _ -> function
-   | "." -> Caqti_request.L db_schema_prefix
+   | "." -> Caqti_query.L db_schema_prefix
    | _ -> raise Not_found
 
 let schema_dir =

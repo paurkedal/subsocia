@@ -93,8 +93,8 @@ module Make_Q (P : sig val db_schema : string option end) = struct
   let env di = function
    | "." ->
       (match Caqti_driver_info.dialect_tag di with
-       | `Pgsql -> Caqti_request.L db_schema_prefix
-       | _ -> Caqti_request.S [])
+       | `Pgsql -> Caqti_query.L db_schema_prefix
+       | _ -> Caqti_query.S [])
    | _ -> raise Not_found
 
   let (-->!) tA (_ : unit Caqti_type.t) = Caqti_request.exec ~env tA
@@ -102,7 +102,7 @@ module Make_Q (P : sig val db_schema : string option end) = struct
   let (-->?) tA tR = Caqti_request.find_opt ~env tA tR
   let (-->*) tA tR = Caqti_request.collect ~env tA tR
 
-  let table name = Caqti_request.(S [L db_schema_prefix; L name])
+  let table name = Caqti_query.(S [L db_schema_prefix; L name])
 
   open Caqti_type
 
@@ -135,7 +135,7 @@ module Make_Q (P : sig val db_schema : string option end) = struct
      WHERE attribute_type_id = ?"
 
   let au_force_query l =
-    let open Caqti_request in
+    let open Caqti_query in
     let rec mk_values i =
       let value = S [L"("; P i; L"::int)"] in
       if i = 0 then value :: mk_values (i + 1) else
