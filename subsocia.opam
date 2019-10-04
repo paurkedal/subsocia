@@ -6,7 +6,7 @@ license: "LGPL-3 with OCaml linking exception"
 homepage: "https://github.com/paurkedal/subsocia/"
 bug-reports: "https://github.com/paurkedal/subsocia/issues"
 depends: [
-  "caqti" {>= "0.6.0"}
+  "caqti" {>= "1.2.0"}
   "caqti-dynload"
   "caqti-lwt"
   "cmdliner"
