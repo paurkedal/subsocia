@@ -11,10 +11,9 @@ depends: [
   "caqti-lwt"
   "cmdliner"
   "config-file"
-  "dune" {build}
+  "dune" {>= "1.1"}
   "extunix"
   "iso639"
-  "ocamlfind"
   "lwt"
   "lwt_log"
   "lwt_ppx"
