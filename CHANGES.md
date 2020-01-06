@@ -1,4 +1,7 @@
-# Change Log
+## v0.18.2 - 2020-01-06
+
+- Fix Caqti 1.2 compatibility, broken due to internal concrete type alias.
+- Add `Entity.connected_by`.
 
 ## v0.18.1 - 2019-01-24
 
