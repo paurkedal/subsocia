@@ -19,7 +19,7 @@ let pkg_hash = match "%{subsocia:hash}%" with "" -> None | h -> Some h
 let pkg_share =
   try Unix.getenv "SUBSOCIA_SHARE" with Not_found -> "%{subsocia:share}%"
 
-let schema_version = 4 (* NB: Also update schema/subsocia_tables.sql. *)
+let schema_version = 5 (* NB: Also update schema/subsocia_tables.sql. *)
 let schema_dir = Filename.concat pkg_share "schema"
 let schema_upgrade_dir = Filename.concat schema_dir "upgrade"
 

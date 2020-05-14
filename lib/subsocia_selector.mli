@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -28,8 +28,15 @@ val delete_selector_of_selector : selector -> delete_selector
 val selector_of_delete_selector : delete_selector -> selector
 
 module Selector_utils (C : Subsocia_intf.S) : sig
-  val select_from : selector -> C.Entity.Set.t -> C.Entity.Set.t Lwt.t
-  val select : selector -> C.Entity.Set.t Lwt.t
-  val select_one : selector -> C.Entity.t Lwt.t
-  val select_opt : selector -> C.Entity.t option Lwt.t
+
+  val select_from :
+    ?time: Ptime.t -> selector ->
+    C.Entity.Set.t -> C.Entity.Set.t Lwt.t
+
+  val select : ?time: Ptime.t -> selector -> C.Entity.Set.t Lwt.t
+
+  val select_one : ?time: Ptime.t -> selector -> C.Entity.t Lwt.t
+
+  val select_opt : ?time: Ptime.t -> selector -> C.Entity.t option Lwt.t
+
 end

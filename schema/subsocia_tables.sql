@@ -67,7 +67,10 @@ CREATE TABLE subsocia.entity (
 CREATE TABLE subsocia.inclusion (
   dsub_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
   dsuper_id integer NOT NULL REFERENCES subsocia.entity,
-  PRIMARY KEY (dsub_id, dsuper_id)
+  since timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
+  until timestamp,
+  PRIMARY KEY (dsub_id, dsuper_id, since),
+  CHECK (coalesce(since < until, true))
 );
 CREATE TABLE subsocia.attribution_bool (
   input_id integer NOT NULL REFERENCES subsocia.entity,

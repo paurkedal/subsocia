@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -259,28 +259,44 @@ module type ENTITY = sig
   val get_root : unit -> t Lwt.t
   (** [get_root ()] returns the root element. *)
 
+  (** {2 Inclusion} *)
+
   val minimums : unit -> Set.t Lwt.t
 
-  val dsub : ?et: Entity_type.t -> t -> Set.t Lwt.t
-  (** [dsub e] fetches the direct subentities of [e]. *)
+  val dsub : ?time: Ptime.t -> ?et: Entity_type.t -> t -> Set.t Lwt.t
+  (** [dsub e] fetches the direct subentities of [e].
+      @param time The time at which to probe for inclusion, defaults to now. *)
 
-  val dsuper : ?et: Entity_type.t -> t -> Set.t Lwt.t
-  (** [dsuper e] fetches the direct superentities of [e]. *)
+  val dsuper : ?time: Ptime.t -> ?et: Entity_type.t -> t -> Set.t Lwt.t
+  (** [dsuper e] fetches the direct superentities of [e].
+      @param time The time at which to probe for inclusion, defaults to now. *)
 
-  val force_dsub : t -> t -> unit Lwt.t
+  val dsub_history :
+    ?since: Ptime.t -> ?until: Ptime.t ->
+    t -> (Ptime.t * Ptime.t option * t) list Lwt.t
+
+  val dsuper_history :
+    ?since: Ptime.t -> ?until: Ptime.t ->
+    t -> (Ptime.t * Ptime.t option * t) list Lwt.t
+
+  val force_dsub : ?time: Ptime.t -> t -> t -> unit Lwt.t
   (** [force_dsub e e'] forces an inclusion of [e] in [e'].
       @raise Invalid_argument if [e'] is included in [e]. *)
 
-  val relax_dsub : t -> t -> unit Lwt.t
+  val relax_dsub : ?time: Ptime.t -> t -> t -> unit Lwt.t
   (** [relax_dsub e e'] relaxes an inclusion of [e] in [e']. Only a direct
       inclusion is relaxed. [e] may still be included in [e'] though a set of
       intermediate inclusions after this call. *)
 
-  val is_dsub : t -> t -> bool Lwt.t
-  (** [is_dsub e e'] holds iff [e] is a direct subentity of [e']. *)
+  val is_dsub : ?time: Ptime.t -> t -> t -> bool Lwt.t
+  (** [is_dsub e e'] holds iff [e] is a direct subentity of [e'].
+      @param time The time at which to probe for inclusion, defaults to now. *)
 
-  val is_sub : t -> t -> bool Lwt.t
-  (** [is_sub e e'] holds iff [e] is a subentity of [e']. *)
+  val is_sub : ?time: Ptime.t -> t -> t -> bool Lwt.t
+  (** [is_sub e e'] holds iff [e] is a subentity of [e'].
+      @param time The time at which to probe for inclusion, defaults to now. *)
+
+  (** {2 Attribution} *)
 
   val get_values : 'a Attribute_type.t -> t -> t -> 'a Values.t Lwt.t
   (** [get_values at e e'] are the values of attributions of type [at]

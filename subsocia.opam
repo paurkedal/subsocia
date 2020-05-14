@@ -20,6 +20,7 @@ depends: [
   "ocaml"
   "ounit"
   "prime"
+  "ptime"
   "re"
   "uri"
   "yojson"

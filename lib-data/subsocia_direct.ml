@@ -249,22 +249,46 @@ module Make_Q (P : sig val db_schema : string option end) = struct
 
   (* Entites *)
 
-  let e_is_dsub = (tup2 int32 int32 --> int)
-    "SELECT count(*) FROM $.inclusion WHERE dsub_id = ? AND dsuper_id = ?"
+  let e_is_dsub = (tup3 int32 int32 ptime --> int)
+    "SELECT count(*) FROM $.inclusion \
+     WHERE dsub_id = $1 AND dsuper_id = $2 \
+       AND since <= $3 AND coalesce($3 < until, true)"
 
-  let e_dsuper_any = (int32 -->* int32)
-    "SELECT dsuper_id FROM $.inclusion WHERE dsub_id = ?"
-  let e_dsub_any = (int32 -->* int32)
-    "SELECT dsub_id FROM $.inclusion WHERE dsuper_id = ?"
+  let e_dsuper_any = (tup2 int32 ptime -->* int32)
+    "SELECT dsuper_id FROM $.inclusion \
+     WHERE dsub_id = $1 \
+       AND since <= $2 AND coalesce($2 < until, true)"
+  let e_dsub_any = (tup2 int32 ptime -->* int32)
+    "SELECT dsub_id FROM $.inclusion \
+     WHERE dsuper_id = $1 \
+       AND since <= $2 AND coalesce($2 < until, true)"
 
-  let e_dsuper_typed = (tup2 int32 int32 -->* int32)
+  let e_dsuper_typed = (tup3 int32 int32 ptime -->* int32)
     "SELECT entity_id \
      FROM $.inclusion JOIN $.entity ON dsuper_id = entity_id \
-     WHERE dsub_id = ? AND entity_type_id = ?"
-  let e_dsub_typed = (tup2 int32 int32 -->* int32)
+     WHERE dsub_id = $1 AND entity_type_id = $2 \
+       AND since <= $3 AND coalesce($3 < until, true)"
+  let e_dsub_typed = (tup3 int32 int32 ptime -->* int32)
     "SELECT entity_id \
      FROM $.inclusion JOIN $.entity ON dsub_id = entity_id \
-     WHERE dsuper_id = ? AND entity_type_id = ?"
+     WHERE dsuper_id = $1 AND entity_type_id = $2 \
+       AND since <= $3 AND coalesce($3 < until, true)"
+
+  let e_dsub_history =
+    (tup3 int32 (option ptime) (option ptime) -->*
+     tup3 ptime (option ptime) int32)
+    "SELECT since, until, dsub_id FROM $.inclusion \
+     WHERE dsuper_id = ? \
+       AND coalesce (? < until, true) AND coalesce (since < ?, true)
+     ORDER BY since"
+
+  let e_dsuper_history =
+    (tup3 int32 (option ptime) (option ptime) -->*
+     tup3 ptime (option ptime) int32)
+    "SELECT since, until, dsub_id FROM $.inclusion \
+     WHERE dsub_id = ?
+       AND coalesce (? < until, true) AND coalesce (since < ?, true)
+     ORDER BY since"
 
   let e_type = (int32 --> int32)
     "SELECT entity_type_id FROM $.entity WHERE entity_id = ?"
@@ -282,21 +306,37 @@ module Make_Q (P : sig val db_schema : string option end) = struct
      WHERE NOT EXISTS \
       (SELECT 0 FROM $.inclusion WHERE dsuper_id = entity_id)"
 
-  let e_select_precedes = (tup3 int int32 int32 --> int)
+  let e_select_precedes_now = (tup3 int32 int32 int --> int)
     "WITH RECURSIVE successors(entity_id) AS ( \
         SELECT i.dsuper_id AS entity_id \
         FROM $.inclusion i \
         JOIN $.entity e ON e.entity_id = i.dsuper_id \
-        WHERE e.entity_rank >= $1 \
-          AND i.dsub_id = $2 \
+        WHERE i.dsub_id = $1 \
+          AND i.until IS NULL AND e.entity_rank >= $3 \
       UNION \
         SELECT DISTINCT i.dsuper_id \
         FROM $.inclusion i \
         JOIN $.entity e ON e.entity_id = i.dsuper_id \
         JOIN successors c ON i.dsub_id = c.entity_id \
-        WHERE e.entity_rank >= $1 \
+        WHERE i.until is NULL AND e.entity_rank >= $3 \
      ) \
-     SELECT count(*) FROM successors WHERE entity_id = $3 LIMIT 1"
+     SELECT count(*) FROM successors WHERE entity_id = $2 LIMIT 1"
+
+  let e_select_precedes_past = (tup3 int32 int32 ptime --> int)
+    "WITH RECURSIVE successors(entity_id) AS ( \
+        SELECT i.dsuper_id AS entity_id \
+        FROM $.inclusion i \
+        JOIN $.entity e ON e.entity_id = i.dsuper_id \
+        WHERE i.dsub_id = $1 \
+          AND i.since <= $3 AND coalesce($3 < i.until, true) \
+      UNION \
+        SELECT DISTINCT i.dsuper_id \
+        FROM $.inclusion i \
+        JOIN $.entity e ON e.entity_id = i.dsuper_id \
+        JOIN successors c ON i.dsub_id = c.entity_id \
+        WHERE i.since <= $3 AND coalesce($3 < i.until, true) \
+     ) \
+     SELECT count(*) FROM successors WHERE entity_id = $2 LIMIT 1"
 
   let e_create_entity = (int32 --> int32)
     "INSERT INTO $.entity (entity_type_id) \
@@ -305,13 +345,15 @@ module Make_Q (P : sig val db_schema : string option end) = struct
   let e_delete_entity = (int32 -->! unit)
     "DELETE FROM $.entity WHERE entity_id = ?"
 
-  let e_maybe_insert_inclusion = (tup2 int32 int32 -->! unit)
-    "INSERT INTO $.inclusion (dsub_id, dsuper_id) SELECT $1, $2 \
+  let e_maybe_insert_inclusion = (tup3 int32 int32 ptime -->! unit)
+    "INSERT INTO $.inclusion (dsub_id, dsuper_id, since) SELECT $1, $2, $3 \
      WHERE NOT EXISTS \
-      (SELECT 0 FROM $.inclusion WHERE dsub_id = $1 AND dsuper_id = $2)"
+      (SELECT 0 FROM $.inclusion \
+       WHERE dsub_id = $1 AND dsuper_id = $2 AND coalesce(since < until, true))"
 
-  let e_delete_inclusion = (tup2 int32 int32 -->! unit)
-    "DELETE FROM $.inclusion WHERE dsub_id = ? AND dsuper_id = ?"
+  let e_delete_inclusion = (tup3 int32 int32 ptime -->! unit)
+    "UPDATE $.inclusion SET until = $3 \
+     WHERE dsub_id = $1 AND dsuper_id = $2 AND until IS NULL"
 
   let e_select_attribution_bool = (tup3 int32 int32 int32 -->* bool)
     "SELECT value FROM $.attribution_bool \
@@ -594,6 +636,15 @@ let memo_5lwt f = let g, c = memo_1lwt f in
 *)
 let memo_6lwt f = let g, c = memo_1lwt f in
                   (fun x0 x1 x2 x3 x4 x5 -> g (x0, x1, x2, x3, x4, x5)), c
+
+let memo_t1lwt f =
+  let g, c = Cache.memo_lwt (fun x -> f ~time:(Ptime_clock.now ()) x) in
+  let h ?time x = match time with None -> g x | Some time -> f ~time x in
+  (h, c)
+
+let memo_t2lwt f =
+  let g, c = memo_t1lwt f in
+  (fun ?time x0 x1 -> g ?time (x0, x1)), c
 
 module B = struct
   module Attribute_type = struct
@@ -1067,27 +1118,39 @@ module Make (P : Param) = struct
       with_db_exn @@ fun (module C) ->
       C.fold Q.e_minimums Set.add () Set.empty
 
-    let dsub_any, dsub_any_cache = memo_1lwt @@ fun e ->
+    let dsub_any, dsub_any_cache = memo_t1lwt @@ fun ~time e ->
       with_db_exn @@ fun (module C) ->
-      C.fold Q.e_dsub_any Set.add e Set.empty
+      C.fold Q.e_dsub_any Set.add (e, time) Set.empty
 
-    let dsuper_any, dsuper_any_cache = memo_1lwt @@ fun e ->
+    let dsuper_any, dsuper_any_cache = memo_t1lwt @@ fun ~time e ->
       with_db_exn @@ fun (module C) ->
-      C.fold Q.e_dsuper_any Set.add e Set.empty
+      C.fold Q.e_dsuper_any Set.add (e, time) Set.empty
 
-    let dsub_typed, dsub_typed_cache = memo_2lwt @@ fun (et, e) ->
+    let dsub_typed, dsub_typed_cache = memo_t2lwt @@ fun ~time (et, e) ->
       with_db_exn @@ fun (module C) ->
-      C.fold Q.e_dsub_typed Set.add (e, et) Set.empty
+      C.fold Q.e_dsub_typed Set.add (e, et, time) Set.empty
 
-    let dsuper_typed, dsuper_typed_cache = memo_2lwt @@ fun (et, e) ->
+    let dsuper_typed, dsuper_typed_cache = memo_t2lwt @@ fun ~time (et, e) ->
       with_db_exn @@ fun (module C) ->
-      C.fold Q.e_dsuper_typed Set.add (e, et) Set.empty
+      C.fold Q.e_dsuper_typed Set.add (e, et, time) Set.empty
 
-    let dsub ?et e =
-      match et with None -> dsub_any e | Some et -> dsub_typed et e
+    let dsub ?time ?et e =
+      (match et with
+       | None -> dsub_any ?time e
+       | Some et -> dsub_typed ?time et e)
 
-    let dsuper ?et e =
-      match et with None -> dsuper_any e | Some et -> dsuper_typed et e
+    let dsuper ?time ?et e =
+      (match et with
+       | None -> dsuper_any ?time e
+       | Some et -> dsuper_typed ?time et e)
+
+    let dsub_history ?since ?until e =
+      with_db_exn @@ fun (module C) ->
+      C.collect_list Q.e_dsub_history (e, since, until)
+
+    let dsuper_history ?since ?until e =
+      with_db_exn @@ fun (module C) ->
+      C.collect_list Q.e_dsuper_history (e, since, until)
 
     let create entity_type =
       with_db_exn @@ fun (module C) ->
@@ -1101,19 +1164,24 @@ module Make (P : Param) = struct
       Cache.clear dsub_typed_cache;
       r
 
-    let is_dsub, is_dsub_cache = memo_2lwt @@ fun (e, e') ->
+    let is_dsub, is_dsub_cache = memo_t2lwt @@ fun ~time (e, e') ->
       with_db_exn @@ fun (module C) ->
-      C.find Q.e_is_dsub (e, e') >|=? bool_of_int
+      C.find Q.e_is_dsub (e, e', time) >|=? bool_of_int
 
-    let is_sub subentity superentity =
+    let is_sub ?time subentity superentity =
       if subentity = superentity then Lwt.return_true else
       let k = subentity, superentity in
       try Lwt.return (Cache.find inclusion_cache k)
       with Not_found ->
         let%lwt r_lim = rank superentity in
         let%lwt c = with_db_exn @@ fun (module C) ->
-          C.find Q.e_select_precedes (r_lim, subentity, superentity)
-            >|=? bool_of_int in
+          (match time with
+           | None ->
+              C.find Q.e_select_precedes_now (subentity, superentity, r_lim)
+           | Some time ->
+              C.find Q.e_select_precedes_past (subentity, superentity, time))
+          >|=? bool_of_int
+        in
         Cache.replace inclusion_cache preceq_grade k c;
         Lwt.return c
 
@@ -1556,29 +1624,32 @@ module Make (P : Param) = struct
         end
       end
 
-    let force_dsub' subentity superentity (module C : CONNECTION) =
-      C.exec Q.e_maybe_insert_inclusion (subentity, superentity)
+    let force_dsub' ?time subentity superentity (module C : CONNECTION) =
+      let time = match time with Some t -> t | None -> Ptime_clock.now () in
+      C.exec Q.e_maybe_insert_inclusion (subentity, superentity, time)
         >|= fun result ->
       clear_inclusion_caches ();
       emit_changed (`Force_dsub (subentity, superentity));
       result
 
-    let relax_dsub' subentity superentity (module C : CONNECTION) =
-      C.exec Q.e_delete_inclusion (subentity, superentity) >|= fun result ->
+    let relax_dsub' ?time subentity superentity (module C : CONNECTION) =
+      let time = match time with Some t -> t | None -> Ptime_clock.now () in
+      C.exec Q.e_delete_inclusion (subentity, superentity, time)
+        >|= fun result ->
       clear_inclusion_caches ();
       emit_changed (`Relax_dsub (subentity, superentity));
       result
 
-    let force_dsub subentity superentity =
-      let%lwt is_super = is_sub superentity subentity in
+    let force_dsub ?time subentity superentity =
+      let%lwt is_super = is_sub ?time superentity subentity in
       if is_super then Lwt.fail (Invalid_argument "cyclic constraint") else
       let%lwt subentity_rank = rank subentity in
       let%lwt superentity_rank = rank superentity in
       raise_rank (max subentity_rank (superentity_rank + 1)) subentity >>= fun () ->
-      with_db_exn (force_dsub' subentity superentity)
+      with_db_exn (force_dsub' ?time subentity superentity)
 
-    let relax_dsub subentity superentity =
-      with_db_exn (relax_dsub' subentity superentity) >>= fun () ->
+    let relax_dsub ?time subentity superentity =
+      with_db_exn (relax_dsub' ?time subentity superentity) >>= fun () ->
       let%lwt subentity_rank = rank subentity in
       let%lwt superentity_rank = rank superentity in
       if subentity_rank > superentity_rank + 1 then Lwt.return_unit

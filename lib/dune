@@ -12,6 +12,7 @@
     iso639
     lwt
     prime prime.unstable
+    ptime
     yojson))
 
 (ocamlyacc subsocia_parser)

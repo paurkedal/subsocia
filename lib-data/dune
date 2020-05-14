@@ -16,4 +16,5 @@
     lwt
     lwt_log
     subsocia
-    prime.unstable))
+    prime.unstable
+    ptime ptime.clock.os))

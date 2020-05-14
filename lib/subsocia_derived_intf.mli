@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -91,10 +91,10 @@ module type ENTITY = sig
 
   val force_sub : t -> t -> unit Lwt.t
 
-  val select_from : selector -> Set.t -> Set.t Lwt.t
-  val select : selector -> Set.t Lwt.t
-  val select_opt : selector -> t option Lwt.t
-  val select_one : selector -> t Lwt.t
+  val select_from : ?time: Ptime.t -> selector -> Set.t -> Set.t Lwt.t
+  val select : ?time: Ptime.t -> selector -> Set.t Lwt.t
+  val select_opt : ?time: Ptime.t -> selector -> t option Lwt.t
+  val select_one : ?time: Ptime.t -> selector -> t Lwt.t
 
   (* TODO: Replace and deprecate these. *)
   val getattr_opt : t -> t -> 'a Attribute_type.t -> 'a option Lwt.t

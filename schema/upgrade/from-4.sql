@@ -30,4 +30,16 @@ BEGIN;
   --
   ALTER TABLE subsocia.inclusion DROP COLUMN is_subsumed;
 
+  -- Add period of validity to inclusions.
+  --
+  ALTER TABLE subsocia.inclusion
+    ADD COLUMN since timestamp NOT NULL DEFAULT '1970-01-01T00:00:00Z',
+    ADD COLUMN until timestamp;
+  ALTER TABLE subsocia.inclusion
+    ALTER COLUMN since SET DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC');
+  ALTER TABLE subsocia.inclusion DROP CONSTRAINT inclusion_pkey;
+  ALTER TABLE subsocia.inclusion ADD PRIMARY KEY (dsub_id, dsuper_id, since);
+
+  ALTER TABLE subsocia.inclusion ADD CHECK (coalesce(since < until, true));
+
 COMMIT;

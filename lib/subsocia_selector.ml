@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -230,16 +230,16 @@ module Selector_utils (C : Subsocia_intf.S) = struct
       C.Relation.Geq (at, Value.typed_of_string (C.Attribute_type.value_type at) s)
 
   [@@@ocaml.warning "-3"] (* due to Select_id *)
-  let rec select_from = function
+  let rec select_from ?time = function
     | Select_with (selA, selB) -> fun es ->
-      select_from selA es >>= select_from selB
+      select_from ?time selA es >>= select_from ?time selB
     | Select_union (selA, selB) -> fun es ->
-      let%lwt esA = select_from selA es in
-      let%lwt esB = select_from selB es in
+      let%lwt esA = select_from ?time selA es in
+      let%lwt esB = select_from ?time selB es in
       Lwt.return (C.Entity.Set.union esA esB)
     | Select_inter (selA, selB) -> fun es ->
-      let%lwt esA = select_from selA es in
-      let%lwt esB = select_from selB es in
+      let%lwt esA = select_from ?time selA es in
+      let%lwt esB = select_from ?time selB es in
       Lwt.return (C.Entity.Set.inter esA esB)
     | Select_image p -> fun es ->
       let%lwt p = entype_ap p in
@@ -267,21 +267,21 @@ module Selector_utils (C : Subsocia_intf.S) = struct
       C.Entity.of_soid soid >|= C.Entity.Set.singleton
     | Select_dsub -> fun es ->
       C.Entity.Set.fold_s
-        (fun e1 acc -> C.Entity.dsub e1 >|= C.Entity.Set.union acc)
+        (fun e1 acc -> C.Entity.dsub ?time e1 >|= C.Entity.Set.union acc)
         es C.Entity.Set.empty
     | Select_dsuper -> fun es ->
       C.Entity.Set.fold_s
-        (fun e1 acc -> C.Entity.dsuper e1 >|= C.Entity.Set.union acc)
+        (fun e1 acc -> C.Entity.dsuper ?time e1 >|= C.Entity.Set.union acc)
         es C.Entity.Set.empty
   [@@@ocaml.warning "+3"]
 
-  let select sel =
+  let select ?time sel =
     let%lwt root = C.Entity.get_root () in
-    select_from sel (C.Entity.Set.singleton root)
+    select_from ?time sel (C.Entity.Set.singleton root)
 
-  let select_one sel =
+  let select_one ?time sel =
     let%lwt root = C.Entity.get_root () in
-    let%lwt es = select_from sel (C.Entity.Set.singleton root) in
+    let%lwt es = select_from ?time sel (C.Entity.Set.singleton root) in
     (match C.Entity.Set.cardinal es with
      | 1 -> Lwt.return (C.Entity.Set.min_elt_exn es)
      | 0 ->
@@ -290,9 +290,9 @@ module Selector_utils (C : Subsocia_intf.S) = struct
         Subsocia_error.fail_lwt "%d entities matches %s, need one."
                                 n (string_of_selector sel))
 
-  let select_opt sel =
+  let select_opt ?time sel =
     let%lwt root = C.Entity.get_root () in
-    let%lwt es = select_from sel (C.Entity.Set.singleton root) in
+    let%lwt es = select_from ?time sel (C.Entity.Set.singleton root) in
     (match C.Entity.Set.cardinal es with
      | 0 -> Lwt.return_none
      | 1 -> Lwt.return (Some (C.Entity.Set.min_elt_exn es))
