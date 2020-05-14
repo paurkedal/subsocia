@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -287,16 +287,14 @@ module Make_Q (P : sig val db_schema : string option end) = struct
         SELECT i.dsuper_id AS entity_id \
         FROM $.inclusion i \
         JOIN $.entity e ON e.entity_id = i.dsuper_id \
-        WHERE i.is_subsumed = false \
-          AND e.entity_rank >= $1 \
+        WHERE e.entity_rank >= $1 \
           AND i.dsub_id = $2 \
       UNION \
-        SELECT i.dsuper_id \
+        SELECT DISTINCT i.dsuper_id \
         FROM $.inclusion i \
         JOIN $.entity e ON e.entity_id = i.dsuper_id \
         JOIN successors c ON i.dsub_id = c.entity_id \
-        WHERE i.is_subsumed = false \
-          AND e.entity_rank >= $1 \
+        WHERE e.entity_rank >= $1 \
      ) \
      SELECT count(*) FROM successors WHERE entity_id = $3 LIMIT 1"
 
@@ -314,65 +312,6 @@ module Make_Q (P : sig val db_schema : string option end) = struct
 
   let e_delete_inclusion = (tup2 int32 int32 -->! unit)
     "DELETE FROM $.inclusion WHERE dsub_id = ? AND dsuper_id = ?"
-
-  (* Params: (sub_id, super_id) *)
-  let e_subsume_inclusion = (tup2 int32 int32 -->! unit)
-    "WITH RECURSIVE \
-      lb(id) AS ( \
-          SELECT $1::integer AS id \
-        UNION \
-          SELECT i.dsub_id AS id \
-          FROM lb JOIN $.inclusion i ON i.dsuper_id = lb.id \
-          WHERE i.is_subsumed = false \
-      ), \
-      ub(id) AS ( \
-          SELECT $2::integer AS id \
-        UNION \
-          SELECT i.dsuper_id AS id \
-          FROM ub JOIN $.inclusion i ON i.dsub_id = ub.id \
-          WHERE i.is_subsumed = false \
-      ) \
-    UPDATE $.inclusion i SET is_subsumed = true \
-    WHERE (i.dsub_id <> $1::integer OR i.dsuper_id <> $2::integer) \
-      AND i.dsub_id IN (SELECT * FROM lb) \
-      AND i.dsuper_id IN (SELECT * FROM ub) \
-      AND i.is_subsumed = false"
-
-  let e_is_subsumed = (tup2 int32 int32 --> bool)
-    "SELECT is_subsumed FROM $.inclusion WHERE dsub_id = ? AND dsuper_id = ?"
-
-  (* Params: (sub_id, super_id) *)
-  let e_unsubsume_inclusion = (tup2 int32 int32 -->! unit)
-    "WITH RECURSIVE \
-      lb(id) AS ( \
-          SELECT $1::integer AS id \
-        UNION \
-          SELECT i.dsub_id AS id \
-          FROM lb JOIN $.inclusion i ON i.dsuper_id = lb.id \
-          WHERE is_subsumed = false \
-      ), \
-      ub(id) AS ( \
-          SELECT $2::integer AS id \
-        UNION \
-          SELECT i.dsuper_id AS id \
-          FROM ub JOIN $.inclusion i ON i.dsub_id = ub.id \
-          WHERE is_subsumed = false \
-      ) \
-    UPDATE $.inclusion i SET is_subsumed = false \
-      WHERE i.is_subsumed = true \
-        AND i.dsub_id IN (SELECT * FROM lb) \
-        AND i.dsuper_id IN (SELECT * FROM ub) \
-        AND NOT EXISTS ( \
-          WITH RECURSIVE acc(id) AS ( \
-              SELECT i.dsub_id AS id \
-            UNION \
-              SELECT j.dsuper_id AS id \
-              FROM $.inclusion j JOIN acc ON j.dsub_id = acc.id \
-              WHERE (j.dsub_id <> $1::integer OR j.dsuper_id <> $2::integer) \
-                AND (j.dsub_id <> i.dsub_id OR j.dsuper_id <> i.dsuper_id) \
-          ) \
-          SELECT 1 FROM acc WHERE acc.id = i.dsuper_id \
-        )"
 
   let e_select_attribution_bool = (tup3 int32 int32 int32 -->* bool)
     "SELECT value FROM $.attribution_bool \
@@ -1618,21 +1557,14 @@ module Make (P : Param) = struct
       end
 
     let force_dsub' subentity superentity (module C : CONNECTION) =
-      begin
-        C.exec Q.e_maybe_insert_inclusion (subentity, superentity) >>=?? fun()->
-        C.exec Q.e_subsume_inclusion (subentity, superentity)
-      end >|= fun result ->
+      C.exec Q.e_maybe_insert_inclusion (subentity, superentity)
+        >|= fun result ->
       clear_inclusion_caches ();
       emit_changed (`Force_dsub (subentity, superentity));
       result
 
     let relax_dsub' subentity superentity (module C : CONNECTION) =
-      begin
-        C.find Q.e_is_subsumed (subentity, superentity) >>=?? fun is_subsumed ->
-        (if is_subsumed then Lwt.return_ok () else
-         C.exec Q.e_unsubsume_inclusion (subentity, superentity)) >>=?? fun() ->
-        C.exec Q.e_delete_inclusion (subentity, superentity)
-      end >|= fun result ->
+      C.exec Q.e_delete_inclusion (subentity, superentity) >|= fun result ->
       clear_inclusion_caches ();
       emit_changed (`Relax_dsub (subentity, superentity));
       result

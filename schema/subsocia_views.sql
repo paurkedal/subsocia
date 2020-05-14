@@ -1,4 +1,4 @@
--- Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+-- Copyright (C) 2015--2020  Petter A. Urkedal <paurkedal@gmail.com>
 --
 -- This library is free software; you can redistribute it and/or modify it
 -- under the terms of the GNU Lesser General Public License as published by
@@ -16,28 +16,29 @@
 DROP VIEW IF EXISTS subsocia.transitive_inclusion;
 DROP VIEW IF EXISTS subsocia.transitive_reflexive_inclusion;
 
+-- Transitive closure of the still valid subset of subsocia.inclusion.
 CREATE VIEW subsocia.transitive_inclusion (tsub_id, tsuper_id) AS
   WITH RECURSIVE inclusion_closure AS
     (
       SELECT dsub_id AS tsub_id, dsuper_id AS tsuper_id
-	FROM subsocia.inclusion WHERE not is_subsumed
+	FROM subsocia.inclusion
     UNION
-      SELECT acc.tsub_id, i.dsuper_id AS tsuper_id
+      SELECT DISTINCT acc.tsub_id, i.dsuper_id AS tsuper_id
 	FROM inclusion_closure AS acc JOIN subsocia.inclusion AS i
 	  ON acc.tsuper_id = i.dsub_id
-       WHERE not is_subsumed
     )
   SELECT * FROM inclusion_closure;
 
+-- Transitive and reflexive closure of the still valid subset of
+-- subsocia.inclusion.
 CREATE VIEW subsocia.transitive_reflexive_inclusion (tsub_id, tsuper_id) AS
   WITH RECURSIVE inclusion_closure AS
     (
       SELECT entity_id AS tsub_id, entity_id AS tsuper_id
 	FROM subsocia.entity
     UNION
-      SELECT acc.tsub_id, i.dsuper_id AS tsuper_id
+      SELECT DISTINCT acc.tsub_id, i.dsuper_id AS tsuper_id
 	FROM inclusion_closure AS acc JOIN subsocia.inclusion AS i
 	  ON acc.tsuper_id = i.dsub_id
-       WHERE not is_subsumed
     )
   SELECT * FROM inclusion_closure;

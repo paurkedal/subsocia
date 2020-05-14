@@ -1,4 +1,4 @@
--- Copyright (C) 2014--2015  Petter A. Urkedal <paurkedal@gmail.com>
+-- Copyright (C) 2014--2020  Petter A. Urkedal <paurkedal@gmail.com>
 --
 -- This library is free software; you can redistribute it and/or modify it
 -- under the terms of the GNU Lesser General Public License as published by
@@ -12,50 +12,6 @@
 --
 -- You should have received a copy of the GNU Lesser General Public License
 -- along with this library.  If not, see <http://www.gnu.org/licenses/>.
-
-CREATE OR REPLACE FUNCTION subsocia.upper_bounds(start_id integer)
-  RETURNS TABLE (entity_id integer) AS
-$$
-BEGIN
-  RETURN QUERY
-    WITH RECURSIVE ub(entity_id) AS (
-	SELECT start_id AS entity_id
-      UNION
-	SELECT dsuper_id AS entity_id
-	FROM ub JOIN subsocia.inclusion ON dsub_id = ub.entity_id
-	WHERE is_subsumed = false
-    )
-    SELECT ub.entity_id FROM ub;
-END
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION subsocia.lower_bounds(start_id integer)
-  RETURNS TABLE (entity_id integer) AS
-$$
-BEGIN
-  RETURN QUERY
-    WITH RECURSIVE lb(entity_id) AS (
-	SELECT start_id AS entity_id
-      UNION
-	SELECT dsub_id AS entity_id
-	FROM lb JOIN subsocia.inclusion ON dsuper_id = lb.entity_id
-	WHERE is_subsumed = false
-    )
-    SELECT lb.entity_id FROM lb;
-END
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION subsocia.subsumed(sub_id integer, super_id integer)
-  RETURNS TABLE (dsub_id integer, dsuper_id integer) AS
-$$
-BEGIN
-  RETURN QUERY
-    SELECT i.dsub_id, i.dsuper_id
-    FROM subsocia.inclusion AS i
-    JOIN subsocia.upper_bounds(super_id) AS ub ON i.dsuper_id = ub.entity_id
-    JOIN subsocia.lower_bounds(sub_id) AS lb ON i.dsub_id = lb.entity_id;
-END
-$$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION subsocia.max_subentity_rank(id integer)
   RETURNS integer AS

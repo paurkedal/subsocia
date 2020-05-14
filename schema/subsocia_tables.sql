@@ -1,4 +1,4 @@
--- Copyright (C) 2014--2015  Petter A. Urkedal <paurkedal@gmail.com>
+-- Copyright (C) 2014--2020  Petter A. Urkedal <paurkedal@gmail.com>
 --
 -- This library is free software; you can redistribute it and/or modify it
 -- under the terms of the GNU Lesser General Public License as published by
@@ -20,7 +20,7 @@ CREATE TABLE subsocia.global_integer (
   global_value integer NOT NULL
 );
 -- NB: Also update lib/subsocia_version.ml.ab.
-INSERT INTO subsocia.global_integer VALUES ('schema_version', 4);
+INSERT INTO subsocia.global_integer VALUES ('schema_version', 5);
 
 -- Types
 
@@ -67,7 +67,6 @@ CREATE TABLE subsocia.entity (
 CREATE TABLE subsocia.inclusion (
   dsub_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
   dsuper_id integer NOT NULL REFERENCES subsocia.entity,
-  is_subsumed boolean NOT NULL DEFAULT false,
   PRIMARY KEY (dsub_id, dsuper_id)
 );
 CREATE TABLE subsocia.attribution_bool (
