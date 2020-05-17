@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -167,7 +167,7 @@ let e_ls sel_opt = run_exn @@ fun (module C) ->
   C.Attribute_uniqueness.Set.iter_s show_au aus
 
 let e_ls_cmd =
-  let sel_t = Arg.(value & pos 0 (some selector_conv) None &
+  let sel_t = Arg.(value & pos 0 (some selector) None &
                    info ~docv:"PATH" []) in
   Term.(const e_ls $ sel_t)
 
@@ -179,7 +179,7 @@ let e_search sel eds = run_bool_exn @@ fun (module C) ->
   Lwt.return (not (C.Entity.Set.is_empty es))
 
 let e_search_cmd =
-  let sel_t = Arg.(required & pos 0 (some selector_conv) None &
+  let sel_t = Arg.(required & pos 0 (some selector) None &
                    info ~docv:"PATH" []) in
   let doc =
     "Extra information to show for each entity: all, paths, super, sub" in
@@ -210,7 +210,7 @@ let e_fts_cmd =
   let et_t = Arg.(value & opt (some string) None &
                   info ~docv:"TYPE" ~doc ["t"]) in
   let doc = "Restrict the result to subentities of SUPER." in
-  let super_t = Arg.(value & opt (some selector_conv) None &
+  let super_t = Arg.(value & opt (some selector) None &
                      info ~docv:"SUPER" ~doc ["s"]) in
   let doc = "Only show the first LIMIT highest ranked results." in
   let limit_t = Arg.(value & opt (some int) None &
@@ -232,9 +232,9 @@ let e_create etn add_dsupers add_sels = run_exn @@ fun (module C) ->
 let e_create_cmd =
   let etn_t = Arg.(required & pos 0 (some string) None &
                    info ~docv:"TYPE" []) in
-  let succs_t = Arg.(value & opt_all selector_conv [] &
+  let succs_t = Arg.(value & opt_all selector [] &
                     info ~docv:"PATH" ["s"]) in
-  let attrs_t = Arg.(non_empty & opt_all add_selector_conv [] &
+  let attrs_t = Arg.(non_empty & opt_all add_selector [] &
                     info ~docv:"APATH" ["a"]) in
   Term.(const e_create $ etn_t $ succs_t $ attrs_t)
 
@@ -244,7 +244,7 @@ let e_delete sel = run_exn @@ fun (module C) ->
   C.Entity.delete e
 
 let e_delete_cmd =
-  let sel_t = Arg.(required & pos 0 (some selector_conv) None &
+  let sel_t = Arg.(required & pos 0 (some selector) None &
                    info ~docv:"PATH" []) in
   Term.(const e_delete $ sel_t)
 
@@ -263,15 +263,15 @@ let e_modify sel add_dsupers del_dsupers add_sels del_sels =
   Lwt_list.iter_s (fun e_sub -> C.Entity.relax_dsub e e_sub) del_dsupers
 
 let e_modify_cmd =
-  let sel_t = Arg.(required & pos 0 (some selector_conv) None &
+  let sel_t = Arg.(required & pos 0 (some selector) None &
                    info ~docv:"PATH" []) in
-  let add_succs_t = Arg.(value & opt_all selector_conv [] &
+  let add_succs_t = Arg.(value & opt_all selector [] &
                          info ~docv:"PATH" ["s"]) in
-  let del_succs_t = Arg.(value & opt_all selector_conv [] &
+  let del_succs_t = Arg.(value & opt_all selector [] &
                          info ~docv:"PATH" ["r"]) in
-  let add_attrs_t = Arg.(value & opt_all add_selector_conv [] &
+  let add_attrs_t = Arg.(value & opt_all add_selector [] &
                          info ~docv:"APATH" ["a"]) in
-  let del_attrs_t = Arg.(value & opt_all delete_selector_conv [] &
+  let del_attrs_t = Arg.(value & opt_all delete_selector [] &
                          info ~docv:"APATH" ["d"]) in
   Term.(const e_modify $ sel_t $ add_succs_t $ del_succs_t
                       $ add_attrs_t $ del_attrs_t)

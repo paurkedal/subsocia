@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -29,9 +29,9 @@ let at_create_cmd =
   let open Arg in
   let atn_t = required & pos 0 (some string) None
     & info ~docv:"NAME" ~doc:"A name to identify the new attribute type." [] in
-  let vt_t = required & pos 1 (some value_type_conv) None
+  let vt_t = required & pos 1 (some value_type) None
     & info ~docv:"TYPE" ~doc:"The type of values of this attribute." [] in
-  let mu_t = value & pos 2 multiplicity_conv Multiplicity.May
+  let mu_t = value & pos 2 multiplicity Multiplicity.May
     & info ~docv:"MULTIPLICITY"
            ~doc:"The multiplicity of values accepted for this attribute." [] in
   Term.(const at_create $ vt_t $ atn_t $ mu_t)

@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -18,11 +18,15 @@ open Cmdliner
 open Subsocia_common
 open Subsocia_selector_types
 
-val value_type_conv : Type.any Arg.converter
+module Arg : sig
+  include module type of Cmdliner.Arg
 
-val multiplicity_conv : Multiplicity.t Arg.converter
+  val value_type : Type.any Arg.conv
 
-val selector_conv : selector Arg.converter
+  val multiplicity : Multiplicity.t Arg.conv
 
-val add_selector_conv : add_selector Arg.converter
-val delete_selector_conv : delete_selector Arg.converter
+  val selector : selector Arg.conv
+
+  val add_selector : add_selector Arg.conv
+  val delete_selector : delete_selector Arg.conv
+end
