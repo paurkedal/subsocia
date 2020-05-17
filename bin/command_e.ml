@@ -30,12 +30,14 @@ type entity_details_selection = {
   eds_paths : bool;
   eds_super : bool;
   eds_sub : bool;
+  eds_history : bool;
 }
 
 let eds_default = {
   eds_paths = false;
   eds_super = false;
   eds_sub = false;
+  eds_history = false;
 }
 
 let eds_conv =
@@ -43,21 +45,29 @@ let eds_conv =
     let paths = ref false in
     let super = ref false in
     let sub = ref false in
+    let history = ref false in
     let aux = function
       | "all" -> paths := true; super := true; sub := true
       | "paths" -> paths := true
       | "super" -> super := true
       | "sub" -> sub := true
+      | "history" -> history := true
       | _ -> failwith "Invalid display option." in
     try
       s |> Prime_string.chop_affix "," |> List.iter aux;
-      `Ok { eds_paths = !paths; eds_super = !super; eds_sub = !sub }
+      `Ok {
+        eds_paths = !paths;
+        eds_super = !super;
+        eds_sub = !sub;
+        eds_history = !history;
+      }
     with Failure msg ->
       `Error msg in
   let print fo eds =
     [] |> (if eds.eds_paths then List.cons "paths" else ident)
        |> (if eds.eds_super then List.cons "super" else ident)
        |> (if eds.eds_sub then List.cons "sub" else ident)
+       |> (if eds.eds_history then List.cons "history" else ident)
        |> String.concat "," |> Format.pp_print_string fo in
   (parse, print)
 
@@ -122,7 +132,21 @@ module Entity_utils (C : Subsocia_intf.S) = struct
       end >>= Lwt_io.printl
     end
 
-  let show_entity eds e =
+  let show_history pfx =
+    Lwt_list.iter_s begin fun (since, until, e) ->
+      let since_str = Ptime.to_rfc3339 ~tz_offset_s:0 since in
+      let until_str =
+        (match until with
+         | None -> "∞"
+         | Some until -> Ptime.to_rfc3339 ~tz_offset_s:0 until)
+      in
+      Lwt_io.printf "%s[%s, %s) " pfx since_str until_str >>= fun () ->
+      (match%lwt Entity.paths e with
+       | [] -> Entity.display_name e
+       | p :: _ -> Lwt.return (string_of_selector p)) >>= Lwt_io.printl
+    end
+
+  let show_entity ?time eds e =
     let%lwt name = Entity.display_name ~langs e in
     let%lwt et = C.Entity.entity_type e in
     let%lwt etn = C.Entity_type.name et in
@@ -133,10 +157,15 @@ module Entity_utils (C : Subsocia_intf.S) = struct
       Lwt_list.iter_s (fun p -> Lwt_io.printf "  = %s\n" (string_of_selector p))
                       paths ) >>= fun () ->
     ( if not eds.eds_super then Lwt.return_unit else
-      C.Entity.dsuper e >>= show_entity_list "  ⊂ " ) >>= fun () ->
+      if eds.eds_history then
+        C.Entity.dsuper_history e >>= show_history "  ⊂ "
+      else
+        C.Entity.dsuper ?time e >>= show_entity_list "  ⊂ " ) >>= fun () ->
     ( if not eds.eds_sub then Lwt.return_unit else
-      C.Entity.dsub e >>= show_entity_list "  ⊃ " )
-
+      if eds.eds_history then
+        C.Entity.dsub_history e >>= show_history "  ⊃ "
+      else
+        C.Entity.dsub ?time e >>= show_entity_list "  ⊃ " )
 end
 
 let e_ls sel_opt = run_exn @@ fun (module C) ->
@@ -171,21 +200,29 @@ let e_ls_cmd =
                    info ~docv:"PATH" []) in
   Term.(const e_ls $ sel_t)
 
-let e_search sel eds = run_bool_exn @@ fun (module C) ->
+let e_search sel eds time = run_bool_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let%lwt root = C.Entity.get_root () in
-  let%lwt es = U.Entity.select_from sel (C.Entity.Set.singleton root) in
-  C.Entity.Set.iter_s (U.show_entity eds) es >>= fun () ->
+  let%lwt es = U.Entity.select_from ?time sel (C.Entity.Set.singleton root) in
+  C.Entity.Set.iter_s (U.show_entity ?time eds) es >>= fun () ->
   Lwt.return (not (C.Entity.Set.is_empty es))
 
 let e_search_cmd =
   let sel_t = Arg.(required & pos 0 (some selector) None &
                    info ~docv:"PATH" []) in
   let doc =
-    "Extra information to show for each entity: all, paths, super, sub" in
+    "Extra information to show for each entity: \
+     `all', `paths', `super', `sub', and `history', \
+     where `history' is combined with `sub' and `super' to show the full \
+     inclusion history with times of validity." in
   let eds_t = Arg.(value & opt eds_conv eds_default &
                    info ~docv:"COMMA-SEPARATED-LIST" ~doc ["D"]) in
-  Term.(const e_search $ sel_t $ eds_t)
+  let time =
+    let docv = "TIME" in
+    let doc = "Probe inclusion relations at this point in time." in
+    Arg.(value & opt (some ptime) None & info ~docv ~doc ["t"])
+  in
+  Term.(const e_search $ sel_t $ eds_t $ time)
 
 let e_fts q etn super limit cutoff = run_bool_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in

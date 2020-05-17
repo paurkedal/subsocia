@@ -20,6 +20,23 @@ open Subsocia_selector
 module Arg = struct
   include Cmdliner.Arg
 
+  let ptime =
+    let parse s =
+      let s =
+        if not (String.length s = 19 && s.[10] = 'T') then s else
+        (match Ptime_clock.current_tz_offset_s () with
+         | None -> s
+         | Some off ->
+            let sgn, off = if off < 0 then '-', -off else '+', off in
+            Printf.sprintf "%s%c%02d:%02d" s sgn (off / 3600) (off / 60 mod 60))
+      in
+      (match Ptime.of_rfc3339 ~strict:false s |> Ptime.rfc3339_error_to_msg with
+       | Ok (t, _, _) -> `Ok t
+       | Error (`Msg msg) -> `Error msg)
+    in
+    let pp = Ptime.pp_rfc3339 ~space:false () in
+    (parse, pp)
+
   let value_type =
     let parse s =
       try `Ok (Type.any_of_string s) with Invalid_argument msg -> `Error msg

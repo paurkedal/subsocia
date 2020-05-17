@@ -21,6 +21,8 @@ open Subsocia_selector_types
 module Arg : sig
   include module type of Cmdliner.Arg
 
+  val ptime: Ptime.t Arg.conv
+
   val value_type : Type.any Arg.conv
 
   val multiplicity : Multiplicity.t Arg.conv
