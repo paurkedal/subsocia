@@ -90,7 +90,7 @@ module Entity_utils (C : Subsocia_intf.S) = struct
     in
     Lwt_list.iter_s aux updates
 
-  let lookup_add_selector (ctx, asgn) =
+  let lookup_add_selector ?time (ctx, asgn) =
     let aux (an, avs_str) =
       let%lwt Attribute_type.Any at = Attribute_type.any_of_name_exn an in
       let t = Attribute_type.value_type at in
@@ -104,9 +104,9 @@ module Entity_utils (C : Subsocia_intf.S) = struct
     let%lwt root = Entity.get_root () in
     (match ctx with
      | None -> Lwt.return (root, asgn)
-     | Some ctx -> Entity.select_one ctx >|= fun e_ctx -> (e_ctx, asgn))
+     | Some ctx -> Entity.select_one ?time ctx >|= fun e_ctx -> (e_ctx, asgn))
 
-  let lookup_delete_selector (ctx, asgn) =
+  let lookup_delete_selector ?time (ctx, asgn) =
     let aux (an, avs_str) =
       let%lwt Attribute_type.Any at = Attribute_type.any_of_name_exn an in
       let t = Attribute_type.value_type at in
@@ -123,7 +123,7 @@ module Entity_utils (C : Subsocia_intf.S) = struct
     let%lwt root = Entity.get_root () in
     (match ctx with
      | None -> Lwt.return (root, asgn)
-     | Some ctx -> Entity.select_one ctx >|= fun e_ctx -> (e_ctx, asgn))
+     | Some ctx -> Entity.select_one ?time ctx >|= fun e_ctx -> (e_ctx, asgn))
 
   let entity_type_of_arg etn =
     (match%lwt C.Entity_type.of_name etn with
@@ -177,10 +177,10 @@ module Entity_utils (C : Subsocia_intf.S) = struct
         C.Entity.dsub ?time e >>= show_entity_list "  ⊃ " )
 end
 
-let e_ls sel_opt = run_exn @@ fun (module C) ->
+let e_ls sel_opt time = run_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let sel = Option.get_or Select_root sel_opt in
-  let%lwt e = U.Entity.select_one sel in
+  let%lwt e = U.Entity.select_one ?time sel in
   let%lwt aus = C.Attribute_uniqueness.all () in
   let show_e ats e' =
     Lwt_list.iter_s
@@ -210,7 +210,11 @@ let e_ls_cmd =
   let sel =
     Arg.(value & pos 0 (some selector) None & info ~docv:"PATH" [])
   in
-  Term.(const e_ls $ sel)
+  let time =
+    let doc = "Time at which to traverse inclusion. Defaults to now." in
+    Arg.(value & opt (some ptime) None & info ~docv:"QUERY-TIME" ~doc ["t"])
+  in
+  Term.(const e_ls $ sel $ time)
 
 let e_search sel eds time = run_bool_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
@@ -234,17 +238,16 @@ let e_search_cmd =
     Arg.(value & opt eds_conv eds_default & info ~docv ~doc ["D"])
   in
   let time =
-    let docv = "TIME" in
-    let doc = "Probe inclusion relations at this point in time." in
-    Arg.(value & opt (some ptime) None & info ~docv ~doc ["t"])
+    let doc = "Time at which to traverse inclusion. Defaults to now." in
+    Arg.(value & opt (some ptime) None & info ~docv:"QUERY-TIME" ~doc ["t"])
   in
   Term.(const e_search $ sel $ eds $ time)
 
-let e_fts q etn super limit cutoff = run_bool_exn @@ fun (module C) ->
+let e_fts q etn super limit cutoff time = run_bool_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let%lwt root = C.Entity.get_root () in
   let%lwt entity_type = Lwt_option.map_s U.entity_type_of_arg etn in
-  let%lwt super = Lwt_option.map_s U.Entity.select_one super in
+  let%lwt super = Lwt_option.map_s (U.Entity.select_one ?time) super in
   let%lwt es =
     C.Entity.image1_fts ?entity_type ?super ?limit ?cutoff
       (Subsocia_fts.tsquery q) root
@@ -279,15 +282,21 @@ let e_fts_cmd =
     let doc = "Exclude results rank CUTOFF and below." in
     Arg.(value & opt (some float) None & info ~docv:"CUTOFF" ~doc ["cutoff"])
   in
-  Term.(const e_fts $ query $ et $ super $ limit $ cutoff)
+  let time =
+    let doc = "Time at which to traverse inclusion. Defaults to now." in
+    Arg.(value & opt (some ptime) None & info ~docv:"QUERY-TIME" ~doc ["t"])
+  in
+  Term.(const e_fts $ query $ et $ super $ limit $ cutoff $ time)
 
-let e_create etn add_dsupers add_sels = run_exn @@ fun (module C) ->
+let e_create etn add_dsupers add_sels time = run_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let%lwt et = U.entity_type_of_arg etn in
   let%lwt add_sels = Lwt_list.map_p U.lookup_add_selector add_sels in
-  let%lwt add_dsupers = Lwt_list.map_p U.Entity.select_one add_dsupers in
+  let%lwt add_dsupers =
+    Lwt_list.map_p (U.Entity.select_one ?time) add_dsupers
+  in
   let%lwt e = C.Entity.create et in
-  Lwt_list.iter_s (C.Entity.force_dsub e) add_dsupers >>= fun () ->
+  Lwt_list.iter_s (C.Entity.force_dsub ?time e) add_dsupers >>= fun () ->
   Lwt_list.iter_s (U.update_attributes e) add_sels
 
 let e_create_cmd =
@@ -300,32 +309,42 @@ let e_create_cmd =
   let attrs =
     Arg.(non_empty & opt_all add_selector [] & info ~docv:"APATH" ["a"])
   in
-  Term.(const e_create $ etn $ succs $ attrs)
+  let time =
+    let doc = "Time at which to traverse inclusion. Defaults to now." in
+    Arg.(value & opt (some ptime) None & info ~docv:"QUERY-TIME" ~doc ["t"])
+  in
+  Term.(const e_create $ etn $ succs $ attrs $ time)
 
-let e_delete sel = run_exn @@ fun (module C) ->
+let e_delete sel time = run_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
-  let%lwt e = U.Entity.select_one sel in
+  let%lwt e = U.Entity.select_one ?time sel in
   C.Entity.delete e
 
 let e_delete_cmd =
   let sel =
     Arg.(required & pos 0 (some selector) None & info ~docv:"PATH" [])
   in
-  Term.(const e_delete $ sel)
+  let time =
+    let doc = "Time at which to traverse inclusion. Defaults to now." in
+    Arg.(value & opt (some ptime) None & info ~docv:"QUERY-TIME" ~doc ["t"])
+  in
+  Term.(const e_delete $ sel $ time)
 
-let e_modify sel add_dsupers del_dsupers add_sels del_sels =
+let e_modify sel add_dsupers del_dsupers add_sels del_sels time =
   run_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
-  let%lwt add_dsupers = Lwt_list.map_p U.Entity.select_one add_dsupers in
-  let%lwt del_dsupers = Lwt_list.map_p U.Entity.select_one del_dsupers in
-  let%lwt add_sels = Lwt_list.map_p U.lookup_add_selector add_sels in
-  let%lwt del_sels = Lwt_list.map_p U.lookup_delete_selector del_sels in
-  let%lwt e = U.Entity.select_one sel in
-  Lwt_list.iter_s (fun e_sub -> C.Entity.force_dsub e e_sub) add_dsupers
+  let%lwt add_dsupers =
+    Lwt_list.map_p (U.Entity.select_one ?time) add_dsupers in
+  let%lwt del_dsupers =
+    Lwt_list.map_p (U.Entity.select_one ?time) del_dsupers in
+  let%lwt add_sels = Lwt_list.map_p (U.lookup_add_selector ?time) add_sels in
+  let%lwt del_sels = Lwt_list.map_p (U.lookup_delete_selector ?time) del_sels in
+  let%lwt e = U.Entity.select_one ?time sel in
+  Lwt_list.iter_s (fun e_sub -> C.Entity.force_dsub ?time e e_sub) add_dsupers
     >>= fun () ->
   Lwt_list.iter_s (U.update_attributes e) add_sels >>= fun () ->
   Lwt_list.iter_s (U.update_attributes e) del_sels >>= fun () ->
-  Lwt_list.iter_s (fun e_sub -> C.Entity.relax_dsub e e_sub) del_dsupers
+  Lwt_list.iter_s (fun e_sub -> C.Entity.relax_dsub ?time e e_sub) del_dsupers
 
 let e_modify_cmd =
   let sel =
@@ -343,4 +362,16 @@ let e_modify_cmd =
   let del_attrs =
     Arg.(value & opt_all delete_selector [] & info ~docv:"APATH" ["d"])
   in
-  Term.(const e_modify $ sel $ add_succs $ del_succs $ add_attrs $ del_attrs)
+  let time =
+    let doc =
+      "Start or end of validity to record for added and removed inclusions. \
+       Defaults to now."
+    in
+    Arg.(value & opt (some ptime) None & info ~docv:"TIME" ~doc ["t"])
+  in
+  let open Term in
+  const e_modify
+    $ sel
+    $ add_succs $ del_succs
+    $ add_attrs $ del_attrs
+    $ time
