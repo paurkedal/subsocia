@@ -81,4 +81,10 @@ module Arg = struct
         (string_of_selector (selector_of_delete_selector sel))
     in
     (parse, pp)
+
+  let disable_transaction =
+    let doc =
+      "Commit changes one at a time instead of as a single transaction."
+    in
+    value & flag & info ~doc ["disable-transaction"]
 end

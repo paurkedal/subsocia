@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,7 +14,6 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Cmdliner
 open Lwt.Infix
 
 let connect () =
@@ -38,8 +37,3 @@ let run_exn f = run_int_exn (fun c -> f c >|= fun () -> 0)
 
 let run_bool_exn f =
   run_int_exn (fun c -> f c >|= function false -> 0 | true -> 1)
-
-let disable_transaction_t =
-  Arg.(value & flag &
-       info ~doc:"Commit changes one at a time instead of as a single \
-                  transaction." ["disable-transaction"])

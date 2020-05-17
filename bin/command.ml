@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,6 +16,7 @@
 
 open Cmdliner
 open Printf
+open Subsocia_cmdliner
 open Subsocia_version
 
 open Command_common
@@ -42,9 +43,10 @@ let load schema_path disable_transaction =
         Schema.exec schema)
 
 let load_t =
-  let schema_t = Arg.(required & pos 0 (some file) None &
-                      info ~docv:"PATH" []) in
-  Term.(const load $ schema_t $ disable_transaction_t)
+  let schema =
+    Arg.(required & pos 0 (some file) None & info ~docv:"PATH" [])
+  in
+  Term.(const load $ schema $ Arg.disable_transaction)
 
 (* Main *)
 
@@ -155,9 +157,9 @@ let main_cmd =
 
 let () =
   Dynlink.allow_unsafe_modules true;
-  match Term.eval_choice main_cmd subcommands with
-  | `Error `Parse -> exit 64
-  | `Error `Term -> exit 69
-  | `Error `Exn -> exit 70
-  | `Ok rc -> exit rc
-  | `Version | `Help -> exit 0
+  (match Term.eval_choice main_cmd subcommands with
+   | `Error `Parse -> exit 64
+   | `Error `Term -> exit 69
+   | `Error `Exn -> exit 70
+   | `Ok rc -> exit rc
+   | `Version | `Help -> exit 0)

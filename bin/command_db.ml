@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -18,6 +18,7 @@ open Cmdliner
 open Command_common
 open Lwt.Infix
 open Printf
+open Subsocia_cmdliner
 open Subsocia_version
 open Unprime
 
@@ -50,9 +51,12 @@ let db_schema do_dir =
 
 let db_schema_cmd =
   let do_dir_t =
-    Arg.(value & flag &
-         info ~doc:"Print the path to the top-level directory \
-                    instead of to the individual schema files." ["dir"]) in
+    let doc =
+      "Print the path to the top-level directory instead of to the individual \
+       schema files."
+    in
+    Arg.(value & flag & info ~doc ["dir"])
+  in
   Term.(const db_schema $ do_dir_t)
 
 let subsocia_dot_re = Re.compile Re.(seq [bow; str "subsocia."])
@@ -75,7 +79,8 @@ let load_sql (module C : Caqti_lwt.CONNECTION) sql =
           if db_schema_prefix = "subsocia." then stmt else
           Re.replace_string subsocia_dot_re ~by:db_schema_prefix stmt in
         C.exec (Caqti_request.exec ~oneshot:true Caqti_type.unit stmt) ()
-        >>=?? loop) in
+        >>=?? loop)
+  in
   loop ()
 
 let db_init disable_transaction = Lwt_main.run begin
@@ -106,7 +111,7 @@ let db_init disable_transaction = Lwt_main.run begin
   0
 end
 
-let db_init_cmd = Term.(const db_init $ disable_transaction_t)
+let db_init_cmd = Term.(const db_init $ Arg.disable_transaction)
 
 let get_schema_version_q =
   Caqti_request.find ~env Caqti_type.unit Caqti_type.int
@@ -129,12 +134,14 @@ let db_upgrade () = Lwt_main.run begin
      | Error err ->
         have_error := true;
         Lwt_io.printlf "Failed: %s" fp >>= fun () ->
-        Lwt_io.printlf "Error: %s" (Caqti_error.show err)) in
+        Lwt_io.printlf "Error: %s" (Caqti_error.show err))
+  in
   for%lwt v = db_schema_version to schema_version - 1 do
     load (Filename.concat schema_upgrade_dir (sprintf "from-%d.sql" v))
   done >>= fun () ->
-  Lwt_list.iter_s (load % Filename.concat schema_dir)
-                  idempotent_sql_schemas >>= fun () ->
+  Lwt_list.iter_s
+    (load % Filename.concat schema_dir)
+    idempotent_sql_schemas >>= fun () ->
   if !have_error then
     Lwt_io.printf "\n\
       You may need to inspect the database and schema and apply the failed\n\

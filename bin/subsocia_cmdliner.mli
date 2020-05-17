@@ -31,4 +31,6 @@ module Arg : sig
 
   val add_selector : add_selector Arg.conv
   val delete_selector : delete_selector Arg.conv
+
+  val disable_transaction : bool Term.t
 end

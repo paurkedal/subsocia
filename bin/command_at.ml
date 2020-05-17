@@ -26,15 +26,20 @@ let at_create (Type.Any vt) atn mult = run_exn @@ fun (module C) ->
   Lwt_log.info_f "Created attribute type %s %s." at_idstr atn
 
 let at_create_cmd =
-  let open Arg in
-  let atn_t = required & pos 0 (some string) None
-    & info ~docv:"NAME" ~doc:"A name to identify the new attribute type." [] in
-  let vt_t = required & pos 1 (some value_type) None
-    & info ~docv:"TYPE" ~doc:"The type of values of this attribute." [] in
-  let mu_t = value & pos 2 multiplicity Multiplicity.May
-    & info ~docv:"MULTIPLICITY"
-           ~doc:"The multiplicity of values accepted for this attribute." [] in
-  Term.(const at_create $ vt_t $ atn_t $ mu_t)
+  let atn =
+    let doc = "A name to identify the new attribute type." in
+    Arg.(required & pos 0 (some string) None & info ~docv:"NAME" ~doc [])
+  in
+  let vt =
+    let doc = "The type of values of this attribute." in
+    Arg.(required & pos 1 (some value_type) None & info ~docv:"TYPE" ~doc [])
+  in
+  let mu =
+    let docv = "MULTIPLICITY" in
+    let doc = "The multiplicity of values accepted for this attribute." in
+    Arg.(value & pos 2 multiplicity Multiplicity.May & info ~docv ~doc [])
+  in
+  Term.(const at_create $ vt $ atn $ mu)
 
 let at_delete atn = run_int_exn @@ fun (module C) ->
   (match%lwt C.Attribute_type.any_of_name_exn atn with
@@ -48,10 +53,11 @@ let at_delete atn = run_int_exn @@ fun (module C) ->
       Lwt.return 0)
 
 let at_delete_cmd =
-  let open Arg in
-  let atn_t = required & pos 0 (some string) None
-    & info ~docv:"NAME" ~doc:"Name of the attribute to delete." [] in
-  Term.(const at_delete $ atn_t)
+  let atn =
+    let doc = "Name of the attribute to delete." in
+    Arg.(required & pos 0 (some string) None & info ~docv:"NAME" ~doc [])
+  in
+  Term.(const at_delete $ atn)
 
 let at_list verbose = run_exn @@ fun (module C) ->
   let show (C.Attribute_type.Any at) =
@@ -72,7 +78,8 @@ let at_list verbose = run_exn @@ fun (module C) ->
   C.Attribute_type.all () >>= C.Attribute_type.Set.iter_s show
 
 let at_list_cmd =
-  let open Arg in
-  let v = value & flag
-    & info ~doc:"Show allowed domain and codomain combinations." ["v"] in
-  Term.(const at_list $ v)
+  let verbose =
+    let doc = "Show allowed domain and codomain combinations." in
+    Arg.(value & flag & info ~doc ["v"])
+  in
+  Term.(const at_list $ verbose)

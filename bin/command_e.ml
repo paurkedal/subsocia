@@ -62,13 +62,15 @@ let eds_conv =
         eds_history = !history;
       }
     with Failure msg ->
-      `Error msg in
+      `Error msg
+  in
   let print fo eds =
     [] |> (if eds.eds_paths then List.cons "paths" else ident)
        |> (if eds.eds_super then List.cons "super" else ident)
        |> (if eds.eds_sub then List.cons "sub" else ident)
        |> (if eds.eds_history then List.cons "history" else ident)
-       |> String.concat "," |> Format.pp_print_string fo in
+       |> String.concat "," |> Format.pp_print_string fo
+  in
   (parse, print)
 
 module Entity_utils (C : Subsocia_intf.S) = struct
@@ -84,7 +86,8 @@ module Entity_utils (C : Subsocia_intf.S) = struct
     let aux = function
       | Add_value (at, av) -> Entity.add_value at av e_ctx e
       | Remove_value (at, av) -> Entity.remove_value at av e_ctx e
-      | Clear_values at -> Entity.clear_values at e_ctx e in
+      | Clear_values at -> Entity.clear_values at e_ctx e
+    in
     Lwt_list.iter_s aux updates
 
   let lookup_add_selector (ctx, asgn) =
@@ -93,13 +96,15 @@ module Entity_utils (C : Subsocia_intf.S) = struct
       let t = Attribute_type.value_type at in
       Lwt.return @@ List.map
         (fun av_str -> Add_value (at, Value.typed_of_string t av_str))
-        avs_str in
+        avs_str
+    in
     let%lwt asgn =
-      List.flatten =|< Lwt_list.map_p aux (String_map.bindings asgn) in
+      List.flatten =|< Lwt_list.map_p aux (String_map.bindings asgn)
+    in
     let%lwt root = Entity.get_root () in
-    match ctx with
-    | None -> Lwt.return (root, asgn)
-    | Some ctx -> Entity.select_one ctx >|= fun e_ctx -> (e_ctx, asgn)
+    (match ctx with
+     | None -> Lwt.return (root, asgn)
+     | Some ctx -> Entity.select_one ctx >|= fun e_ctx -> (e_ctx, asgn))
 
   let lookup_delete_selector (ctx, asgn) =
     let aux (an, avs_str) =
@@ -110,26 +115,28 @@ module Entity_utils (C : Subsocia_intf.S) = struct
         Lwt.return @@ List.map
           (fun av_str -> Remove_value (at, Value.typed_of_string t av_str))
           avs_str
-      | None -> Lwt.return [Clear_values at] in
+      | None -> Lwt.return [Clear_values at]
+    in
     let%lwt asgn =
-      List.flatten =|< Lwt_list.map_p aux (String_map.bindings asgn) in
+      List.flatten =|< Lwt_list.map_p aux (String_map.bindings asgn)
+    in
     let%lwt root = Entity.get_root () in
-    match ctx with
-    | None -> Lwt.return (root, asgn)
-    | Some ctx -> Entity.select_one ctx >|= fun e_ctx -> (e_ctx, asgn)
+    (match ctx with
+     | None -> Lwt.return (root, asgn)
+     | Some ctx -> Entity.select_one ctx >|= fun e_ctx -> (e_ctx, asgn))
 
   let entity_type_of_arg etn =
-    match%lwt C.Entity_type.of_name etn with
-    | None -> Lwt.fail (Failure ("No entity type has name " ^ etn))
-    | Some et -> Lwt.return et
+    (match%lwt C.Entity_type.of_name etn with
+     | None -> Lwt.fail (Failure ("No entity type has name " ^ etn))
+     | Some et -> Lwt.return et)
 
   let show_entity_list pfx =
     Entity.Set.iter_s begin fun e ->
       Lwt_io.print pfx >>= fun () ->
-      begin match%lwt Entity.paths e with
-      | [] -> Entity.display_name e
-      | p :: _ -> Lwt.return (string_of_selector p)
-      end >>= Lwt_io.printl
+      (match%lwt Entity.paths e with
+       | [] -> Entity.display_name e
+       | p :: _ -> Lwt.return (string_of_selector p))
+      >>= Lwt_io.printl
     end
 
   let show_history pfx =
@@ -143,7 +150,8 @@ module Entity_utils (C : Subsocia_intf.S) = struct
       Lwt_io.printf "%s[%s, %s) " pfx since_str until_str >>= fun () ->
       (match%lwt Entity.paths e with
        | [] -> Entity.display_name e
-       | p :: _ -> Lwt.return (string_of_selector p)) >>= Lwt_io.printl
+       | p :: _ -> Lwt.return (string_of_selector p))
+      >>= Lwt_io.printl
     end
 
   let show_entity ?time eds e =
@@ -154,8 +162,9 @@ module Entity_utils (C : Subsocia_intf.S) = struct
     Lwt_io.printlf "%s %s : %s" e_idstr name etn >>= fun () ->
     ( if not eds.eds_paths then Lwt.return_unit else
       let%lwt paths = Entity.paths e in
-      Lwt_list.iter_s (fun p -> Lwt_io.printf "  = %s\n" (string_of_selector p))
-                      paths ) >>= fun () ->
+      Lwt_list.iter_s
+        (fun p -> Lwt_io.printf "  = %s\n" (string_of_selector p))
+        paths ) >>= fun () ->
     ( if not eds.eds_super then Lwt.return_unit else
       if eds.eds_history then
         C.Entity.dsuper_history e >>= show_history "  ⊂ "
@@ -185,20 +194,23 @@ let e_ls sel_opt = run_exn @@ fun (module C) ->
             Lwt_io.printf "{%s=%s}" an avr)
           vs)
       ats >>= fun () ->
-    Lwt_io.printl "" in
+    Lwt_io.printl ""
+  in
   let show_au au =
     let%lwt ats =
       C.Attribute_uniqueness.affected au >|= C.Attribute_type.Set.elements in
     let ps =
       List.map (fun (C.Attribute_type.Any at) -> C.Relation.Present at) ats in
     let%lwt es' = C.Entity.image1 (C.Relation.Inter ps) e in
-    C.Entity.Set.iter_s (show_e ats) es' in
+    C.Entity.Set.iter_s (show_e ats) es'
+  in
   C.Attribute_uniqueness.Set.iter_s show_au aus
 
 let e_ls_cmd =
-  let sel_t = Arg.(value & pos 0 (some selector) None &
-                   info ~docv:"PATH" []) in
-  Term.(const e_ls $ sel_t)
+  let sel =
+    Arg.(value & pos 0 (some selector) None & info ~docv:"PATH" [])
+  in
+  Term.(const e_ls $ sel)
 
 let e_search sel eds time = run_bool_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
@@ -208,54 +220,66 @@ let e_search sel eds time = run_bool_exn @@ fun (module C) ->
   Lwt.return (not (C.Entity.Set.is_empty es))
 
 let e_search_cmd =
-  let sel_t = Arg.(required & pos 0 (some selector) None &
-                   info ~docv:"PATH" []) in
-  let doc =
-    "Extra information to show for each entity: \
-     `all', `paths', `super', `sub', and `history', \
-     where `history' is combined with `sub' and `super' to show the full \
-     inclusion history with times of validity." in
-  let eds_t = Arg.(value & opt eds_conv eds_default &
-                   info ~docv:"COMMA-SEPARATED-LIST" ~doc ["D"]) in
+  let sel =
+    Arg.(required & pos 0 (some selector) None & info ~docv:"PATH" [])
+  in
+  let eds =
+    let docv = "COMMA-SEPARATED-LIST" in
+    let doc =
+      "Extra information to show for each entity: \
+       `all', `paths', `super', `sub', and `history', \
+       where `history' is combined with `sub' and `super' to show the full \
+       inclusion history with times of validity."
+    in
+    Arg.(value & opt eds_conv eds_default & info ~docv ~doc ["D"])
+  in
   let time =
     let docv = "TIME" in
     let doc = "Probe inclusion relations at this point in time." in
     Arg.(value & opt (some ptime) None & info ~docv ~doc ["t"])
   in
-  Term.(const e_search $ sel_t $ eds_t $ time)
+  Term.(const e_search $ sel $ eds $ time)
 
 let e_fts q etn super limit cutoff = run_bool_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let%lwt root = C.Entity.get_root () in
   let%lwt entity_type = Lwt_option.map_s U.entity_type_of_arg etn in
   let%lwt super = Lwt_option.map_s U.Entity.select_one super in
-  let%lwt es = C.Entity.image1_fts ?entity_type ?super ?limit ?cutoff
-                                   (Subsocia_fts.tsquery q) root in
+  let%lwt es =
+    C.Entity.image1_fts ?entity_type ?super ?limit ?cutoff
+      (Subsocia_fts.tsquery q) root
+  in
   let show (e, rank) =
     let%lwt name = U.Entity.display_name ~langs e in
     let%lwt et = C.Entity.entity_type e in
     let%lwt etn = C.Entity_type.name et in
-    Lwt_io.printlf "%8.3g %s : %s" rank name etn in
+    Lwt_io.printlf "%8.3g %s : %s" rank name etn
+  in
   Lwt_list.iter_s show es >>= fun () ->
   Lwt.return (es <> [])
 
 let e_fts_cmd =
-  let doc = "The query string as accepted by PostgrSQL's to_tsquery." in
-  let q_t = Arg.(required & pos 0 (some string) None &
-                 info ~docv:"TSQUERY" ~doc []) in
-  let doc = "Restrict the result to the entities of TYPE." in
-  let et_t = Arg.(value & opt (some string) None &
-                  info ~docv:"TYPE" ~doc ["t"]) in
-  let doc = "Restrict the result to subentities of SUPER." in
-  let super_t = Arg.(value & opt (some selector) None &
-                     info ~docv:"SUPER" ~doc ["s"]) in
-  let doc = "Only show the first LIMIT highest ranked results." in
-  let limit_t = Arg.(value & opt (some int) None &
-                     info ~docv:"LIMIT" ~doc ["limit"]) in
-  let doc = "Exclude results rank CUTOFF and below." in
-  let cutoff_t = Arg.(value & opt (some float) None &
-                      info ~docv:"CUTOFF" ~doc ["cutoff"]) in
-  Term.(const e_fts $ q_t $ et_t $ super_t $ limit_t $ cutoff_t)
+  let query =
+    let doc = "The query string as accepted by PostgrSQL's to_tsquery." in
+    Arg.(required & pos 0 (some string) None & info ~docv:"TSQUERY" ~doc [])
+  in
+  let et =
+    let doc = "Restrict the result to the entities of TYPE." in
+    Arg.(value & opt (some string) None & info ~docv:"TYPE" ~doc ["t"])
+  in
+  let super =
+    let doc = "Restrict the result to subentities of SUPER." in
+    Arg.(value & opt (some selector) None & info ~docv:"SUPER" ~doc ["s"])
+  in
+  let limit =
+    let doc = "Only show the first LIMIT highest ranked results." in
+    Arg.(value & opt (some int) None & info ~docv:"LIMIT" ~doc ["limit"])
+  in
+  let cutoff =
+    let doc = "Exclude results rank CUTOFF and below." in
+    Arg.(value & opt (some float) None & info ~docv:"CUTOFF" ~doc ["cutoff"])
+  in
+  Term.(const e_fts $ query $ et $ super $ limit $ cutoff)
 
 let e_create etn add_dsupers add_sels = run_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
@@ -267,13 +291,16 @@ let e_create etn add_dsupers add_sels = run_exn @@ fun (module C) ->
   Lwt_list.iter_s (U.update_attributes e) add_sels
 
 let e_create_cmd =
-  let etn_t = Arg.(required & pos 0 (some string) None &
-                   info ~docv:"TYPE" []) in
-  let succs_t = Arg.(value & opt_all selector [] &
-                    info ~docv:"PATH" ["s"]) in
-  let attrs_t = Arg.(non_empty & opt_all add_selector [] &
-                    info ~docv:"APATH" ["a"]) in
-  Term.(const e_create $ etn_t $ succs_t $ attrs_t)
+  let etn =
+    Arg.(required & pos 0 (some string) None & info ~docv:"TYPE" [])
+  in
+  let succs =
+    Arg.(value & opt_all selector [] & info ~docv:"PATH" ["s"])
+  in
+  let attrs =
+    Arg.(non_empty & opt_all add_selector [] & info ~docv:"APATH" ["a"])
+  in
+  Term.(const e_create $ etn $ succs $ attrs)
 
 let e_delete sel = run_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
@@ -281,9 +308,10 @@ let e_delete sel = run_exn @@ fun (module C) ->
   C.Entity.delete e
 
 let e_delete_cmd =
-  let sel_t = Arg.(required & pos 0 (some selector) None &
-                   info ~docv:"PATH" []) in
-  Term.(const e_delete $ sel_t)
+  let sel =
+    Arg.(required & pos 0 (some selector) None & info ~docv:"PATH" [])
+  in
+  Term.(const e_delete $ sel)
 
 let e_modify sel add_dsupers del_dsupers add_sels del_sels =
   run_exn @@ fun (module C) ->
@@ -300,15 +328,19 @@ let e_modify sel add_dsupers del_dsupers add_sels del_sels =
   Lwt_list.iter_s (fun e_sub -> C.Entity.relax_dsub e e_sub) del_dsupers
 
 let e_modify_cmd =
-  let sel_t = Arg.(required & pos 0 (some selector) None &
-                   info ~docv:"PATH" []) in
-  let add_succs_t = Arg.(value & opt_all selector [] &
-                         info ~docv:"PATH" ["s"]) in
-  let del_succs_t = Arg.(value & opt_all selector [] &
-                         info ~docv:"PATH" ["r"]) in
-  let add_attrs_t = Arg.(value & opt_all add_selector [] &
-                         info ~docv:"APATH" ["a"]) in
-  let del_attrs_t = Arg.(value & opt_all delete_selector [] &
-                         info ~docv:"APATH" ["d"]) in
-  Term.(const e_modify $ sel_t $ add_succs_t $ del_succs_t
-                      $ add_attrs_t $ del_attrs_t)
+  let sel =
+    Arg.(required & pos 0 (some selector) None & info ~docv:"PATH" [])
+  in
+  let add_succs =
+    Arg.(value & opt_all selector [] & info ~docv:"PATH" ["s"])
+  in
+  let del_succs =
+    Arg.(value & opt_all selector [] & info ~docv:"PATH" ["r"])
+  in
+  let add_attrs =
+    Arg.(value & opt_all add_selector [] & info ~docv:"APATH" ["a"])
+  in
+  let del_attrs =
+    Arg.(value & opt_all delete_selector [] & info ~docv:"APATH" ["d"])
+  in
+  Term.(const e_modify $ sel $ add_succs $ del_succs $ add_attrs $ del_attrs)
