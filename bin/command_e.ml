@@ -26,6 +26,8 @@ open Unprime
 open Unprime_list
 open Unprime_option
 
+let docs = "ENTITY COMMANDS"
+
 type entity_details_selection = {
   eds_paths : bool;
   eds_super : bool;
@@ -214,7 +216,9 @@ let e_ls_cmd =
     let doc = "Time at which to traverse inclusion. Defaults to now." in
     Arg.(value & opt (some ptime) None & info ~docv:"QUERY-TIME" ~doc ["t"])
   in
-  Term.(const e_ls $ sel $ time)
+  let term = Term.(const e_ls $ sel $ time) in
+  let info = Term.info ~docs ~doc:"List entities reachable from a path." "ls" in
+  (term, info)
 
 let e_search sel eds time = run_bool_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
@@ -241,7 +245,11 @@ let e_search_cmd =
     let doc = "Time at which to traverse inclusion. Defaults to now." in
     Arg.(value & opt (some ptime) None & info ~docv:"QUERY-TIME" ~doc ["t"])
   in
-  Term.(const e_search $ sel $ eds $ time)
+  let term = Term.(const e_search $ sel $ eds $ time) in
+  let info =
+    Term.info ~docs ~doc:"List entities matching a selector." "search"
+  in
+  (term, info)
 
 let e_fts q etn super limit cutoff time = run_bool_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
@@ -286,7 +294,9 @@ let e_fts_cmd =
     let doc = "Time at which to traverse inclusion. Defaults to now." in
     Arg.(value & opt (some ptime) None & info ~docv:"QUERY-TIME" ~doc ["t"])
   in
-  Term.(const e_fts $ query $ et $ super $ limit $ cutoff $ time)
+  let term = Term.(const e_fts $ query $ et $ super $ limit $ cutoff $ time) in
+  let info = Term.info ~docs ~doc:"Full-text search." "fts" in
+  (term, info)
 
 let e_create etn add_dsupers add_sels time = run_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
@@ -313,7 +323,9 @@ let e_create_cmd =
     let doc = "Time at which to traverse inclusion. Defaults to now." in
     Arg.(value & opt (some ptime) None & info ~docv:"QUERY-TIME" ~doc ["t"])
   in
-  Term.(const e_create $ etn $ succs $ attrs $ time)
+  let term = Term.(const e_create $ etn $ succs $ attrs $ time) in
+  let info = Term.info ~docs ~doc:"Create an entity." "create" in
+  (term, info)
 
 let e_delete sel time = run_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
@@ -328,7 +340,9 @@ let e_delete_cmd =
     let doc = "Time at which to traverse inclusion. Defaults to now." in
     Arg.(value & opt (some ptime) None & info ~docv:"QUERY-TIME" ~doc ["t"])
   in
-  Term.(const e_delete $ sel $ time)
+  let term = Term.(const e_delete $ sel $ time) in
+  let info = Term.info ~docs ~doc:"Delete an entity." "delete" in
+  (term, info)
 
 let e_modify sel add_dsupers del_dsupers add_sels del_sels time =
   run_exn @@ fun (module C) ->
@@ -391,9 +405,12 @@ let e_modify_cmd =
     in
     Arg.(value & opt (some ptime) None & info ~docv:"TIME" ~doc ["t"])
   in
-  let open Term in
-  const e_modify
-    $ sel
-    $ add_succs $ del_succs
-    $ add_attrs $ del_attrs
-    $ time
+  let term = let open Term in
+    const e_modify
+      $ sel
+      $ add_succs $ del_succs
+      $ add_attrs $ del_attrs
+      $ time
+  in
+  let info = Term.info ~docs ~doc:"Modify an entity." "modify" in
+  (term, info)

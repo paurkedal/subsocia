@@ -19,6 +19,8 @@ open Command_common
 open Lwt.Infix
 open Subsocia_common
 
+let docs = "INCLUSION COMMANDS"
+
 let in_allow etn0 etn1 = run @@ fun (module C) ->
   let%lwt et0 = C.Entity_type.of_name etn0 in
   let%lwt et1 = C.Entity_type.of_name etn1 in
@@ -54,7 +56,12 @@ let in_allow_cmd =
   let etn1 =
     Arg.(required & pos 1 (some string) None & info ~docv:"SUPER-TYPE" [])
   in
-  Term.(ret (const in_allow $ etn0 $ etn1))
+  let term = Term.(ret (const in_allow $ etn0 $ etn1)) in
+  let info =
+    let doc = "Allow inclusion between entities of a type." in
+    Term.info ~docs ~doc "in-allow"
+  in
+  (term, info)
 
 let in_disallow_cmd =
   let etn0 =
@@ -63,7 +70,12 @@ let in_disallow_cmd =
   let etn1 =
     Arg.(required & pos 1 (some string) None & info ~docv:"SUPER-TYPE" [])
   in
-  Term.(ret (const in_disallow $ etn0 $ etn1))
+  let term = Term.(ret (const in_disallow $ etn0 $ etn1)) in
+  let info =
+    let doc = "Disallow inclusion between entities of a type." in
+    Term.info ~docs ~doc "in-disallow"
+  in
+  (term, info)
 
 let in_list etn0_opt etn1_opt = run_int_exn @@ fun (module C) ->
   let get_et = function
@@ -114,4 +126,9 @@ let in_list_cmd =
   let etn1 =
     Arg.(value & pos 1 (some string) None & info ~docv:"SUPER-TYPE" [])
   in
-  Term.(const in_list $ etn0 $ etn1)
+  let term = Term.(const in_list $ etn0 $ etn1) in
+  let info =
+    let doc = "Show inclusion policy between types." in
+    Term.info ~docs ~doc "in-list"
+  in
+  (term, info)

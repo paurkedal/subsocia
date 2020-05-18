@@ -19,6 +19,8 @@ open Command_common
 open Lwt.Infix
 open Printf
 
+let docs = "ENTITY TYPE COMMANDS"
+
 let et_name_t =
   let doc = "The name of the entity type." in
   Arg.(required & pos 0 (some string) None & info [] ~docv:"ET-NAME" ~doc)
@@ -34,14 +36,23 @@ let et_info etn = run @@ fun (module C) ->
       Lwt_io.printlf "Name template: %s" name_tmpl >>= fun () ->
       Lwt.return (`Ok 0))
 
-let et_info_cmd = Term.(ret (const et_info $ et_name_t))
+let et_info_cmd =
+  let term = Term.(ret (const et_info $ et_name_t)) in
+  let info =
+    let doc = "Show information about the named entity type." in
+    Term.info ~docs ~doc "et-info"
+  in
+  (term, info)
 
 let et_create etn = run_exn @@ fun (module C) ->
   let%lwt et = C.Entity_type.create etn in
   let%lwt et_idstr = C.Entity_type.(soid et >|= Soid.to_string) in
   Lwt_log.info_f "Created type %s = %s." et_idstr etn
 
-let et_create_cmd = Term.(const et_create $ et_name_t)
+let et_create_cmd =
+  let term = Term.(const et_create $ et_name_t) in
+  let info = Term.info ~docs ~doc:"Create an entity type." "et-create" in
+  (term, info)
 
 let et_modify etn ent_opt = run @@ fun (module C) ->
   (match%lwt C.Entity_type.of_name etn with
@@ -63,7 +74,9 @@ let et_modify_cmd =
     let doc = "Template for the display name of entities of this type." in
     Arg.(value & opt (some string) None & info ~docv ~doc ["name-template"])
   in
-  Term.(ret (const et_modify $ etn $ display))
+  let term = Term.(ret (const et_modify $ etn $ display)) in
+  let info = Term.info ~docs ~doc:"Modify an entity type." "et-modify" in
+  (term, info)
 
 let et_delete etn = run @@ fun (module C) ->
   (match%lwt C.Entity_type.of_name etn with
@@ -80,10 +93,15 @@ let et_delete_cmd =
     let doc = "Name of the entity to delete" in
     Arg.(required & pos 0 (some string) None & info ~docv:"ET-NAME" ~doc [])
   in
-  Term.(ret (const et_delete $ et_name_t))
+  let term = Term.(ret (const et_delete $ et_name_t)) in
+  let info = Term.info ~docs ~doc:"Delete an entity type." "et-delete" in
+  (term, info)
 
 let et_list () = run_exn @@ fun (module C) ->
   C.Entity_type.all () >>=
   C.Entity_type.Set.iter_s (fun et -> C.Entity_type.name et >>= Lwt_io.printl)
 
-let et_list_cmd = Term.(const et_list $ const ())
+let et_list_cmd =
+  let term = Term.(const et_list $ const ()) in
+  let info = Term.info ~docs ~doc:"List entity types." "et-list" in
+  (term, info)

@@ -15,9 +15,7 @@
  *)
 
 open Cmdliner
-open Printf
 open Subsocia_cmdliner
-open Subsocia_version
 
 open Command_common
 open Command_db
@@ -42,118 +40,63 @@ let load schema_path disable_transaction =
         let module Schema = Subsocia_schema.Make (C) in
         Schema.exec schema)
 
-let load_t =
+let load_cmd =
   let schema =
     Arg.(required & pos 0 (some file) None & info ~docv:"PATH" [])
   in
-  Term.(const load $ schema $ Arg.disable_transaction)
+  let term = Term.(const load $ schema $ Arg.disable_transaction) in
+  let info =
+    let doc =
+      "Add, modify, and delete attributes according to the schema loaded \
+       from PATH."
+    in
+    Term.info ~doc "load"
+  in
+  (term, info)
 
 (* Main *)
 
-let db_scn = "DATABASE COMMANDS"
-let et_scn = "ENTITY TYPE COMMANDS"
-let in_scn = "INCLUSION COMMANDS"
-let at_scn = "ATTRIBUTE TYPE COMMANDS"
-let au_scn = "ATTRIBUTE UNIQUENESS"
-let an_scn = "ATTRIBUTION COMMANDS"
-let e_scn = "ENTITY COMMANDS"
-
 let subcommands = [
-  db_schema_cmd, Term.info ~docs:db_scn
-    ~doc:"Print the directory or paths of database schema files."
-    "db-schema";
-  db_init_cmd, Term.info ~docs:db_scn
-    ~doc:"Initialize the database."
-    "db-init";
-  db_upgrade_cmd, Term.info ~docs:db_scn
-    ~doc:(sprintf "Upgrade the database to the current schema version (%d)."
-                  schema_version)
-    "db-upgrade";
+  db_schema_cmd;
+  db_init_cmd;
+  db_upgrade_cmd;
 
-  et_info_cmd, Term.info ~docs:et_scn
-    ~doc:"Show information about the named entity type."
-    "et-info";
-  et_list_cmd, Term.info ~docs:et_scn
-    ~doc:"List entity types."
-    "et-list";
-  et_create_cmd, Term.info ~docs:et_scn
-    ~doc:"Create an entity type."
-    "et-create";
-  et_modify_cmd, Term.info ~docs:et_scn
-    ~doc:"Modify an entity type."
-    "et-modify";
-  et_delete_cmd, Term.info ~docs:et_scn
-    ~doc:"Delete an entity type."
-    "et-delete";
+  et_info_cmd;
+  et_list_cmd;
+  et_create_cmd;
+  et_modify_cmd;
+  et_delete_cmd;
 
-  in_allow_cmd, Term.info ~docs:in_scn
-    ~doc:"Allow inclusion between entities of a type."
-    "in-allow";
-  in_disallow_cmd, Term.info ~docs:in_scn
-    ~doc:"Disallow inclusion between entities of a type."
-    "in-disallow";
-  in_list_cmd, Term.info ~docs:in_scn
-    ~doc:"Show inclusion policy between types."
-    "in-list";
+  in_allow_cmd;
+  in_disallow_cmd;
+  in_list_cmd;
 
-  at_create_cmd, Term.info ~docs:at_scn
-    ~doc:"Create an attribute type."
-    "at-create";
-  at_delete_cmd, Term.info ~docs:at_scn
-    ~doc:"Delete an attribute type."
-    "at-delete";
-  at_list_cmd, Term.info ~docs:at_scn
-    ~doc:"List all attribute types."
-    "at-list";
+  at_create_cmd;
+  at_delete_cmd;
+  at_list_cmd;
 
-  au_force_cmd, Term.info ~docs:au_scn
-    ~doc:"Add an attribute uniqueness constraint."
-    "au-force";
-  au_relax_cmd, Term.info ~docs:au_scn
-    ~doc:"Remove an attribute uniqueness constraint."
-    "au-relax";
-  au_list_cmd, Term.info ~docs:au_scn
-    ~doc:"List all attribute uniqueness constraints."
-    "au-list";
+  au_force_cmd;
+  au_relax_cmd;
+  au_list_cmd;
 
-  an_allow_cmd, Term.info ~docs:an_scn
-    ~doc:"Allow an attribution."
-    "an-allow";
-  an_disallow_cmd, Term.info ~docs:an_scn
-    ~doc:"Disallow an attribution."
-    "an-disallow";
-  an_list_cmd, Term.info ~docs:an_scn
-    ~doc:"List allowed attribution."
-    "an-list";
+  an_allow_cmd;
+  an_disallow_cmd;
+  an_list_cmd;
 
-  e_ls_cmd, Term.info ~docs:e_scn
-    ~doc:"List entities reachable from a path."
-    "ls";
-  e_search_cmd, Term.info ~docs:e_scn
-    ~doc:"List entities matching a selector."
-    "search";
-  e_fts_cmd, Term.info ~docs:e_scn
-    ~doc:"Full-text search."
-    "fts";
-  e_create_cmd, Term.info ~docs:e_scn
-    ~doc:"Create an entity."
-    "create";
-  e_delete_cmd, Term.info ~docs:e_scn
-    ~doc:"Delete an entity."
-    "delete";
-  e_modify_cmd, Term.info ~docs:e_scn
-    ~doc:"Modify an entity."
-    "modify";
+  e_ls_cmd;
+  e_search_cmd;
+  e_fts_cmd;
+  e_create_cmd;
+  e_delete_cmd;
+  e_modify_cmd;
 
-  load_t, Term.info
-    ~doc:"Add, modify, and delete attributes according to the schema loaded \
-          from PATH."
-    "load"
+  load_cmd;
 ]
 
 let main_cmd =
-  Term.(ret @@ const (`Error (true, "Missing subcommand."))),
-  Term.info ?version:Subsocia_version.pkg_version "subsocia"
+  let term = Term.(ret @@ const (`Error (true, "Missing subcommand."))) in
+  let info = Term.info ?version:Subsocia_version.pkg_version "subsocia" in
+  (term, info)
 
 let () =
   Dynlink.allow_unsafe_modules true;

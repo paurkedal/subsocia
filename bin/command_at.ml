@@ -20,6 +20,8 @@ open Lwt.Infix
 open Subsocia_cmdliner
 open Subsocia_common
 
+let docs = "ATTRIBUTE TYPE COMMANDS"
+
 let at_create (Type.Any vt) atn mult = run_exn @@ fun (module C) ->
   C.Attribute_type.create ~mult vt atn >>= fun at ->
   let%lwt at_idstr = C.Attribute_type.(soid at >|= Soid.to_string) in
@@ -39,7 +41,9 @@ let at_create_cmd =
     let doc = "The multiplicity of values accepted for this attribute." in
     Arg.(value & pos 2 multiplicity Multiplicity.May & info ~docv ~doc [])
   in
-  Term.(const at_create $ vt $ atn $ mu)
+  let term = Term.(const at_create $ vt $ atn $ mu) in
+  let info = Term.info ~docs ~doc:"Create an attribute type." "at-create" in
+  (term, info)
 
 let at_delete atn = run_int_exn @@ fun (module C) ->
   (match%lwt C.Attribute_type.any_of_name_exn atn with
@@ -57,7 +61,9 @@ let at_delete_cmd =
     let doc = "Name of the attribute to delete." in
     Arg.(required & pos 0 (some string) None & info ~docv:"NAME" ~doc [])
   in
-  Term.(const at_delete $ atn)
+  let term = Term.(const at_delete $ atn) in
+  let info = Term.info ~docs ~doc:"Delete an attribute type." "at-delete" in
+  (term, info)
 
 let at_list verbose = run_exn @@ fun (module C) ->
   let show (C.Attribute_type.Any at) =
@@ -82,4 +88,6 @@ let at_list_cmd =
     let doc = "Show allowed domain and codomain combinations." in
     Arg.(value & flag & info ~doc ["v"])
   in
-  Term.(const at_list $ verbose)
+  let term = Term.(const at_list $ verbose) in
+  let info = Term.info ~docs ~doc:"List all attribute types." "at-list" in
+  (term, info)

@@ -22,6 +22,8 @@ open Subsocia_cmdliner
 open Subsocia_version
 open Unprime
 
+let docs = "DATABASE COMMANDS"
+
 let (>>=??) m f = m >>= function Ok x -> f x | Error _ as r -> Lwt.return r
 
 let db_schema_prefix =
@@ -57,7 +59,12 @@ let db_schema_cmd =
     in
     Arg.(value & flag & info ~doc ["dir"])
   in
-  Term.(const db_schema $ do_dir_t)
+  let term = Term.(const db_schema $ do_dir_t) in
+  let info =
+    let doc = "Print the directory or paths of database schema files." in
+    Term.info ~docs ~doc "db-schema"
+  in
+  (term, info)
 
 let subsocia_dot_re = Re.compile Re.(seq [bow; str "subsocia."])
 
@@ -111,7 +118,10 @@ let db_init disable_transaction = Lwt_main.run begin
   0
 end
 
-let db_init_cmd = Term.(const db_init $ Arg.disable_transaction)
+let db_init_cmd =
+  let term = Term.(const db_init $ Arg.disable_transaction) in
+  let info = Term.info ~docs ~doc:"Initialize the database." "db-init" in
+  (term, info)
 
 let get_schema_version_q =
   Caqti_request.find ~env Caqti_type.unit Caqti_type.int
@@ -155,4 +165,13 @@ let db_upgrade () = Lwt_main.run begin
     Lwt.return 0
 end
 
-let db_upgrade_cmd = Term.(const db_upgrade $ const ())
+let db_upgrade_cmd =
+  let term = Term.(const db_upgrade $ const ()) in
+  let info =
+    let doc = sprintf
+      "Upgrade the database to the current schema version (%d)."
+      schema_version
+    in
+    Term.info ~docs ~doc "db-upgrade"
+  in
+  (term, info)

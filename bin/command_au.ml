@@ -19,6 +19,8 @@ open Command_common
 open Lwt.Infix
 open Unprime_list
 
+let docs = "ATTRIBUTE UNIQUENESS"
+
 let au_force atns = run_int_exn @@ fun (module C) ->
   let module C = Subsocia_derived.Make (C) in
   let%lwt ats = Lwt_list.map_s C.Attribute_type.any_of_name_exn atns in
@@ -38,7 +40,12 @@ let au_force_cmd =
   let atns =
     Arg.(value & pos_all string [] & info ~docv:"ATTRIBUTE-TYPES" [])
   in
-  Term.(const au_force $ atns)
+  let term = Term.(const au_force $ atns) in
+  let info =
+    let doc = "Add an attribute uniqueness constraint." in
+    Term.info ~docs ~doc "au-force"
+  in
+  (term, info)
 
 let au_relax atns = run_int_exn @@ fun (module C) ->
   let module C = Subsocia_derived.Make (C) in
@@ -58,7 +65,12 @@ let au_relax_cmd =
   let atns =
     Arg.(value & pos_all string [] & info ~docv:"ATTRIBUTE-TYPES" [])
   in
-  Term.(const au_relax $ atns)
+  let term = Term.(const au_relax $ atns) in
+  let info =
+    let doc = "Remove an attribute uniqueness constraint." in
+    Term.info ~docs ~doc "au-relax"
+  in
+  (term, info)
 
 let au_list () = run_exn @@ fun (module C) ->
   let show_at pos (C.Attribute_type.Any at) =
@@ -75,4 +87,10 @@ let au_list () = run_exn @@ fun (module C) ->
   in
   C.Attribute_uniqueness.all () >>= C.Attribute_uniqueness.Set.iter_s show_au
 
-let au_list_cmd = Term.(const au_list $ const ())
+let au_list_cmd =
+  let term = Term.(const au_list $ const ()) in
+  let info =
+    let doc = "List all attribute uniqueness constraints." in
+    Term.info ~docs ~doc "au-list"
+  in
+  (term, info)
