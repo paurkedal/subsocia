@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -24,8 +24,9 @@ module type S = sig
 
   val on_entity_change : (entity_change -> unit) -> unit
 
-  module type T = Subsocia_intf.S
-    with module Attribute_type = Attribute_type
+  module type T = Subsocia_intf.S_SOID
+    with type soid := int32
+     and module Attribute_type = Attribute_type
      and module Attribute_uniqueness = Attribute_uniqueness
      and module Relation = Relation
      and module Entity_type = Entity_type
