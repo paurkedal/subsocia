@@ -348,23 +348,45 @@ let e_modify sel add_dsupers del_dsupers add_sels del_sels time =
 
 let e_modify_cmd =
   let sel =
-    Arg.(required & pos 0 (some selector) None & info ~docv:"PATH" [])
+    let doc =
+      "The entity to modify. For the purpose of this utility, \
+       additions and removals of arrows are considered to change \
+       the target entity and \
+       additions and removals of inclusions are considered to change \
+       the subentity."
+    in
+    Arg.(required & pos 0 (some selector) None & info ~docv:"PATH" ~doc [])
   in
   let add_succs =
-    Arg.(value & opt_all selector [] & info ~docv:"PATH" ["s"])
+    let doc = "Add an inclusion of this entity in SUPER." in
+    Arg.(value & opt_all selector [] & info ~docv:"SUPER" ~doc ["s"])
   in
   let del_succs =
-    Arg.(value & opt_all selector [] & info ~docv:"PATH" ["r"])
+    let doc = "Remove the inclusion of this entity in SUPER." in
+    Arg.(value & opt_all selector [] & info ~docv:"SUPER" ~doc ["r"])
   in
   let add_attrs =
-    Arg.(value & opt_all add_selector [] & info ~docv:"APATH" ["a"])
+    let doc =
+      "Add an arrow which is \
+       labelled by final component of APATH, \
+       have the leading components as source, and \
+       have the current entry as target."
+    in
+    Arg.(value & opt_all add_selector [] & info ~docv:"APATH" ~doc ["a"])
   in
   let del_attrs =
-    Arg.(value & opt_all delete_selector [] & info ~docv:"APATH" ["d"])
+    let doc =
+      "Remove the arrow which is \
+       labelled by final component of APATH, \
+       have the leading components as source, and \
+       have the current entry as target."
+    in
+    Arg.(value & opt_all delete_selector [] & info ~docv:"APATH" ~doc ["d"])
   in
   let time =
     let doc =
       "Start or end of validity to record for added and removed inclusions. \
+       Any inclusions needed by input paths are also probed at this. \
        Defaults to now."
     in
     Arg.(value & opt (some ptime) None & info ~docv:"TIME" ~doc ["t"])
