@@ -36,4 +36,4 @@ let run_int_exn f = Lwt_main.run
 let run_exn f = run_int_exn (fun c -> f c >|= fun () -> 0)
 
 let run_bool_exn f =
-  run_int_exn (fun c -> f c >|= function false -> 0 | true -> 1)
+  run_int_exn (fun c -> f c >|= function false -> 1 | true -> 0)
