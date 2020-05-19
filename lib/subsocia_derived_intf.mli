@@ -23,11 +23,12 @@ open Subsocia_selector_types
 module type ITERABLE = sig
   type t
 
-  val fold_s : (t -> 'a -> 'a Lwt.t) -> t -> 'a -> 'a Lwt.t
-  val iter_s : (t -> unit Lwt.t) -> t -> unit Lwt.t
-  val for_all_s : (t -> bool Lwt.t) -> t -> bool Lwt.t
-  val exists_s : (t -> bool Lwt.t) -> t -> bool Lwt.t
-  val search_s : (t -> 'a option Lwt.t) -> t -> 'a option Lwt.t
+  val fold_s : ?time: Ptime.t -> (t -> 'a -> 'a Lwt.t) -> t -> 'a -> 'a Lwt.t
+  val iter_s : ?time: Ptime.t -> (t -> unit Lwt.t) -> t -> unit Lwt.t
+  val for_all_s : ?time: Ptime.t -> (t -> bool Lwt.t) -> t -> bool Lwt.t
+  val exists_s : ?time: Ptime.t -> (t -> bool Lwt.t) -> t -> bool Lwt.t
+  val search_s :
+    ?time: Ptime.t -> (t -> 'a option Lwt.t) -> t -> 'a option Lwt.t
 end
 
 module type NESTED_ITERABLE = sig
@@ -35,12 +36,22 @@ module type NESTED_ITERABLE = sig
 
   exception Prune
 
-  val fold_s : ?max_depth: int -> (t -> 'a -> 'a Lwt.t) -> t -> 'a -> 'a Lwt.t
-  val iter_s : ?max_depth: int -> (t -> unit Lwt.t) -> t -> unit Lwt.t
-  val for_all_s : ?max_depth: int -> (t -> bool Lwt.t) -> t -> bool Lwt.t
-  val exists_s : ?max_depth: int -> (t -> bool Lwt.t) -> t -> bool Lwt.t
-  val search_s : ?max_depth: int ->
-                 (t -> 'a option Lwt.t) -> t -> 'a option Lwt.t
+  val fold_s :
+    ?time: Ptime.t -> ?max_depth: int ->
+    (t -> 'a -> 'a Lwt.t) -> t -> 'a -> 'a Lwt.t
+
+  val iter_s :
+    ?time: Ptime.t -> ?max_depth: int -> (t -> unit Lwt.t) -> t -> unit Lwt.t
+
+  val for_all_s :
+    ?time: Ptime.t -> ?max_depth: int -> (t -> bool Lwt.t) -> t -> bool Lwt.t
+
+  val exists_s :
+    ?time: Ptime.t -> ?max_depth: int -> (t -> bool Lwt.t) -> t -> bool Lwt.t
+
+  val search_s :
+    ?time: Ptime.t -> ?max_depth: int ->
+    (t -> 'a option Lwt.t) -> t -> 'a option Lwt.t
 end
 
 module type ATTRIBUTE_TYPE = Subsocia_intf.ATTRIBUTE_TYPE

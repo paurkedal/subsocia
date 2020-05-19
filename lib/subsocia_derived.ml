@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -211,19 +211,21 @@ module Make (Base : Subsocia_intf.S) = struct
       | _ -> _fail "Multiple matches for unique name %s" en
 
     module Dsuper = struct
-      let fold_s f e acc = dsuper e >>= (fun xs -> Set.fold_s f xs acc)
-      let iter_s f e = dsuper e >>= Set.iter_s f
-      let for_all_s f e = dsuper e >>= Set.for_all_s f
-      let exists_s f e = dsuper e >>= Set.exists_s f
-      let search_s f e = dsuper e >>= Set.search_s f
+      let fold_s ?time f e acc =
+        dsuper ?time e >>= (fun xs -> Set.fold_s f xs acc)
+      let iter_s ?time f e = dsuper ?time e >>= Set.iter_s f
+      let for_all_s ?time f e = dsuper ?time e >>= Set.for_all_s f
+      let exists_s ?time f e = dsuper ?time e >>= Set.exists_s f
+      let search_s ?time f e = dsuper ?time e >>= Set.search_s f
     end
 
     module Dsub = struct
-      let fold_s f e acc = dsub e >>= (fun xs -> Set.fold_s f xs acc)
-      let iter_s f e = dsub e >>= Set.iter_s f
-      let for_all_s f e = dsub e >>= Set.for_all_s f
-      let exists_s f e = dsub e >>= Set.exists_s f
-      let search_s f e = dsub e >>= Set.search_s f
+      let fold_s ?time f e acc =
+        dsub ?time e >>= (fun xs -> Set.fold_s f xs acc)
+      let iter_s ?time f e = dsub ?time e >>= Set.iter_s f
+      let for_all_s ?time f e = dsub ?time e >>= Set.for_all_s f
+      let exists_s ?time f e = dsub ?time e >>= Set.exists_s f
+      let search_s ?time f e = dsub ?time e >>= Set.search_s f
     end
 
     let make_visit () =
@@ -233,66 +235,66 @@ module Make (Base : Subsocia_intf.S) = struct
     module Transitive (Dir : ITERABLE with type t := t) = struct
       exception Prune
 
-      let rec fold_s' visit max_depth f e acc =
+      let rec fold_s' ?time visit max_depth f e acc =
         if visit e then Lwt.return acc else
         try%lwt
           let%lwt acc = f e acc in
           if max_depth = 0 then Lwt.return acc else
-          Dir.fold_s (fold_s' visit (max_depth - 1) f) e acc
+          Dir.fold_s ?time (fold_s' ?time visit (max_depth - 1) f) e acc
         with Prune -> Lwt.return acc
 
-      let fold_s ?(max_depth = max_int) f e acc =
-        fold_s' (make_visit ()) max_depth f e acc
+      let fold_s ?time ?(max_depth = max_int) f e acc =
+        fold_s' ?time (make_visit ()) max_depth f e acc
 
-      let rec iter_s' visit max_depth f e =
+      let rec iter_s' ?time visit max_depth f e =
         if visit e then Lwt.return_unit else
         try%lwt
           f e >>= fun () ->
           if max_depth = 0 then Lwt.return_unit else
-          Dir.iter_s (iter_s' visit (max_depth - 1) f) e
+          Dir.iter_s ?time (iter_s' ?time visit (max_depth - 1) f) e
         with Prune -> Lwt.return_unit
 
-      let iter_s ?(max_depth = max_int) f e =
-        iter_s' (make_visit ()) max_depth f e
+      let iter_s ?time ?(max_depth = max_int) f e =
+        iter_s' ?time (make_visit ()) max_depth f e
 
-      let rec for_all_s' visit max_depth f e =
+      let rec for_all_s' ?time visit max_depth f e =
         if visit e then Lwt.return_true else
         try%lwt
           match%lwt f e with
           | false -> Lwt.return_false
           | true ->
             if max_depth <= 0 then Lwt.return_true else
-            Dir.for_all_s (for_all_s' visit (max_depth - 1) f) e
+            Dir.for_all_s ?time (for_all_s' ?time visit (max_depth - 1) f) e
         with Prune -> Lwt.return_true
 
-      let for_all_s ?(max_depth = max_int) f e =
-        for_all_s' (make_visit ()) max_depth f e
+      let for_all_s ?time ?(max_depth = max_int) f e =
+        for_all_s' ?time (make_visit ()) max_depth f e
 
-      let rec exists_s' visit max_depth f e =
+      let rec exists_s' ?time visit max_depth f e =
         if visit e then Lwt.return_false else
         try%lwt
           match%lwt f e with
           | true -> Lwt.return_true
           | false ->
             if max_depth <= 0 then Lwt.return_false else
-            Dir.exists_s (exists_s' visit (max_depth - 1) f) e
+            Dir.exists_s ?time (exists_s' ?time visit (max_depth - 1) f) e
         with Prune -> Lwt.return_false
 
-      let exists_s ?(max_depth = max_int) f e =
-        exists_s' (make_visit ()) max_depth f e
+      let exists_s ?time ?(max_depth = max_int) f e =
+        exists_s' ?time (make_visit ()) max_depth f e
 
-      let rec search_s' visit max_depth f e =
+      let rec search_s' ?time visit max_depth f e =
         if visit e then Lwt.return_none else
         try%lwt
           match%lwt f e with
           | Some _ as x -> Lwt.return x
           | None ->
             if max_depth <= 0 then Lwt.return_none else
-            Dir.search_s (search_s' visit (max_depth - 1) f) e
+            Dir.search_s ?time (search_s' ?time visit (max_depth - 1) f) e
         with Prune -> Lwt.return_none
 
-      let search_s ?(max_depth = max_int) f e =
-        search_s' (make_visit ()) max_depth f e
+      let search_s ?time ?(max_depth = max_int) f e =
+        search_s' ?time (make_visit ()) max_depth f e
     end
     module Super = Transitive (Dsuper)
     module Sub = Transitive (Dsub)
