@@ -214,7 +214,7 @@ let e_ls_cmd =
   in
   let time =
     let doc = "Time at which to traverse inclusion. Defaults to now." in
-    Arg.(value & opt (some ptime) None & info ~docv:"QUERY-TIME" ~doc ["t"])
+    Arg.(value & opt (some ptime) None & info ~docv:"QUERY-TIME" ~doc ["time"])
   in
   let term = Term.(const e_ls $ sel $ time) in
   let info = Term.info ~docs ~doc:"List entities reachable from a path." "ls" in
@@ -243,7 +243,7 @@ let e_search_cmd =
   in
   let time =
     let doc = "Time at which to traverse inclusion. Defaults to now." in
-    Arg.(value & opt (some ptime) None & info ~docv:"QUERY-TIME" ~doc ["t"])
+    Arg.(value & opt (some ptime) None & info ~docv:"QUERY-TIME" ~doc ["time"])
   in
   let term = Term.(const e_search $ sel $ eds $ time) in
   let info =
@@ -276,7 +276,7 @@ let e_fts_cmd =
   in
   let et =
     let doc = "Restrict the result to the entities of TYPE." in
-    Arg.(value & opt (some string) None & info ~docv:"TYPE" ~doc ["t"])
+    Arg.(value & opt (some string) None & info ~docv:"TYPE" ~doc ["t"; "type"])
   in
   let super =
     let doc = "Restrict the result to subentities of SUPER." in
@@ -292,7 +292,7 @@ let e_fts_cmd =
   in
   let time =
     let doc = "Time at which to traverse inclusion. Defaults to now." in
-    Arg.(value & opt (some ptime) None & info ~docv:"QUERY-TIME" ~doc ["t"])
+    Arg.(value & opt (some ptime) None & info ~docv:"QUERY-TIME" ~doc ["time"])
   in
   let term = Term.(const e_fts $ query $ et $ super $ limit $ cutoff $ time) in
   let info = Term.info ~docs ~doc:"Full-text search." "fts" in
@@ -321,7 +321,7 @@ let e_create_cmd =
   in
   let time =
     let doc = "Time at which to traverse inclusion. Defaults to now." in
-    Arg.(value & opt (some ptime) None & info ~docv:"QUERY-TIME" ~doc ["t"])
+    Arg.(value & opt (some ptime) None & info ~docv:"QUERY-TIME" ~doc ["time"])
   in
   let term = Term.(const e_create $ etn $ succs $ attrs $ time) in
   let info = Term.info ~docs ~doc:"Create an entity." "create" in
@@ -338,7 +338,7 @@ let e_delete_cmd =
   in
   let time =
     let doc = "Time at which to traverse inclusion. Defaults to now." in
-    Arg.(value & opt (some ptime) None & info ~docv:"QUERY-TIME" ~doc ["t"])
+    Arg.(value & opt (some ptime) None & info ~docv:"QUERY-TIME" ~doc ["time"])
   in
   let term = Term.(const e_delete $ sel $ time) in
   let info = Term.info ~docs ~doc:"Delete an entity." "delete" in
@@ -403,7 +403,7 @@ let e_modify_cmd =
        Any inclusions needed by input paths are also probed at this. \
        Defaults to now."
     in
-    Arg.(value & opt (some ptime) None & info ~docv:"TIME" ~doc ["t"])
+    Arg.(value & opt (some ptime) None & info ~docv:"TIME" ~doc ["time"])
   in
   let term = let open Term in
     const e_modify
