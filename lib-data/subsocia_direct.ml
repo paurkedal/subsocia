@@ -275,18 +275,18 @@ module Make_Q (P : sig val db_schema : string option end) = struct
        AND since <= $3 AND coalesce($3 < until, true)"
 
   let e_dsub_history =
-    (tup3 int32 (option ptime) (option ptime) -->*
+    (tup4 int32 (option int32) (option ptime) (option ptime) -->*
      tup3 ptime (option ptime) int32)
     "SELECT since, until, dsub_id FROM $.inclusion \
-     WHERE dsuper_id = ? \
+     WHERE dsuper_id = ? AND coalesce(entity_type_id = ?, true) \
        AND coalesce (? < until, true) AND coalesce (since < ?, true)
      ORDER BY since"
 
   let e_dsuper_history =
-    (tup3 int32 (option ptime) (option ptime) -->*
+    (tup4 int32 (option int32) (option ptime) (option ptime) -->*
      tup3 ptime (option ptime) int32)
     "SELECT since, until, dsub_id FROM $.inclusion \
-     WHERE dsub_id = ?
+     WHERE dsub_id = ? AND coalesce(entity_type_id = ?, true) \
        AND coalesce (? < until, true) AND coalesce (since < ?, true)
      ORDER BY since"
 
@@ -1144,13 +1144,13 @@ module Make (P : Param) = struct
        | None -> dsuper_any ?time e
        | Some et -> dsuper_typed ?time et e)
 
-    let dsub_history ?since ?until e =
+    let dsub_history ?since ?until ?et e =
       with_db_exn @@ fun (module C) ->
-      C.collect_list Q.e_dsub_history (e, since, until)
+      C.collect_list Q.e_dsub_history (e, et, since, until)
 
-    let dsuper_history ?since ?until e =
+    let dsuper_history ?since ?until ?et e =
       with_db_exn @@ fun (module C) ->
-      C.collect_list Q.e_dsuper_history (e, since, until)
+      C.collect_list Q.e_dsuper_history (e, et, since, until)
 
     let create entity_type =
       with_db_exn @@ fun (module C) ->

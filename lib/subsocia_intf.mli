@@ -272,11 +272,11 @@ module type ENTITY = sig
       @param time The time at which to probe for inclusion, defaults to now. *)
 
   val dsub_history :
-    ?since: Ptime.t -> ?until: Ptime.t ->
+    ?since: Ptime.t -> ?until: Ptime.t -> ?et: Entity_type.t ->
     t -> (Ptime.t * Ptime.t option * t) list Lwt.t
 
   val dsuper_history :
-    ?since: Ptime.t -> ?until: Ptime.t ->
+    ?since: Ptime.t -> ?until: Ptime.t -> ?et: Entity_type.t ->
     t -> (Ptime.t * Ptime.t option * t) list Lwt.t
 
   val force_dsub : ?time: Ptime.t -> t -> t -> unit Lwt.t
