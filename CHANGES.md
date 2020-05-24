@@ -1,3 +1,15 @@
+## v0.19.0 - unreleased
+
+  - Historic inclusions are now kept permanently with timestamps indicating
+    periods of validity.  In addition to SQL an schema update this includes
+    changes to the API and command line tool to allow probing inclusions at
+    a given time or providing the full inclusion history of an entity.
+  - The optimisation of recording subsumption of inclusion in the DB is
+    dropped.
+  - Extended transactional signature to `Subsocia_intf.S_SOID`.
+  - Fixed inversion of exit code for bool-returning subcommands.
+  - Improved documentation of entity-subcommands.
+
 ## v0.18.2 - 2020-01-06
 
 - Fix Caqti 1.2 compatibility, broken due to internal concrete type alias.
