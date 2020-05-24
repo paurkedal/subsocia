@@ -67,22 +67,22 @@ let bool_of_int = function 0 -> false | 1 -> true | _ -> assert false
 (* TODO: Read custom mapping from a configuration file. These are only the
  * currently shipped catalogs. *)
 let tsconfig_of_lang2 = function
-  | "da" -> "danish"
-  | "en" -> "english"
-  | "fi" -> "finish"
-  | "fr" -> "frensh"
-  | "de" -> "german"
-  | "hu" -> "hungarian"
-  | "it" -> "italian"
-  | "nb" | "nn" | "no" -> "norwegian"
-  | "nl" -> "dutch"
-  | "pt" -> "portugese"
-  | "ro" -> "romanian"
-  | "ru" -> "russian"
-  | "es" -> "spanish"
-  | "sv" -> "swedish"
-  | "tr" -> "turkish"
-  | _ -> "simple"
+ | "da" -> "danish"
+ | "en" -> "english"
+ | "fi" -> "finish"
+ | "fr" -> "frensh"
+ | "de" -> "german"
+ | "hu" -> "hungarian"
+ | "it" -> "italian"
+ | "nb" | "nn" | "no" -> "norwegian"
+ | "nl" -> "dutch"
+ | "pt" -> "portugese"
+ | "ro" -> "romanian"
+ | "ru" -> "russian"
+ | "es" -> "spanish"
+ | "sv" -> "swedish"
+ | "tr" -> "turkish"
+ | _ -> "simple"
 
 module type S = Subsocia_direct_intf.S
 
@@ -139,7 +139,8 @@ module Make_Q (P : sig val db_schema : string option end) = struct
     let rec mk_values i =
       let value = S [L"("; P i; L"::int)"] in
       if i = 0 then value :: mk_values (i + 1) else
-      if i < l then L", " :: value :: mk_values (i + 1) else [] in
+      if i < l then L", " :: value :: mk_values (i + 1) else []
+    in
     let values = mk_values 0 in
     S[L"INSERT INTO "; table "attribute_uniqueness ";
       L"SELECT attribute_uniqueness_id, attribute_type_id \
@@ -160,9 +161,11 @@ module Make_Q (P : sig val db_schema : string option end) = struct
         let l = Caqti_type.length t in
         if l = 0 then Caqti_request.find t int32 "" else
         let q _ = au_force_query l in
-        Caqti_request.create t int32 Caqti_mult.one q in
+        Caqti_request.create t int32 Caqti_mult.one q
+      in
       let next = lazy (build (tup2 t int32)) in
-      Au_force_cache {request; next} in
+      Au_force_cache {request; next}
+    in
     build Caqti_type.unit
 
   type au_force_ex =
@@ -176,7 +179,8 @@ module Make_Q (P : sig val db_schema : string option end) = struct
       fun (Au_force_cache {request; next}) param ->
       (function
        | [] -> Au_force_ex {request; param}
-       | id :: ids -> loop (Lazy.force next) (param, id) ids) in
+       | id :: ids -> loop (Lazy.force next) (param, id) ids)
+    in
     loop au_force_cache () at_ids
 
   let au_relax = (int32 -->! unit)
@@ -279,7 +283,7 @@ module Make_Q (P : sig val db_schema : string option end) = struct
      tup3 ptime (option ptime) int32)
     "SELECT since, until, dsub_id FROM $.inclusion \
      WHERE dsuper_id = ? AND coalesce(entity_type_id = ?, true) \
-       AND coalesce (? < until, true) AND coalesce (since < ?, true)
+       AND coalesce (? < until, true) AND coalesce (since < ?, true) \
      ORDER BY since"
 
   let e_dsuper_history =
@@ -287,7 +291,7 @@ module Make_Q (P : sig val db_schema : string option end) = struct
      tup3 ptime (option ptime) int32)
     "SELECT since, until, dsub_id FROM $.inclusion \
      WHERE dsub_id = ? AND coalesce(entity_type_id = ?, true) \
-       AND coalesce (? < until, true) AND coalesce (since < ?, true)
+       AND coalesce (? < until, true) AND coalesce (since < ?, true) \
      ORDER BY since"
 
   let e_type = (int32 --> int32)
@@ -594,8 +598,9 @@ module Enabled_cache = struct
       with Not_found ->
         let%lwt y = f x in
         Prime_cache.replace cache fetch_grade x y;
-        Lwt.return y in
-    g, cache
+        Lwt.return y
+    in
+    (g, cache)
 
   let memo_lwt_conn f =
     let cache = Prime_cache.create ~cache_metric 23 in
@@ -604,8 +609,9 @@ module Enabled_cache = struct
       with Not_found ->
         let%lwt y = f ?conn x in
         Prime_cache.replace cache fetch_grade x y;
-        Lwt.return y in
-    g, cache
+        Lwt.return y
+    in
+    (g, cache)
 end
 
 module Disabled_cache = struct
@@ -664,13 +670,13 @@ module B = struct
 
     let coerce_any (type a) (t : a Type.t) at0 : a t option =
       let Any at1 = at0 in
-      match t, value_type at1, at1 with
-      | Type.Bool, Type.Bool, at -> Some at
-      | Type.Bool, _, _ -> None
-      | Type.Int, Type.Int, at -> Some at
-      | Type.Int, _, _ -> None
-      | Type.String, Type.String, at -> Some at
-      | Type.String, _, _ -> None
+      (match t, value_type at1, at1 with
+       | Type.Bool, Type.Bool, at -> Some at
+       | Type.Bool, _, _ -> None
+       | Type.Int, Type.Int, at -> Some at
+       | Type.Int, _, _ -> None
+       | Type.String, Type.String, at -> Some at
+       | Type.String, _, _ -> None)
 
     module Comparable = struct
       type t = any
@@ -836,12 +842,13 @@ module Make (P : Param) = struct
         : type a. ?mult: Multiplicity.t -> a Type.t -> string -> a t Lwt.t =
       fun ?(mult = Multiplicity.May) vt at_name ->
       let fts =
-        match vt with
-        | Type.String ->
-          let len = String.length at_name in
-          if len < 3 || at_name.[len - 3] <> '.' then Some "simple" else
-          Some (tsconfig_of_lang2 (String.sub at_name (len - 2) 2))
-        | _ -> None in
+        (match vt with
+         | Type.String ->
+            let len = String.length at_name in
+            if len < 3 || at_name.[len - 3] <> '.' then Some "simple" else
+            Some (tsconfig_of_lang2 (String.sub at_name (len - 2) 2))
+         | _ -> None)
+      in
       with_db_exn @@ fun ((module C : CONNECTION) as conn) ->
       C.find Q.at_create
         (at_name, Type.to_string vt, Multiplicity.to_int mult, fts)
@@ -1016,7 +1023,8 @@ module Make (P : Param) = struct
       with_db_exn @@ fun ((module C) as conn) ->
       let aux at_map at_id =
         let%lwt at = Attribute_type.any_of_soid_exn' ~conn at_id in
-        Lwt.return (B.Attribute_type.Set.add at at_map) in
+        Lwt.return (B.Attribute_type.Set.add at at_map)
+      in
       C.fold Q.et_allowed_attributes List.cons (et, et') []
         >>=? fun at_ids ->
       Lwt_list.fold_left_s aux B.Attribute_type.Set.empty at_ids
@@ -1027,7 +1035,8 @@ module Make (P : Param) = struct
       let aux acc (at_id, et) =
         let%lwt at = Attribute_type.any_of_soid_exn' ~conn at_id in
         let ats' = try Map.find et acc with Not_found -> [] in
-        Lwt.return (Map.add et (at :: ats') acc) in
+        Lwt.return (Map.add et (at :: ats') acc)
+      in
       C.fold Q.et_allowed_preimage List.cons et [] >>=? fun bindings ->
       Lwt_list.fold_left_s aux Map.empty bindings
 
@@ -1037,7 +1046,8 @@ module Make (P : Param) = struct
       let aux acc (at_id, et) =
         let%lwt at = Attribute_type.any_of_soid_exn' ~conn at_id in
         let ats' = try Map.find et acc with Not_found -> [] in
-        Lwt.return (Map.add et (at :: ats') acc) in
+        Lwt.return (Map.add et (at :: ats') acc)
+      in
       C.fold Q.et_allowed_image List.cons et [] >>=? fun bindings ->
       Lwt_list.fold_left_s aux Map.empty bindings
 
@@ -1060,7 +1070,8 @@ module Make (P : Param) = struct
       with_db_exn @@ fun ((module C) as conn) ->
       let aux (at_id, et0, et1) =
         Attribute_type.any_of_soid_exn' ~conn at_id >|= fun at ->
-        (at, et0, et1) in
+        (at, et0, et1)
+      in
       C.fold Q.et_allowed_attributions List.cons () [] >>=? Lwt_list.map_s aux
 
     let allow_attribution at et et' =
@@ -1473,7 +1484,8 @@ module Make (P : Param) = struct
       with_db_exn @@ fun (module C : CONNECTION) ->
       let aux (e', v) m =
         let vs = try Map.find e' m with Not_found -> Values.empty Type.Bool in
-        Map.add e' (Values.add v vs) m in
+        Map.add e' (Values.add v vs) m
+      in
       C.fold Q.e_mapping1_bool aux (e, at_id) Map.empty
 
     let mapping1_int, mapping1_int_cache =
@@ -1481,7 +1493,8 @@ module Make (P : Param) = struct
       with_db_exn @@ fun (module C : CONNECTION) ->
       let aux (e', v) m =
         let vs = try Map.find e' m with Not_found -> Values.empty Type.Int in
-        Map.add e' (Values.add v vs) m in
+        Map.add e' (Values.add v vs) m
+      in
       C.fold Q.e_mapping1_int aux (e, at_id) Map.empty
 
     let mapping1_string, mapping1_string_cache =
@@ -1489,7 +1502,8 @@ module Make (P : Param) = struct
       with_db_exn @@ fun (module C : CONNECTION) ->
       let aux (e', v) m =
         let vs = try Map.find e' m with Not_found -> Values.empty Type.String in
-        Map.add e' (Values.add v vs) m in
+        Map.add e' (Values.add v vs) m
+      in
       C.fold Q.e_mapping1_string aux (e, at_id) Map.empty
 
     let mapping1 (type a) (at : a B.Attribute_type.t) e
@@ -1504,7 +1518,8 @@ module Make (P : Param) = struct
       with_db_exn @@ fun (module C : CONNECTION) ->
       let aux (e', v) m =
         let vs = try Map.find e' m with Not_found -> Values.empty Type.Bool in
-        Map.add e' (Values.add v vs) m in
+        Map.add e' (Values.add v vs) m
+      in
       C.fold Q.e_premapping1_bool aux (e, at_id) Map.empty
 
     let premapping1_int, premapping1_int_cache =
@@ -1512,7 +1527,8 @@ module Make (P : Param) = struct
       with_db_exn @@ fun (module C : CONNECTION) ->
       let aux (e', v) m =
         let vs = try Map.find e' m with Not_found -> Values.empty Type.Int in
-        Map.add e' (Values.add v vs) m in
+        Map.add e' (Values.add v vs) m
+      in
       C.fold Q.e_premapping1_int aux (e, at_id) Map.empty
 
     let premapping1_string, premapping1_string_cache =
@@ -1520,7 +1536,8 @@ module Make (P : Param) = struct
       with_db_exn @@ fun (module C : CONNECTION) ->
       let aux (e', v) m =
         let vs = try Map.find e' m with Not_found -> Values.empty Type.String in
-        Map.add e' (Values.add v vs) m in
+        Map.add e' (Values.add v vs) m
+      in
       C.fold Q.e_premapping1_string aux (e, at_id) Map.empty
 
     let premapping1 (type a) (at : a B.Attribute_type.t) e
@@ -1612,7 +1629,8 @@ module Make (P : Param) = struct
       let%lwt r = rank e in
       let update_rank eS r' =
         if r' = r then Lwt.return r' else
-        rank eS >|= (max r' % succ) in
+        rank eS >|= (max r' % succ)
+      in
       let%lwt esS = dsuper e in
       let%lwt r' = Set.fold_s update_rank esS 0 in
       if r' = r then Lwt.return_unit else begin
@@ -1645,15 +1663,16 @@ module Make (P : Param) = struct
       if is_super then Lwt.fail (Invalid_argument "cyclic constraint") else
       let%lwt subentity_rank = rank subentity in
       let%lwt superentity_rank = rank superentity in
-      raise_rank (max subentity_rank (superentity_rank + 1)) subentity >>= fun () ->
+      raise_rank (max subentity_rank (superentity_rank + 1)) subentity
+        >>= fun () ->
       with_db_exn (force_dsub' ?time subentity superentity)
 
     let relax_dsub ?time subentity superentity =
       with_db_exn (relax_dsub' ?time subentity superentity) >>= fun () ->
       let%lwt subentity_rank = rank subentity in
       let%lwt superentity_rank = rank superentity in
-      if subentity_rank > superentity_rank + 1 then Lwt.return_unit
-                                               else lower_rank subentity
+      if subentity_rank > superentity_rank + 1 then Lwt.return_unit else
+      lower_rank subentity
 
     let check_uniqueness_for_add new_at new_avs e e' =
       let vt = B.Attribute_type.value_type new_at in
@@ -1661,7 +1680,8 @@ module Make (P : Param) = struct
       let is_violated au =
         let%lwt aff_ats =
           Attribute_uniqueness.affected au >|=
-          B.Attribute_type.Set.remove (B.Attribute_type.Any new_at) in
+          B.Attribute_type.Set.remove (B.Attribute_type.Any new_at)
+        in
         try%lwt
           let%lwt conds = Lwt_list.map_s
             (fun (B.Attribute_type.Any at) ->
@@ -1674,7 +1694,8 @@ module Make (P : Param) = struct
           Lwt.return_false in
       let%lwt violated =
         Attribute_uniqueness.affecting new_at >>=
-        B.Attribute_uniqueness.Set.filter_s is_violated in
+        B.Attribute_uniqueness.Set.filter_s is_violated
+      in
       if B.Attribute_uniqueness.Set.is_empty violated then Lwt.return_unit else
       Lwt.fail (B.Attribute_uniqueness.Not_unique violated)
 
@@ -1698,20 +1719,21 @@ module Make (P : Param) = struct
          | Type.Int ->
             C.exec Q.e_insert_attribution_int (at_id, x, e, e')
          | Type.String ->
-            C.exec Q.e_insert_attribution_string (at_id, x, e, e')) in
+            C.exec Q.e_insert_attribution_string (at_id, x, e, e'))
+      in
       lwt_list_iter_rs insert_value xs >>=?? fun () ->
       post_attribute_update (module C) at e e'
 
     let check_mult at e e' =
       let%lwt et = entity_type e in
       let%lwt et' = entity_type e' in
-      match%lwt Entity_type.can_attribute at et et' with
-      | false ->
-        let%lwt etn = Entity_type.name et in
-        let%lwt etn' = Entity_type.name et' in
-        Subsocia_error.fail_lwt "add_values: %s is not allowed from %s to %s."
-                                at.B.Attribute_type.at_name etn etn'
-      | true -> Lwt.return (B.Attribute_type.value_mult at)
+      (match%lwt Entity_type.can_attribute at et et' with
+       | false ->
+          let%lwt etn = Entity_type.name et in
+          let%lwt etn' = Entity_type.name et' in
+          Subsocia_error.fail_lwt "add_values: %s is not allowed from %s to %s."
+            at.B.Attribute_type.at_name etn etn'
+       | true -> Lwt.return (B.Attribute_type.value_mult at))
 
     let add_values (type a) (at : a B.Attribute_type.t) (xs : a Values.t) e e' =
       let xs = Values.elements xs in (* TODO: Optimise. *)
@@ -1727,7 +1749,8 @@ module Make (P : Param) = struct
             Values.iter (fun x -> Hashtbl.add ht x ()) xs_pres;
             let once x =
               if Hashtbl.mem ht x then false else (Hashtbl.add ht x (); true) in
-            Lwt.return (List.filter once xs)) in
+            Lwt.return (List.filter once xs))
+      in
       if xs = [] then Lwt.return_unit else
       (* FIXME: Transaction. *)
       check_uniqueness_for_add at xs e e' >>= fun () ->
@@ -1743,7 +1766,8 @@ module Make (P : Param) = struct
          | Type.Int ->
             C.exec Q.e_delete_attribution_int (at_id, x, e, e')
          | Type.String ->
-            C.exec Q.e_delete_attribution_string (at_id, x, e, e')) in
+            C.exec Q.e_delete_attribution_string (at_id, x, e, e'))
+      in
       lwt_list_iter_rs delete_value xs >>=?? fun () ->
       post_attribute_update (module C) at e e'
 
@@ -1756,38 +1780,37 @@ module Make (P : Param) = struct
         Values.iter (fun x -> Hashtbl.add ht x ()) xs_pres;
         List.filter
           (fun x -> if not (Hashtbl.mem ht x) then false else
-                    (Hashtbl.remove ht x; true)) xs in
+                    (Hashtbl.remove ht x; true)) xs
+      in
       if xs = [] then Lwt.return_unit else
       with_db_exn ~transaction:true (fun conn -> remove_values' conn at xs e e')
 
     let set_values (type a) (at : a B.Attribute_type.t) (xs : a Values.t) e e' =
       let xs = Values.elements xs in (* TODO: Optimise. *)
-      begin match%lwt check_mult at e e' with
-      | Multiplicity.May1 | Multiplicity.Must1 ->
-        if List.length xs <= 1 then Lwt.return_unit else
-        Subsocia_error.fail_lwt "add_values: Attribute already set.";
-      | Multiplicity.May | Multiplicity.Must ->
-        Lwt.return_unit
-      end >>= fun () ->
+      (match%lwt check_mult at e e' with
+       | Multiplicity.May1 | Multiplicity.Must1 ->
+          if List.length xs <= 1 then Lwt.return_unit else
+          Subsocia_error.fail_lwt "add_values: Attribute already set.";
+       | Multiplicity.May | Multiplicity.Must ->
+          Lwt.return_unit)
+      >>= fun () ->
       let%lwt xs_pres = get_values at e e' in
       let ht = Hashtbl.create 7 in
       Values.iter (fun x -> Hashtbl.add ht x false) xs_pres;
-      let xs_ins =
-        List.filter
-          (fun x ->
-            let pres = Hashtbl.mem ht x in
-            Hashtbl.replace ht x true;
-            not pres)
-          xs in
+      let xs_ins = xs |> List.filter @@ fun x ->
+        let pres = Hashtbl.mem ht x in
+        Hashtbl.replace ht x true;
+        not pres
+      in
       let xs_del =
         Hashtbl.fold (fun x keep acc -> if keep then acc else x :: acc) ht [] in
       (* FIXME: Transaction. *)
       check_uniqueness_for_add at xs_ins e e' >>= fun () ->
       with_db_exn ~transaction:true begin fun c ->
-        (if xs_del = [] then Lwt.return_ok ()
-         else remove_values' c at xs_del e e') >>=?? fun () ->
-        (if xs_ins = [] then Lwt.return_ok ()
-         else add_values' c at xs_ins e e')
+        (if xs_del = [] then Lwt.return_ok () else
+         remove_values' c at xs_del e e') >>=?? fun () ->
+        (if xs_ins = [] then Lwt.return_ok () else
+         add_values' c at xs_ins e e')
       end
 
     let clear_caches () =
@@ -1839,8 +1862,9 @@ let connect db_uri =
         Caqti_lwt.Pool.create ~validate ~check connect disconnect
 
       let with_db ~transaction f =
-        if transaction then Caqti_lwt.Pool.use (wrap_transaction f) pool
-                       else Caqti_lwt.Pool.use f pool
+        if transaction
+        then Caqti_lwt.Pool.use (wrap_transaction f) pool
+        else Caqti_lwt.Pool.use f pool
     end)
 
     module Attribute_type = struct

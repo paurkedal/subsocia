@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2020  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -60,7 +60,8 @@ module Make (Arg : Arg) = struct
       fL " JOIN %s%s AS q%d \
              ON q%d.output_id = q%d.output_id \
             AND q%d.input_id = q%d.input_id"
-        db_schema_prefix (table_for_adjacency pred) (i + 1) (i + 1) i (i + 1) i in
+        db_schema_prefix (table_for_adjacency pred) (i + 1) (i + 1) i (i + 1) i
+    in
     (function
      | [] -> assert false
      | pred :: preds ->
@@ -104,7 +105,8 @@ module Make (Arg : Arg) = struct
     Attribute_type.soid at >|= fun at_id ->
     let aux x (rev_qs, bind) =
       let qx, bind = sql_of_value at x bind in
-      (S [fL "q%d.value = " i; qx] :: rev_qs, bind) in
+      (S [fL "q%d.value = " i; qx] :: rev_qs, bind)
+    in
     let rev_qs, bind = List.fold aux xs ([], bind) in
     (S [fL "q%d.attribute_type_id = %ld AND " i at_id;
         L"("; concat " OR " (List.rev rev_qs); L")"], bind)
@@ -158,7 +160,8 @@ module Make (Arg : Arg) = struct
     ] in
     let request =
       Caqti_request.create ~oneshot:true
-        param_type Caqti_type.int32 Caqti_mult.zero_or_more (fun _ -> query) in
+        param_type Caqti_type.int32 Caqti_mult.zero_or_more (fun _ -> query)
+    in
     Lwt.return (Request (request, param))
 
   let select_preimage pred_with_inter ids =
@@ -175,7 +178,8 @@ module Make (Arg : Arg) = struct
     ] in
     let request =
       Caqti_request.create ~oneshot:true
-        param_type Caqti_type.int32 Caqti_mult.zero_or_more (fun _ -> query) in
+        param_type Caqti_type.int32 Caqti_mult.zero_or_more (fun _ -> query)
+    in
     Lwt.return (Request (request, param))
 
 end
