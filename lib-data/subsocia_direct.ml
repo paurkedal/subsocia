@@ -1207,20 +1207,23 @@ module Make (P : Param) = struct
 
     let is_sub ?time subentity superentity =
       if subentity = superentity then Lwt.return_true else
-      let k = subentity, superentity in
-      try Lwt.return (Cache.find inclusion_cache k)
-      with Not_found ->
-        let%lwt r_lim = rank superentity in
-        let%lwt c = with_db_exn @@ fun (module C) ->
-          (match time with
-           | None ->
+      (match time with
+       | Some time ->
+          with_db_exn begin fun (module C) ->
+            C.find Q.e_select_precedes_past (subentity, superentity, time)
+              >|=? bool_of_int
+          end
+       | None ->
+          let k = subentity, superentity in
+          try Lwt.return (Cache.find inclusion_cache k)
+          with Not_found ->
+            let%lwt r_lim = rank superentity in
+            let%lwt c = with_db_exn @@ fun (module C) ->
               C.find Q.e_select_precedes_now (subentity, superentity, r_lim)
-           | Some time ->
-              C.find Q.e_select_precedes_past (subentity, superentity, time))
-          >|=? bool_of_int
-        in
-        Cache.replace inclusion_cache preceq_grade k c;
-        Lwt.return c
+                >|=? bool_of_int
+            in
+            Cache.replace inclusion_cache preceq_grade k c;
+            Lwt.return c)
 
     let clear_misc_caches () =
       Cache.clear entity_type_cache;
