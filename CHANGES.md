@@ -1,4 +1,4 @@
-## v0.19.0 - unreleased
+## v0.19.0 - 2020-06-11
 
   - Historic inclusions are now kept permanently with timestamps indicating
     periods of validity.  In addition to SQL an schema update this includes
