@@ -282,7 +282,7 @@ module Make_Q (P : sig val db_schema : string option end) = struct
     (tup3 int32 (option ptime) (option ptime) -->*
      tup3 ptime (option ptime) int32)
     "SELECT since, until, dsub_id FROM $.inclusion \
-     WHERE dsuper_id = ? AND coalesce(entity_type_id = ?, true) \
+     WHERE dsuper_id = ? \
        AND coalesce (? < until, true) AND coalesce (since < ?, true) \
      ORDER BY since"
 
@@ -371,7 +371,7 @@ module Make_Q (P : sig val db_schema : string option end) = struct
     "INSERT INTO $.inclusion (dsub_id, dsuper_id, since) SELECT $1, $2, $3 \
      WHERE NOT EXISTS \
       (SELECT 0 FROM $.inclusion \
-       WHERE dsub_id = $1 AND dsuper_id = $2 AND coalesce(since < until, true))"
+       WHERE dsub_id = $1 AND dsuper_id = $2 AND coalesce($3 <= until, true))"
 
   let e_delete_inclusion = (tup3 int32 int32 ptime -->! unit)
     "UPDATE $.inclusion SET until = $3 \
