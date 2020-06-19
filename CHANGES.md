@@ -1,3 +1,7 @@
+## v0.19.1 - 2020-06-19
+
+  - Fix queries for `force_dsub` and `dsub_history`.
+
 ## v0.19.0 - 2020-06-11
 
   - Historic inclusions are now kept permanently with timestamps indicating
