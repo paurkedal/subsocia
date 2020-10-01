@@ -400,7 +400,7 @@ let e_modify_cmd =
   let time =
     let doc =
       "Start or end of validity to record for added and removed inclusions. \
-       Any inclusions needed by input paths are also probed at this. \
+       Any inclusions needed by input paths are also probed at this time. \
        Defaults to now."
     in
     Arg.(value & opt (some ptime) None & info ~docv:"TIME" ~doc ["time"])
