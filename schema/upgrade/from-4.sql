@@ -42,4 +42,8 @@ BEGIN;
 
   ALTER TABLE subsocia.inclusion ADD CHECK (coalesce(since < until, true));
 
+  -- Set schema version.
+  UPDATE subsocia.global_integer SET global_value = 5
+   WHERE global_name = 'schema_version';
+
 COMMIT;
