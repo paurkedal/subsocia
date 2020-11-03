@@ -348,13 +348,11 @@ module Make_Q (P : sig val db_schema : string option end) = struct
     "WITH RECURSIVE successors(entity_id) AS ( \
         SELECT i.dsuper_id AS entity_id \
         FROM $.inclusion i \
-        JOIN $.entity e ON e.entity_id = i.dsuper_id \
         WHERE i.dsub_id = $1 \
           AND i.since <= $3 AND coalesce($3 < i.until, true) \
       UNION \
         SELECT DISTINCT i.dsuper_id \
         FROM $.inclusion i \
-        JOIN $.entity e ON e.entity_id = i.dsuper_id \
         JOIN successors c ON i.dsub_id = c.entity_id \
         WHERE i.since <= $3 AND coalesce($3 < i.until, true) \
      ) \
