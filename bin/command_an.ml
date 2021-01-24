@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -31,9 +31,9 @@ let an_allow_cmd =
   let atn =
     Arg.(required & pos 0 (some string) None & info ~docv:"NAME" []) in
   let etn0 =
-    Arg.(required & pos 1 (some string) None & info ~docv:"SUB-TYPE" []) in
+    Arg.(required & pos 1 (some string) None & info ~docv:"SOURCE-TYPE" []) in
   let etn1 =
-    Arg.(required & pos 2 (some string) None & info ~docv:"SUPER-TYPE" []) in
+    Arg.(required & pos 2 (some string) None & info ~docv:"TARGET-TYPE" []) in
   let term = Term.(const an_allow $ atn $ etn0 $ etn1) in
   let info = Term.info ~docs ~doc:"Allow an attribution." "an-allow" in
   (term, info)
@@ -48,9 +48,9 @@ let an_disallow_cmd =
   let atn =
     Arg.(required & pos 0 (some string) None & info ~docv:"NAME" []) in
   let etn0 =
-    Arg.(required & pos 1 (some string) None & info ~docv:"SUB-TYPE" []) in
+    Arg.(required & pos 1 (some string) None & info ~docv:"SOURCE-TYPE" []) in
   let etn1 =
-    Arg.(required & pos 2 (some string) None & info ~docv:"SUPER-TYPE" []) in
+    Arg.(required & pos 2 (some string) None & info ~docv:"TARGET-TYPE" []) in
   let term = Term.(const an_disallow $ atn $ etn0 $ etn1) in
   let info = Term.info ~docs ~doc:"Disallow an attribution." "an-disallow" in
   (term, info)
