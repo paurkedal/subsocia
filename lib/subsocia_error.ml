@@ -1,4 +1,4 @@
-(* Copyright (C) 2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2018--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -45,3 +45,6 @@ let show error =
   Buffer.contents buf
 
 let fail_lwt fmt = Format.kasprintf (fun msg -> Lwt.fail (Exn (`Msg msg))) fmt
+
+let () =
+  Printexc.register_printer (function Exn err -> Some (show err) | _ -> None)
