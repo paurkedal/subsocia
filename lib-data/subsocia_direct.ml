@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2021  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -14,8 +14,8 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *)
 
-open Printf
 open Lwt.Infix
+open Printf
 open Scanf
 open Subsocia_common
 open Subsocia_prereq
@@ -23,7 +23,7 @@ open Unprime
 open Unprime_list
 open Unprime_option
 
-let cache_hertz = Int64.to_float ExtUnixSpecific.(sysconf CLK_TCK)
+let cache_hertz = Int64.to_float ExtUnix.Specific.(sysconf CLK_TCK)
 let cache_second = 1.0 /. cache_hertz
 (* let cache_section = Lwt_log.Section.make "subsocia.cache" *)
 
