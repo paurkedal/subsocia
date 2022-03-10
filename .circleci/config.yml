@@ -8,10 +8,10 @@ jobs:
       ignore: gh-pages
 
     docker:
-      - image: ocaml/opam2:4.07
+      - image: ocaml/opam:debian-ocaml-4.13
         environment:
           SUBSOCIA_CONFIG: .circleci/subsocia.conf
-      - image: circleci/postgres:alpine-ram
+      - image: cimg/postgres:14.1
         environment:
           POSTGRES_USER: ci
           POSTGRES_DB: ci
