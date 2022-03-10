@@ -14,8 +14,6 @@
 -- and the LGPL-3.0 Linking Exception along with this library.  If not, see
 -- <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
 
-CREATE SCHEMA $();
-
 CREATE TABLE $.global_integer (
   global_name varchar(80) PRIMARY KEY,
   global_value integer NOT NULL
@@ -65,6 +63,7 @@ CREATE TABLE $.entity (
   entity_type_id integer NOT NULL REFERENCES $.entity_type,
   entity_rank smallint NOT NULL DEFAULT 0
 );
+
 CREATE TABLE $.inclusion (
   dsub_id integer NOT NULL REFERENCES $.entity ON DELETE CASCADE,
   dsuper_id integer NOT NULL REFERENCES $.entity,
@@ -73,6 +72,11 @@ CREATE TABLE $.inclusion (
   PRIMARY KEY (dsub_id, dsuper_id, since),
   CHECK (coalesce(since < until, true))
 );
+CREATE TRIGGER pre_insert BEFORE INSERT ON $.inclusion
+  FOR EACH ROW EXECUTE PROCEDURE $.inclusion_pre_insert_trigger();
+CREATE TRIGGER post_delete AFTER DELETE ON $.inclusion
+  FOR EACH ROW EXECUTE PROCEDURE $.inclusion_post_delete_trigger();
+
 CREATE TABLE $.attribution_bool (
   input_id integer NOT NULL REFERENCES $.entity,
   output_id integer NOT NULL REFERENCES $.entity ON DELETE CASCADE,

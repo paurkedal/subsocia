@@ -20,15 +20,25 @@ let pkg_hash = match "%{subsocia:hash}%" with "" -> None | h -> Some h
 let pkg_share =
   try Unix.getenv "SUBSOCIA_SHARE" with Not_found -> "%{subsocia:share}%"
 
-let schema_version = 5
+let schema_version = 6
 (* NB: Also update schema/subsocia_tables.sql and update the "schema_version"
  * row in the subsocia.global_integer table in the latest schema. *)
 
 let schema_dir = Filename.concat pkg_share "schema"
 let schema_upgrade_dir = Filename.concat schema_dir "upgrade"
 
-let upgradable_sql_schemas = ["subsocia_tables.sql"]
-let idempotent_sql_schemas = ["subsocia_views.sql"]
-let subsocia_schemas = ["subsocia_core.sscm"]
+type sql_schemas = {
+  step1_idempotent: string list;
+  step2_upgradable: string list;
+  step3_idempotent: string list;
+}
+let sql_schemas = {
+  step1_idempotent = ["subsocia_proc.sql"];
+  step2_upgradable = ["subsocia_tables.sql"];
+  step3_idempotent = ["subsocia_views.sql"];
+}
+let subsocia_schemas = [
+  "subsocia_core.sscm"
+]
 
 let issues_url = "https://github.com/paurkedal/subsocia/issues"

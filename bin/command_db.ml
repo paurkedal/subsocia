@@ -45,11 +45,17 @@ let env =
   in
   fun _ -> function
    | "" -> schema
+   | "dollar" -> Caqti_query.L "$"
    | _ -> raise Not_found
 
 let schema_dir =
   try Sys.getenv "SUBSOCIA_SCHEMA_DIR"
   with Not_found -> schema_dir
+
+let all_schemas =
+  sql_schemas.step1_idempotent @
+  sql_schemas.step2_upgradable @
+  sql_schemas.step3_idempotent
 
 let db_schema do_dir =
   Lwt_main.run begin
@@ -57,9 +63,8 @@ let db_schema do_dir =
       Lwt_io.printl schema_dir
     else
       Lwt_list.iter_s
-        (fun schema ->
-          Lwt_io.printl (Filename.concat schema_dir schema))
-        (upgradable_sql_schemas @ idempotent_sql_schemas)
+        (fun schema -> Lwt_io.printl (Filename.concat schema_dir schema))
+        all_schemas
   end; 0
 
 let db_schema_cmd =
@@ -110,26 +115,41 @@ let load_sql (module C : Caqti_lwt.CONNECTION) sql =
 let db_init disable_transaction = Lwt_main.run begin
   let uri = Subsocia_connection.db_uri in
   let* cc = Caqti_lwt.connect ~env uri >>= Caqti_lwt.or_fail in
-  Lwt_list.iter_s
-    (fun fn ->
-      let fp = Filename.concat schema_dir fn in
-      Lwt_log.info_f "Loading %s." fp >>= fun () ->
-      load_sql cc fp >>= or_fail)
-    (upgradable_sql_schemas @ idempotent_sql_schemas) >>= fun () ->
-  (let module C = (val cc) in C.disconnect ()) >>= fun () ->
-  let module C = (val connect ()) in
+  let module Cc = (val cc) in
+  let* () =
+    (match Subsocia_connection.db_schema with
+     | None -> Lwt.return_unit
+     | Some schema_name ->
+        let create_schema_request =
+          let q = Caqti_query.(S[L"CREATE SCHEMA "; L schema_name]) in
+          let open Caqti_request.Infix in
+          let open Caqti_type.Std in
+          (unit -->. unit) ~oneshot:true (fun _ -> q)
+        in
+        Cc.exec create_schema_request () >>= Caqti_lwt.or_fail)
+  in
+  let* () =
+    Lwt_list.iter_s
+      (fun fn ->
+        let fp = Filename.concat schema_dir fn in
+        Lwt_log.info_f "Loading %s." fp >>= fun () ->
+        load_sql cc fp >>= or_fail)
+      all_schemas
+  in
+  let* () = Cc.disconnect () in
+  let module Sc = (val connect ()) in
   Lwt_list.iter_s
     (fun fn ->
       let fp = Filename.concat schema_dir fn in
       Lwt_log.info_f "Loading %s." fp >>= fun () ->
       let schema = Subsocia_schema.load fp in
       if disable_transaction then
-        let module Schema = Subsocia_schema.Make (C) in
+        let module Schema = Subsocia_schema.Make (Sc) in
         Schema.exec schema
       else
-        C.transaction @@
-          (fun (module C) ->
-            let module Schema = Subsocia_schema.Make (C) in
+        Sc.transaction @@
+          (fun (module Sc) ->
+            let module Schema = Subsocia_schema.Make (Sc) in
             Schema.exec schema))
     subsocia_schemas >|= fun () ->
   0
@@ -164,12 +184,21 @@ let db_upgrade () = Lwt_main.run begin
         Lwt_io.printlf "Failed: %s" fp >>= fun () ->
         Lwt_io.printlf "Error: %s" (show_error err))
   in
-  for%lwt v = db_schema_version to schema_version - 1 do
-    load (Filename.concat schema_upgrade_dir (sprintf "from-%d.sql" v))
-  done >>= fun () ->
-  Lwt_list.iter_s
-    (load % Filename.concat schema_dir)
-    idempotent_sql_schemas >>= fun () ->
+  let* () =
+    Lwt_list.iter_s
+      (load % Filename.concat schema_dir)
+      sql_schemas.step1_idempotent
+  in
+  let* () =
+    for%lwt v = db_schema_version to schema_version - 1 do
+      load (Filename.concat schema_upgrade_dir (sprintf "from-%d.sql" v))
+    done
+  in
+  let* () =
+    Lwt_list.iter_s
+      (load % Filename.concat schema_dir)
+      sql_schemas.step3_idempotent
+  in
   if !have_error then
     Lwt_io.printf "\n\
       You may need to inspect the database and schema and apply the failed\n\

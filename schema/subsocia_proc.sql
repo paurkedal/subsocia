@@ -14,97 +14,88 @@
 -- and the LGPL-3.0 Linking Exception along with this library.  If not, see
 -- <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
 
-CREATE OR REPLACE FUNCTION $.max_subentity_rank(id integer)
-  RETURNS integer AS
-$$
-BEGIN
-  RETURN (
-    SELECT COALESCE(max(entity_rank), -1)
-      FROM $.entity JOIN $.inclusion
-      ON entity_id = subentity_id WHERE superentity_id = id
-  );
-END
-$$ LANGUAGE plpgsql;
+
+------------------------
+-- Inclusion Triggers --
+------------------------
+
+DROP TRIGGER IF EXISTS pre_insert ON inclusion;
+DROP TRIGGER IF EXISTS post_delete ON inclusion;
 
 CREATE OR REPLACE FUNCTION
-  $.raise_rank(start_id integer, new_rank integer)
-  RETURNS void AS
+  $.inclusion_pre_insert_trigger() RETURNS trigger LANGUAGE plpgsql AS
 $$
-DECLARE id integer;
-BEGIN
-  FOR id IN
-    SELECT entity_id
-      FROM $.inclusion JOIN $.entity ON superentity_id = entity_id
-      WHERE subentity_id = start_id AND entity_rank <= new_rank
-  LOOP
-    PERFORM $.raise_rank(id, new_rank + 1);
-  END LOOP;
-  UPDATE $.entity SET entity_rank = new_rank WHERE entity_id = start_id;
-END
-$$ LANGUAGE plpgsql;
+  BEGIN
+    WITH RECURSIVE
+      updated (id, new_rank) AS (
+        SELECT e_sub.entity_id, e_super.entity_rank + 1
+          FROM $.entity e_sub, $.entity e_super
+          WHERE e_sub.entity_id = NEW.dsub_id
+            AND e_super.entity_id = NEW.dsuper_id
+            AND e_sub.entity_rank < e_super.entity_rank + 1
+        UNION
+        SELECT DISTINCT e_sub.entity_id, u.new_rank + 1
+          FROM updated u
+          JOIN $.inclusion i ON i.dsuper_id = u.id
+          JOIN $.entity e_sub ON e_sub.entity_id = i.dsub_id
+          WHERE e_sub.entity_rank < u.new_rank + 1
+      )
+      UPDATE $.entity SET entity_rank = u.new_rank
+        FROM updated u WHERE entity_id = u.id;
+    RETURN NEW;
+  END
+$$;
 
 CREATE OR REPLACE FUNCTION
-  $.compress_rank(start_id integer, cur_rank integer)
-  RETURNS void AS
+  $.compactify_rank(target_id integer) RETURNS void LANGUAGE plpgsql AS
 $$
-DECLARE tuple record;
-        new_rank integer;
-BEGIN
-  new_rank := (SELECT $.max_subentity_rank(start_id)) + 1;
-  IF new_rank != cur_rank THEN
-    UPDATE $.entity SET entity_rank = new_rank
-     WHERE entity_id = start_id;
-    FOR tuple IN
-      SELECT entity_id, entity_rank
-        FROM $.inclusion JOIN $.entity
-          ON superentity_id = entity_id
-        WHERE subentity_id = start_id
-          AND entity_rank > new_rank + 1
-    LOOP
-      PERFORM $.compress_rank(tuple.entity_id, tuple.entity_rank);
-    END LOOP;
-  END IF;
-END
-$$ LANGUAGE plpgsql;
+  DECLARE
+    new_rank integer;
+    rec record;
+  BEGIN
+    SELECT max(e_super.entity_rank) + 1 INTO STRICT new_rank
+      FROM $.inclusion i
+      JOIN $.entity e_super ON e_super.entity_id = i.dsuper_id
+      WHERE i.dsub_id = target_id;
+    UPDATE $.entity e SET entity_rank = new_rank
+      WHERE e.entity_id = target_id
+        AND e.entity_rank <> new_rank;
+    IF FOUND THEN
+      FOR rec IN
+        SELECT i.dsub_id FROM $.inclusion i WHERE i.dsuper_id = target_id
+      LOOP
+        PERFORM $.compactify_rank(rec.dsub_id);
+      END LOOP;
+    END IF;
+  END
+$$;
 
 CREATE OR REPLACE FUNCTION
-  $.insert_inclusion(sub_id integer, sup_id integer)
-  RETURNS void AS
+  $.inclusion_post_delete_trigger() RETURNS trigger LANGUAGE plpgsql AS
 $$
-DECLARE sub_rank integer;
-BEGIN
-  sub_rank :=
-    (SELECT entity_rank FROM $.entity WHERE entity_id = sub_id);
-  PERFORM $.raise_rank(sup_id, sub_rank + 1);
-  INSERT INTO $.inclusion (subentity_id, superentity_id)
-    VALUES (sub_id, sup_id);
-END
-$$ LANGUAGE plpgsql;
+  BEGIN
+    PERFORM $.compactify_rank(OLD.dsub_id);
+    RETURN NULL;
+  END
+$$;
+
+
+--------------------
+-- FTS Reindexing --
+--------------------
 
 CREATE OR REPLACE FUNCTION
-  $.delete_inclusion(sub_id integer, sup_id integer)
-  RETURNS void AS
+  $.reindex_fts() RETURNS void LANGUAGE plpgsql AS
 $$
-DECLARE sup_rank integer;
-BEGIN
-  DELETE FROM $.inclusion
-    WHERE subentity_id = sub_id AND superentity_id = sup_id;
-  sup_rank :=
-    (SELECT entity_rank FROM $.entity WHERE entity_id = sup_id);
-  PERFORM $.compress_rank(sup_id, sup_rank);
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION $.reindex_fts() RETURNS void AS
-$$
-BEGIN
-  DELETE FROM $.attribution_string_fts;
-  INSERT INTO $.attribution_string_fts
-    SELECT a.asub_id, a.asuper_id, at.fts_config,
-           to_tsvector(at.fts_config::regconfig, string_agg(value, '$'))
-    FROM $.attribution_string AS a
-    NATURAL JOIN $.attribute_type AS at
-    WHERE NOT at.fts_config IS NULL
-    GROUP BY a.asub_id, a.asuper_id, at.fts_config;
-END;
-$$ LANGUAGE plpgsql;
+  BEGIN
+    DELETE FROM $.attribution_string_fts;
+    INSERT INTO $.attribution_string_fts
+      SELECT
+        a.asub_id, a.asuper_id, aty.fts_config,
+        to_tsvector(aty.fts_config::regconfig, string_agg(value, '$(dollar)'))
+      FROM $.attribution_string AS a
+      NATURAL JOIN $.attribute_type AS aty
+      WHERE NOT aty.fts_config IS NULL
+      GROUP BY a.asub_id, a.asuper_id, aty.fts_config;
+  END
+$$;

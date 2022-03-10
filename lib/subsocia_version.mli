@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -24,8 +24,13 @@ val schema_version : int
 val schema_dir : string
 val schema_upgrade_dir : string
 
-val upgradable_sql_schemas : string list
-val idempotent_sql_schemas : string list
+type sql_schemas = {
+  step1_idempotent: string list;
+  step2_upgradable: string list;
+  step3_idempotent: string list;
+}
+val sql_schemas : sql_schemas
+
 val subsocia_schemas : string list
 
 val issues_url : string

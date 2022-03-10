@@ -305,9 +305,6 @@ module Q = struct
   let e_rank = (int32 ->! int)
     "SELECT entity_rank FROM $.entity WHERE entity_id = ?"
 
-  let e_set_entity_rank = (tup2 int int32 ->. unit)
-    "UPDATE $.entity SET entity_rank = ? WHERE entity_id = ?"
-
   let e_type_members = (int32 ->* int32)
     "SELECT entity_id FROM $.entity WHERE entity_type_id = ?"
 
@@ -1627,35 +1624,6 @@ module Make (P : Param) = struct
 
     (* Modifying Functions *)
 
-    let set_rank r e =
-      with_db_exn (fun (module C) -> C.exec Q.e_set_entity_rank (r, e))
-      >|= fun () -> Cache.replace rank_cache fetch_grade e r
-
-    let rec raise_rank r_min e =
-      let* r = rank e in
-      if r >= r_min then Lwt.return_unit else
-      begin
-        dsub e >>= Set.iter_s (raise_rank (r_min + 1)) >>= fun () ->
-        set_rank r_min e
-      end
-
-    let rec lower_rank e =
-      let* r = rank e in
-      let update_rank eS r' =
-        if r' = r then Lwt.return r' else
-        rank eS >|= (max r' % succ)
-      in
-      let* esS = dsuper e in
-      let* r' = Set.fold_s update_rank esS 0 in
-      if r' = r then Lwt.return_unit else begin
-        set_rank r' e >>= fun () ->
-        dsub e >>= Set.iter_s begin fun eP ->
-          let* rP = rank eP in
-          if rP = r + 1 then lower_rank eP
-                        else Lwt.return_unit
-        end
-      end
-
     let force_dsub' ?time subentity superentity (module C : CONNECTION) =
       let time = match time with Some t -> t | None -> Ptime_clock.now () in
       C.exec Q.e_maybe_insert_inclusion (subentity, superentity, time)
@@ -1675,18 +1643,10 @@ module Make (P : Param) = struct
     let force_dsub ?time subentity superentity =
       let* is_super = is_sub ?time superentity subentity in
       if is_super then Lwt.fail (Invalid_argument "cyclic constraint") else
-      let* subentity_rank = rank subentity in
-      let* superentity_rank = rank superentity in
-      raise_rank (max subentity_rank (superentity_rank + 1)) subentity
-        >>= fun () ->
       with_db_exn (force_dsub' ?time subentity superentity)
 
     let relax_dsub ?time subentity superentity =
-      with_db_exn (relax_dsub' ?time subentity superentity) >>= fun () ->
-      let* subentity_rank = rank subentity in
-      let* superentity_rank = rank superentity in
-      if subentity_rank > superentity_rank + 1 then Lwt.return_unit else
-      lower_rank subentity
+      with_db_exn (relax_dsub' ?time subentity superentity)
 
     let check_uniqueness_for_add new_at new_avs e e' =
       let vt = B.Attribute_type.value_type new_at in
