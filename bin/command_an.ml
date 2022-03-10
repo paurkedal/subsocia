@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2021  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -35,8 +35,8 @@ let an_allow_cmd =
   let etn1 =
     Arg.(required & pos 2 (some string) None & info ~docv:"TARGET-TYPE" []) in
   let term = Term.(const an_allow $ atn $ etn0 $ etn1) in
-  let info = Term.info ~docs ~doc:"Allow an attribution." "an-allow" in
-  (term, info)
+  let info = Cmd.info ~docs ~doc:"Allow an attribution." "an-allow" in
+  Cmd.v info term
 
 let an_disallow atn etn0 etn1 = run_exn @@ fun (module C) ->
   let%lwt C.Attribute_type.Any at = C.Attribute_type.any_of_name_exn atn in
@@ -52,8 +52,8 @@ let an_disallow_cmd =
   let etn1 =
     Arg.(required & pos 2 (some string) None & info ~docv:"TARGET-TYPE" []) in
   let term = Term.(const an_disallow $ atn $ etn0 $ etn1) in
-  let info = Term.info ~docs ~doc:"Disallow an attribution." "an-disallow" in
-  (term, info)
+  let info = Cmd.info ~docs ~doc:"Disallow an attribution." "an-disallow" in
+  Cmd.v info term
 
 let an_list () = run_exn @@ fun (module C) ->
   C.Entity_type.allowed_attributions () >>=
@@ -66,5 +66,5 @@ let an_list () = run_exn @@ fun (module C) ->
 
 let an_list_cmd =
   let term = Term.(const an_list $ const ()) in
-  let info = Term.info ~docs ~doc:"List allowed attribution." "an-list" in
-  (term, info)
+  let info = Cmd.info ~docs ~doc:"List allowed attribution." "an-list" in
+  Cmd.v info term

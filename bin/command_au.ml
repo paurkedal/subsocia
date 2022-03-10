@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -43,9 +43,9 @@ let au_force_cmd =
   let term = Term.(const au_force $ atns) in
   let info =
     let doc = "Add an attribute uniqueness constraint." in
-    Term.info ~docs ~doc "au-force"
+    Cmd.info ~docs ~doc "au-force"
   in
-  (term, info)
+  Cmd.v info term
 
 let au_relax atns = run_int_exn @@ fun (module C) ->
   let module C = Subsocia_derived.Make (C) in
@@ -68,9 +68,9 @@ let au_relax_cmd =
   let term = Term.(const au_relax $ atns) in
   let info =
     let doc = "Remove an attribute uniqueness constraint." in
-    Term.info ~docs ~doc "au-relax"
+    Cmd.info ~docs ~doc "au-relax"
   in
-  (term, info)
+  Cmd.v info term
 
 let au_list () = run_exn @@ fun (module C) ->
   let show_at pos (C.Attribute_type.Any at) =
@@ -91,6 +91,6 @@ let au_list_cmd =
   let term = Term.(const au_list $ const ()) in
   let info =
     let doc = "List all attribute uniqueness constraints." in
-    Term.info ~docs ~doc "au-list"
+    Cmd.info ~docs ~doc "au-list"
   in
-  (term, info)
+  Cmd.v info term

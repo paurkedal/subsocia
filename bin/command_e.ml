@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -217,8 +217,8 @@ let e_ls_cmd =
     Arg.(value & opt (some ptime) None & info ~docv:"QUERY-TIME" ~doc ["time"])
   in
   let term = Term.(const e_ls $ sel $ time) in
-  let info = Term.info ~docs ~doc:"List entities reachable from a path." "ls" in
-  (term, info)
+  let info = Cmd.info ~docs ~doc:"List entities reachable from a path." "ls" in
+  Cmd.v info term
 
 let e_search sel eds time = run_bool_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
@@ -247,9 +247,9 @@ let e_search_cmd =
   in
   let term = Term.(const e_search $ sel $ eds $ time) in
   let info =
-    Term.info ~docs ~doc:"List entities matching a selector." "search"
+    Cmd.info ~docs ~doc:"List entities matching a selector." "search"
   in
-  (term, info)
+  Cmd.v info term
 
 let e_fts q etn super limit cutoff time = run_bool_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
@@ -295,8 +295,8 @@ let e_fts_cmd =
     Arg.(value & opt (some ptime) None & info ~docv:"QUERY-TIME" ~doc ["time"])
   in
   let term = Term.(const e_fts $ query $ et $ super $ limit $ cutoff $ time) in
-  let info = Term.info ~docs ~doc:"Full-text search." "fts" in
-  (term, info)
+  let info = Cmd.info ~docs ~doc:"Full-text search." "fts" in
+  Cmd.v info term
 
 let e_create etn add_dsupers add_sels time = run_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
@@ -324,8 +324,8 @@ let e_create_cmd =
     Arg.(value & opt (some ptime) None & info ~docv:"QUERY-TIME" ~doc ["time"])
   in
   let term = Term.(const e_create $ etn $ succs $ attrs $ time) in
-  let info = Term.info ~docs ~doc:"Create an entity." "create" in
-  (term, info)
+  let info = Cmd.info ~docs ~doc:"Create an entity." "create" in
+  Cmd.v info term
 
 let e_delete sel time = run_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
@@ -341,8 +341,8 @@ let e_delete_cmd =
     Arg.(value & opt (some ptime) None & info ~docv:"QUERY-TIME" ~doc ["time"])
   in
   let term = Term.(const e_delete $ sel $ time) in
-  let info = Term.info ~docs ~doc:"Delete an entity." "delete" in
-  (term, info)
+  let info = Cmd.info ~docs ~doc:"Delete an entity." "delete" in
+  Cmd.v info term
 
 let e_modify sel add_dsupers del_dsupers add_sels del_sels time =
   run_exn @@ fun (module C) ->
@@ -412,5 +412,5 @@ let e_modify_cmd =
       $ add_attrs $ del_attrs
       $ time
   in
-  let info = Term.info ~docs ~doc:"Modify an entity." "modify" in
-  (term, info)
+  let info = Cmd.info ~docs ~doc:"Modify an entity." "modify" in
+  Cmd.v info term

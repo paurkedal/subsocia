@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -62,9 +62,9 @@ let db_schema_cmd =
   let term = Term.(const db_schema $ do_dir_t) in
   let info =
     let doc = "Print the directory or paths of database schema files." in
-    Term.info ~docs ~doc "db-schema"
+    Cmd.info ~docs ~doc "db-schema"
   in
-  (term, info)
+  Cmd.v info term
 
 let subsocia_dot_re = Re.compile Re.(seq [bow; str "subsocia."])
 
@@ -120,8 +120,8 @@ end
 
 let db_init_cmd =
   let term = Term.(const db_init $ Arg.disable_transaction) in
-  let info = Term.info ~docs ~doc:"Initialize the database." "db-init" in
-  (term, info)
+  let info = Cmd.info ~docs ~doc:"Initialize the database." "db-init" in
+  Cmd.v info term
 
 let get_schema_version_q =
   Caqti_request.find ~env Caqti_type.unit Caqti_type.int
@@ -172,6 +172,6 @@ let db_upgrade_cmd =
       "Upgrade the database to the current schema version (%d)."
       schema_version
     in
-    Term.info ~docs ~doc "db-upgrade"
+    Cmd.info ~docs ~doc "db-upgrade"
   in
-  (term, info)
+  Cmd.v info term

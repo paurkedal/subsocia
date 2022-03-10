@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -40,9 +40,9 @@ let et_info_cmd =
   let term = Term.(ret (const et_info $ et_name_t)) in
   let info =
     let doc = "Show information about the named entity type." in
-    Term.info ~docs ~doc "et-info"
+    Cmd.info ~docs ~doc "et-info"
   in
-  (term, info)
+  Cmd.v info term
 
 let et_create etn = run_exn @@ fun (module C) ->
   let%lwt et = C.Entity_type.create etn in
@@ -51,8 +51,8 @@ let et_create etn = run_exn @@ fun (module C) ->
 
 let et_create_cmd =
   let term = Term.(const et_create $ et_name_t) in
-  let info = Term.info ~docs ~doc:"Create an entity type." "et-create" in
-  (term, info)
+  let info = Cmd.info ~docs ~doc:"Create an entity type." "et-create" in
+  Cmd.v info term
 
 let et_modify etn ent_opt = run @@ fun (module C) ->
   (match%lwt C.Entity_type.of_name etn with
@@ -75,8 +75,8 @@ let et_modify_cmd =
     Arg.(value & opt (some string) None & info ~docv ~doc ["name-template"])
   in
   let term = Term.(ret (const et_modify $ etn $ display)) in
-  let info = Term.info ~docs ~doc:"Modify an entity type." "et-modify" in
-  (term, info)
+  let info = Cmd.info ~docs ~doc:"Modify an entity type." "et-modify" in
+  Cmd.v info term
 
 let et_delete etn = run @@ fun (module C) ->
   (match%lwt C.Entity_type.of_name etn with
@@ -94,8 +94,8 @@ let et_delete_cmd =
     Arg.(required & pos 0 (some string) None & info ~docv:"ET-NAME" ~doc [])
   in
   let term = Term.(ret (const et_delete $ et_name_t)) in
-  let info = Term.info ~docs ~doc:"Delete an entity type." "et-delete" in
-  (term, info)
+  let info = Cmd.info ~docs ~doc:"Delete an entity type." "et-delete" in
+  Cmd.v info term
 
 let et_list () = run_exn @@ fun (module C) ->
   C.Entity_type.all () >>=
@@ -103,5 +103,5 @@ let et_list () = run_exn @@ fun (module C) ->
 
 let et_list_cmd =
   let term = Term.(const et_list $ const ()) in
-  let info = Term.info ~docs ~doc:"List entity types." "et-list" in
-  (term, info)
+  let info = Cmd.info ~docs ~doc:"List entity types." "et-list" in
+  Cmd.v info term

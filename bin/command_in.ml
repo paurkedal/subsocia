@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -59,9 +59,9 @@ let in_allow_cmd =
   let term = Term.(ret (const in_allow $ etn0 $ etn1)) in
   let info =
     let doc = "Allow inclusion between entities of a type." in
-    Term.info ~docs ~doc "in-allow"
+    Cmd.info ~docs ~doc "in-allow"
   in
-  (term, info)
+  Cmd.v info term
 
 let in_disallow_cmd =
   let etn0 =
@@ -73,9 +73,9 @@ let in_disallow_cmd =
   let term = Term.(ret (const in_disallow $ etn0 $ etn1)) in
   let info =
     let doc = "Disallow inclusion between entities of a type." in
-    Term.info ~docs ~doc "in-disallow"
+    Cmd.info ~docs ~doc "in-disallow"
   in
-  (term, info)
+  Cmd.v info term
 
 let in_list etn0_opt etn1_opt = run_int_exn @@ fun (module C) ->
   let get_et = function
@@ -129,6 +129,6 @@ let in_list_cmd =
   let term = Term.(const in_list $ etn0 $ etn1) in
   let info =
     let doc = "Show inclusion policy between types." in
-    Term.info ~docs ~doc "in-list"
+    Cmd.info ~docs ~doc "in-list"
   in
-  (term, info)
+  Cmd.v info term

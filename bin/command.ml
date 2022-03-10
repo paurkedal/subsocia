@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -50,13 +50,13 @@ let load_cmd =
       "Add, modify, and delete attributes according to the schema loaded \
        from PATH."
     in
-    Term.info ~doc "load"
+    Cmd.info ~doc "load"
   in
-  (term, info)
+  Cmd.v info term
 
 (* Main *)
 
-let subcommands = [
+let cmds = [
   db_schema_cmd;
   db_init_cmd;
   db_upgrade_cmd;
@@ -94,15 +94,9 @@ let subcommands = [
 ]
 
 let main_cmd =
-  let term = Term.(ret @@ const (`Error (true, "Missing subcommand."))) in
-  let info = Term.info ?version:Subsocia_version.pkg_version "subsocia" in
-  (term, info)
+  let info = Cmd.info ?version:Subsocia_version.pkg_version "subsocia" in
+  Cmd.group info cmds
 
 let () =
   Dynlink.allow_unsafe_modules true;
-  (match Term.eval_choice main_cmd subcommands with
-   | `Error `Parse -> exit 64
-   | `Error `Term -> exit 69
-   | `Error `Exn -> exit 70
-   | `Ok rc -> exit rc
-   | `Version | `Help -> exit 0)
+  exit (Cmdliner.Cmd.eval' main_cmd)
