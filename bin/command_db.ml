@@ -70,6 +70,7 @@ let db_schema_cmd =
 let subsocia_dot_re = Re.compile Re.(seq [bow; str "subsocia."])
 
 let load_sql (module C : Caqti_lwt.CONNECTION) sql =
+  let open Caqti_request.Infix in
   Lwt_io.with_file ~mode:Lwt_io.input sql @@ fun ic ->
   let rec loop () =
     (match%lwt Caqti_lwt_sql_io.read_sql_statement Lwt_io.read_char_opt ic with
@@ -80,20 +81,20 @@ let load_sql (module C : Caqti_lwt.CONNECTION) sql =
          | None -> loop ()
          | Some schema ->
             let stmt = "CREATE SCHEMA " ^ schema in
-            C.exec (Caqti_request.exec ~oneshot:true Caqti_type.unit stmt) ()
+            C.exec (Caqti_type.(unit ->. unit) ~oneshot:true stmt) ()
             >>=?? loop)
      | Some stmt ->
         let stmt =
           if db_schema_prefix = "subsocia." then stmt else
           Re.replace_string subsocia_dot_re ~by:db_schema_prefix stmt in
-        C.exec (Caqti_request.exec ~oneshot:true Caqti_type.unit stmt) ()
+        C.exec (Caqti_type.(unit ->. unit) ~oneshot:true stmt) ()
         >>=?? loop)
   in
   loop ()
 
 let db_init disable_transaction = Lwt_main.run begin
   let uri = Subsocia_connection.db_uri in
-  let%lwt cc = Caqti_lwt.connect uri >>= Caqti_lwt.or_fail in
+  let%lwt cc = Caqti_lwt.connect ~env uri >>= Caqti_lwt.or_fail in
   Lwt_list.iter_s
     (fun fn ->
       let fp = Filename.concat schema_dir fn in
@@ -125,7 +126,8 @@ let db_init_cmd =
   Cmd.v info term
 
 let get_schema_version_q =
-  Caqti_request.find ~env Caqti_type.unit Caqti_type.int
+  let open Caqti_request.Infix in
+  Caqti_type.(unit ->! int)
     "SELECT global_value FROM $.global_integer \
      WHERE global_name = 'schema_version'"
 let get_schema_version (module C : Caqti_lwt.CONNECTION) =
@@ -133,7 +135,7 @@ let get_schema_version (module C : Caqti_lwt.CONNECTION) =
 
 let db_upgrade () = Lwt_main.run begin
   let uri = Subsocia_connection.db_uri in
-  let%lwt c = Caqti_lwt.connect uri >>= Caqti_lwt.or_fail in
+  let%lwt c = Caqti_lwt.connect ~env uri >>= Caqti_lwt.or_fail in
   let module C : Caqti_lwt.CONNECTION = (val c) in
   let%lwt db_schema_version = get_schema_version c >>= Caqti_lwt.or_fail in
   let have_error = ref false in
