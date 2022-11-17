@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -27,6 +27,6 @@ end
 module Lwt_list : sig
   include module type of Lwt_list
   val fold_s : ('a -> 'b -> 'b Lwt.t) -> 'a list -> 'b -> 'b Lwt.t
-  val search_s : ('a -> 'b option Lwt.t) -> 'a list -> 'b option Lwt.t
+  val find_map_s : ('a -> 'b option Lwt.t) -> 'a list -> 'b option Lwt.t
   val flatten_map_p : ('a -> 'b list Lwt.t) -> 'a list -> 'b list Lwt.t
 end

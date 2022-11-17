@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2019  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -42,10 +42,10 @@ module Lwt_list = struct
    | [] -> Lwt.return
    | x :: xs -> fun acc -> f x acc >>= fold_s f xs
 
-  let rec search_s f = function
+  let rec find_map_s f = function
    | [] -> Lwt.return None
    | x :: xs ->
-      f x >>= (function Some _ as r -> Lwt.return r | None -> search_s f xs)
+      f x >>= (function Some _ as r -> Lwt.return r | None -> find_map_s f xs)
 
   let flatten_map_p f xs =
     Lwt_list.rev_map_p f xs >|= fun yss -> List.fold List.rev_append yss []

@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -220,7 +220,8 @@ module Make (Base : Subsocia_intf.S) = struct
       let iter_s ?time f e = dsuper ?time e >>= Set.iter_s f
       let for_all_s ?time f e = dsuper ?time e >>= Set.for_all_s f
       let exists_s ?time f e = dsuper ?time e >>= Set.exists_s f
-      let search_s ?time f e = dsuper ?time e >>= Set.search_s f
+      let find_map_s ?time f e = dsuper ?time e >>= Set.find_map_s f
+      let search_s = find_map_s
     end
 
     module Dsub = struct
@@ -229,7 +230,8 @@ module Make (Base : Subsocia_intf.S) = struct
       let iter_s ?time f e = dsub ?time e >>= Set.iter_s f
       let for_all_s ?time f e = dsub ?time e >>= Set.for_all_s f
       let exists_s ?time f e = dsub ?time e >>= Set.exists_s f
-      let search_s ?time f e = dsub ?time e >>= Set.search_s f
+      let find_map_s ?time f e = dsub ?time e >>= Set.find_map_s f
+      let search_s = find_map_s
     end
 
     let make_visit () =
@@ -285,17 +287,19 @@ module Make (Base : Subsocia_intf.S) = struct
       let exists_s ?time ?(max_depth = max_int) f e =
         exists_s' ?time (make_visit ()) max_depth f e
 
-      let rec search_s' ?time visit max_depth f e =
+      let rec find_map_s' ?time visit max_depth f e =
         if visit e then Lwt.return_none else
         (match%lwt f e with
          | exception Prune -> Lwt.return_none
          | Some _ as x -> Lwt.return x
          | None ->
             if max_depth <= 0 then Lwt.return_none else
-            Dir.search_s ?time (search_s' ?time visit (max_depth - 1) f) e)
+            Dir.find_map_s ?time (find_map_s' ?time visit (max_depth - 1) f) e)
 
-      let search_s ?time ?(max_depth = max_int) f e =
-        search_s' ?time (make_visit ()) max_depth f e
+      let find_map_s ?time ?(max_depth = max_int) f e =
+        find_map_s' ?time (make_visit ()) max_depth f e
+
+      let search_s = find_map_s
     end
     module Super = Transitive (Dsuper)
     module Sub = Transitive (Dsub)
@@ -384,7 +388,7 @@ module Make (Base : Subsocia_intf.S) = struct
             let%lwt at = Attribute_type.coerce_any_lwt Type.String at0 in
             (match tn with
              | Some _tn ->
-                Entity.premapping1 at e >>= Base.Entity.Map.search_s try_source
+                Entity.premapping1 at e >>= Base.Entity.Map.find_map_s try_source
              | None ->
                 let%lwt vs = Entity.get_values at root e in
                 if Values.is_empty vs then Lwt.return_none else
@@ -406,7 +410,7 @@ module Make (Base : Subsocia_intf.S) = struct
       (match%lwt
         if Prime_string.has_suffix ".+" an then
           let an = Prime_string.slice 0 (String.length an - 2) an in
-          Lwt_list.search_s (try_lang ?tn an) langs
+          Lwt_list.find_map_s (try_lang ?tn an) langs
         else
           try_attr ?tn an
        with
@@ -431,7 +435,7 @@ module Make (Base : Subsocia_intf.S) = struct
       in
       let%lwt et = Base.Entity.entity_type e in
       let%lwt tmpl = Base.Entity_type.entity_name_tmpl et in
-      Lwt_list.search_s aux (Prime_string.chop_affix "|" tmpl)
+      Lwt_list.find_map_s aux (Prime_string.chop_affix "|" tmpl)
 
     let display_name ?(context = Entity.Set.empty) ?(langs = []) e =
       (match%lwt display_name_tmpl ~context ~langs e with
