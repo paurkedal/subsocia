@@ -18,9 +18,11 @@ CREATE OR REPLACE FUNCTION subsocia.max_subentity_rank(id integer)
   RETURNS integer AS
 $$
 BEGIN
-  RETURN (SELECT COALESCE(max(entity_rank), -1)
-	  FROM subsocia.entity JOIN subsocia.inclusion
-	  ON entity_id = subentity_id WHERE superentity_id = id);
+  RETURN (
+    SELECT COALESCE(max(entity_rank), -1)
+      FROM subsocia.entity JOIN subsocia.inclusion
+      ON entity_id = subentity_id WHERE superentity_id = id
+  );
 END
 $$ LANGUAGE plpgsql;
 
@@ -46,7 +48,7 @@ CREATE OR REPLACE FUNCTION
   RETURNS void AS
 $$
 DECLARE tuple record;
-	new_rank integer;
+        new_rank integer;
 BEGIN
   new_rank := (SELECT subsocia.max_subentity_rank(start_id)) + 1;
   IF new_rank != cur_rank THEN
@@ -54,10 +56,10 @@ BEGIN
      WHERE entity_id = start_id;
     FOR tuple IN
       SELECT entity_id, entity_rank
-	FROM subsocia.inclusion JOIN subsocia.entity
-	  ON superentity_id = entity_id
-	WHERE subentity_id = start_id
-	  AND entity_rank > new_rank + 1
+        FROM subsocia.inclusion JOIN subsocia.entity
+          ON superentity_id = entity_id
+        WHERE subentity_id = start_id
+          AND entity_rank > new_rank + 1
     LOOP
       PERFORM subsocia.compress_rank(tuple.entity_id, tuple.entity_rank);
     END LOOP;
@@ -71,8 +73,8 @@ CREATE OR REPLACE FUNCTION
 $$
 DECLARE sub_rank integer;
 BEGIN
-  sub_rank := (SELECT entity_rank FROM subsocia.entity
-	       WHERE entity_id = sub_id);
+  sub_rank :=
+    (SELECT entity_rank FROM subsocia.entity WHERE entity_id = sub_id);
   PERFORM subsocia.raise_rank(sup_id, sub_rank + 1);
   INSERT INTO subsocia.inclusion (subentity_id, superentity_id)
     VALUES (sub_id, sup_id);
@@ -87,8 +89,8 @@ DECLARE sup_rank integer;
 BEGIN
   DELETE FROM subsocia.inclusion
     WHERE subentity_id = sub_id AND superentity_id = sup_id;
-  sup_rank := (SELECT entity_rank FROM subsocia.entity
-	       WHERE entity_id = sup_id);
+  sup_rank :=
+    (SELECT entity_rank FROM subsocia.entity WHERE entity_id = sup_id);
   PERFORM subsocia.compress_rank(sup_id, sup_rank);
 END;
 $$ LANGUAGE plpgsql;
@@ -99,9 +101,9 @@ BEGIN
   DELETE FROM subsocia.attribution_string_fts;
   INSERT INTO subsocia.attribution_string_fts
     SELECT a.asub_id, a.asuper_id, at.fts_config,
-	   to_tsvector(at.fts_config::regconfig, string_agg(value, '$'))
-    FROM subsocia.attribution_string AS a NATURAL JOIN
-	 subsocia.attribute_type AS at
+           to_tsvector(at.fts_config::regconfig, string_agg(value, '$'))
+    FROM subsocia.attribution_string AS a
+    NATURAL JOIN subsocia.attribute_type AS at
     WHERE NOT at.fts_config IS NULL
     GROUP BY a.asub_id, a.asuper_id, at.fts_config;
 END;

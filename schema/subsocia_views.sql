@@ -19,27 +19,23 @@ DROP VIEW IF EXISTS subsocia.transitive_reflexive_inclusion;
 
 -- Transitive closure of the still valid subset of subsocia.inclusion.
 CREATE VIEW subsocia.transitive_inclusion (tsub_id, tsuper_id) AS
-  WITH RECURSIVE inclusion_closure AS
-    (
-      SELECT dsub_id AS tsub_id, dsuper_id AS tsuper_id
-	FROM subsocia.inclusion
-    UNION
-      SELECT DISTINCT acc.tsub_id, i.dsuper_id AS tsuper_id
-	FROM inclusion_closure AS acc JOIN subsocia.inclusion AS i
-	  ON acc.tsuper_id = i.dsub_id
-    )
+  WITH RECURSIVE inclusion_closure AS (
+    SELECT dsub_id AS tsub_id, dsuper_id AS tsuper_id
+      FROM subsocia.inclusion
+    UNION SELECT DISTINCT acc.tsub_id, i.dsuper_id AS tsuper_id
+      FROM inclusion_closure AS acc JOIN subsocia.inclusion AS i
+        ON acc.tsuper_id = i.dsub_id
+  )
   SELECT * FROM inclusion_closure;
 
 -- Transitive and reflexive closure of the still valid subset of
 -- subsocia.inclusion.
 CREATE VIEW subsocia.transitive_reflexive_inclusion (tsub_id, tsuper_id) AS
-  WITH RECURSIVE inclusion_closure AS
-    (
-      SELECT entity_id AS tsub_id, entity_id AS tsuper_id
-	FROM subsocia.entity
-    UNION
-      SELECT DISTINCT acc.tsub_id, i.dsuper_id AS tsuper_id
-	FROM inclusion_closure AS acc JOIN subsocia.inclusion AS i
-	  ON acc.tsuper_id = i.dsub_id
-    )
+  WITH RECURSIVE inclusion_closure AS (
+    SELECT entity_id AS tsub_id, entity_id AS tsuper_id
+      FROM subsocia.entity
+    UNION SELECT DISTINCT acc.tsub_id, i.dsuper_id AS tsuper_id
+      FROM inclusion_closure AS acc JOIN subsocia.inclusion AS i
+        ON acc.tsuper_id = i.dsub_id
+  )
   SELECT * FROM inclusion_closure;

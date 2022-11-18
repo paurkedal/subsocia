@@ -17,19 +17,19 @@
 -- NOT IN USE
 
 CREATE TABLE subsocia.entity_log (
-    edit_time timestamp NOT NULL DEFAULT current_timestamp,
-    edit_author_id integer NOT NULL REFERENCES subsocia.entity,
-    edit_note text,
-    entity_id integer NOT NULL REFERENCES subsocia.entity,
-    new_entity_type smallint,
-    new_viewer_id integer REFERENCES subsocia.entity,
-    new_admin_id integer REFERENCES subsocia.entity
+  edit_time timestamp NOT NULL DEFAULT current_timestamp,
+  edit_author_id integer NOT NULL REFERENCES subsocia.entity,
+  edit_note text,
+  entity_id integer NOT NULL REFERENCES subsocia.entity,
+  new_entity_type smallint,
+  new_viewer_id integer REFERENCES subsocia.entity,
+  new_admin_id integer REFERENCES subsocia.entity
 );
 CREATE TABLE subsocia.inclusion_log (
-    edit_time timestamp NOT NULL DEFAULT current_timestamp,
-    edit_author_id integer NOT NULL REFERENCES subsocia.entity,
-    edit_note text,
-    subentity_id integer NOT NULL REFERENCES subsocia.entity,
-    superentity_id integer NOT NULL REFERENCES subsocia.entity,
-    new_state boolean NOT NULL
+  edit_time timestamp NOT NULL DEFAULT current_timestamp,
+  edit_author_id integer NOT NULL REFERENCES subsocia.entity,
+  edit_note text,
+  subentity_id integer NOT NULL REFERENCES subsocia.entity,
+  superentity_id integer NOT NULL REFERENCES subsocia.entity,
+  new_state boolean NOT NULL
 );
