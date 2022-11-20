@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -25,14 +25,19 @@ let langs = [Iso639.Lang.of_string_exn "eng"] (* TODO: Use $LANG *)
 
 let run f = Lwt_main.run (f (connect ()))
 
-let run_int_exn f = Lwt_main.run
-  (try%lwt f (connect ()) with
-   | Failure msg ->
-      Lwt_io.printl msg >|= fun () -> 69
-   | Caqti_error.Exn err ->
-      Lwt_io.printl (Caqti_error.show err) >|= fun () -> 69
-   | Subsocia_error.Exn err ->
-      Lwt_io.printl (Subsocia_error.show err) >|= fun () -> 69)
+let run_int_exn f = Lwt_main.run begin
+  Lwt.catch
+    (fun () -> f (connect ()))
+    (function
+     | Failure msg ->
+        Lwt_io.printl msg >|= fun () -> 69
+     | Caqti_error.Exn err ->
+        Lwt_io.printl (Caqti_error.show err) >|= fun () -> 69
+     | Subsocia_error.Exn err ->
+        Lwt_io.printl (Subsocia_error.show err) >|= fun () -> 69
+     | exn ->
+        Lwt.fail exn)
+end
 
 let run_exn f = run_int_exn (fun c -> f c >|= fun () -> 0)
 

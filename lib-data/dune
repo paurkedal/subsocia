@@ -4,7 +4,6 @@
   (wrapped false)
   (modules_without_implementation
     Subsocia_direct_intf)
-  (preprocess (pps lwt_ppx))
   (libraries
     caqti
     caqti-lwt

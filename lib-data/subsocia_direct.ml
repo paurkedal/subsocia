@@ -960,9 +960,9 @@ module Make (P : Param) = struct
       with_db_exn @@ fun (module C) ->
       C.find_opt Q.et_id_of_name name
     let of_name_exn name =
-      (match%lwt of_name name with
+      of_name name >>= function
        | Some et -> Lwt.return et
-       | None -> Lwt.fail (Subsocia_error.Exn (`Entity_type_missing name)))
+       | None -> Lwt.fail (Subsocia_error.Exn (`Entity_type_missing name))
 
     let name, name_cache =
       memo_1lwt @@ fun et ->
@@ -1251,19 +1251,19 @@ module Make (P : Param) = struct
 
     (* TODO: Cache? *)
     let image_generic p es =
-      (match%lwt Attribution_sql.select_image p es with
+      Attribution_sql.select_image p es >>= function
        | Attribution_sql.Empty -> Lwt.return Set.empty
        | Attribution_sql.Request (request, param) ->
           with_db_exn @@ fun (module C : CONNECTION) ->
-          C.fold request Set.add param Set.empty)
+          C.fold request Set.add param Set.empty
 
     (* TODO: Cache? *)
     let preimage_generic p es =
-      (match%lwt Attribution_sql.select_preimage p es with
+      Attribution_sql.select_preimage p es >>= function
        | Attribution_sql.Empty -> Lwt.return Set.empty
        | Attribution_sql.Request (request, param) ->
           with_db_exn @@ fun (module C : CONNECTION) ->
-          C.fold request Set.add param Set.empty)
+          C.fold request Set.add param Set.empty
 
     let asub_conj e ps = image_generic (B.Relation.Inter ps) [e]
     (* let asuper_conj e ps = preimage_generic (B.Relation.Inter ps) [e] *)
@@ -1696,16 +1696,17 @@ module Make (P : Param) = struct
           Attribute_uniqueness.affected au >|=
           B.Attribute_type.Set.remove (B.Attribute_type.Any new_at)
         in
-        try%lwt
-          let* conds = Lwt_list.map_s
-            (fun (B.Attribute_type.Any at) ->
-              let* avs = get_values at e e' in
-              if Values.is_empty avs then Lwt.fail Not_found else
-              Lwt.return (B.Relation.In (at, avs)))
-            (B.Attribute_type.Set.elements aff_ats) in
-          asub_conj e (new_cond :: conds) >|= (not % Set.is_empty)
-        with Not_found ->
-          Lwt.return_false in
+        Lwt.catch
+          (fun () ->
+            let* conds = Lwt_list.map_s
+              (fun (B.Attribute_type.Any at) ->
+                let* avs = get_values at e e' in
+                if Values.is_empty avs then Lwt.fail Not_found else
+                Lwt.return (B.Relation.In (at, avs)))
+              (B.Attribute_type.Set.elements aff_ats) in
+            asub_conj e (new_cond :: conds) >|= (not % Set.is_empty))
+          (function Not_found -> Lwt.return_false | exn -> Lwt.fail exn)
+      in
       let* violated =
         Attribute_uniqueness.affecting new_at >>=
         B.Attribute_uniqueness.Set.filter_s is_violated
@@ -1741,19 +1742,19 @@ module Make (P : Param) = struct
     let check_mult at e e' =
       let* et = entity_type e in
       let* et' = entity_type e' in
-      (match%lwt Entity_type.can_attribute at et et' with
+      Entity_type.can_attribute at et et' >>= function
        | false ->
           let* etn = Entity_type.name et in
           let* etn' = Entity_type.name et' in
           Subsocia_error.fail_lwt "add_values: %s is not allowed from %s to %s."
             at.B.Attribute_type.at_name etn etn'
-       | true -> Lwt.return (B.Attribute_type.value_mult at))
+       | true -> Lwt.return (B.Attribute_type.value_mult at)
 
     let add_values (type a) (at : a B.Attribute_type.t) (xs : a Values.t) e e' =
       let xs = Values.elements xs in (* TODO: Optimise. *)
       let* xs_pres = get_values at e e' in
       let* xs =
-        (match%lwt check_mult at e e' with
+        check_mult at e e' >>= function
          | Multiplicity.May1 | Multiplicity.Must1 ->
             if Values.is_empty xs_pres
             then Lwt.return xs
@@ -1763,7 +1764,7 @@ module Make (P : Param) = struct
             Values.iter (fun x -> Hashtbl.add ht x ()) xs_pres;
             let once x =
               if Hashtbl.mem ht x then false else (Hashtbl.add ht x (); true) in
-            Lwt.return (List.filter once xs))
+            Lwt.return (List.filter once xs)
       in
       if xs = [] then Lwt.return_unit else
       (* FIXME: Transaction. *)
@@ -1801,7 +1802,7 @@ module Make (P : Param) = struct
 
     let set_values (type a) (at : a B.Attribute_type.t) (xs : a Values.t) e e' =
       let xs = Values.elements xs in (* TODO: Optimise. *)
-      (match%lwt check_mult at e e' with
+      (check_mult at e e' >>= function
        | Multiplicity.May1 | Multiplicity.Must1 ->
           if List.length xs <= 1 then Lwt.return_unit else
           Subsocia_error.fail_lwt "add_values: Attribute already set.";
@@ -1864,18 +1865,8 @@ let connect db_uri =
 
       let db_schema = db_schema
 
-      let wrap_transaction f (module C : CONNECTION) =
-        C.start () >>=? fun () ->
-        begin try%lwt
-          let* r = f (module C : CONNECTION) in
-          C.commit () >>=? fun () ->
-          Lwt.return r
-        with exc ->
-          Lwt_log.debug_f "Raised in transaction: %s" (Printexc.to_string exc)
-            >>= fun () ->
-          C.rollback () >>=? fun () ->
-          Lwt.fail exc
-        end
+      let wrap_transaction f ((module C : CONNECTION) as c) =
+        C.with_transaction (fun () -> f c)
 
       let pool =
         let connect () = Caqti_lwt.connect ~env db_uri in

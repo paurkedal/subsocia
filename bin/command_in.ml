@@ -83,7 +83,7 @@ let in_list etn0_opt etn1_opt = run_int_exn @@ fun (module C) ->
   let get_et = function
    | None | Some "_" -> Lwt.return_none
    | Some etn ->
-      (match%lwt C.Entity_type.of_name etn with
+      (C.Entity_type.of_name etn >>= function
        | None -> Lwt.fail (Failure ("No entity type is named " ^ etn ^ "."))
        | Some et -> Lwt.return (Some et))
   in
@@ -112,7 +112,7 @@ let in_list etn0_opt etn1_opt = run_int_exn @@ fun (module C) ->
         >>= fun () ->
       Lwt.return 0
    | Some et0, Some et1 ->
-      (match%lwt C.Entity_type.can_dsub et0 et1 with
+      (C.Entity_type.can_dsub et0 et1 >>= function
        | Some (mu0, mu1) ->
           Lwt_io.printlf "%s%s"
             (Multiplicity.to_string mu0)

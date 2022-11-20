@@ -130,14 +130,14 @@ module Entity_utils (C : Subsocia_intf.S) = struct
      | Some ctx -> Entity.select_one ?time ctx >|= fun e_ctx -> (e_ctx, asgn))
 
   let entity_type_of_arg etn =
-    (match%lwt C.Entity_type.of_name etn with
+    C.Entity_type.of_name etn >>= function
      | None -> Lwt.fail (Failure ("No entity type has name " ^ etn))
-     | Some et -> Lwt.return et)
+     | Some et -> Lwt.return et
 
   let show_entity_list pfx =
     Entity.Set.iter_s begin fun e ->
       Lwt_io.print pfx >>= fun () ->
-      (match%lwt Entity.paths e with
+      (Entity.paths e >>= function
        | [] -> Entity.display_name e
        | p :: _ -> Lwt.return (string_of_selector p))
       >>= Lwt_io.printl
@@ -152,7 +152,7 @@ module Entity_utils (C : Subsocia_intf.S) = struct
          | Some until -> Ptime.to_rfc3339 ~tz_offset_s:0 until)
       in
       Lwt_io.printf "%s[%s, %s) " pfx since_str until_str >>= fun () ->
-      (match%lwt Entity.paths e with
+      (Entity.paths e >>= function
        | [] -> Entity.display_name e
        | p :: _ -> Lwt.return (string_of_selector p))
       >>= Lwt_io.printl

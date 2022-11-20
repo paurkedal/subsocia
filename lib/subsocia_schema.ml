@@ -34,9 +34,9 @@ module Make (C : Subsocia_intf.S) = struct
   module Su = Selector_utils (C)
 
   let req_et etn =
-    match%lwt C.Entity_type.of_name etn with
-    | Some et -> Lwt.return et
-    | None -> Subsocia_error.fail_lwt "No entity type is named %s." etn
+    C.Entity_type.of_name etn >>= function
+     | Some et -> Lwt.return et
+     | None -> Subsocia_error.fail_lwt "No entity type is named %s." etn
 
   let exec_et_adjust et = function
     | `Allow_inclusion (etn', mu, mu') ->
@@ -119,22 +119,20 @@ module Make (C : Subsocia_intf.S) = struct
       let* ats = Lwt_list.map_s C.Attribute_type.any_of_name_exn atns in
       let ats = List.fold C.Attribute_type.Set.add ats
                           C.Attribute_type.Set.empty in
-      begin match%lwt C.Attribute_uniqueness.find ats with
-      | Some au ->
-        let* au_id = C.Attribute_uniqueness.soid au in
-        Log.warning_f "Already constrained by %s."
-                      (C.Attribute_uniqueness.Soid.to_string au_id)
-      | None ->
-        C.Attribute_uniqueness.force ats >|= ignore
-      end
+      (C.Attribute_uniqueness.find ats >>= function
+       | Some au ->
+          let* au_id = C.Attribute_uniqueness.soid au in
+          Log.warning_f "Already constrained by %s."
+                        (C.Attribute_uniqueness.Soid.to_string au_id)
+       | None ->
+          C.Attribute_uniqueness.force ats >|= ignore)
     | `Au_relax atns ->
       let* ats = Lwt_list.map_s C.Attribute_type.any_of_name_exn atns in
       let ats = List.fold C.Attribute_type.Set.add ats
                           C.Attribute_type.Set.empty in
-      begin match%lwt C.Attribute_uniqueness.find ats with
-      | Some au -> C.Attribute_uniqueness.relax au
-      | None -> Log.warning "Not constrained."
-      end
+      (C.Attribute_uniqueness.find ats >>= function
+       | Some au -> C.Attribute_uniqueness.relax au
+       | None -> Log.warning "Not constrained.")
     | `Et_create (etn, allows) ->
       let* et = C.Entity_type.create etn in
       Lwt_list.iter_s (exec_et_adjust et) allows
@@ -195,13 +193,12 @@ module Make (C : Subsocia_intf.S) = struct
       (* TODO: Make sure sel is a path. *)
       add_set_helper `Add e sel
     | `Create (etn, addl) ->
-      begin match%lwt C.Entity_type.of_name etn with
-      | Some et ->
-        let* e = C.Entity.create et in
-        Lwt_list.iter_s (exec_mod e) addl
-      | None ->
-        Subsocia_error.fail_lwt "No entity type is called %s." etn
-      end
+      (C.Entity_type.of_name etn >>= function
+       | Some et ->
+          let* e = C.Entity.create et in
+          Lwt_list.iter_s (exec_mod e) addl
+       | None ->
+          Subsocia_error.fail_lwt "No entity type is called %s." etn)
     | `Modify (sel, modl) ->
       let* e = Su.select_one sel in
       Lwt_list.iter_s (exec_mod e) modl

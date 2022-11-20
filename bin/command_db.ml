@@ -156,7 +156,7 @@ let db_upgrade () = Lwt_main.run begin
   let have_error = ref false in
   let load fp =
     if !have_error then Lwt_io.printlf "Skipped: %s" fp else
-    (match%lwt load_sql c fp with
+    (load_sql c fp >>= function
      | Ok () ->
         Lwt_io.printlf "Updated: %s" fp
      | Error err ->

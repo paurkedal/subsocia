@@ -27,7 +27,7 @@ let au_force atns = run_int_exn @@ fun (module C) ->
   let module C = Subsocia_derived.Make (C) in
   let* ats = Lwt_list.map_s C.Attribute_type.any_of_name_exn atns in
   let ats = List.fold C.Attribute_type.Set.add ats C.Attribute_type.Set.empty in
-  (match%lwt C.Attribute_uniqueness.find ats with
+  (C.Attribute_uniqueness.find ats >>= function
    | None ->
       let* au = C.Attribute_uniqueness.force ats in
       let* au_idstr = C.Attribute_uniqueness.soid_string au in
@@ -53,7 +53,7 @@ let au_relax atns = run_int_exn @@ fun (module C) ->
   let module C = Subsocia_derived.Make (C) in
   let* ats = Lwt_list.map_s C.Attribute_type.any_of_name_exn atns in
   let ats = List.fold C.Attribute_type.Set.add ats C.Attribute_type.Set.empty in
-  (match%lwt C.Attribute_uniqueness.find ats with
+  (C.Attribute_uniqueness.find ats >>= function
    | Some au ->
       C.Attribute_uniqueness.relax au >>= fun () ->
       let* au_idstr = C.Attribute_uniqueness.soid_string au in

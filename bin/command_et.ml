@@ -28,7 +28,7 @@ let et_name_t =
   Arg.(required & pos 0 (some string) None & info [] ~docv:"ET-NAME" ~doc)
 
 let et_info etn = run @@ fun (module C) ->
-  (match%lwt C.Entity_type.of_name etn with
+  (C.Entity_type.of_name etn >>= function
    | None ->
       Lwt.return (`Error (false, sprintf "No entity type is named %s." etn))
    | Some et ->
@@ -57,7 +57,7 @@ let et_create_cmd =
   Cmd.v info term
 
 let et_modify etn ent_opt = run @@ fun (module C) ->
-  (match%lwt C.Entity_type.of_name etn with
+  (C.Entity_type.of_name etn >>= function
    | None ->
       Lwt.return (`Error (false, sprintf "No entity type is named %s." etn))
    | Some et ->
@@ -81,7 +81,7 @@ let et_modify_cmd =
   Cmd.v info term
 
 let et_delete etn = run @@ fun (module C) ->
-  (match%lwt C.Entity_type.of_name etn with
+  (C.Entity_type.of_name etn >>= function
    | None ->
       Lwt.return (`Error (false, sprintf "No type is named %s." etn))
    | Some et ->

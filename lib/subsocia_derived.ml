@@ -116,9 +116,9 @@ module Make (Base : Subsocia_intf.S) = struct
     include Base.Entity_type
 
     let required etn =
-      (match%lwt Entity_type.of_name etn with
+      Entity_type.of_name etn >>= function
        | Some et -> Lwt.return et
-       | None -> _fail "Missing required entity type %s" etn)
+       | None -> _fail "Missing required entity type %s" etn
 
     let equal et0 et1 = Base.Entity_type.compare et0 et1 = 0
   end
@@ -311,9 +311,9 @@ module Make (Base : Subsocia_intf.S) = struct
         let* access_groups = image1_eq at_role role obj in
         Entity.Set.exists_s (Entity.is_sub subj) access_groups
       in
-      (match%lwt check_obj obj with
+      check_obj obj >>= function
        | true -> Lwt.return_true
-       | false -> Const.e_default >>= check_obj)
+       | false -> Const.e_default >>= check_obj
 
     let can_view_entity = has_role_for_entity "subsocia.user"
     let can_edit_entity = has_role_for_entity "subsocia.admin"
@@ -333,15 +333,14 @@ module Make (Base : Subsocia_intf.S) = struct
           let* sel = build_attribute at vs in
           intersect_attributes ats e' (sel :: acc)
       in
-      (match%lwt
-        Attribute_uniqueness.affected au >|= Attribute_type.Set.elements
-       with
+      Attribute_uniqueness.affected au >|= Attribute_type.Set.elements
+      >>= function
        | [] ->
           assert false
        | (Attribute_type.Any at) :: ats ->
           premapping1 at e
             >>= Map.map_s (fun vs -> build_attribute at vs >|= fun r -> [r])
-            >>= Map.fmapi_s (intersect_attributes ats))
+            >>= Map.fmapi_s (intersect_attributes ats)
 
     let rec paths e =
       if%lwt Entity.is_root e then Lwt.return [Select_root] else
@@ -375,11 +374,11 @@ module Make (Base : Subsocia_intf.S) = struct
         if Entity.Set.mem e' context then
           Lwt.return (Some (Values.min_elt_exn vs))
         else
-        (match%lwt display_name_tmpl ~context ~langs e' with
+        display_name_tmpl ~context ~langs e' >>= function
          | None ->
             Lwt.return_none
          | Some name ->
-            Lwt.return (Some (name ^ " / " ^ Values.min_elt_exn vs)))
+            Lwt.return (Some (name ^ " / " ^ Values.min_elt_exn vs))
       in
       let try_attr ?tn an =
         (match%lwt Base.Attribute_type.any_of_name_exn an with
@@ -396,27 +395,27 @@ module Make (Base : Subsocia_intf.S) = struct
                 Lwt.return (Some (Values.min_elt_exn vs))))
       in
       let try_lang ?tn an lang =
-        (match%lwt try_attr ?tn (sprintf "%s.%s" an (Lang.to_string lang)) with
+        try_attr ?tn (sprintf "%s.%s" an (Lang.to_string lang)) >>= function
          | Some s -> Lwt.return_some s
          | None ->
             (match Lang.to_iso639p1 lang with
              | Some lc -> try_attr ?tn (sprintf "%s.%s" an lc)
-             | None -> Lwt.return_none))
+             | None -> Lwt.return_none)
       in
       let tn, an =
         (match Prime_string.cut_affix "/" spec with
          | None -> (None, spec)
          | Some (_ as tn, an) -> (Some tn, an))
       in
-      (match%lwt
+      begin
         if Prime_string.has_suffix ".+" an then
           let an = Prime_string.slice 0 (String.length an - 2) an in
           Lwt_list.find_map_s (try_lang ?tn an) langs
         else
           try_attr ?tn an
-       with
-       | None -> Lwt.fail Not_found
-       | Some s -> Lwt.return s)
+       end >>= function
+        | None -> Lwt.fail Not_found
+        | Some s -> Lwt.return s
     and display_name_tmpl ~context ~langs e =
       let aux tmpl =
         try%lwt
@@ -439,17 +438,17 @@ module Make (Base : Subsocia_intf.S) = struct
       Lwt_list.find_map_s aux (Prime_string.chop_affix "|" tmpl)
 
     let display_name ?(context = Entity.Set.empty) ?(langs = []) e =
-      (match%lwt display_name_tmpl ~context ~langs e with
+      display_name_tmpl ~context ~langs e >>= function
        | None -> Entity.soid e >|= Soid.to_string
-       | Some s -> Lwt.return s)
+       | Some s -> Lwt.return s
 
     let candidate_dsupers ?(include_current = false) e =
       let* et = Entity.entity_type e in
       let* ets' = Entity_type.dsuper et in
       let not_related e' =
-        (match%lwt Entity.is_sub e e' with
+        Entity.is_sub e e' >>= function
          | true -> Lwt.return false
-         | false -> Lwt.map not (Entity.is_sub e' e))
+         | false -> Lwt.map not (Entity.is_sub e' e)
       in
       let aux et' _ m_es =
         let* es = m_es in

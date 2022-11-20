@@ -76,13 +76,14 @@ let at_list verbose = run_exn @@ fun (module C) ->
       | m -> Multiplicity.to_string m in
     let vt = C.Attribute_type.value_type at in
     Lwt_io.printlf "%s : %s%s" atn (Type.to_string vt) ms >>= fun () ->
-    if%lwt Lwt.return verbose then begin
-      let show_mapping (et0, et1) =
-        let* etn0 = C.Entity_type.name et0 in
-        let* etn1 = C.Entity_type.name et1 in
-        Lwt_io.printlf "  %s -> %s" etn0 etn1 in
-      C.Entity_type.allowed_mappings at >>= Lwt_list.iter_s show_mapping
-    end in
+    if not verbose then Lwt.return_unit else
+    let show_mapping (et0, et1) =
+      let* etn0 = C.Entity_type.name et0 in
+      let* etn1 = C.Entity_type.name et1 in
+      Lwt_io.printlf "  %s -> %s" etn0 etn1
+    in
+    C.Entity_type.allowed_mappings at >>= Lwt_list.iter_s show_mapping
+  in
   C.Attribute_type.all () >>= C.Attribute_type.Set.iter_s show
 
 let at_list_cmd =
