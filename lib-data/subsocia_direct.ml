@@ -47,18 +47,17 @@ let cache_metric =
 
 module Beacon = Prime_beacon.Make (struct let cache_metric = cache_metric end)
 
-let (>|=?) m f =
-  m >|= function Ok x -> Ok (f x) | Error _ as r -> r
+let (>|=?) = Lwt_result.(>|=)
+let (>>=?) = Lwt_result.(>>=)
 
-let (>>=?) m f =
+(* TODO: Eliminate this mixed bind, which is typically used below where the
+ * right hand side throws an exception. *)
+let (>>=?!) m f =
   m >>= function Ok x -> (f x >|= fun y -> Ok y) | Error _ as r -> Lwt.return r
-
-let (>>=??) m f =
-  m >>= function Ok x -> f x | Error _ as r -> Lwt.return r
 
 let rec lwt_list_iter_rs f = function
  | [] -> Lwt.return_ok ()
- | x :: xs -> f x >>=?? fun () -> lwt_list_iter_rs f xs
+ | x :: xs -> f x >>=? fun () -> lwt_list_iter_rs f xs
 
 let fetch_grade = 1e-3 *. cache_second
 let attribute_type_grade = fetch_grade
@@ -856,7 +855,7 @@ module Make (P : Param) = struct
       with_db_exn @@ fun ((module C : CONNECTION) as conn) ->
       C.find Q.at_create
         (at_name, Type.to_string vt, Multiplicity.to_int mult, fts)
-        >>=? of_soid_exn' ~conn vt
+        >>=?! of_soid_exn' ~conn vt
 
     let delete at =
       with_db_exn @@ fun (module C : CONNECTION) ->
@@ -864,7 +863,7 @@ module Make (P : Param) = struct
 
     let all () =
       with_db_exn @@ fun ((module C : CONNECTION) as conn) ->
-      C.fold Q.at_all List.cons () [] >>=? fun at_ids ->
+      C.fold Q.at_all List.cons () [] >>=?! fun at_ids ->
       Lwt_list.fold_s
         (fun id acc -> any_of_soid_exn' ~conn id >|= fun at -> Set.add at acc)
         at_ids Set.empty
@@ -1030,7 +1029,7 @@ module Make (P : Param) = struct
         Lwt.return (B.Attribute_type.Set.add at at_map)
       in
       C.fold Q.et_allowed_attributes List.cons (et, et') []
-        >>=? fun at_ids ->
+        >>=?! fun at_ids ->
       Lwt_list.fold_left_s aux B.Attribute_type.Set.empty at_ids
 
     let allowed_preimage, allowed_preimage_cache =
@@ -1041,7 +1040,7 @@ module Make (P : Param) = struct
         let ats' = try Map.find et acc with Not_found -> [] in
         Lwt.return (Map.add et (at :: ats') acc)
       in
-      C.fold Q.et_allowed_preimage List.cons et [] >>=? fun bindings ->
+      C.fold Q.et_allowed_preimage List.cons et [] >>=?! fun bindings ->
       Lwt_list.fold_left_s aux Map.empty bindings
 
     let allowed_image, allowed_image_cache =
@@ -1052,7 +1051,7 @@ module Make (P : Param) = struct
         let ats' = try Map.find et acc with Not_found -> [] in
         Lwt.return (Map.add et (at :: ats') acc)
       in
-      C.fold Q.et_allowed_image List.cons et [] >>=? fun bindings ->
+      C.fold Q.et_allowed_image List.cons et [] >>=?! fun bindings ->
       Lwt_list.fold_left_s aux Map.empty bindings
 
     let allowed_mappings', allowed_mappings_cache =
@@ -1076,7 +1075,7 @@ module Make (P : Param) = struct
         Attribute_type.any_of_soid_exn' ~conn at_id >|= fun at ->
         (at, et0, et1)
       in
-      C.fold Q.et_allowed_attributions List.cons () [] >>=? Lwt_list.map_s aux
+      C.fold Q.et_allowed_attributions List.cons () [] >>=?! Lwt_list.map_s aux
 
     let allow_attribution at et et' =
       with_db_exn @@ fun (module C) ->
@@ -1720,7 +1719,7 @@ module Make (P : Param) = struct
       emit_changed (`Change_values (e, e'));
       (match at.B.Attribute_type.at_value_type with
        | Type.String ->
-          C.exec Q.fts_clear (e, e') >>=?? fun () ->
+          C.exec Q.fts_clear (e, e') >>=? fun () ->
           C.exec Q.fts_insert (e, e')
        | _ -> Lwt.return_ok ())
 
@@ -1736,7 +1735,7 @@ module Make (P : Param) = struct
          | Type.String ->
             C.exec Q.e_insert_attribution_string (at_id, x, e, e'))
       in
-      lwt_list_iter_rs insert_value xs >>=?? fun () ->
+      lwt_list_iter_rs insert_value xs >>=? fun () ->
       post_attribute_update (module C) at e e'
 
     let check_mult at e e' =
@@ -1783,7 +1782,7 @@ module Make (P : Param) = struct
          | Type.String ->
             C.exec Q.e_delete_attribution_string (at_id, x, e, e'))
       in
-      lwt_list_iter_rs delete_value xs >>=?? fun () ->
+      lwt_list_iter_rs delete_value xs >>=? fun () ->
       post_attribute_update (module C) at e e'
 
     let remove_values (type a) (at : a B.Attribute_type.t)
@@ -1823,7 +1822,7 @@ module Make (P : Param) = struct
       check_uniqueness_for_add at xs_ins e e' >>= fun () ->
       with_db_exn ~transaction:true begin fun c ->
         (if xs_del = [] then Lwt.return_ok () else
-         remove_values' c at xs_del e e') >>=?? fun () ->
+         remove_values' c at xs_del e e') >>=? fun () ->
         (if xs_ins = [] then Lwt.return_ok () else
          add_values' c at xs_ins e e')
       end
@@ -1866,15 +1865,15 @@ let connect db_uri =
       let db_schema = db_schema
 
       let wrap_transaction f (module C : CONNECTION) =
-        C.start () >>=?? fun () ->
+        C.start () >>=? fun () ->
         begin try%lwt
           let* r = f (module C : CONNECTION) in
-          C.commit () >>=?? fun () ->
+          C.commit () >>=? fun () ->
           Lwt.return r
         with exc ->
           Lwt_log.debug_f "Raised in transaction: %s" (Printexc.to_string exc)
             >>= fun () ->
-          C.rollback () >>=?? fun () ->
+          C.rollback () >>=? fun () ->
           Lwt.fail exc
         end
 
