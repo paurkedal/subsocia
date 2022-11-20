@@ -3,6 +3,8 @@
   (public_name subsocia)
   (preprocess (pps lwt_ppx))
   (libraries
+    angstrom
+    angstrom-lwt-unix
     caqti-dynload
     cmdliner
     lwt

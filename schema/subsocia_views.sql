@@ -14,28 +14,28 @@
 -- and the LGPL-3.0 Linking Exception along with this library.  If not, see
 -- <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
 
-DROP VIEW IF EXISTS subsocia.transitive_inclusion;
-DROP VIEW IF EXISTS subsocia.transitive_reflexive_inclusion;
+DROP VIEW IF EXISTS $.transitive_inclusion;
+DROP VIEW IF EXISTS $.transitive_reflexive_inclusion;
 
--- Transitive closure of the still valid subset of subsocia.inclusion.
-CREATE VIEW subsocia.transitive_inclusion (tsub_id, tsuper_id) AS
+-- Transitive closure of the still valid subset of $.inclusion.
+CREATE VIEW $.transitive_inclusion (tsub_id, tsuper_id) AS
   WITH RECURSIVE inclusion_closure AS (
     SELECT dsub_id AS tsub_id, dsuper_id AS tsuper_id
-      FROM subsocia.inclusion
+      FROM $.inclusion
     UNION SELECT DISTINCT acc.tsub_id, i.dsuper_id AS tsuper_id
-      FROM inclusion_closure AS acc JOIN subsocia.inclusion AS i
+      FROM inclusion_closure AS acc JOIN $.inclusion AS i
         ON acc.tsuper_id = i.dsub_id
   )
   SELECT * FROM inclusion_closure;
 
 -- Transitive and reflexive closure of the still valid subset of
--- subsocia.inclusion.
-CREATE VIEW subsocia.transitive_reflexive_inclusion (tsub_id, tsuper_id) AS
+-- $.inclusion.
+CREATE VIEW $.transitive_reflexive_inclusion (tsub_id, tsuper_id) AS
   WITH RECURSIVE inclusion_closure AS (
     SELECT entity_id AS tsub_id, entity_id AS tsuper_id
-      FROM subsocia.entity
+      FROM $.entity
     UNION SELECT DISTINCT acc.tsub_id, i.dsuper_id AS tsuper_id
-      FROM inclusion_closure AS acc JOIN subsocia.inclusion AS i
+      FROM inclusion_closure AS acc JOIN $.inclusion AS i
         ON acc.tsuper_id = i.dsub_id
   )
   SELECT * FROM inclusion_closure;

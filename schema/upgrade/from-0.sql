@@ -16,44 +16,44 @@
 
 BEGIN;
 
-ALTER TABLE subsocia.global_integer ADD PRIMARY KEY (global_name);
+ALTER TABLE $.global_integer ADD PRIMARY KEY (global_name);
 
-DELETE FROM subsocia.global_integer
+DELETE FROM $.global_integer
  WHERE global_name = 'schema_version' AND global_value = 0;
 
-ALTER TABLE subsocia.inclusion_type
+ALTER TABLE $.inclusion_type
   RENAME COLUMN subentity_type_id TO dsub_type_id;
-ALTER TABLE subsocia.inclusion_type
+ALTER TABLE $.inclusion_type
   RENAME COLUMN superentity_type_id TO dsuper_type_id;
-ALTER TABLE subsocia.inclusion_type
+ALTER TABLE $.inclusion_type
   RENAME COLUMN subentity_multiplicity TO dsub_mult;
-ALTER TABLE subsocia.inclusion_type
+ALTER TABLE $.inclusion_type
   RENAME COLUMN superentity_multiplicity TO dsuper_mult;
 
-ALTER TABLE subsocia.attribution_type
+ALTER TABLE $.attribution_type
   RENAME COLUMN subentity_type_id TO asub_type_id;
-ALTER TABLE subsocia.attribution_type
+ALTER TABLE $.attribution_type
   RENAME COLUMN superentity_type_id TO asuper_type_id;
-ALTER TABLE subsocia.attribution_type
+ALTER TABLE $.attribution_type
   RENAME COLUMN attribute_multiplicity to attribute_mult;
 
-ALTER TABLE subsocia.inclusion RENAME COLUMN subentity_id TO dsub_id;
-ALTER TABLE subsocia.inclusion RENAME COLUMN superentity_id TO dsuper_id;
+ALTER TABLE $.inclusion RENAME COLUMN subentity_id TO dsub_id;
+ALTER TABLE $.inclusion RENAME COLUMN superentity_id TO dsuper_id;
 
-ALTER TABLE subsocia.integer_attribution
+ALTER TABLE $.integer_attribution
   RENAME COLUMN subentity_id TO asub_id;
-ALTER TABLE subsocia.integer_attribution
+ALTER TABLE $.integer_attribution
   RENAME COLUMN superentity_id TO asuper_id;
-ALTER TABLE subsocia.text_attribution
+ALTER TABLE $.text_attribution
   RENAME COLUMN subentity_id TO asub_id;
-ALTER TABLE subsocia.text_attribution
+ALTER TABLE $.text_attribution
   RENAME COLUMN superentity_id TO asuper_id;
-ALTER TABLE subsocia.text_attribution_fts
+ALTER TABLE $.text_attribution_fts
   RENAME COLUMN subentity_id TO asub_id;
-ALTER TABLE subsocia.text_attribution_fts
+ALTER TABLE $.text_attribution_fts
   RENAME COLUMN superentity_id TO asuper_id;
 
-INSERT INTO subsocia.global_integer (global_name, global_value)
+INSERT INTO $.global_integer (global_name, global_value)
  VALUES ('schema_version', 1);
 
 COMMIT;

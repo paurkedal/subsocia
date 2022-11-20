@@ -18,33 +18,33 @@ BEGIN;
 
   -- Permanently drop procedures dealing with subsumption.
   --
-  DROP FUNCTION IF EXISTS subsocia.subsumed(sub_id integer, super_id integer);
-  DROP FUNCTION IF EXISTS subsocia.upper_bounds(start_id integer);
-  DROP FUNCTION IF EXISTS subsocia.lower_bounds(start_id integer);
+  DROP FUNCTION IF EXISTS $.subsumed(sub_id integer, super_id integer);
+  DROP FUNCTION IF EXISTS $.upper_bounds(start_id integer);
+  DROP FUNCTION IF EXISTS $.lower_bounds(start_id integer);
 
   -- Temporarily drop views which depends on is_subsumed.
   --
-  DROP VIEW IF EXISTS subsocia.transitive_inclusion;
-  DROP VIEW IF EXISTS subsocia.transitive_reflexive_inclusion;
+  DROP VIEW IF EXISTS $.transitive_inclusion;
+  DROP VIEW IF EXISTS $.transitive_reflexive_inclusion;
 
   -- Drop is_subsumed.
   --
-  ALTER TABLE subsocia.inclusion DROP COLUMN is_subsumed;
+  ALTER TABLE $.inclusion DROP COLUMN is_subsumed;
 
   -- Add period of validity to inclusions.
   --
-  ALTER TABLE subsocia.inclusion
+  ALTER TABLE $.inclusion
     ADD COLUMN since timestamp NOT NULL DEFAULT '1970-01-01T00:00:00Z',
     ADD COLUMN until timestamp;
-  ALTER TABLE subsocia.inclusion
+  ALTER TABLE $.inclusion
     ALTER COLUMN since SET DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC');
-  ALTER TABLE subsocia.inclusion DROP CONSTRAINT inclusion_pkey;
-  ALTER TABLE subsocia.inclusion ADD PRIMARY KEY (dsub_id, dsuper_id, since);
+  ALTER TABLE $.inclusion DROP CONSTRAINT inclusion_pkey;
+  ALTER TABLE $.inclusion ADD PRIMARY KEY (dsub_id, dsuper_id, since);
 
-  ALTER TABLE subsocia.inclusion ADD CHECK (coalesce(since < until, true));
+  ALTER TABLE $.inclusion ADD CHECK (coalesce(since < until, true));
 
   -- Set schema version.
-  UPDATE subsocia.global_integer SET global_value = 5
+  UPDATE $.global_integer SET global_value = 5
    WHERE global_name = 'schema_version';
 
 COMMIT;

@@ -15,12 +15,12 @@
 -- <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
 
 BEGIN;
-DELETE FROM subsocia.global_integer
+DELETE FROM $.global_integer
   WHERE global_name = 'schema_version' AND global_value = 3;
 ----
-UPDATE subsocia.entity_type
+UPDATE $.entity_type
   SET entity_type_name = 'root' WHERE entity_type_name = 'unit';
 ----
-INSERT INTO subsocia.global_integer (global_name, global_value)
+INSERT INTO $.global_integer (global_name, global_value)
   VALUES ('schema_version', 4);
 COMMIT;

@@ -6,6 +6,8 @@ license: "LGPL-3.0-or-later WITH LGPL-3.0-linking-exception"
 homepage: "https://github.com/paurkedal/subsocia/"
 bug-reports: "https://github.com/paurkedal/subsocia/issues"
 depends: [
+  "angstrom"
+  "angstrom-lwt-unix"
   "caqti" {>= "1.8.0"}
   "caqti-dynload"
   "caqti-lwt"

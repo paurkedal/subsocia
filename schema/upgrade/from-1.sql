@@ -15,37 +15,37 @@
 -- <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
 
 BEGIN;
-DELETE FROM subsocia.global_integer
+DELETE FROM $.global_integer
   WHERE global_name = 'schema_version' AND global_value = 1;
 ----
 
-ALTER TABLE subsocia.attribute_type ALTER COLUMN fts_config TYPE text;
-ALTER TABLE subsocia.text_attribution_fts ALTER COLUMN fts_config TYPE text;
+ALTER TABLE $.attribute_type ALTER COLUMN fts_config TYPE text;
+ALTER TABLE $.text_attribution_fts ALTER COLUMN fts_config TYPE text;
 
-DROP FUNCTION IF EXISTS subsocia.subsumed_by(integer, integer);
+DROP FUNCTION IF EXISTS $.subsumed_by(integer, integer);
 
-ALTER TABLE subsocia.integer_attribution RENAME TO attribution_int;
-ALTER TABLE subsocia.text_attribution RENAME TO attribution_string;
-ALTER TABLE subsocia.text_attribution_fts RENAME TO attribution_string_fts;
+ALTER TABLE $.integer_attribution RENAME TO attribution_int;
+ALTER TABLE $.text_attribution RENAME TO attribution_string;
+ALTER TABLE $.text_attribution_fts RENAME TO attribution_string_fts;
 
-CREATE TABLE subsocia.attribution_bool (
-  asub_id integer NOT NULL REFERENCES subsocia.entity ON DELETE CASCADE,
-  asuper_id integer NOT NULL REFERENCES subsocia.entity,
-  attribute_type_id integer NOT NULL REFERENCES subsocia.attribute_type,
+CREATE TABLE $.attribution_bool (
+  asub_id integer NOT NULL REFERENCES $.entity ON DELETE CASCADE,
+  asuper_id integer NOT NULL REFERENCES $.entity,
+  attribute_type_id integer NOT NULL REFERENCES $.attribute_type,
   value boolean NOT NULL,
   PRIMARY KEY (asub_id, asuper_id, attribute_type_id, value)
 );
 
-INSERT INTO subsocia.attribution_bool
+INSERT INTO $.attribution_bool
   SELECT asub_id, asuper_id, attribute_type_id, value <> 0 AS value
-  FROM subsocia.attribution_int NATURAL JOIN subsocia.attribute_type
+  FROM $.attribution_int NATURAL JOIN $.attribute_type
   WHERE value_type = 'bool';
-DELETE FROM subsocia.attribution_int
-  USING subsocia.attribute_type
+DELETE FROM $.attribution_int
+  USING $.attribute_type
   WHERE attribution_int.attribute_type_id = attribute_type.attribute_type_id
     AND value_type = 'bool';
 
 ----
-INSERT INTO subsocia.global_integer (global_name, global_value)
+INSERT INTO $.global_integer (global_name, global_value)
   VALUES ('schema_version', 2);
 COMMIT;

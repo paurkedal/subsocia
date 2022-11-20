@@ -18,6 +18,7 @@
 open Cmdliner
 open Command_common
 open Lwt.Infix
+open Lwt.Syntax
 open Printf
 open Subsocia_cmdliner
 open Subsocia_version
@@ -25,16 +26,25 @@ open Unprime
 
 let docs = "DATABASE COMMANDS"
 
-let (>>=??) m f = m >>= function Ok x -> f x | Error _ as r -> Lwt.return r
+let ( let*? ) = Lwt_result.Syntax.( let* )
 
-let db_schema_prefix =
-  (match Subsocia_connection.db_schema with
-   | None -> ""
-   | Some s -> s ^ ".")
+let show_error = function
+ | #Caqti_error.t as err -> Caqti_error.show err
+ | `Msg msg -> msg
+
+let or_fail = function
+ | Ok x -> Lwt.return x
+ | Error #Caqti_error.t as r -> Caqti_lwt.or_fail r
+ | Error (`Msg msg) -> Lwt.fail_with msg
 
 let env =
+  let schema =
+    (match Subsocia_connection.db_schema with
+     | None -> Caqti_query.S []
+     | Some schema_name -> Caqti_query.L schema_name)
+  in
   fun _ -> function
-   | "." -> Caqti_query.L db_schema_prefix
+   | "" -> schema
    | _ -> raise Not_found
 
 let schema_dir =
@@ -67,30 +77,35 @@ let db_schema_cmd =
   in
   Cmd.v info term
 
-let subsocia_dot_re = Re.compile Re.(seq [bow; str "subsocia."])
+let angstrom_file_parser =
+  let open Angstrom in
+  let is_space = function
+   | ' ' | '\t' | '\n' | '\r' -> true
+   | _ -> false
+  in
+  let white =
+    many (take_while1 is_space <|> (string "--" *> take_till ((=) '\n')))
+      <* commit
+  in
+  white *> many (Caqti_query.angstrom_parser <* char ';' <* white)
 
 let load_sql (module C : Caqti_lwt.CONNECTION) sql =
   let open Caqti_request.Infix in
   Lwt_io.with_file ~mode:Lwt_io.input sql @@ fun ic ->
-  let rec loop () =
-    (match%lwt Caqti_lwt_sql_io.read_sql_statement Lwt_io.read_char_opt ic with
-     | None ->
-        Lwt.return_ok ()
-     | Some "CREATE SCHEMA subsocia" ->
-        (match Subsocia_connection.db_schema with
-         | None -> loop ()
-         | Some schema ->
-            let stmt = "CREATE SCHEMA " ^ schema in
-            C.exec (Caqti_type.(unit ->. unit) ~oneshot:true stmt) ()
-            >>=?? loop)
-     | Some stmt ->
-        let stmt =
-          if db_schema_prefix = "subsocia." then stmt else
-          Re.replace_string subsocia_dot_re ~by:db_schema_prefix stmt in
-        C.exec (Caqti_type.(unit ->. unit) ~oneshot:true stmt) ()
-        >>=?? loop)
+  let* unconsumed, result = Angstrom_lwt_unix.parse angstrom_file_parser ic in
+  if unconsumed.Angstrom.Buffered.len <> 0 then
+    Lwt.return_error (`Msg (sql ^ ": Unconsumed input."))
+  else
+  let rec submit = function
+   | [] -> Lwt.return_ok ()
+   | stmt :: stmts ->
+      let request = Caqti_type.(unit -->. unit) ~oneshot:true (fun _ -> stmt) in
+      let*? () = C.exec request () in
+      submit stmts
   in
-  loop ()
+  (match result with
+   | Error msg -> Lwt.return_error (`Msg (sql ^ ": " ^ msg))
+   | Ok stmts -> submit stmts)
 
 let db_init disable_transaction = Lwt_main.run begin
   let uri = Subsocia_connection.db_uri in
@@ -99,7 +114,7 @@ let db_init disable_transaction = Lwt_main.run begin
     (fun fn ->
       let fp = Filename.concat schema_dir fn in
       Lwt_log.info_f "Loading %s." fp >>= fun () ->
-      load_sql cc fp >>= Caqti_lwt.or_fail)
+      load_sql cc fp >>= or_fail)
     (upgradable_sql_schemas @ idempotent_sql_schemas) >>= fun () ->
   (let module C = (val cc) in C.disconnect ()) >>= fun () ->
   let module C = (val connect ()) in
@@ -147,7 +162,7 @@ let db_upgrade () = Lwt_main.run begin
      | Error err ->
         have_error := true;
         Lwt_io.printlf "Failed: %s" fp >>= fun () ->
-        Lwt_io.printlf "Error: %s" (Caqti_error.show err))
+        Lwt_io.printlf "Error: %s" (show_error err))
   in
   for%lwt v = db_schema_version to schema_version - 1 do
     load (Filename.concat schema_upgrade_dir (sprintf "from-%d.sql" v))
