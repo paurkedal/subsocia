@@ -18,6 +18,7 @@
 open Cmdliner
 open Command_common
 open Lwt.Infix
+open Lwt.Syntax
 open Subsocia_cmdliner
 open Subsocia_common
 
@@ -25,7 +26,7 @@ let docs = "ATTRIBUTE TYPE COMMANDS"
 
 let at_create (Type.Any vt) atn mult = run_exn @@ fun (module C) ->
   C.Attribute_type.create ~mult vt atn >>= fun at ->
-  let%lwt at_idstr = C.Attribute_type.(soid at >|= Soid.to_string) in
+  let* at_idstr = C.Attribute_type.(soid at >|= Soid.to_string) in
   Lwt_log.info_f "Created attribute type %s %s." at_idstr atn
 
 let at_create_cmd =
@@ -53,7 +54,7 @@ let at_delete atn = run_int_exn @@ fun (module C) ->
       Lwt.return 1
    | C.Attribute_type.Any at ->
       C.Attribute_type.delete at >>= fun () ->
-      let%lwt at_idstr = C.Attribute_type.(soid at >|= Soid.to_string) in
+      let* at_idstr = C.Attribute_type.(soid at >|= Soid.to_string) in
       Lwt_log.info_f "Delete attribute type %s %s." at_idstr atn >>= fun () ->
       Lwt.return 0)
 
@@ -68,7 +69,7 @@ let at_delete_cmd =
 
 let at_list verbose = run_exn @@ fun (module C) ->
   let show (C.Attribute_type.Any at) =
-    let%lwt atn = C.Attribute_type.name at in
+    let* atn = C.Attribute_type.name at in
     let ms =
       match C.Attribute_type.value_mult at with
       | Multiplicity.Must1 -> ""
@@ -77,8 +78,8 @@ let at_list verbose = run_exn @@ fun (module C) ->
     Lwt_io.printlf "%s : %s%s" atn (Type.to_string vt) ms >>= fun () ->
     if%lwt Lwt.return verbose then begin
       let show_mapping (et0, et1) =
-        let%lwt etn0 = C.Entity_type.name et0 in
-        let%lwt etn1 = C.Entity_type.name et1 in
+        let* etn0 = C.Entity_type.name et0 in
+        let* etn1 = C.Entity_type.name et1 in
         Lwt_io.printlf "  %s -> %s" etn0 etn1 in
       C.Entity_type.allowed_mappings at >>= Lwt_list.iter_s show_mapping
     end in

@@ -18,22 +18,23 @@
 open Cmdliner
 open Command_common
 open Lwt.Infix
+open Lwt.Syntax
 open Unprime_list
 
 let docs = "ATTRIBUTE UNIQUENESS"
 
 let au_force atns = run_int_exn @@ fun (module C) ->
   let module C = Subsocia_derived.Make (C) in
-  let%lwt ats = Lwt_list.map_s C.Attribute_type.any_of_name_exn atns in
+  let* ats = Lwt_list.map_s C.Attribute_type.any_of_name_exn atns in
   let ats = List.fold C.Attribute_type.Set.add ats C.Attribute_type.Set.empty in
   (match%lwt C.Attribute_uniqueness.find ats with
    | None ->
-      let%lwt au = C.Attribute_uniqueness.force ats in
-      let%lwt au_idstr = C.Attribute_uniqueness.soid_string au in
+      let* au = C.Attribute_uniqueness.force ats in
+      let* au_idstr = C.Attribute_uniqueness.soid_string au in
       Lwt_io.eprintlf "Created constraint %s." au_idstr >>= fun () ->
       Lwt.return 0
    | Some au ->
-      let%lwt au_idstr = C.Attribute_uniqueness.soid_string au in
+      let* au_idstr = C.Attribute_uniqueness.soid_string au in
       Lwt_io.eprintlf "Already constrained by %s." au_idstr >>= fun () ->
       Lwt.return 1)
 
@@ -50,12 +51,12 @@ let au_force_cmd =
 
 let au_relax atns = run_int_exn @@ fun (module C) ->
   let module C = Subsocia_derived.Make (C) in
-  let%lwt ats = Lwt_list.map_s C.Attribute_type.any_of_name_exn atns in
+  let* ats = Lwt_list.map_s C.Attribute_type.any_of_name_exn atns in
   let ats = List.fold C.Attribute_type.Set.add ats C.Attribute_type.Set.empty in
   (match%lwt C.Attribute_uniqueness.find ats with
    | Some au ->
       C.Attribute_uniqueness.relax au >>= fun () ->
-      let%lwt au_idstr = C.Attribute_uniqueness.soid_string au in
+      let* au_idstr = C.Attribute_uniqueness.soid_string au in
       Lwt_io.eprintlf "Removed constraint %s." au_idstr >>= fun () ->
       Lwt.return 0
    | None ->
@@ -75,13 +76,13 @@ let au_relax_cmd =
 
 let au_list () = run_exn @@ fun (module C) ->
   let show_at pos (C.Attribute_type.Any at) =
-    let%lwt () = if !pos = 0 then Lwt.return_unit else Lwt_io.print ", " in
+    let* () = if !pos = 0 then Lwt.return_unit else Lwt_io.print ", " in
     let () = incr pos in
-    let%lwt atn = C.Attribute_type.name at in
+    let* atn = C.Attribute_type.name at in
     Lwt_io.print atn
   in
   let show_au au =
-    let%lwt ats = C.Attribute_uniqueness.affected au in
+    let* ats = C.Attribute_uniqueness.affected au in
     Lwt_io.print "{" >>= fun () ->
     C.Attribute_type.Set.iter_s (show_at (ref 0)) ats >>= fun () ->
     Lwt_io.printl "}"

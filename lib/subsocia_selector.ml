@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -17,6 +17,7 @@
 
 open Printf
 open Lwt.Infix
+open Lwt.Syntax
 open Subsocia_common
 open Subsocia_prereq
 open Subsocia_selector_types
@@ -235,25 +236,25 @@ module Selector_utils (C : Subsocia_intf.S) = struct
     | Select_with (selA, selB) -> fun es ->
       select_from ?time selA es >>= select_from ?time selB
     | Select_union (selA, selB) -> fun es ->
-      let%lwt esA = select_from ?time selA es in
-      let%lwt esB = select_from ?time selB es in
+      let* esA = select_from ?time selA es in
+      let* esB = select_from ?time selB es in
       Lwt.return (C.Entity.Set.union esA esB)
     | Select_inter (selA, selB) -> fun es ->
-      let%lwt esA = select_from ?time selA es in
-      let%lwt esB = select_from ?time selB es in
+      let* esA = select_from ?time selA es in
+      let* esB = select_from ?time selB es in
       Lwt.return (C.Entity.Set.inter esA esB)
     | Select_image p -> fun es ->
-      let%lwt p = entype_ap p in
+      let* p = entype_ap p in
       C.Entity.Set.fold_s
         (fun e1 acc -> C.Entity.image1 p e1 >|= C.Entity.Set.union acc)
         es C.Entity.Set.empty
     | Select_preimage p -> fun es ->
-      let%lwt p = entype_ap p in
+      let* p = entype_ap p in
       C.Entity.Set.fold_s
         (fun e1 acc -> C.Entity.preimage1 p e1 >|= C.Entity.Set.union acc)
         es C.Entity.Set.empty
     | Select_type etn -> fun es ->
-      let%lwt et = C.Entity_type.of_name_exn etn in
+      let* et = C.Entity_type.of_name_exn etn in
       C.Entity.Set.filter_s
         (fun e -> C.Entity.entity_type e >|=
                   fun et' -> C.Entity_type.compare et et' = 0)
@@ -277,12 +278,12 @@ module Selector_utils (C : Subsocia_intf.S) = struct
   [@@@ocaml.warning "+3"]
 
   let select ?time sel =
-    let%lwt root = C.Entity.get_root () in
+    let* root = C.Entity.get_root () in
     select_from ?time sel (C.Entity.Set.singleton root)
 
   let select_one ?time sel =
-    let%lwt root = C.Entity.get_root () in
-    let%lwt es = select_from ?time sel (C.Entity.Set.singleton root) in
+    let* root = C.Entity.get_root () in
+    let* es = select_from ?time sel (C.Entity.Set.singleton root) in
     (match C.Entity.Set.cardinal es with
      | 1 -> Lwt.return (C.Entity.Set.min_elt_exn es)
      | 0 ->
@@ -292,8 +293,8 @@ module Selector_utils (C : Subsocia_intf.S) = struct
                                 n (string_of_selector sel))
 
   let select_opt ?time sel =
-    let%lwt root = C.Entity.get_root () in
-    let%lwt es = select_from ?time sel (C.Entity.Set.singleton root) in
+    let* root = C.Entity.get_root () in
+    let* es = select_from ?time sel (C.Entity.Set.singleton root) in
     (match C.Entity.Set.cardinal es with
      | 0 -> Lwt.return_none
      | 1 -> Lwt.return (Some (C.Entity.Set.min_elt_exn es))

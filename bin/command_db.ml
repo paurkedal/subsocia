@@ -109,7 +109,7 @@ let load_sql (module C : Caqti_lwt.CONNECTION) sql =
 
 let db_init disable_transaction = Lwt_main.run begin
   let uri = Subsocia_connection.db_uri in
-  let%lwt cc = Caqti_lwt.connect ~env uri >>= Caqti_lwt.or_fail in
+  let* cc = Caqti_lwt.connect ~env uri >>= Caqti_lwt.or_fail in
   Lwt_list.iter_s
     (fun fn ->
       let fp = Filename.concat schema_dir fn in
@@ -150,9 +150,9 @@ let get_schema_version (module C : Caqti_lwt.CONNECTION) =
 
 let db_upgrade () = Lwt_main.run begin
   let uri = Subsocia_connection.db_uri in
-  let%lwt c = Caqti_lwt.connect ~env uri >>= Caqti_lwt.or_fail in
+  let* c = Caqti_lwt.connect ~env uri >>= Caqti_lwt.or_fail in
   let module C : Caqti_lwt.CONNECTION = (val c) in
-  let%lwt db_schema_version = get_schema_version c >>= Caqti_lwt.or_fail in
+  let* db_schema_version = get_schema_version c >>= Caqti_lwt.or_fail in
   let have_error = ref false in
   let load fp =
     if !have_error then Lwt_io.printlf "Skipped: %s" fp else

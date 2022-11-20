@@ -18,6 +18,7 @@
 open Cmdliner
 open Command_common
 open Lwt.Infix
+open Lwt.Syntax
 open Printf
 
 let docs = "ENTITY TYPE COMMANDS"
@@ -31,8 +32,8 @@ let et_info etn = run @@ fun (module C) ->
    | None ->
       Lwt.return (`Error (false, sprintf "No entity type is named %s." etn))
    | Some et ->
-      let%lwt soid = C.Entity_type.soid et in
-      let%lwt name_tmpl = C.Entity_type.entity_name_tmpl et in
+      let* soid = C.Entity_type.soid et in
+      let* name_tmpl = C.Entity_type.entity_name_tmpl et in
       Lwt_io.printlf "Entity type #%ld %s " soid etn >>= fun () ->
       Lwt_io.printlf "Name template: %s" name_tmpl >>= fun () ->
       Lwt.return (`Ok 0))
@@ -46,8 +47,8 @@ let et_info_cmd =
   Cmd.v info term
 
 let et_create etn = run_exn @@ fun (module C) ->
-  let%lwt et = C.Entity_type.create etn in
-  let%lwt et_idstr = C.Entity_type.(soid et >|= Soid.to_string) in
+  let* et = C.Entity_type.create etn in
+  let* et_idstr = C.Entity_type.(soid et >|= Soid.to_string) in
   Lwt_log.info_f "Created type %s = %s." et_idstr etn
 
 let et_create_cmd =
@@ -84,7 +85,7 @@ let et_delete etn = run @@ fun (module C) ->
    | None ->
       Lwt.return (`Error (false, sprintf "No type is named %s." etn))
    | Some et ->
-      let%lwt et_id = C.Entity_type.soid et in
+      let* et_id = C.Entity_type.soid et in
       C.Entity_type.delete et >>= fun () ->
       Lwt_log.info_f "Deleted type #%ld = %s." et_id etn >>= fun () ->
       Lwt.return (`Ok 0))

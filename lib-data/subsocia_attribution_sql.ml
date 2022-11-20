@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2020  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2022  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,6 +16,7 @@
  *)
 
 open Lwt.Infix
+open Lwt.Syntax
 open Printf
 open Subsocia_common
 open Subsocia_intf
@@ -150,7 +151,7 @@ module Make (Arg : Arg) = struct
   let select_image pred_with_inter ids =
     if ids = [] then Lwt.return Empty else
     let preds = flatten pred_with_inter in
-    let%lwt expr_conds, Bind (_, param_type, param) =
+    let* expr_conds, Bind (_, param_type, param) =
       sql_of_conjunction preds (Bind (0, Caqti_type.unit, ())) in
     let id_cond =
       S[L"("; concat " OR " (List.map (fL"q0.input_id = %ld") ids); L")"] in
@@ -168,7 +169,7 @@ module Make (Arg : Arg) = struct
   let select_preimage pred_with_inter ids =
     if ids = [] then Lwt.return Empty else
     let preds = flatten pred_with_inter in
-    let%lwt expr_conds, Bind (_, param_type, param) =
+    let* expr_conds, Bind (_, param_type, param) =
       sql_of_conjunction preds (Bind (0, Caqti_type.unit, ())) in
     let id_cond =
       S[L"("; concat " OR " (List.map (fL"q0.output_id = %ld") ids); L")"] in

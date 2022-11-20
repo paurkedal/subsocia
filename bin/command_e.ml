@@ -18,6 +18,7 @@
 open Cmdliner
 open Command_common
 open Lwt.Infix
+open Lwt.Syntax
 open Subsocia_cmdliner
 open Subsocia_common
 open Subsocia_prereq
@@ -95,23 +96,23 @@ module Entity_utils (C : Subsocia_intf.S) = struct
 
   let lookup_add_selector ?time (ctx, asgn) =
     let aux (an, avs_str) =
-      let%lwt Attribute_type.Any at = Attribute_type.any_of_name_exn an in
+      let* Attribute_type.Any at = Attribute_type.any_of_name_exn an in
       let t = Attribute_type.value_type at in
       Lwt.return @@ List.map
         (fun av_str -> Add_value (at, Value.typed_of_string t av_str))
         avs_str
     in
-    let%lwt asgn =
+    let* asgn =
       List.flatten =|< Lwt_list.map_p aux (String_map.bindings asgn)
     in
-    let%lwt root = Entity.get_root () in
+    let* root = Entity.get_root () in
     (match ctx with
      | None -> Lwt.return (root, asgn)
      | Some ctx -> Entity.select_one ?time ctx >|= fun e_ctx -> (e_ctx, asgn))
 
   let lookup_delete_selector ?time (ctx, asgn) =
     let aux (an, avs_str) =
-      let%lwt Attribute_type.Any at = Attribute_type.any_of_name_exn an in
+      let* Attribute_type.Any at = Attribute_type.any_of_name_exn an in
       let t = Attribute_type.value_type at in
       match avs_str with
       | Some avs_str ->
@@ -120,10 +121,10 @@ module Entity_utils (C : Subsocia_intf.S) = struct
           avs_str
       | None -> Lwt.return [Clear_values at]
     in
-    let%lwt asgn =
+    let* asgn =
       List.flatten =|< Lwt_list.map_p aux (String_map.bindings asgn)
     in
-    let%lwt root = Entity.get_root () in
+    let* root = Entity.get_root () in
     (match ctx with
      | None -> Lwt.return (root, asgn)
      | Some ctx -> Entity.select_one ?time ctx >|= fun e_ctx -> (e_ctx, asgn))
@@ -158,13 +159,13 @@ module Entity_utils (C : Subsocia_intf.S) = struct
     end
 
   let show_entity ?time eds e =
-    let%lwt name = Entity.display_name ~langs e in
-    let%lwt et = C.Entity.entity_type e in
-    let%lwt etn = C.Entity_type.name et in
-    let%lwt e_idstr = Entity.soid_string e in
+    let* name = Entity.display_name ~langs e in
+    let* et = C.Entity.entity_type e in
+    let* etn = C.Entity_type.name et in
+    let* e_idstr = Entity.soid_string e in
     Lwt_io.printlf "%s %s : %s" e_idstr name etn >>= fun () ->
     ( if not eds.eds_paths then Lwt.return_unit else
-      let%lwt paths = Entity.paths e in
+      let* paths = Entity.paths e in
       Lwt_list.iter_s
         (fun p -> Lwt_io.printf "  = %s\n" (string_of_selector p))
         paths ) >>= fun () ->
@@ -183,13 +184,13 @@ end
 let e_ls sel_opt time = run_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let sel = Option.get_or Select_root sel_opt in
-  let%lwt e = U.Entity.select_one ?time sel in
-  let%lwt aus = C.Attribute_uniqueness.all () in
+  let* e = U.Entity.select_one ?time sel in
+  let* aus = C.Attribute_uniqueness.all () in
   let show_e ats e' =
     Lwt_list.iter_s
       (fun (C.Attribute_type.Any at) ->
-        let%lwt an = C.Attribute_type.name at in
-        let%lwt vs = C.Entity.get_values at e e' >|= Values.elements in
+        let* an = C.Attribute_type.name at in
+        let* vs = C.Entity.get_values at e e' >|= Values.elements in
         let vt = C.Attribute_type.value_type at in
         Lwt_list.iter_s
           (fun av ->
@@ -200,11 +201,11 @@ let e_ls sel_opt time = run_exn @@ fun (module C) ->
     Lwt_io.printl ""
   in
   let show_au au =
-    let%lwt ats =
+    let* ats =
       C.Attribute_uniqueness.affected au >|= C.Attribute_type.Set.elements in
     let ps =
       List.map (fun (C.Attribute_type.Any at) -> C.Relation.Present at) ats in
-    let%lwt es' = C.Entity.image1 (C.Relation.Inter ps) e in
+    let* es' = C.Entity.image1 (C.Relation.Inter ps) e in
     C.Entity.Set.iter_s (show_e ats) es'
   in
   C.Attribute_uniqueness.Set.iter_s show_au aus
@@ -223,8 +224,8 @@ let e_ls_cmd =
 
 let e_search sel eds time = run_bool_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
-  let%lwt root = C.Entity.get_root () in
-  let%lwt es = U.Entity.select_from ?time sel (C.Entity.Set.singleton root) in
+  let* root = C.Entity.get_root () in
+  let* es = U.Entity.select_from ?time sel (C.Entity.Set.singleton root) in
   C.Entity.Set.iter_s (U.show_entity ?time eds) es >>= fun () ->
   Lwt.return (not (C.Entity.Set.is_empty es))
 
@@ -254,17 +255,17 @@ let e_search_cmd =
 
 let e_fts q etn super limit cutoff time = run_bool_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
-  let%lwt root = C.Entity.get_root () in
-  let%lwt entity_type = Lwt_option.map_s U.entity_type_of_arg etn in
-  let%lwt super = Lwt_option.map_s (U.Entity.select_one ?time) super in
-  let%lwt es =
+  let* root = C.Entity.get_root () in
+  let* entity_type = Lwt_option.map_s U.entity_type_of_arg etn in
+  let* super = Lwt_option.map_s (U.Entity.select_one ?time) super in
+  let* es =
     C.Entity.image1_fts ?entity_type ?super ?limit ?cutoff
       (Subsocia_fts.tsquery q) root
   in
   let show (e, rank) =
-    let%lwt name = U.Entity.display_name ~langs e in
-    let%lwt et = C.Entity.entity_type e in
-    let%lwt etn = C.Entity_type.name et in
+    let* name = U.Entity.display_name ~langs e in
+    let* et = C.Entity.entity_type e in
+    let* etn = C.Entity_type.name et in
     Lwt_io.printlf "%8.3g %s : %s" rank name etn
   in
   Lwt_list.iter_s show es >>= fun () ->
@@ -301,12 +302,12 @@ let e_fts_cmd =
 
 let e_create etn add_dsupers add_sels time = run_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
-  let%lwt et = U.entity_type_of_arg etn in
-  let%lwt add_sels = Lwt_list.map_p U.lookup_add_selector add_sels in
-  let%lwt add_dsupers =
+  let* et = U.entity_type_of_arg etn in
+  let* add_sels = Lwt_list.map_p U.lookup_add_selector add_sels in
+  let* add_dsupers =
     Lwt_list.map_p (U.Entity.select_one ?time) add_dsupers
   in
-  let%lwt e = C.Entity.create et in
+  let* e = C.Entity.create et in
   Lwt_list.iter_s (C.Entity.force_dsub ?time e) add_dsupers >>= fun () ->
   Lwt_list.iter_s (U.update_attributes e) add_sels
 
@@ -330,7 +331,7 @@ let e_create_cmd =
 
 let e_delete sel time = run_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
-  let%lwt e = U.Entity.select_one ?time sel in
+  let* e = U.Entity.select_one ?time sel in
   C.Entity.delete e
 
 let e_delete_cmd =
@@ -348,13 +349,13 @@ let e_delete_cmd =
 let e_modify sel add_dsupers del_dsupers add_sels del_sels time =
   run_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
-  let%lwt add_dsupers =
+  let* add_dsupers =
     Lwt_list.map_p (U.Entity.select_one ?time) add_dsupers in
-  let%lwt del_dsupers =
+  let* del_dsupers =
     Lwt_list.map_p (U.Entity.select_one ?time) del_dsupers in
-  let%lwt add_sels = Lwt_list.map_p (U.lookup_add_selector ?time) add_sels in
-  let%lwt del_sels = Lwt_list.map_p (U.lookup_delete_selector ?time) del_sels in
-  let%lwt e = U.Entity.select_one ?time sel in
+  let* add_sels = Lwt_list.map_p (U.lookup_add_selector ?time) add_sels in
+  let* del_sels = Lwt_list.map_p (U.lookup_delete_selector ?time) del_sels in
+  let* e = U.Entity.select_one ?time sel in
   Lwt_list.iter_s (fun e_sub -> C.Entity.force_dsub ?time e e_sub) add_dsupers
     >>= fun () ->
   Lwt_list.iter_s (U.update_attributes e) add_sels >>= fun () ->

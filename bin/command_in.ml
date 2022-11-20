@@ -18,13 +18,14 @@
 open Cmdliner
 open Command_common
 open Lwt.Infix
+open Lwt.Syntax
 open Subsocia_common
 
 let docs = "INCLUSION COMMANDS"
 
 let in_allow etn0 etn1 = run @@ fun (module C) ->
-  let%lwt et0 = C.Entity_type.of_name etn0 in
-  let%lwt et1 = C.Entity_type.of_name etn1 in
+  let* et0 = C.Entity_type.of_name etn0 in
+  let* et1 = C.Entity_type.of_name etn1 in
   let report_missing etns =
     Lwt.return (`Error (false, "Missing types " ^ etns ^ "."))
   in
@@ -38,8 +39,8 @@ let in_allow etn0 etn1 = run @@ fun (module C) ->
    | None, None -> report_missing (etn0 ^ " and " ^ etn1))
 
 let in_disallow etn0 etn1 = run @@ fun (module C) ->
-  let%lwt et0 = C.Entity_type.of_name etn0 in
-  let%lwt et1 = C.Entity_type.of_name etn1 in
+  let* et0 = C.Entity_type.of_name etn0 in
+  let* et1 = C.Entity_type.of_name etn1 in
   let report_missing etns =
     Lwt.return (`Error (false, "Missing types " ^ etns ^ "."))
   in
@@ -86,11 +87,11 @@ let in_list etn0_opt etn1_opt = run_int_exn @@ fun (module C) ->
        | None -> Lwt.fail (Failure ("No entity type is named " ^ etn ^ "."))
        | Some et -> Lwt.return (Some et))
   in
-  let%lwt et0 = get_et etn0_opt in
-  let%lwt et1 = get_et etn1_opt in
+  let* et0 = get_et etn0_opt in
+  let* et1 = get_et etn1_opt in
   let pp mu0 mu1 et0 et1 =
-    let%lwt etn0 = C.Entity_type.name et0 in
-    let%lwt etn1 = C.Entity_type.name et1 in
+    let* etn0 = C.Entity_type.name et0 in
+    let* etn1 = C.Entity_type.name et1 in
     Lwt_io.printlf "%30s %s%s %-30s"
       etn0 (Multiplicity.to_string mu0) (Multiplicity.to_string mu1) etn1
   in

@@ -18,14 +18,15 @@
 open Cmdliner
 open Command_common
 open Lwt.Infix
+open Lwt.Syntax
 open Subsocia_common
 
 let docs = "ATTRIBUTION COMMANDS"
 
 let an_allow atn etn0 etn1 = run_exn @@ fun (module C) ->
-  let%lwt C.Attribute_type.Any at = C.Attribute_type.any_of_name_exn atn in
-  let%lwt et0 = C.Entity_type.of_name_exn etn0 in
-  let%lwt et1 = C.Entity_type.of_name_exn etn1 in
+  let* C.Attribute_type.Any at = C.Attribute_type.any_of_name_exn atn in
+  let* et0 = C.Entity_type.of_name_exn etn0 in
+  let* et1 = C.Entity_type.of_name_exn etn1 in
   C.Entity_type.allow_attribution at et0 et1
 
 let an_allow_cmd =
@@ -40,9 +41,9 @@ let an_allow_cmd =
   Cmd.v info term
 
 let an_disallow atn etn0 etn1 = run_exn @@ fun (module C) ->
-  let%lwt C.Attribute_type.Any at = C.Attribute_type.any_of_name_exn atn in
-  let%lwt et0 = C.Entity_type.of_name_exn etn0 in
-  let%lwt et1 = C.Entity_type.of_name_exn etn1 in
+  let* C.Attribute_type.Any at = C.Attribute_type.any_of_name_exn atn in
+  let* et0 = C.Entity_type.of_name_exn etn0 in
+  let* et1 = C.Entity_type.of_name_exn etn1 in
   C.Entity_type.disallow_attribution at et0 et1
 
 let an_disallow_cmd =
@@ -60,9 +61,9 @@ let an_list () = run_exn @@ fun (module C) ->
   C.Entity_type.allowed_attributions () >>=
   Lwt_list.iter_s @@ fun (C.Attribute_type.Any at, et0, et1) ->
   let mu = C.Attribute_type.value_mult at in
-  let%lwt atn = C.Attribute_type.name at in
-  let%lwt etn0 = C.Entity_type.name et0 in
-  let%lwt etn1 = C.Entity_type.name et1 in
+  let* atn = C.Attribute_type.name at in
+  let* etn0 = C.Entity_type.name et0 in
+  let* etn1 = C.Entity_type.name et1 in
   Lwt_io.printlf "%s %s %s %s" (Multiplicity.to_string mu) atn etn0 etn1
 
 let an_list_cmd =
