@@ -10,6 +10,7 @@ jobs:
     docker:
       - image: ocaml/opam:debian-ocaml-4.13
         environment:
+          TERM: xterm
           SUBSOCIA_CONFIG: .circleci/subsocia.conf
       - image: cimg/postgres:14.1
         environment:
@@ -21,7 +22,8 @@ jobs:
       - checkout
       - run:
           name: Add opam-repo-paurkedal
-          command: opam repo add paurkedal git://github.com/paurkedal/opam-repo-paurkedal.git
+          command: |
+            opam repo add paurkedal https://github.com/paurkedal/opam-repo-paurkedal.git
       - run:
           name: Pin package
           command: |
@@ -34,11 +36,12 @@ jobs:
       - run:
           name: Install package
           command: |
-            opam install -y --deps-only subsocia
+            opam install -y --deps-only -t subsocia
             opam install -y caqti-driver-postgresql
       - run:
           name: Build
-          command: opam config exec -- dune build @install
+          command: |
+            opam config exec -- dune build @install
       - run:
           name: Initialize database for testing
           command: |
