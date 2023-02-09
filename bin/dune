@@ -7,8 +7,11 @@
     angstrom-lwt-unix
     caqti-dynload
     cmdliner
+    fmt
+    logs
+    logs.fmt
+    logs.lwt
     lwt
-    lwt_log
     re
     subsocia
     subsocia_data

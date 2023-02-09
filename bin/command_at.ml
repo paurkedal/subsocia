@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -27,7 +27,7 @@ let docs = "ATTRIBUTE TYPE COMMANDS"
 let at_create (Type.Any vt) atn mult = run_exn @@ fun (module C) ->
   C.Attribute_type.create ~mult vt atn >>= fun at ->
   let* at_idstr = C.Attribute_type.(soid at >|= Soid.to_string) in
-  Lwt_log.info_f "Created attribute type %s %s." at_idstr atn
+  Log.info (fun f -> f "Created attribute type %s %s." at_idstr atn)
 
 let at_create_cmd =
   let atn =
@@ -45,17 +45,18 @@ let at_create_cmd =
   in
   let term = Term.(const at_create $ vt $ atn $ mu) in
   let info = Cmd.info ~docs ~doc:"Create an attribute type." "at-create" in
-  Cmd.v info term
+  Cmd.v info (with_log term)
 
 let at_delete atn = run_int_exn @@ fun (module C) ->
   (match%lwt C.Attribute_type.any_of_name_exn atn with
    | exception Subsocia_error.Exn (`Attribute_type_missing _) ->
-      Lwt_log.error_f "No attribute type is named %s." atn >>= fun () ->
+      Log.err (fun f -> f "No attribute type is named %s." atn) >>= fun () ->
       Lwt.return 1
    | C.Attribute_type.Any at ->
       C.Attribute_type.delete at >>= fun () ->
       let* at_idstr = C.Attribute_type.(soid at >|= Soid.to_string) in
-      Lwt_log.info_f "Delete attribute type %s %s." at_idstr atn >>= fun () ->
+      Log.info (fun f -> f "Delete attribute type %s %s." at_idstr atn)
+        >>= fun () ->
       Lwt.return 0)
 
 let at_delete_cmd =
@@ -65,7 +66,7 @@ let at_delete_cmd =
   in
   let term = Term.(const at_delete $ atn) in
   let info = Cmd.info ~docs ~doc:"Delete an attribute type." "at-delete" in
-  Cmd.v info term
+  Cmd.v info (with_log term)
 
 let at_list verbose = run_exn @@ fun (module C) ->
   let show (C.Attribute_type.Any at) =
@@ -93,4 +94,4 @@ let at_list_cmd =
   in
   let term = Term.(const at_list $ verbose) in
   let info = Cmd.info ~docs ~doc:"List all attribute types." "at-list" in
-  Cmd.v info term
+  Cmd.v info (with_log term)

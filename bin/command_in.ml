@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -63,7 +63,7 @@ let in_allow_cmd =
     let doc = "Allow inclusion between entities of a type." in
     Cmd.info ~docs ~doc "in-allow"
   in
-  Cmd.v info term
+  Cmd.v info (with_log term)
 
 let in_disallow_cmd =
   let etn0 =
@@ -77,7 +77,7 @@ let in_disallow_cmd =
     let doc = "Disallow inclusion between entities of a type." in
     Cmd.info ~docs ~doc "in-disallow"
   in
-  Cmd.v info term
+  Cmd.v info (with_log term)
 
 let in_list etn0_opt etn1_opt = run_int_exn @@ fun (module C) ->
   let get_et = function
@@ -133,4 +133,4 @@ let in_list_cmd =
     let doc = "Show inclusion policy between types." in
     Cmd.info ~docs ~doc "in-list"
   in
-  Cmd.v info term
+  Cmd.v info (with_log term)

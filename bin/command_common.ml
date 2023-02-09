@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -16,6 +16,8 @@
  *)
 
 open Lwt.Infix
+
+module Log = (val Logs_lwt.src_log (Logs.Src.create "subsocia.command"))
 
 let connect () =
   let uri = Uri.of_string Subsocia_config.database_uri#get in
@@ -43,3 +45,10 @@ let run_exn f = run_int_exn (fun c -> f c >|= fun () -> 0)
 
 let run_bool_exn f =
   run_int_exn (fun c -> f c >|= function false -> 1 | true -> 0)
+
+let with_log term =
+  let setup verbosity = Logging.setup ~verbosity () in
+  let open Cmdliner.Term in
+  const (fun () ret -> ret)
+    $ (const setup $ Logging.Verbosity.cmdliner_term)
+    $ term

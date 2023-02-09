@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -24,6 +24,8 @@ open Subsocia_prereq
 open Unprime
 open Unprime_list
 open Unprime_option
+
+module Log = (val Logs_lwt.src_log (Logs.Src.create "subsocia.data"))
 
 let cache_hertz = Int64.to_float ExtUnix.Specific.(sysconf CLK_TCK)
 let cache_second = 1.0 /. cache_hertz
@@ -779,7 +781,7 @@ module Make (P : Param) = struct
     (function
      | Ok y -> Lwt.return y
      | Error err ->
-        Lwt_log.debug (Caqti_error.show err) >>= fun () ->
+        Log.debug (fun f -> f "%a" Caqti_error.pp err) >>= fun () ->
         Lwt.fail (Caqti_error.Exn err))
 
   module Attribute_type = struct

@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -80,7 +80,7 @@ let db_schema_cmd =
     let doc = "Print the directory or paths of database schema files." in
     Cmd.info ~docs ~doc "db-schema"
   in
-  Cmd.v info term
+  Cmd.v info (with_log term)
 
 let angstrom_file_parser =
   let open Angstrom in
@@ -132,7 +132,7 @@ let db_init disable_transaction = Lwt_main.run begin
     Lwt_list.iter_s
       (fun fn ->
         let fp = Filename.concat schema_dir fn in
-        Lwt_log.info_f "Loading %s." fp >>= fun () ->
+        Log.info (fun f -> f "Loading %s." fp) >>= fun () ->
         load_sql cc fp >>= or_fail)
       all_schemas
   in
@@ -141,7 +141,7 @@ let db_init disable_transaction = Lwt_main.run begin
   Lwt_list.iter_s
     (fun fn ->
       let fp = Filename.concat schema_dir fn in
-      Lwt_log.info_f "Loading %s." fp >>= fun () ->
+      Log.info (fun f -> f "Loading %s." fp) >>= fun () ->
       let schema = Subsocia_schema.load fp in
       if disable_transaction then
         let module Schema = Subsocia_schema.Make (Sc) in
@@ -158,7 +158,7 @@ end
 let db_init_cmd =
   let term = Term.(const db_init $ Arg.disable_transaction) in
   let info = Cmd.info ~docs ~doc:"Initialize the database." "db-init" in
-  Cmd.v info term
+  Cmd.v info (with_log term)
 
 let get_schema_version_q =
   let open Caqti_request.Infix in
@@ -221,4 +221,4 @@ let db_upgrade_cmd =
     in
     Cmd.info ~docs ~doc "db-upgrade"
   in
-  Cmd.v info term
+  Cmd.v info (with_log term)

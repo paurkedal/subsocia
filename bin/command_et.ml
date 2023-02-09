@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -44,17 +44,17 @@ let et_info_cmd =
     let doc = "Show information about the named entity type." in
     Cmd.info ~docs ~doc "et-info"
   in
-  Cmd.v info term
+  Cmd.v info (with_log term)
 
 let et_create etn = run_exn @@ fun (module C) ->
   let* et = C.Entity_type.create etn in
   let* et_idstr = C.Entity_type.(soid et >|= Soid.to_string) in
-  Lwt_log.info_f "Created type %s = %s." et_idstr etn
+  Log.info (fun f -> f "Created type %s = %s." et_idstr etn)
 
 let et_create_cmd =
   let term = Term.(const et_create $ et_name_t) in
   let info = Cmd.info ~docs ~doc:"Create an entity type." "et-create" in
-  Cmd.v info term
+  Cmd.v info (with_log term)
 
 let et_modify etn ent_opt = run @@ fun (module C) ->
   (C.Entity_type.of_name etn >>= function
@@ -78,7 +78,7 @@ let et_modify_cmd =
   in
   let term = Term.(ret (const et_modify $ etn $ display)) in
   let info = Cmd.info ~docs ~doc:"Modify an entity type." "et-modify" in
-  Cmd.v info term
+  Cmd.v info (with_log term)
 
 let et_delete etn = run @@ fun (module C) ->
   (C.Entity_type.of_name etn >>= function
@@ -87,7 +87,7 @@ let et_delete etn = run @@ fun (module C) ->
    | Some et ->
       let* et_id = C.Entity_type.soid et in
       C.Entity_type.delete et >>= fun () ->
-      Lwt_log.info_f "Deleted type #%ld = %s." et_id etn >>= fun () ->
+      Log.info (fun f -> f "Deleted type #%ld = %s." et_id etn) >>= fun () ->
       Lwt.return (`Ok 0))
 
 let et_delete_cmd =
@@ -97,7 +97,7 @@ let et_delete_cmd =
   in
   let term = Term.(ret (const et_delete $ et_name_t)) in
   let info = Cmd.info ~docs ~doc:"Delete an entity type." "et-delete" in
-  Cmd.v info term
+  Cmd.v info (with_log term)
 
 let et_list () = run_exn @@ fun (module C) ->
   C.Entity_type.all () >>=
@@ -106,4 +106,4 @@ let et_list () = run_exn @@ fun (module C) ->
 let et_list_cmd =
   let term = Term.(const et_list $ const ()) in
   let info = Cmd.info ~docs ~doc:"List entity types." "et-list" in
-  Cmd.v info term
+  Cmd.v info (with_log term)

@@ -15,9 +15,10 @@ depends: [
   "config-file"
   "dune" {>= "1.1"}
   "extunix"
+  "fmt"
   "iso639"
+  "logs"
   "lwt"
-  "lwt_log"
   "lwt_ppx"
   "ocaml"
   "ounit"

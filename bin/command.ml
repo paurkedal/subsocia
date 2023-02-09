@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -53,7 +53,7 @@ let load_cmd =
     in
     Cmd.info ~doc "load"
   in
-  Cmd.v info term
+  Cmd.v info (with_log term)
 
 (* Main *)
 

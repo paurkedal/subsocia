@@ -12,8 +12,9 @@
     findlib
     findlib.dynload
     iso639
+    logs
+    logs.lwt
     lwt
-    lwt_log
     subsocia
     prime.unstable
     ptime ptime.clock.os))
