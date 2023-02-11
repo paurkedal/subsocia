@@ -16,6 +16,7 @@
  *)
 
 let tests = [
+  "test_attribution", Test_attribution.test_cases;
   "test_inclusion", Test_inclusion.test_cases;
 ]
 

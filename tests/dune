@@ -1,3 +1,36 @@
+(env
+ (_
+  (env-vars
+    (PGDATABASE "")
+    (PGHOST "")
+    (PGPORT "")
+    (PGUSER "")
+    (CAQTI_DEBUG_PARAM "true")
+    (SUBSOCIA_CONFIG "subsocia-test.conf")
+    (SUBSOCIA_SHARE ".."))))
+
+;;; Setup and Tear Down of Test Database
+
+(rule
+ (alias setup)
+ (deps
+    ../schema/subsocia_proc.sql
+    ../schema/subsocia_tables.sql
+    ../schema/subsocia_views.sql
+    ../schema/subsocia_core.sscm
+    subsocia-test.conf)
+ (action
+  (progn
+    (run psql -q -f %{dep:teardown.sql})
+    (run subsocia db-init))))
+
+(rule
+ (alias teardown)
+ (action
+    (run psql -q -f %{dep:teardown.sql})))
+
+;;; Tests
+
 (executable
   (name testsuite)
   (preprocess (pps lwt_ppx))
@@ -9,5 +42,8 @@
 
 (rule
   (alias runtest)
-  (deps testsuite.exe)
-  (action (run %{deps})))
+  (deps
+    (alias setup)
+    (:test testsuite.exe)
+    subsocia-test.conf)
+  (action (run %{test})))
