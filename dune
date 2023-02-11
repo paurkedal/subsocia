@@ -1,6 +1,7 @@
 (install
   (section share)
   (files
+    (schema/subsocia_proc.sql as schema/subsocia_proc.sql)
     (schema/subsocia_tables.sql as schema/subsocia_tables.sql)
     (schema/subsocia_views.sql as schema/subsocia_views.sql)
     (schema/subsocia_core.sscm as schema/subsocia_core.sscm)
