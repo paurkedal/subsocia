@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2016  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -20,6 +20,7 @@
 open Subsocia_common
 
 type attribute_selector =
+  | Neighbour
   | Attribute_present of string
   | Attribute_eq of string * string
   | Attribute_leq of string * string

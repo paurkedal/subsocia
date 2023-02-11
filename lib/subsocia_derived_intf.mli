@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -76,6 +76,7 @@ module type RELATION = sig
 
   val (&&) : t -> t -> t
   val inter : t list -> t
+  val true_ : t
   val present : 'a Attribute_type.t -> t
   val (=) : 'a Attribute_type.t -> 'a -> t
   val (<:) : 'a Attribute_type.t -> 'a Values.t -> t

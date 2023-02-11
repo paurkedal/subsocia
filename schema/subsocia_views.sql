@@ -1,4 +1,4 @@
--- Copyright (C) 2015--2022  Petter A. Urkedal <paurkedal@gmail.com>
+-- Copyright (C) 2015--2023  Petter A. Urkedal <paurkedal@gmail.com>
 --
 -- This library is free software; you can redistribute it and/or modify it
 -- under the terms of the GNU Lesser General Public License as published by
@@ -16,6 +16,7 @@
 
 DROP VIEW IF EXISTS $.transitive_inclusion;
 DROP VIEW IF EXISTS $.transitive_reflexive_inclusion;
+DROP VIEW IF EXISTS $.attribution_present;
 
 -- Transitive closure of the still valid subset of $.inclusion.
 CREATE VIEW $.transitive_inclusion (tsub_id, tsuper_id) AS
@@ -39,3 +40,9 @@ CREATE VIEW $.transitive_reflexive_inclusion (tsub_id, tsuper_id) AS
         ON acc.tsuper_id = i.dsub_id
   )
   SELECT * FROM inclusion_closure;
+
+-- A combination of different attribution tables.
+CREATE VIEW $.attribution_present (input_id, output_id, attribute_type_id) AS
+  SELECT input_id, output_id, attribute_type_id FROM $.attribution_bool UNION
+  SELECT input_id, output_id, attribute_type_id FROM $.attribution_int UNION
+  SELECT input_id, output_id, attribute_type_id FROM $.attribution_string;

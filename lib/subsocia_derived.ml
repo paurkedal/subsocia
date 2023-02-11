@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -59,6 +59,7 @@ module Make (Base : Subsocia_intf.S) = struct
       | _, Inter rs -> Inter (q :: rs)
       | _, _ -> Inter [q; r]
     let inter rs = Inter rs
+    let true_ = True
     let present at = Present at
     let (=) at v = Eq (at, v)
     let (<:) at vs = In (at, vs)
@@ -77,6 +78,8 @@ module Make (Base : Subsocia_intf.S) = struct
           Select_inter (r_sel, rs_sel)
         in
         to_selector r >>= Lwt_list.fold_s aux rs
+     | True ->
+        Lwt.return (Select_image Neighbour)
      | Present at ->
         Attribute_type.name at >|= fun an -> Select_image (Attribute_present an)
      | Eq (at, av) ->

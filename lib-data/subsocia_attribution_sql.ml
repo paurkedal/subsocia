@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -48,6 +48,7 @@ module Make (Arg : Arg) = struct
 
   let table_for_adjacency = function
    | Relation.Inter _ -> assert false
+   | Relation.True -> "attribution_present"
    | Relation.Present at -> table_for_type (Attribute_type.value_type at)
    | Relation.Eq (at, _) -> table_for_type (Attribute_type.value_type at)
    | Relation.In (at, _) -> table_for_type (Attribute_type.value_type at)
@@ -85,21 +86,24 @@ module Make (Arg : Arg) = struct
 
   let sql_of_cond0 i at bind =
     Attribute_type.soid at >|= fun at_id ->
-    (fL "q%d.attribute_type_id = %ld" i at_id, bind)
+    let c1 = fL "q%d.attribute_type_id = %ld" i at_id in
+    ([c1], bind)
 
   let sql_of_cond1 i op at x bind =
     Attribute_type.soid at >|= fun at_id ->
     let qx, bind = sql_of_value at x bind in
-    (S [fL "q%d.attribute_type_id = %ld AND q%d.value %s " i at_id i op; qx],
-     bind)
+    let c1 = fL "q%d.attribute_type_id = %ld" i at_id in
+    let c2 = S[fL "q%d.value %s " i op; qx] in
+    ([c1; c2], bind)
 
   let sql_of_between i at x y bind =
     Attribute_type.soid at >|= fun at_id ->
     let qx, bind = sql_of_value at x bind in
     let qy, bind = sql_of_value at y bind in
-    (S [fL "q%d.attribute_type_id = %ld" i at_id;
-        fL " AND q%d.value >= " i; qx;
-        fL " AND q%d.value < " i; qy], bind)
+    let c1 = fL "q%d.attribute_type_id = %ld" i at_id in
+    let c2 = S[fL "q%d.value >= " i; qx] in
+    let c3 = S[fL "q%d.value < " i; qy] in
+    ([c1; c2; c3], bind)
 
   let sql_of_in i at xs bind =
     let xs = Values.elements xs in
@@ -110,31 +114,35 @@ module Make (Arg : Arg) = struct
       (S [fL "q%d.value = " i; qx] :: rev_qs, bind)
     in
     let rev_qs, bind = List.fold aux xs ([], bind) in
-    (S [fL "q%d.attribute_type_id = %ld AND " i at_id;
-        L"("; concat " OR " (List.rev rev_qs); L")"], bind)
+    let c1 = fL "q%d.attribute_type_id = %ld" i at_id in
+    let c2 = S[L"("; concat " OR " (List.rev rev_qs); L")"] in
+    ([c1; c2], bind)
 
   let sql_of_fts i x (Bind (param_length, param_type, param)) =
     let param_type = Caqti_type.(tup2 param_type string) in
     let param = (param, x) in
-    let query = S [
+    let c1 = S [
       fL "q%d.fts_vector @@ to_tsquery(q%d.fts_config::regconfig, " i i;
       P param_length; L")"
     ] in
-    Lwt.return (query, Bind (param_length + 1, param_type, param))
+    Lwt.return ([c1], Bind (param_length + 1, param_type, param))
 
   let sql_of_conjunction preds bind =
     let aux (i, rev_conds, bind) rel =
-      (match rel with
-       | Relation.Inter _ -> assert false
-       | Relation.Present at -> sql_of_cond0 i at bind
-       | Relation.Eq (at, x) -> sql_of_cond1 i "=" at x bind
-       | Relation.In (at, xs) -> sql_of_in i at xs bind
-       | Relation.Leq (at, x) -> sql_of_cond1 i "<=" at x bind
-       | Relation.Geq (at, x) -> sql_of_cond1 i ">=" at x bind
-       | Relation.Between (at, x, y) -> sql_of_between i at x y bind
-       | Relation.Search (at, x) -> sql_of_cond1 i "SIMILAR TO" at x bind
-       | Relation.Search_fts x -> sql_of_fts i x bind)
-      >|= fun (cond, bind) -> (i + 1, cond :: rev_conds, bind)
+      let+ cond, bind =
+        (match rel with
+         | Relation.Inter _ -> assert false
+         | Relation.True -> Lwt.return ([], bind)
+         | Relation.Present at -> sql_of_cond0 i at bind
+         | Relation.Eq (at, x) -> sql_of_cond1 i "=" at x bind
+         | Relation.In (at, xs) -> sql_of_in i at xs bind
+         | Relation.Leq (at, x) -> sql_of_cond1 i "<=" at x bind
+         | Relation.Geq (at, x) -> sql_of_cond1 i ">=" at x bind
+         | Relation.Between (at, x, y) -> sql_of_between i at x y bind
+         | Relation.Search (at, x) -> sql_of_cond1 i "SIMILAR TO" at x bind
+         | Relation.Search_fts x -> sql_of_fts i x bind)
+      in
+      (i + 1, List.rev_append cond rev_conds, bind)
     in
     Lwt_list.fold_left_s aux (0, [], bind) preds >|=
     fun (_, rev_conds, bind) -> (List.rev rev_conds, bind)

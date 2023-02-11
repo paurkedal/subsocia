@@ -1,4 +1,4 @@
-/* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
+/* Copyright (C) 2015--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -141,14 +141,16 @@ path_component:
   ;
 attribute:
     disjunction { $1 }
+  | UNDERSCORE EQ UNDERSCORE { Select_image Neighbour }
+  | STR EQ UNDERSCORE { Select_image (Attribute_present $1) }
   | STR EQ STR { Select_image (Attribute_eq ($1, $3)) }
   | STR EQ_VERB { Select_image (Attribute_eq ($1, $2)) }
-  | STR EQ UNDERSCORE { Select_image (Attribute_present $1) }
   | STR LEQ STR { Select_image (Attribute_leq ($1, $3)) }
   | STR GEQ STR { Select_image (Attribute_geq ($1, $3)) }
+  | MINUS UNDERSCORE EQ UNDERSCORE { Select_preimage Neighbour }
+  | MINUS STR EQ UNDERSCORE { Select_preimage (Attribute_present $2) }
   | MINUS STR EQ STR { Select_preimage (Attribute_eq ($2, $4)) }
   | MINUS STR EQ_VERB { Select_preimage (Attribute_eq ($2, $3)) }
-  | MINUS STR EQ UNDERSCORE { Select_preimage (Attribute_present $2) }
   | MINUS STR LEQ STR { Select_preimage (Attribute_leq ($2, $4)) }
   | MINUS STR GEQ STR { Select_preimage (Attribute_geq ($2, $4)) }
   ;

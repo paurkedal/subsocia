@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2022  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -86,6 +86,15 @@ let rec bprint_selector ?(is_prefix = false) buf p = function
     bprint_attr `Asub ">=" buf p k v
   | Select_preimage (Attribute_geq (k, v)) ->
     bprint_attr `Asuper ">=" buf p k v
+  | Select_image Neighbour ->
+    if p > p_equal then Buffer.add_char buf '{';
+    Buffer.add_string buf "_=_";
+    if p > p_equal then Buffer.add_char buf '}'
+  | Select_preimage Neighbour ->
+    if p > p_equal then Buffer.add_char buf '{';
+    Buffer.add_char buf succ_char;
+    Buffer.add_string buf "_=_";
+    if p > p_equal then Buffer.add_char buf '}'
   | Select_image (Attribute_present k) ->
     if p > p_equal then Buffer.add_char buf '{';
     Buffer.add_string buf k;
@@ -139,7 +148,8 @@ let rec aconj_of_selector = function
   | Select_with _ | Select_union _ | Select_root
   | Select_id _ [@ocaml.warning "-3"]
   | Select_dsub | Select_dsuper
-  | Select_image (Attribute_present _ | Attribute_leq _ | Attribute_geq _)
+  | Select_image (Neighbour | Attribute_present _ |
+                  Attribute_leq _ | Attribute_geq _)
   | Select_preimage _
   | Select_type _
       as sel_att -> fun _ ->
@@ -160,7 +170,7 @@ let rec dconj_of_selector = function
   | Select_with _ | Select_union _ | Select_root
   | Select_id _ [@ocaml.warning "-3"]
   | Select_dsub | Select_dsuper
-  | Select_image (Attribute_leq _ | Attribute_geq _)
+  | Select_image (Neighbour | Attribute_leq _ | Attribute_geq _)
   | Select_preimage _
   | Select_type _
       as sel_att -> fun _ ->
@@ -218,6 +228,8 @@ let selector_of_delete_selector (ctx, assignments) =
 module Selector_utils (C : Subsocia_intf.S) = struct
 
   let entype_ap = function
+    | Neighbour ->
+      Lwt.return C.Relation.True
     | Attribute_present an ->
       C.Attribute_type.any_of_name_exn an >|= fun (C.Attribute_type.Any at) ->
       C.Relation.Present at

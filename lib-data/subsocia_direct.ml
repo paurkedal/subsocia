@@ -403,6 +403,8 @@ module Q = struct
   let ap1_leq = 1
   let ap1_geq = 2
 
+  let e_asub_present_any = (int32 ->* int32)
+    "SELECT output_id FROM $.attribution_present WHERE input_id = ?"
   let e_asub_present_bool = (tup2 int32 int32 ->* int32)
     "SELECT output_id FROM $.attribution_bool \
      WHERE input_id = ? AND attribute_type_id = ?"
@@ -413,6 +415,8 @@ module Q = struct
     "SELECT output_id FROM $.attribution_string \
      WHERE input_id = ? AND attribute_type_id = ?"
 
+  let e_asuper_present_any = (int32 ->* int32)
+    "SELECT input_id FROM $.attribution_present WHERE output_id = ?"
   let e_asuper_present_bool = (tup2 int32 int32 ->* int32)
     "SELECT input_id FROM $.attribution_bool \
      WHERE output_id = ? AND attribute_type_id = ?"
@@ -714,6 +718,7 @@ module B = struct
   module Relation = struct
     type t =
       | Inter : t list -> t
+      | True : t
       | Present : 'a Attribute_type.t -> t
       | Eq : 'a Attribute_type.t * 'a -> t
       | In : 'a Attribute_type.t * 'a Values.t -> t
@@ -1267,6 +1272,11 @@ module Make (P : Param) = struct
     let asub_conj e ps = image_generic (B.Relation.Inter ps) [e]
     (* let asuper_conj e ps = preimage_generic (B.Relation.Inter ps) [e] *)
 
+    let asub_present_any, asub_present_any_cache =
+      memo_1lwt @@ fun e ->
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.fold Q.e_asub_present_any Set.add e Set.empty
+
     let asub_present_bool, asub_present_bool_cache =
       memo_2lwt @@ fun (e, at_id) ->
       with_db_exn @@ fun (module C : CONNECTION) ->
@@ -1338,6 +1348,7 @@ module Make (P : Param) = struct
     let image1 p e =
       (match p with
        | B.Relation.Inter _ | B.Relation.In _ -> image_generic p [e]
+       | B.Relation.True -> asub_present_any e
        | B.Relation.Present at ->
           (match B.Attribute_type.value_type at with
            | Type.Bool -> asub_present_bool e at.B.Attribute_type.at_id
@@ -1352,6 +1363,11 @@ module Make (P : Param) = struct
        | B.Relation.Search_fts x -> asub1_search_fts x e)
 
     let image1_eq at e = asub1 Q.ap1_eq at e
+
+    let asuper_present_any, asuper_present_any_cache =
+      memo_1lwt @@ fun e ->
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.fold Q.e_asuper_present_any Set.add e Set.empty
 
     let asuper_present_bool, asuper_present_bool_cache =
       memo_2lwt @@ fun (e, at_id) ->
@@ -1425,6 +1441,7 @@ module Make (P : Param) = struct
     let preimage1 p e =
       (match p with
        | B.Relation.Inter _ | B.Relation.In _ -> preimage_generic p [e]
+       | B.Relation.True -> asuper_present_any e
        | B.Relation.Present at ->
           (match B.Attribute_type.value_type at with
            | Type.Bool -> asuper_present_bool e at.B.Attribute_type.at_id
@@ -1581,6 +1598,10 @@ module Make (P : Param) = struct
        | Type.String ->
           connected_by_string at.B.Attribute_type.at_id v)
 
+    let clear_poly_caches () =
+      Cache.clear asub_present_any_cache;
+      Cache.clear asuper_present_any_cache
+
     let clear_bool_caches () =
       Cache.clear get_values_bool_cache;
       Cache.clear asub_present_bool_cache;
@@ -1620,9 +1641,9 @@ module Make (P : Param) = struct
 
     let clear_attr_caches (type a) (at : a B.Attribute_type.t) : unit =
       match B.Attribute_type.value_type at with
-      | Type.Bool -> clear_bool_caches ()
-      | Type.Int -> clear_int_caches ()
-      | Type.String -> clear_string_caches ()
+      | Type.Bool -> clear_bool_caches (); clear_poly_caches ()
+      | Type.Int -> clear_int_caches (); clear_poly_caches ()
+      | Type.String -> clear_string_caches (); clear_poly_caches ()
 
     (* Modifying Functions *)
 
