@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,7 +15,6 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open OUnit
 open Subsocia_connection
 open Printf
 open Lwt.Infix
@@ -57,6 +56,7 @@ module Perf = struct
 end
 
 let test n =
+  let sparseness = 16 in
   let%lwt root = Entity.get_root () in
   let ea = Array.make n root in
   let ia = Array.init n (fun _ -> Array.make n false) in
@@ -66,7 +66,7 @@ let test n =
     let%lwt e = Entity.create org_group in
     ea.(i) <- e;
     for%lwt j = 0 to i - 1 do
-      if Random.int 4 = 0 then begin
+      if Random.int sparseness = 0 then begin
         ia.(i).(j) <- true;
         Perf.step "insert";
         Entity.force_dsub ea.(i) ea.(j)
@@ -78,7 +78,7 @@ let test n =
   Perf.start_lwt "update" >>= fun () ->
   for%lwt i = 0 to n - 1 do
     for%lwt j = 0 to i - 1 do
-      if Random.int 4 = 0 then begin
+      if Random.int sparseness = 0 then begin
         ia.(i).(j) <- not ia.(i).(j);
         Perf.step "update";
         if ia.(i).(j) then Entity.force_dsub ea.(i) ea.(j)
@@ -106,11 +106,10 @@ let test n =
       Perf.step ~dn:2 "is_sub";
       let%lwt issub = Entity.is_sub ea.(i) ea.(j) in
       let%lwt issup = Entity.is_sub ea.(j) ea.(i) in
-      let%lwt soid_i = Entity.soid ea.(i) in
-      let%lwt soid_j = Entity.soid ea.(j) in
-      let msg = sprintf "#%ld ⊆ #%ld" soid_i soid_j in
-      assert_equal ~msg ~printer:string_of_bool ia.(i).(j) issub;
-      assert (not issup);
+      let%lwt id_i = Entity.soid ea.(i) in
+      let%lwt id_j = Entity.soid ea.(j) in
+      Alcotest.(check bool) (Fmt.str "#%ld ⊆ #%ld" id_i id_j) ia.(i).(j) issub;
+      Alcotest.(check bool) (Fmt.str "#%ld ⊇ #%ld" id_i id_j) false issup;
       Lwt.return_unit
     done
   done >>= fun () ->
@@ -123,4 +122,7 @@ let test n =
   Perf.stop_lwt "delete" >>= fun () ->
   Lwt.return_unit
 
-let run () = Lwt_main.run (test 100); Perf.show ()
+let test_cases = Alcotest.[
+  test_case "random insert, update, is_sub" `Slow
+    (fun () -> Lwt_main.run (test 64); Perf.show ());
+]

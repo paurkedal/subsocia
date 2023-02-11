@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,12 +15,10 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-open OUnit
-
-let suite = "subsocia" >::: [
-  "test_inclusion" >:: Test_inclusion.run;
+let tests = [
+  "test_inclusion", Test_inclusion.test_cases;
 ]
 
-let _ =
+let () =
   Random.self_init ();
-  run_test_tt_main suite
+  Alcotest.run "subsocia" tests
