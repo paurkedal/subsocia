@@ -11,7 +11,7 @@ jobs:
       - image: ocaml/opam:debian-ocaml-4.13
         environment:
           TERM: xterm
-          SUBSOCIA_CONFIG: .circleci/subsocia.conf
+          DATABASE_URI: postgresql://ci@localhost/ci?schema=subsocia_ci
       - image: cimg/postgres:14.1
         environment:
           POSTGRES_USER: ci
@@ -32,6 +32,7 @@ jobs:
       - run:
           name: Install system dependencies
           command: |
+            sudo apt-get -y install postgresql-client
             opam depext -y subsocia caqti-driver-postgresql
       - run:
           name: Install package
@@ -43,13 +44,7 @@ jobs:
           command: |
             opam config exec -- dune build @install
       - run:
-          name: Initialize database for testing
-          command: |
-            echo $SUBSOCIA_CONFIG
-            cat $SUBSOCIA_CONFIG
-            opam config exec -- dune exec -- bin/command.exe db-init
-      - run:
           name: Test
           command: |
-            SUBSOCIA_CONFIG="$PWD/$SUBSOCIA_CONFIG"
+            echo "database_uri = \"${DATABASE_URI}\"" > tests/subsocia-test.conf
             opam config exec -- dune runtest

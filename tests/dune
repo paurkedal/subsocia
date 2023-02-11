@@ -9,6 +9,13 @@
     (SUBSOCIA_CONFIG "subsocia-test.conf")
     (SUBSOCIA_SHARE ".."))))
 
+(rule
+ (targets subsocia-test.conf)
+ (mode fallback)
+ (action
+  (write-file %{targets}
+    "database_uri = \"postgresql:///?schema=subsocia_test\"")))
+
 ;;; Setup and Tear Down of Test Database
 
 (rule
@@ -21,18 +28,18 @@
     subsocia-test.conf)
  (action
   (progn
-    (run psql -q -f %{dep:teardown.sql})
-    (run subsocia db-init))))
+    (run %{dep:teardown.exe})
+    (run %{dep:../bin/command.exe} db-init))))
 
 (rule
  (alias teardown)
- (action
-    (run psql -q -f %{dep:teardown.sql})))
+ (deps subsocia-test.conf)
+ (action (run %{dep:teardown.exe})))
 
 ;;; Tests
 
-(executable
-  (name testsuite)
+(executables
+  (names testsuite teardown)
   (preprocess (pps lwt_ppx))
   (libraries
     alcotest
