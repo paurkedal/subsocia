@@ -1,2 +1,2 @@
-(lang dune 1.1)
+(lang dune 3.6)
 (name subsocia)

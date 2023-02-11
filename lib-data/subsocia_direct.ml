@@ -664,7 +664,7 @@ module B = struct
       at_value_type : 'a Type.t;
       at_value_mult : Multiplicity.t;
       at_beacon : Beacon.t;
-    }
+    } [@@warning "-69"]
     type ex = Ex : 'a t -> ex
     type any = Any : 'a t -> any
 

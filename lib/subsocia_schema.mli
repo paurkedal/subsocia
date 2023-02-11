@@ -1,4 +1,4 @@
-(* Copyright (C) 2015  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -21,6 +21,6 @@ open Subsocia_schema_types
 
 val load : string -> schema
 
-module Make (M : Subsocia_intf.S) : sig
+module Make (_ : Subsocia_intf.S) : sig
   val exec : schema -> unit Lwt.t
 end

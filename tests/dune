@@ -7,7 +7,7 @@
     subsocia
     subsocia.data))
 
-(alias
-  (name runtest)
+(rule
+  (alias runtest)
   (deps testsuite.exe)
   (action (run %{deps})))
