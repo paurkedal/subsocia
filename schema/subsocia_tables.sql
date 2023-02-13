@@ -1,4 +1,4 @@
--- Copyright (C) 2014--2022  Petter A. Urkedal <paurkedal@gmail.com>
+-- Copyright (C) 2014--2023  Petter A. Urkedal <paurkedal@gmail.com>
 --
 -- This library is free software; you can redistribute it and/or modify it
 -- under the terms of the GNU Lesser General Public License as published by
@@ -106,3 +106,9 @@ CREATE TABLE $.attribution_string_fts (
   PRIMARY KEY (input_id, output_id, fts_config)
 );
 CREATE INDEX ON $.attribution_string_fts USING gin(fts_vector);
+
+-- Mandatory Initial Data (#1 root : #1 root)
+
+INSERT INTO $.entity_type (entity_type_name, entity_name_tmpl) VALUES
+  ('root', 'Root');
+INSERT INTO $.entity (entity_type_id) VALUES (1);

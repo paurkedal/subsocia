@@ -1,6 +1,7 @@
-# It is absolutely essential to create to top node first.
-:* root %display "Root"
-* root
+# The root entity and its type are implied by the DB schema:
+#
+#   :* root %display "Root"
+#   * root
 
 # Attribute Types
 # ---------------
