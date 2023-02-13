@@ -133,7 +133,15 @@ module type ENTITY = sig
   module Super : NESTED_ITERABLE with type t := t
   module Sub : NESTED_ITERABLE with type t := t
 
+  val unique_mapping1 : Attribute_uniqueness.t -> t -> Relation.t Map.t Lwt.t
+  (** Given a uniqueness constraint [au], [unique_mapping1 au e] returns a map
+      from entities which have a unique image at [e] to the corresponding
+      relations. *)
+
   val unique_premapping1 : Attribute_uniqueness.t -> t -> Relation.t Map.t Lwt.t
+  (** Given a uniqueness constraint [au], [unique_premapping1 au e] returns a
+      map from entities which have [e] as a unique image to the the
+      corresponding relation. *)
 
   val paths : t -> selector list Lwt.t
 

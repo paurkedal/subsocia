@@ -322,28 +322,35 @@ module Make (Base : Subsocia_intf.S) = struct
     let can_edit_entity = has_role_for_entity "subsocia.admin"
     let can_search_below = has_role_for_entity "subsocia.user"
 
-    let unique_premapping1 au e =
-      let build_attribute at vs =
-        let v = Values.choose vs in
-        Lwt.return Relation.(Eq (at, v))
-      in
-      let rec intersect_attributes = function
-       | [] -> fun _e' acc ->
-          Lwt.return_some Relation.(Inter acc)
-       | (Attribute_type.Any at) :: ats -> fun e' acc ->
-          let* vs = get_values at e' e in
+    let build_attribute at vs = Relation.(Eq (at, Values.choose vs))
+
+    let intersect_attributes ats e e' =
+      let rec loop = function
+       | [] -> fun acc -> Lwt.return_some Relation.(Inter acc)
+       | Attribute_type.Any at :: ats -> fun acc ->
+          let* vs = get_values at e e' in
           if Values.is_empty vs then Lwt.return_none else
-          let* sel = build_attribute at vs in
-          intersect_attributes ats e' (sel :: acc)
+          loop ats (build_attribute at vs :: acc)
       in
+      loop ats
+
+    let unique_mapping1 au e =
       Attribute_uniqueness.affected au >|= Attribute_type.Set.elements
       >>= function
-       | [] ->
-          assert false
-       | (Attribute_type.Any at) :: ats ->
+       | [] -> assert false
+       | Attribute_type.Any at :: ats ->
+          mapping1 at e
+            >|= Map.map (fun vs -> [build_attribute at vs])
+            >>= Map.fmapi_s (intersect_attributes ats e)
+
+    let unique_premapping1 au e =
+      Attribute_uniqueness.affected au >|= Attribute_type.Set.elements
+      >>= function
+       | [] -> assert false
+       | Attribute_type.Any at :: ats ->
           premapping1 at e
-            >>= Map.map_s (fun vs -> build_attribute at vs >|= fun r -> [r])
-            >>= Map.fmapi_s (intersect_attributes ats)
+            >|= Map.map (fun vs -> [build_attribute at vs])
+            >>= Map.fmapi_s (fun e' -> intersect_attributes ats e' e)
 
     let rec paths e =
       if%lwt Entity.is_root e then Lwt.return [Select_root] else
