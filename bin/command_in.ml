@@ -92,7 +92,7 @@ let in_list etn0_opt etn1_opt = run_int_exn @@ fun (module C) ->
   let pp mu0 mu1 et0 et1 =
     let* etn0 = C.Entity_type.name et0 in
     let* etn1 = C.Entity_type.name et1 in
-    Lwt_io.printlf "%30s %s%s %-30s"
+    Lwt_io.printlf "%30s %s%s %s"
       etn0 (Multiplicity.to_string mu0) (Multiplicity.to_string mu1) etn1
   in
   (match et0, et1 with
