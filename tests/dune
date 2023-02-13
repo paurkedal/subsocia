@@ -20,6 +20,7 @@
 
 (rule
  (alias setup)
+ (locks /db/subsocia_test)
  (deps
     ../schema/subsocia_proc.sql
     ../schema/subsocia_tables.sql
@@ -33,6 +34,7 @@
 
 (rule
  (alias teardown)
+ (locks /db/subsocia_test)
  (deps subsocia-test.conf)
  (action (run %{dep:teardown.exe})))
 
@@ -49,8 +51,20 @@
 
 (rule
   (alias runtest)
+  (locks /db/subsocia_test)
   (deps
     (alias setup)
     (:test testsuite.exe)
     subsocia-test.conf)
   (action (run %{test})))
+
+(cram
+  (locks /db/subsocia_test)
+  (deps
+    ../schema/subsocia_proc.sql
+    ../schema/subsocia_tables.sql
+    ../schema/subsocia_views.sql
+    ../schema/subsocia_core.sscm
+    subsocia-test.conf
+    teardown.exe
+    ../bin/command.exe))
