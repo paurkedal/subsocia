@@ -143,9 +143,21 @@ module type ENTITY = sig
       map from entities which have [e] as a unique image to the the
       corresponding relation. *)
 
-  val paths : t -> selector list Lwt.t
+  val unique_relations_by_image : t -> Relation.t list Map.t Lwt.t
+  (** [unique_relations_by_image e] returns a map of all bindings [(e', rel)]
+      such that [e'] is the image of [e] under [rel], where [rel] is composed
+      according to some attribute uniqueness constraint, guaranteeing the
+      uniqueness of [e'] given [e]. *)
 
-  val relative_subpaths : t -> Relation.t list Map.t Lwt.t
+  val unique_relations_by_preimage : t -> Relation.t list Map.t Lwt.t
+  (** [unique_relations_by_preimage] returns a map of all bindings [(e', rel)]
+      such that [e] is the image of [e'] under [rel], where [rel] is composed
+      according to some attribute uniqueness constraint, guaranteeing the
+      uniqueness of [e] given [e'].  Alternatively [e'] is the preimage of [e],
+      which motivates the function name.  Note the asymmetry with
+      {!unique_relations_by_image} regarding the uniqueness constraint. *)
+
+  val paths : t -> selector list Lwt.t
 
   val has_role_for_entity : string -> t -> t -> bool Lwt.t
   val can_view_entity : t -> t -> bool Lwt.t

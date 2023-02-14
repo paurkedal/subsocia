@@ -352,6 +352,51 @@ module Make (Base : Subsocia_intf.S) = struct
             >|= Map.map (fun vs -> [build_attribute at vs])
             >>= Map.fmapi_s (fun e' -> intersect_attributes ats e' e)
 
+    let aus_affecting_ats ats =
+      let add_at (Attribute_type.Any at) acc =
+        let+ aus = Attribute_uniqueness.affecting at in
+        Attribute_uniqueness.Set.union aus acc
+      in
+      Lwt_list.fold_s add_at ats Attribute_uniqueness.Set.empty
+        >|= Attribute_uniqueness.Set.elements
+
+    let merge_rel_with_rels_by_entity =
+      Map.merge
+        (fun _ -> function
+         | None -> Fun.id
+         | Some rel ->
+            fun rels -> Some (rel :: Option.fold ~none:[] ~some:Fun.id rels))
+
+    let unique_relations_by_image e =
+      let* candidate_ats =
+        let* et = Entity.entity_type e in
+        let+ ats_by_et = Entity_type.allowed_image et in
+        ats_by_et
+          |> Entity_type.Map.bindings
+          |> List.rev_map snd |> List.rev_flatten
+      in
+      let* candidate_aus = aus_affecting_ats candidate_ats in
+      let add_au acc au =
+        let+ rel_by_image = unique_mapping1 au e in
+        merge_rel_with_rels_by_entity rel_by_image acc
+      in
+      Lwt_list.fold_left_s add_au Map.empty candidate_aus
+
+    let unique_relations_by_preimage e =
+      let* candidate_ats =
+        let* et = Entity.entity_type e in
+        let+ ats_by_et = Entity_type.allowed_preimage et in
+        ats_by_et
+          |> Entity_type.Map.bindings
+          |> List.rev_map snd |> List.rev_flatten
+      in
+      let* candidate_aus = aus_affecting_ats candidate_ats in
+      let add_au acc au =
+        let+ rel_by_preimage = unique_premapping1 au e in
+        merge_rel_with_rels_by_entity rel_by_preimage acc
+      in
+      Lwt_list.fold_left_s add_au Map.empty candidate_aus
+
     let rec paths e =
       if%lwt Entity.is_root e then Lwt.return [Select_root] else
       let* et = Entity.entity_type e in
@@ -377,33 +422,6 @@ module Make (Base : Subsocia_intf.S) = struct
           >>= Lwt_list.flatten_map_p try_r
       in
       Lwt_list.flatten_map_p try_au (Attribute_uniqueness.Set.elements aus)
-
-    let relative_subpaths e =
-      let* candidate_ats =
-        let* et = Entity.entity_type e in
-        let+ ats_by_et = Entity_type.allowed_image et in
-        ats_by_et
-          |> Entity_type.Map.bindings
-          |> List.rev_map snd |> List.rev_flatten
-      in
-      let* candidate_aus =
-        let add_at (Attribute_type.Any at) acc =
-          let+ aus = Attribute_uniqueness.affecting at in
-          Attribute_uniqueness.Set.union aus acc
-        in
-        Lwt_list.fold_s add_at candidate_ats Attribute_uniqueness.Set.empty
-          >|= Attribute_uniqueness.Set.elements
-      in
-      let add_au acc au =
-        let+ relation_by_target = unique_mapping1 au e in
-        Map.merge
-          (fun _ -> function
-           | None -> Fun.id
-           | Some rel ->
-              fun rels -> Some (rel :: Option.fold ~none:[] ~some:Fun.id rels))
-          relation_by_target acc
-      in
-      Lwt_list.fold_left_s add_au Map.empty candidate_aus
 
     let rec display_name_var ~context ~langs e spec =
       let* root = Entity.get_root () in
