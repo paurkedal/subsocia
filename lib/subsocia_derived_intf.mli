@@ -145,6 +145,8 @@ module type ENTITY = sig
 
   val paths : t -> selector list Lwt.t
 
+  val relative_subpaths : t -> Relation.t list Map.t Lwt.t
+
   val has_role_for_entity : string -> t -> t -> bool Lwt.t
   val can_view_entity : t -> t -> bool Lwt.t
   val can_edit_entity : t -> t -> bool Lwt.t

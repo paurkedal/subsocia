@@ -378,6 +378,33 @@ module Make (Base : Subsocia_intf.S) = struct
       in
       Lwt_list.flatten_map_p try_au (Attribute_uniqueness.Set.elements aus)
 
+    let relative_subpaths e =
+      let* candidate_ats =
+        let* et = Entity.entity_type e in
+        let+ ats_by_et = Entity_type.allowed_image et in
+        ats_by_et
+          |> Entity_type.Map.bindings
+          |> List.rev_map snd |> List.rev_flatten
+      in
+      let* candidate_aus =
+        let add_at (Attribute_type.Any at) acc =
+          let+ aus = Attribute_uniqueness.affecting at in
+          Attribute_uniqueness.Set.union aus acc
+        in
+        Lwt_list.fold_s add_at candidate_ats Attribute_uniqueness.Set.empty
+          >|= Attribute_uniqueness.Set.elements
+      in
+      let add_au acc au =
+        let+ relation_by_target = unique_mapping1 au e in
+        Map.merge
+          (fun _ -> function
+           | None -> Fun.id
+           | Some rel ->
+              fun rels -> Some (rel :: Option.fold ~none:[] ~some:Fun.id rels))
+          relation_by_target acc
+      in
+      Lwt_list.fold_left_s add_au Map.empty candidate_aus
+
     let rec display_name_var ~context ~langs e spec =
       let* root = Entity.get_root () in
       let try_source e' vs =
