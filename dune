@@ -10,4 +10,5 @@
     (schema/upgrade/from-2.sql as schema/upgrade/from-2.sql)
     (schema/upgrade/from-3.sql as schema/upgrade/from-3.sql)
     (schema/upgrade/from-4.sql as schema/upgrade/from-4.sql)
+    (schema/upgrade/from-5.sql as schema/upgrade/from-5.sql)
    ))
