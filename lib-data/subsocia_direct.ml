@@ -633,7 +633,7 @@ module Disabled_cache = struct
 end
 
 module Cache =
-  (val if Subsocia_config.enable_caching#get
+  (val if Subsocia_config.(global.enable_caching)
        then (module Enabled_cache)
        else (module Disabled_cache) : CACHE)
 

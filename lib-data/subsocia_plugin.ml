@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -40,8 +40,8 @@ end
 
 let load_base_plugins () =
   Lazy.force init;
-  Fl_dynload.load_packages ~debug Subsocia_config.plugins#get
+  Fl_dynload.load_packages ~debug Subsocia_config.(global.plugins)
 
 let load_cmd_plugins () =
   load_base_plugins ();
-  Fl_dynload.load_packages ~debug Subsocia_config.Cmd.plugins#get
+  Fl_dynload.load_packages ~debug Subsocia_config.(global.cmd_plugins)

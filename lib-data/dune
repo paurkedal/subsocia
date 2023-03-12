@@ -4,6 +4,7 @@
   (wrapped false)
   (modules_without_implementation
     Subsocia_direct_intf)
+  (preprocess (pps ppx_deriving_yojson))
   (libraries
     caqti
     caqti-lwt

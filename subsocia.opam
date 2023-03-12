@@ -22,6 +22,7 @@ depends: [
   "lwt"
   "lwt_ppx"
   "ocaml"
+  "ppx_deriving_yojson"
   "prime"
   "ptime"
   "re"

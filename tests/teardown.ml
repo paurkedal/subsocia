@@ -25,7 +25,7 @@ let drop_schema_req schema =
   (Fmt.str "DROP SCHEMA IF EXISTS %s CASCADE" schema)
 
 let () = Lwt_main.run begin
-  let uri = Uri.of_string Subsocia_config.database_uri#get in
+  let uri = Uri.of_string Subsocia_config.(global.database_uri) in
   let schema =
     (match Uri.get_query_param uri "schema" with
      | Some schema -> schema

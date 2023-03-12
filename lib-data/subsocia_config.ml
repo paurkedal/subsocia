@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2018  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2023  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -15,30 +15,25 @@
  * <http://www.gnu.org/licenses/> and <https://spdx.org>, respectively.
  *)
 
-let group = new Config_file.group
+type t = {
+  database_uri: string [@default "postgresql://"];
+  (** Caqti URI for connecting to the database. *)
 
-let plugins =
-  new Config_file.list_cp Config_file.string_wrappers ~group
-    ["plugins"] []
-    "List of dynamic findlib libraries to load at startup."
+  enable_caching: bool [@default true];
+  (** Set to false to disable memory caching. *)
 
-let database_uri =
-  new Config_file.string_cp ~group ["database_uri"] "postgresql://"
-    "Caqti URI for connecting to the database."
+  plugins: string list [@default []];
+  (** List of dynamic findlib libraries to load at startup. *)
 
-let enable_caching =
-  new Config_file.bool_cp ~group ["enable_caching"] true
-    "Set to false to disable memory caching."
+  cmd_plugins: string list [@default []];
+  (** List of extra plugins loaded by the command-line utility. *)
+}
+[@@deriving yojson]
 
-module Cmd = struct
-  let plugins =
-    new Config_file.list_cp Config_file.string_wrappers ~group
-      ["cmd"; "plugins"] []
-      "List of extra plugins loaded by the command-line utility."
-end
-
-let () =
-  try group#read (Sys.getenv "SUBSOCIA_CONFIG")
-  with Not_found ->
-    if Sys.file_exists "/etc/subsocia.conf" then
-      group#read "/etc/subsocia.conf"
+let global =
+  let config =
+    try Sys.getenv "SUBSOCIA_CONFIG" with Not_found -> "/etc/subsocia.conf"
+  in
+  (match of_yojson (Yojson.Safe.from_file config) with
+   | Ok g -> g
+   | Error msg -> Printf.ksprintf failwith "Cannot load %s: %s." config msg)

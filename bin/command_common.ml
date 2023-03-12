@@ -20,7 +20,7 @@ open Lwt.Infix
 module Log = (val Logs_lwt.src_log (Logs.Src.create "subsocia.command"))
 
 let connect () =
-  let uri = Uri.of_string Subsocia_config.database_uri#get in
+  let uri = Uri.of_string Subsocia_config.(global.database_uri) in
   Subsocia_direct.connect uri
 
 let langs = [Iso639.Lang.of_string_exn "eng"] (* TODO: Use $LANG *)
