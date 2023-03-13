@@ -46,5 +46,5 @@ jobs:
       - run:
           name: Test
           command: |
-            echo "database_uri = \"${DATABASE_URI}\"" > tests/subsocia-test.conf
+            echo "{database_uri: \"${DATABASE_URI}\"}" > tests/subsocia-test.conf
             opam config exec -- dune runtest

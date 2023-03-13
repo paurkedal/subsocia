@@ -14,7 +14,7 @@
  (mode fallback)
  (action
   (write-file %{targets}
-    "database_uri = \"postgresql:///?schema=subsocia_test\"")))
+    "{database_uri: \"postgresql:///?schema=subsocia_test\"}")))
 
 ;;; Setup and Tear Down of Test Database
 
