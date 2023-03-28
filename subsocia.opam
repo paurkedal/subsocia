@@ -13,7 +13,6 @@ depends: [
   "caqti-dynload"
   "caqti-lwt"
   "cmdliner" {>= "1.1.0"}
-  "config-file"
   "dune" {>= "1.1"}
   "extunix"
   "fmt"

@@ -8,7 +8,6 @@
   (libraries
     caqti
     caqti-lwt
-    config-file
     extunix
     findlib
     findlib.dynload
@@ -18,4 +17,5 @@
     lwt
     subsocia
     prime.unstable
-    ptime ptime.clock.os))
+    ptime ptime.clock.os
+    yojson))

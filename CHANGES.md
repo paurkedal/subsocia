@@ -1,3 +1,31 @@
+## v0.20.0 - 2023-03-28
+
+Library:
+
+  - Switch configuration to JSON with Yojson extensions.
+  - Extend the entity interface with `unique_mapping1`,
+    `unique_relations_by_image`, and `unique_relations_by_preimage`.
+  - Add `Relation.True`.
+  - Use `logs` instead of `lwt_log`.
+  - Use SQL triggers for maintaining ranks (schema version 6).
+  - Register pretty-printer for exception.
+
+Utility:
+
+  - Remove space at end of line for in-list output.
+  - Add `--disable-core-schema` to `db-init` subcommand. The root entity
+    will still be created, as this is now done by the SQL schema.
+  - Fix misleading metavariables in an-allow and an-disallow documentation.
+
+Internal:
+
+  - Various test improvements.
+  - Replace `Caqti_lwt_sql_io` with Angstrom parser.
+  - Fix other deprecations and breakage for recent caqti, cmdliner, extunix.
+  - Simplify select for `is_sub` when `?time` provided.
+
+The project license now uses the LGPL-3.0 Linking Exception.
+
 ## v0.19.1 - 2020-06-19
 
   - Fix queries for `force_dsub` and `dsub_history`.
