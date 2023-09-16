@@ -139,3 +139,8 @@ Inspect entities:
   $ subsocia search '/s/milkyway/proxima_centauri/orbit>=2'
   #12 Proxima Centauri B : planet
   #13 Proxima Centauri C : planet
+
+Reinitialize:
+
+  $ ./teardown.exe
+  $ subsocia db-init

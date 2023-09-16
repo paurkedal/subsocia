@@ -5,6 +5,8 @@
   (libraries
     angstrom
     angstrom-lwt-unix
+    caqti-lwt
+    caqti-lwt.unix
     caqti-dynload
     cmdliner
     fmt

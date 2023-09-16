@@ -30,13 +30,13 @@
  (action
   (progn
     (run %{dep:teardown.exe})
-    (run %{dep:../bin/command.exe} db-init))))
+    (run %{bin:subsocia} db-init))))
 
 (rule
  (alias teardown)
  (locks /db/subsocia_test)
  (deps subsocia-test.conf)
- (action (run %{dep:teardown.exe})))
+ (action (run %{bin:subsocia})))
 
 ;;; Tests
 
@@ -46,8 +46,11 @@
   (libraries
     alcotest
     caqti-dynload
+    lwt
+    lwt.unix
     subsocia
-    subsocia.data))
+    subsocia.data
+    unix))
 
 (rule
   (alias runtest)
@@ -67,4 +70,4 @@
     ../schema/subsocia_core.sscm
     subsocia-test.conf
     teardown.exe
-    ../bin/command.exe))
+    %{bin:subsocia}))

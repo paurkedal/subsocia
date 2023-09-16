@@ -19,7 +19,6 @@ open Subsocia_connection
 open Printf
 open Lwt.Infix
 open Unprime
-open Unprime_option
 
 module String_set = Set.Make (String)
 
@@ -60,7 +59,7 @@ let test n =
   let%lwt root = Entity.get_root () in
   let ea = Array.make n root in
   let ia = Array.init n (fun _ -> Array.make n false) in
-  let%lwt org_group = Entity_type.of_name "org_group" >|= Option.get in
+  let%lwt org_group = Entity_type.of_name_exn "org_group" in
   Perf.start "insert";
   for%lwt i = 0 to n - 1 do
     let%lwt e = Entity.create org_group in

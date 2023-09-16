@@ -9,9 +9,9 @@ depends: [
   "alcotest" {with-test}
   "angstrom"
   "angstrom-lwt-unix"
-  "caqti" {>= "1.8.0"}
+  "caqti" {>= "2.0.1"}
   "caqti-dynload"
-  "caqti-lwt"
+  "caqti-lwt" {>= "2.0.1"}
   "cmdliner" {>= "1.1.0"}
   "dune" {>= "1.1"}
   "extunix"

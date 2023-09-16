@@ -98,13 +98,13 @@ module Q = struct
 
   (* Attribute Type *)
 
-  let at_by_id = (int32 ->! tup3 string string int)
+  let at_by_id = (int32 ->! t3 string string int)
     "SELECT attribute_name, value_type, value_mult FROM $.attribute_type \
      WHERE attribute_type_id = ?"
-  let at_by_name = (string ->? tup3 int32 string int)
+  let at_by_name = (string ->? t3 int32 string int)
     "SELECT attribute_type_id, value_type, value_mult FROM $.attribute_type \
      WHERE attribute_name = ?"
-  let at_create = (tup4 string string int (option string) ->! int32)
+  let at_create = (t4 string string int (option string) ->! int32)
     "INSERT INTO $.attribute_type (attribute_name, value_type, value_mult, \
                                    fts_config) \
      VALUES (?, ?, ?, ?) RETURNING attribute_type_id"
@@ -153,7 +153,7 @@ module Q = struct
         let q _ = au_force_query l in
         Caqti_request.create t int32 Caqti_mult.one q
       in
-      let next = lazy (build (tup2 t int32)) in
+      let next = lazy (build (t2 t int32)) in
       Au_force_cache {request; next}
     in
     build Caqti_type.unit
@@ -191,94 +191,93 @@ module Q = struct
     "SELECT entity_type_id FROM $.entity_type"
   let et_entity_name_tmpl = (int32 ->! string)
     "SELECT entity_name_tmpl FROM $.entity_type WHERE entity_type_id = ?"
-  let et_set_entity_name_tmpl = (tup2 string int32 ->. unit)
+  let et_set_entity_name_tmpl = (t2 string int32 ->. unit)
     "UPDATE $.entity_type SET entity_name_tmpl = ? WHERE entity_type_id = ?"
 
-  let et_can_dsub = (tup2 int32 int32 ->? tup2 int int)
+  let et_can_dsub = (t2 int32 int32 ->? t2 int int)
     "SELECT dsub_mult, dsuper_mult \
      FROM $.inclusion_type \
      WHERE dsub_type_id = ? AND dsuper_type_id = ?"
-  let et_dsub = (int32 ->* tup3 int32 int int)
+  let et_dsub = (int32 ->* t3 int32 int int)
     "SELECT dsub_type_id, dsub_mult, dsuper_mult \
      FROM $.inclusion_type WHERE dsuper_type_id = ?"
-  let et_dsuper = (int32 ->* tup3 int32 int int)
+  let et_dsuper = (int32 ->* t3 int32 int int)
     "SELECT dsuper_type_id, dsub_mult, dsuper_mult \
      FROM $.inclusion_type WHERE dsub_type_id = ?"
-  let et_dsub_elements = (unit ->* tup4 int32 int32 int int)
+  let et_dsub_elements = (unit ->* t4 int32 int32 int int)
     "SELECT dsub_type_id, dsuper_type_id, dsub_mult, dsuper_mult \
      FROM $.inclusion_type"
-  let et_allow_dsub = (tup4 int int int32 int32 ->. unit)
+  let et_allow_dsub = (t4 int int int32 int32 ->. unit)
     "INSERT INTO $.inclusion_type \
       (dsub_mult, dsuper_mult, dsub_type_id, dsuper_type_id) \
      VALUES (?, ?, ?, ?)"
-  let et_disallow_dsub = (tup2 int32 int32 ->. unit)
+  let et_disallow_dsub = (t2 int32 int32 ->. unit)
     "DELETE FROM $.inclusion_type \
      WHERE dsub_type_id = ? AND dsuper_type_id = ?"
 
-  let et_can_attribute = (tup3 int32 int32 int32 ->! int)
+  let et_can_attribute = (t3 int32 int32 int32 ->! int)
     "SELECT count(*) FROM $.attribution_type \
      WHERE attribute_type_id = ? AND domain_id = ? AND codomain_id = ?"
-  let et_allowed_attributes = (tup2 int32 int32 ->* int32)
+  let et_allowed_attributes = (t2 int32 int32 ->* int32)
     "SELECT attribute_type_id FROM $.attribution_type \
      WHERE domain_id = ? AND codomain_id = ?"
-  let et_allowed_preimage = (int32 ->* tup2 int32 int32)
+  let et_allowed_preimage = (int32 ->* t2 int32 int32)
     "SELECT attribute_type_id, domain_id FROM $.attribution_type \
      WHERE codomain_id = ?"
-  let et_allowed_image = (int32 ->* tup2 int32 int32)
+  let et_allowed_image = (int32 ->* t2 int32 int32)
     "SELECT attribute_type_id, codomain_id FROM $.attribution_type \
      WHERE domain_id = ?"
-  let et_allowed_mappings = (int32 ->* tup2 int32 int32)
+  let et_allowed_mappings = (int32 ->* t2 int32 int32)
     "SELECT domain_id, codomain_id FROM $.attribution_type \
      WHERE attribute_type_id = ?"
-  let et_allowed_attributions = (unit ->* tup3 int32 int32 int32)
+  let et_allowed_attributions = (unit ->* t3 int32 int32 int32)
     "SELECT attribute_type_id, domain_id, codomain_id \
      FROM $.attribution_type"
-  let et_allow_attribution = (tup3 int32 int32 int32 ->. unit)
+  let et_allow_attribution = (t3 int32 int32 int32 ->. unit)
     "INSERT INTO $.attribution_type \
       (attribute_type_id, domain_id, codomain_id) \
      VALUES (?, ?, ?)"
-  let et_disallow_attribution = (tup3 int32 int32 int32 ->. unit)
+  let et_disallow_attribution = (t3 int32 int32 int32 ->. unit)
     "DELETE FROM $.attribution_type \
      WHERE attribute_type_id = ? AND domain_id = ? AND codomain_id = ?"
 
   (* Entites *)
 
-  let e_is_dsub = (tup3 int32 int32 ptime ->! int)
+  let e_is_dsub = (t3 int32 int32 ptime ->! int)
     "SELECT count(*) FROM $.inclusion \
      WHERE dsub_id = $1 AND dsuper_id = $2 \
        AND since <= $3 AND coalesce($3 < until, true)"
 
-  let e_dsuper_any = (tup2 int32 ptime ->* int32)
+  let e_dsuper_any = (t2 int32 ptime ->* int32)
     "SELECT dsuper_id FROM $.inclusion \
      WHERE dsub_id = $1 \
        AND since <= $2 AND coalesce($2 < until, true)"
-  let e_dsub_any = (tup2 int32 ptime ->* int32)
+  let e_dsub_any = (t2 int32 ptime ->* int32)
     "SELECT dsub_id FROM $.inclusion \
      WHERE dsuper_id = $1 \
        AND since <= $2 AND coalesce($2 < until, true)"
 
-  let e_dsuper_typed = (tup3 int32 int32 ptime ->* int32)
+  let e_dsuper_typed = (t3 int32 int32 ptime ->* int32)
     "SELECT entity_id \
      FROM $.inclusion JOIN $.entity ON dsuper_id = entity_id \
      WHERE dsub_id = $1 AND entity_type_id = $2 \
        AND since <= $3 AND coalesce($3 < until, true)"
-  let e_dsub_typed = (tup3 int32 int32 ptime ->* int32)
+  let e_dsub_typed = (t3 int32 int32 ptime ->* int32)
     "SELECT entity_id \
      FROM $.inclusion JOIN $.entity ON dsub_id = entity_id \
      WHERE dsuper_id = $1 AND entity_type_id = $2 \
        AND since <= $3 AND coalesce($3 < until, true)"
 
   let e_dsub_history =
-    (tup3 int32 (option ptime) (option ptime) ->*
-     tup3 ptime (option ptime) int32)
+    (t3 int32 (option ptime) (option ptime) ->* t3 ptime (option ptime) int32)
     "SELECT since, until, dsub_id FROM $.inclusion \
      WHERE dsuper_id = ? \
        AND coalesce (? < until, true) AND coalesce (since < ?, true) \
      ORDER BY since"
 
   let e_dsub_history_typed =
-    (tup4 int32 int32 (option ptime) (option ptime) ->*
-     tup3 ptime (option ptime) int32)
+    (t4 int32 int32 (option ptime) (option ptime) ->*
+     t3 ptime (option ptime) int32)
     "SELECT since, until, entity_id \
      FROM $.inclusion JOIN $.entity ON dsub_id = entity_id \
      WHERE dsuper_id = ? AND entity_type_id = ? \
@@ -286,16 +285,15 @@ module Q = struct
      ORDER BY since"
 
   let e_dsuper_history =
-    (tup3 int32 (option ptime) (option ptime) ->*
-     tup3 ptime (option ptime) int32)
+    (t3 int32 (option ptime) (option ptime) ->* t3 ptime (option ptime) int32)
     "SELECT since, until, dsuper_id FROM $.inclusion \
      WHERE dsub_id = ? \
        AND coalesce (? < until, true) AND coalesce (since < ?, true) \
      ORDER BY since"
 
   let e_dsuper_history_typed =
-    (tup4 int32 int32 (option ptime) (option ptime) ->*
-     tup3 ptime (option ptime) int32)
+    (t4 int32 int32 (option ptime) (option ptime) ->*
+     t3 ptime (option ptime) int32)
     "SELECT since, until, entity_id \
      FROM $.inclusion JOIN $.entity ON dsuper_id = entity_id \
      WHERE dsub_id = ? AND entity_type_id = ? \
@@ -315,7 +313,7 @@ module Q = struct
      WHERE NOT EXISTS \
       (SELECT 0 FROM $.inclusion WHERE dsuper_id = entity_id)"
 
-  let e_select_precedes_now = (tup3 int32 int32 int ->! int)
+  let e_select_precedes_now = (t3 int32 int32 int ->! int)
     "WITH RECURSIVE successors(entity_id) AS ( \
         SELECT i.dsuper_id AS entity_id \
         FROM $.inclusion i \
@@ -331,7 +329,7 @@ module Q = struct
      ) \
      SELECT count(*) FROM successors WHERE entity_id = $2 LIMIT 1"
 
-  let e_select_precedes_past = (tup3 int32 int32 ptime ->! int)
+  let e_select_precedes_past = (t3 int32 int32 ptime ->! int)
     "WITH RECURSIVE successors(entity_id) AS ( \
         SELECT i.dsuper_id AS entity_id \
         FROM $.inclusion i \
@@ -352,48 +350,48 @@ module Q = struct
   let e_delete_entity = (int32 ->. unit)
     "DELETE FROM $.entity WHERE entity_id = ?"
 
-  let e_maybe_insert_inclusion = (tup3 int32 int32 ptime ->. unit)
+  let e_maybe_insert_inclusion = (t3 int32 int32 ptime ->. unit)
     "INSERT INTO $.inclusion (dsub_id, dsuper_id, since) SELECT $1, $2, $3 \
      WHERE NOT EXISTS \
       (SELECT 0 FROM $.inclusion \
        WHERE dsub_id = $1 AND dsuper_id = $2 AND coalesce($3 <= until, true))"
 
-  let e_delete_inclusion = (tup3 int32 int32 ptime ->. unit)
+  let e_delete_inclusion = (t3 int32 int32 ptime ->. unit)
     "UPDATE $.inclusion SET until = $3 \
      WHERE dsub_id = $1 AND dsuper_id = $2 AND until IS NULL"
 
-  let e_select_attribution_bool = (tup3 int32 int32 int32 ->* bool)
+  let e_select_attribution_bool = (t3 int32 int32 int32 ->* bool)
     "SELECT value FROM $.attribution_bool \
      WHERE input_id = ? AND output_id = ? AND attribute_type_id = ?"
-  let e_select_attribution_int = (tup3 int32 int32 int32 ->* int)
+  let e_select_attribution_int = (t3 int32 int32 int32 ->* int)
     "SELECT value FROM $.attribution_int \
      WHERE input_id = ? AND output_id = ? AND attribute_type_id = ?"
-  let e_select_attribution_string = (tup3 int32 int32 int32 ->* string)
+  let e_select_attribution_string = (t3 int32 int32 int32 ->* string)
     "SELECT value FROM $.attribution_string \
      WHERE input_id = ? AND output_id = ? AND attribute_type_id = ?"
 
-  let e_insert_attribution_bool = (tup4 int32 bool int32 int32 ->. unit)
+  let e_insert_attribution_bool = (t4 int32 bool int32 int32 ->. unit)
     "INSERT INTO $.attribution_bool \
       (attribute_type_id, value, input_id, output_id) \
      VALUES (?, ?, ?, ?)"
-  let e_insert_attribution_int = (tup4 int32 int int32 int32 ->. unit)
+  let e_insert_attribution_int = (t4 int32 int int32 int32 ->. unit)
     "INSERT INTO $.attribution_int \
       (attribute_type_id, value, input_id, output_id) \
      VALUES (?, ?, ?, ?)"
-  let e_insert_attribution_string = (tup4 int32 string int32 int32 ->. unit)
+  let e_insert_attribution_string = (t4 int32 string int32 int32 ->. unit)
     "INSERT INTO $.attribution_string \
       (attribute_type_id, value, input_id, output_id) \
      VALUES (?, ?, ?, ?)"
 
-  let e_delete_attribution_bool = (tup4 int32 bool int32 int32 ->. unit)
+  let e_delete_attribution_bool = (t4 int32 bool int32 int32 ->. unit)
     "DELETE FROM $.attribution_bool \
      WHERE attribute_type_id = ? AND value = ? \
        AND input_id = ? AND output_id = ?"
-  let e_delete_attribution_int = (tup4 int32 int int32 int32 ->. unit)
+  let e_delete_attribution_int = (t4 int32 int int32 int32 ->. unit)
     "DELETE FROM $.attribution_int \
      WHERE attribute_type_id = ? AND value = ? \
        AND input_id = ? AND output_id = ?"
-  let e_delete_attribution_string = (tup4 int32 string int32 int32 ->. unit)
+  let e_delete_attribution_string = (t4 int32 string int32 int32 ->. unit)
     "DELETE FROM $.attribution_string \
      WHERE attribute_type_id = ? AND value = ? \
        AND input_id = ? AND output_id = ?"
@@ -405,92 +403,92 @@ module Q = struct
 
   let e_asub_present_any = (int32 ->* int32)
     "SELECT output_id FROM $.attribution_present WHERE input_id = ?"
-  let e_asub_present_bool = (tup2 int32 int32 ->* int32)
+  let e_asub_present_bool = (t2 int32 int32 ->* int32)
     "SELECT output_id FROM $.attribution_bool \
      WHERE input_id = ? AND attribute_type_id = ?"
-  let e_asub_present_int = (tup2 int32 int32 ->* int32)
+  let e_asub_present_int = (t2 int32 int32 ->* int32)
     "SELECT output_id FROM $.attribution_int \
      WHERE input_id = ? AND attribute_type_id = ?"
-  let e_asub_present_string = (tup2 int32 int32 ->* int32)
+  let e_asub_present_string = (t2 int32 int32 ->* int32)
     "SELECT output_id FROM $.attribution_string \
      WHERE input_id = ? AND attribute_type_id = ?"
 
   let e_asuper_present_any = (int32 ->* int32)
     "SELECT input_id FROM $.attribution_present WHERE output_id = ?"
-  let e_asuper_present_bool = (tup2 int32 int32 ->* int32)
+  let e_asuper_present_bool = (t2 int32 int32 ->* int32)
     "SELECT input_id FROM $.attribution_bool \
      WHERE output_id = ? AND attribute_type_id = ?"
-  let e_asuper_present_int = (tup2 int32 int32 ->* int32)
+  let e_asuper_present_int = (t2 int32 int32 ->* int32)
     "SELECT input_id FROM $.attribution_int \
      WHERE output_id = ? AND attribute_type_id = ?"
-  let e_asuper_present_string = (tup2 int32 int32 ->* int32)
+  let e_asuper_present_string = (t2 int32 int32 ->* int32)
     "SELECT input_id FROM $.attribution_string \
      WHERE output_id = ? AND attribute_type_id = ?"
 
   let e_asub1_bool = ap1_ops |> Array.map @@ fun op ->
-    (tup3 int32 int32 bool ->* int32)
+    (t3 int32 int32 bool ->* int32)
     ("SELECT output_id FROM $.attribution_bool \
       WHERE input_id = ? AND attribute_type_id = ? AND value "^op^" ?")
   let e_asub1_int = ap1_ops |> Array.map @@ fun op ->
-    (tup3 int32 int32 int ->* int32)
+    (t3 int32 int32 int ->* int32)
     ("SELECT output_id FROM $.attribution_int \
       WHERE input_id = ? AND attribute_type_id = ? AND value "^op^" ?")
   let e_asub1_string = ap1_ops |> Array.map @@ fun op ->
-    (tup3 int32 int32 string ->* int32)
+    (t3 int32 int32 string ->* int32)
     ("SELECT output_id FROM $.attribution_string \
       WHERE input_id = ? AND attribute_type_id = ? AND value "^op^" ?")
 
   let e_asuper1_bool = ap1_ops |> Array.map @@ fun op ->
-    (tup3 int32 int32 bool ->* int32)
+    (t3 int32 int32 bool ->* int32)
     ("SELECT input_id FROM $.attribution_bool \
       WHERE output_id = ? AND attribute_type_id = ? AND value "^op^" ?")
   let e_asuper1_int = ap1_ops |> Array.map @@ fun op ->
-    (tup3 int32 int32 int ->* int32)
+    (t3 int32 int32 int ->* int32)
     ("SELECT input_id FROM $.attribution_int \
       WHERE output_id = ? AND attribute_type_id = ? AND value "^op^" ?")
   let e_asuper1_string = ap1_ops |> Array.map @@ fun op ->
-    (tup3 int32 int32 string ->* int32)
+    (t3 int32 int32 string ->* int32)
     ("SELECT input_id FROM $.attribution_string \
       WHERE output_id = ? AND attribute_type_id = ? AND value "^op^" ?")
 
-  let e_asub2_between_int = (tup4 int32 int32 int int ->* int32)
+  let e_asub2_between_int = (t4 int32 int32 int int ->* int32)
     "SELECT output_id FROM $.attribution_int \
      WHERE input_id = ? AND attribute_type_id = ? \
        AND value >= ? AND value < ?"
-  let e_asub2_between_string = (tup4 int32 int32 string string ->* int32)
+  let e_asub2_between_string = (t4 int32 int32 string string ->* int32)
     "SELECT output_id FROM $.attribution_string \
      WHERE input_id = ? AND attribute_type_id = ? \
        AND value >= ? AND value < ?"
 
-  let e_asuper2_between_int = (tup4 int32 int32 int int ->* int32)
+  let e_asuper2_between_int = (t4 int32 int32 int int ->* int32)
     "SELECT input_id FROM $.attribution_int \
      WHERE output_id = ? AND attribute_type_id = ? \
        AND value >= ? AND value < ?"
-  let e_asuper2_between_string = (tup4 int32 int32 string string ->* int32)
+  let e_asuper2_between_string = (t4 int32 int32 string string ->* int32)
     "SELECT input_id FROM $.attribution_string \
      WHERE output_id = ? AND attribute_type_id = ? \
        AND value >= ? AND value < ?"
 
-  let e_asub1_search = (tup3 int32 int32 string ->* int32)
+  let e_asub1_search = (t3 int32 int32 string ->* int32)
     "SELECT output_id FROM $.attribution_string \
      WHERE input_id = ? AND attribute_type_id = ? \
        AND value SIMILAR TO ?"
-  let e_asuper1_search = (tup3 int32 int32 string ->* int32)
+  let e_asuper1_search = (t3 int32 int32 string ->* int32)
     "SELECT input_id FROM $.attribution_string \
      WHERE output_id = ? AND attribute_type_id = ? \
        AND value SIMILAR TO ?"
 
-  let e_asub1_search_fts = (tup2 int32 string ->* int32)
+  let e_asub1_search_fts = (t2 int32 string ->* int32)
     "SELECT output_id FROM $.attribution_string_fts \
      WHERE input_id = ? \
        AND fts_vector @@ to_tsquery(fts_config::regconfig, ?)"
-  let e_asuper1_search_fts = (tup2 int32 string ->* int32)
+  let e_asuper1_search_fts = (t2 int32 string ->* int32)
     "SELECT input_id FROM $.attribution_string_fts \
      WHERE output_id = ? \
        AND fts_vector @@ to_tsquery(fts_config::regconfig, ?)"
 
   let _asub_fts with_et with_super with_lim tA =
-    (tup4 string int32 tA float ->* tup2 int32 float) @@
+    (t4 string int32 tA float ->* t2 int32 float) @@
     sprintf
       "SELECT * FROM \
         (SELECT a.output_id, \
@@ -506,7 +504,7 @@ module Q = struct
       (if with_lim then " LIMIT ?" else "")
 
   let _asuper_fts with_et with_super with_lim tA =
-    (tup4 string int32 tA float ->* tup2 int32 float) @@
+    (t4 string int32 tA float ->* t2 int32 float) @@
     sprintf
       "SELECT * FROM \
         (SELECT a.input_id, \
@@ -527,51 +525,51 @@ module Q = struct
   let e_asuper_fts_lim          = _asuper_fts false false true  int
   let e_asub_fts_super          = _asub_fts   false true  false int32
   let e_asuper_fts_super        = _asuper_fts false true  false int32
-  let e_asub_fts_super_lim      = _asub_fts   false true  true  (tup2 int32 int)
-  let e_asuper_fts_super_lim    = _asuper_fts false true  true  (tup2 int32 int)
+  let e_asub_fts_super_lim      = _asub_fts   false true  true  (t2 int32 int)
+  let e_asuper_fts_super_lim    = _asuper_fts false true  true  (t2 int32 int)
   let e_asub_fts_et             = _asub_fts   true  false false int32
   let e_asuper_fts_et           = _asuper_fts true  false false int32
-  let e_asub_fts_et_lim         = _asub_fts   true  false true  (tup2 int32 int)
-  let e_asuper_fts_et_lim       = _asuper_fts true  false true  (tup2 int32 int)
-  let e_asub_fts_et_super       = _asub_fts   true  true  false (tup2 int32 int32)
-  let e_asuper_fts_et_super     = _asuper_fts true  true  false (tup2 int32 int32)
-  let e_asub_fts_et_super_lim   = _asub_fts   true  true  true  (tup3 int32 int32 int)
-  let e_asuper_fts_et_super_lim = _asuper_fts true  true  true  (tup3 int32 int32 int)
+  let e_asub_fts_et_lim         = _asub_fts   true  false true  (t2 int32 int)
+  let e_asuper_fts_et_lim       = _asuper_fts true  false true  (t2 int32 int)
+  let e_asub_fts_et_super       = _asub_fts   true  true  false (t2 int32 int32)
+  let e_asuper_fts_et_super     = _asuper_fts true  true  false (t2 int32 int32)
+  let e_asub_fts_et_super_lim   = _asub_fts   true  true  true  (t3 int32 int32 int)
+  let e_asuper_fts_et_super_lim = _asuper_fts true  true  true  (t3 int32 int32 int)
 
-  let e_mapping1_bool = (tup2 int32 int32 ->* tup2 int32 bool)
+  let e_mapping1_bool = (t2 int32 int32 ->* t2 int32 bool)
     "SELECT output_id, value FROM $.attribution_bool \
      WHERE input_id = ? AND attribute_type_id = ?"
-  let e_mapping1_int = (tup2 int32 int32 ->* tup2 int32 int)
+  let e_mapping1_int = (t2 int32 int32 ->* t2 int32 int)
     "SELECT output_id, value FROM $.attribution_int \
      WHERE input_id = ? AND attribute_type_id = ?"
-  let e_mapping1_string = (tup2 int32 int32 ->* tup2 int32 string)
+  let e_mapping1_string = (t2 int32 int32 ->* t2 int32 string)
     "SELECT output_id, value FROM $.attribution_string \
      WHERE input_id = ? AND attribute_type_id = ?"
 
-  let e_premapping1_bool = (tup2 int32 int32 ->* tup2 int32 bool)
+  let e_premapping1_bool = (t2 int32 int32 ->* t2 int32 bool)
     "SELECT input_id, value FROM $.attribution_bool \
      WHERE output_id = ? AND attribute_type_id = ?"
-  let e_premapping1_int = (tup2 int32 int32 ->* tup2 int32 int)
+  let e_premapping1_int = (t2 int32 int32 ->* t2 int32 int)
     "SELECT input_id, value FROM $.attribution_int \
      WHERE output_id = ? AND attribute_type_id = ?"
-  let e_premapping1_string = (tup2 int32 int32 ->* tup2 int32 string)
+  let e_premapping1_string = (t2 int32 int32 ->* t2 int32 string)
     "SELECT input_id, value FROM $.attribution_string \
      WHERE output_id = ? AND attribute_type_id = ?"
 
-  let e_connected_by_bool = (tup2 int32 bool ->* tup2 int32 int32)
+  let e_connected_by_bool = (t2 int32 bool ->* t2 int32 int32)
     "SELECT input_id, output_id FROM $.attribution_bool \
      WHERE attribute_type = ? AND value = ?"
-  let e_connected_by_int = (tup2 int32 int ->* tup2 int32 int32)
+  let e_connected_by_int = (t2 int32 int ->* t2 int32 int32)
     "SELECT input_id, output_id FROM $.attribution_int \
      WHERE attribute_type = ? AND value = ?"
-  let e_connected_by_string = (tup2 int32 string ->* tup2 int32 int32)
+  let e_connected_by_string = (t2 int32 string ->* t2 int32 int32)
     "SELECT input_id, output_id FROM $.attribution_string \
      WHERE attribute_type = ? AND value = ?"
 
-  let fts_clear = (tup2 int32 int32 ->. unit)
+  let fts_clear = (t2 int32 int32 ->. unit)
     "DELETE FROM $.attribution_string_fts \
      WHERE input_id = ? AND output_id = ?"
-  let fts_insert = (tup2 int32 int32 ->. unit)
+  let fts_insert = (t2 int32 int32 ->. unit)
     "INSERT INTO $.attribution_string_fts \
                   (input_id, output_id, fts_config, fts_vector) \
      SELECT a.input_id, a.output_id, at.fts_config, \
@@ -1851,17 +1849,13 @@ let connect db_uri =
       let wrap_transaction f ((module C : CONNECTION) as c) =
         C.with_transaction (fun () -> f c)
 
-      let pool =
-        let connect () = Caqti_lwt.connect ~env db_uri in
-        let disconnect (module C : CONNECTION) = C.disconnect () in
-        let validate (module C : CONNECTION) = C.validate () in
-        let check (module C : CONNECTION) = C.check in
-        Caqti_lwt.Pool.create ~validate ~check connect disconnect
+      let pool = Caqti_lwt_unix.connect_pool ~env db_uri
+        |> Result.fold ~ok:Fun.id ~error:(fun e -> raise (Caqti_error.Exn e))
 
       let with_db ~transaction f =
         if transaction
-        then Caqti_lwt.Pool.use (wrap_transaction f) pool
-        else Caqti_lwt.Pool.use f pool
+        then Caqti_lwt_unix.Pool.use (wrap_transaction f) pool
+        else Caqti_lwt_unix.Pool.use f pool
     end)
 
     module Attribute_type = struct

@@ -8,6 +8,7 @@
   (libraries
     caqti
     caqti-lwt
+    caqti-lwt.unix
     extunix
     findlib
     findlib.dynload

@@ -32,7 +32,7 @@ let () = Lwt_main.run begin
      | None -> failwith "Won't drop default subsocia schema.")
   in
   let* (module C) =
-    Caqti_lwt.connect (Uri.remove_query_param uri "schema")
+    Caqti_lwt_unix.connect (Uri.remove_query_param uri "schema")
     >>= Caqti_lwt.or_fail
   in
   C.exec (drop_schema_req schema) () >>= Caqti_lwt.or_fail

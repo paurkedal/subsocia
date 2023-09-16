@@ -80,7 +80,7 @@ module Make (Arg : Arg) = struct
      | Type.Int, i -> fun bind -> (fL "%d" i, bind)
      | Type.String, s ->
         fun (Bind (param_length, param_type, param)) ->
-        let param_type = Caqti_type.(tup2 param_type string) in
+        let param_type = Caqti_type.(t2 param_type string) in
         let param = (param, s) in
         (P param_length, Bind (param_length + 1, param_type, param)))
 
@@ -119,7 +119,7 @@ module Make (Arg : Arg) = struct
     ([c1; c2], bind)
 
   let sql_of_fts i x (Bind (param_length, param_type, param)) =
-    let param_type = Caqti_type.(tup2 param_type string) in
+    let param_type = Caqti_type.(t2 param_type string) in
     let param = (param, x) in
     let c1 = S [
       fL "q%d.fts_vector @@ to_tsquery(q%d.fts_config::regconfig, " i i;

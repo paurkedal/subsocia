@@ -114,7 +114,7 @@ let load_sql (module C : Caqti_lwt.CONNECTION) sql =
 
 let db_init disable_transaction disable_core_schema = Lwt_main.run begin
   let uri = Subsocia_connection.db_uri in
-  let* cc = Caqti_lwt.connect ~env uri >>= Caqti_lwt.or_fail in
+  let* cc = Caqti_lwt_unix.connect ~env uri >>= Caqti_lwt.or_fail in
   let module Cc = (val cc) in
   let* () =
     (match Subsocia_connection.db_schema with
@@ -178,7 +178,7 @@ let get_schema_version (module C : Caqti_lwt.CONNECTION) =
 
 let db_upgrade () = Lwt_main.run begin
   let uri = Subsocia_connection.db_uri in
-  let* c = Caqti_lwt.connect ~env uri >>= Caqti_lwt.or_fail in
+  let* c = Caqti_lwt_unix.connect ~env uri >>= Caqti_lwt.or_fail in
   let module C : Caqti_lwt.CONNECTION = (val c) in
   let* db_schema_version = get_schema_version c >>= Caqti_lwt.or_fail in
   let have_error = ref false in
