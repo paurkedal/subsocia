@@ -1,4 +1,4 @@
-(* Copyright (C) 2015--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2015--2024  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -187,8 +187,6 @@ module type S = sig
      and module Entity_type := Entity_type
 
   module Const : sig
-    [@@@ocaml.deprecated]
-
     val at_unique_name : string Attribute_type.t Lwt.t
     val at_proper_name : string Attribute_type.t Lwt.t
     val at_first_name : string Attribute_type.t Lwt.t
@@ -203,7 +201,7 @@ module type S = sig
 
     val e_new_users : Entity.t Lwt.t
     val e_default : Entity.t Lwt.t
-  end
+  end [@@ocaml.deprecated]
 end
 
 module type S_SOID = sig
