@@ -334,21 +334,39 @@ let e_create_cmd =
   let info = Cmd.info ~docs ~doc:"Create an entity." "create" in
   Cmd.v info (with_log term)
 
-let e_delete sel time =
+let e_delete sel del_dsupers del_sels time =
   run_exn @@ fun (module C) ->
+  C.transaction @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let* e = U.Entity.select_one ?time sel in
+  let* del_dsupers = Lwt_list.map_p (U.Entity.select_one ?time) del_dsupers in
+  let* del_sels = Lwt_list.map_p (U.lookup_delete_selector ?time) del_sels in
+  let* () = Lwt_list.iter_s (U.update_attributes e) del_sels in
+  let* () = Lwt_list.iter_s (C.Entity.relax_dsub ?time e) del_dsupers in
   C.Entity.delete e
 
 let e_delete_cmd =
   let sel =
     Arg.(required & pos 0 (some selector) None & info ~docv:"PATH" [])
   in
+  let del_dsupers =
+    let doc = "Remove the inclusion of this entity in SUPER." in
+    Arg.(value & opt_all selector [] & info ~docv:"SUPER" ~doc ["r"])
+  in
+  let del_attrs =
+    let doc =
+      "Remove the arrow which is \
+       labelled by final component of APATH, \
+       have the leading components as source, and \
+       have the current entry as target."
+    in
+    Arg.(value & opt_all delete_selector [] & info ~docv:"APATH" ~doc ["d"])
+  in
   let time =
     let doc = "Time at which to traverse inclusion. Defaults to now." in
     Arg.(value & opt (some ptime) None & info ~docv:"QUERY-TIME" ~doc ["time"])
   in
-  let term = Term.(const e_delete $ sel $ time) in
+  let term = Term.(const e_delete $ sel $ del_dsupers $ del_attrs $ time) in
   let info = Cmd.info ~docs ~doc:"Delete an entity." "delete" in
   Cmd.v info (with_log term)
 
@@ -356,10 +374,8 @@ let e_modify sel add_dsupers del_dsupers add_sels del_sels time =
   run_exn @@ fun (module C) ->
   C.transaction @@ fun (module C) ->
   let module U = Entity_utils (C) in
-  let* add_dsupers =
-    Lwt_list.map_p (U.Entity.select_one ?time) add_dsupers in
-  let* del_dsupers =
-    Lwt_list.map_p (U.Entity.select_one ?time) del_dsupers in
+  let* add_dsupers = Lwt_list.map_p (U.Entity.select_one ?time) add_dsupers in
+  let* del_dsupers = Lwt_list.map_p (U.Entity.select_one ?time) del_dsupers in
   let* add_sels = Lwt_list.map_p (U.lookup_add_selector ?time) add_sels in
   let* del_sels = Lwt_list.map_p (U.lookup_delete_selector ?time) del_sels in
   let* e = U.Entity.select_one ?time sel in
@@ -380,11 +396,11 @@ let e_modify_cmd =
     in
     Arg.(required & pos 0 (some selector) None & info ~docv:"PATH" ~doc [])
   in
-  let add_succs =
+  let add_dsupers =
     let doc = "Add an inclusion of this entity in SUPER." in
     Arg.(value & opt_all selector [] & info ~docv:"SUPER" ~doc ["s"])
   in
-  let del_succs =
+  let del_dsupers =
     let doc = "Remove the inclusion of this entity in SUPER." in
     Arg.(value & opt_all selector [] & info ~docv:"SUPER" ~doc ["r"])
   in
@@ -417,7 +433,7 @@ let e_modify_cmd =
   let term = let open Term in
     const e_modify
       $ sel
-      $ add_succs $ del_succs
+      $ add_dsupers $ del_dsupers
       $ add_attrs $ del_attrs
       $ time
   in
