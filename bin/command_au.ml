@@ -23,7 +23,9 @@ open Unprime_list
 
 let docs = "ATTRIBUTE UNIQUENESS"
 
-let au_force atns = run_int_exn @@ fun (module C) ->
+let au_force atns =
+  run_int_exn @@ fun (module C) ->
+  C.transaction @@ fun (module C) ->
   let module C = Subsocia_derived.Make (C) in
   let* ats = Lwt_list.map_s C.Attribute_type.any_of_name_exn atns in
   let ats = List.fold C.Attribute_type.Set.add ats C.Attribute_type.Set.empty in
@@ -49,7 +51,9 @@ let au_force_cmd =
   in
   Cmd.v info (with_log term)
 
-let au_relax atns = run_int_exn @@ fun (module C) ->
+let au_relax atns =
+  run_int_exn @@ fun (module C) ->
+  C.transaction @@ fun (module C) ->
   let module C = Subsocia_derived.Make (C) in
   let* ats = Lwt_list.map_s C.Attribute_type.any_of_name_exn atns in
   let ats = List.fold C.Attribute_type.Set.add ats C.Attribute_type.Set.empty in

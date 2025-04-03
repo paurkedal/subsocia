@@ -181,7 +181,8 @@ module Entity_utils (C : Subsocia_intf.S) = struct
         C.Entity.dsub ?time e >>= show_entity_list "  ⊃ " )
 end
 
-let e_ls sel_opt time = run_exn @@ fun (module C) ->
+let e_ls sel_opt time =
+  run_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let sel = Option.get_or Select_root sel_opt in
   let* e = U.Entity.select_one ?time sel in
@@ -222,7 +223,8 @@ let e_ls_cmd =
   let info = Cmd.info ~docs ~doc:"List entities reachable from a path." "ls" in
   Cmd.v info (with_log term)
 
-let e_search sel eds time = run_bool_exn @@ fun (module C) ->
+let e_search sel eds time =
+  run_bool_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let* root = C.Entity.get_root () in
   let* es = U.Entity.select_from ?time sel (C.Entity.Set.singleton root) in
@@ -253,7 +255,8 @@ let e_search_cmd =
   in
   Cmd.v info (with_log term)
 
-let e_fts q etn super limit cutoff time = run_bool_exn @@ fun (module C) ->
+let e_fts q etn super limit cutoff time =
+  run_bool_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let* root = C.Entity.get_root () in
   let* entity_type = Lwt_option.map_s U.entity_type_of_arg etn in
@@ -300,7 +303,9 @@ let e_fts_cmd =
   let info = Cmd.info ~docs ~doc:"Full-text search." "fts" in
   Cmd.v info (with_log term)
 
-let e_create etn add_dsupers add_sels time = run_exn @@ fun (module C) ->
+let e_create etn add_dsupers add_sels time =
+  run_exn @@ fun (module C) ->
+  C.transaction @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let* et = U.entity_type_of_arg etn in
   let* add_sels = Lwt_list.map_p U.lookup_add_selector add_sels in
@@ -329,7 +334,8 @@ let e_create_cmd =
   let info = Cmd.info ~docs ~doc:"Create an entity." "create" in
   Cmd.v info (with_log term)
 
-let e_delete sel time = run_exn @@ fun (module C) ->
+let e_delete sel time =
+  run_exn @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let* e = U.Entity.select_one ?time sel in
   C.Entity.delete e
@@ -348,6 +354,7 @@ let e_delete_cmd =
 
 let e_modify sel add_dsupers del_dsupers add_sels del_sels time =
   run_exn @@ fun (module C) ->
+  C.transaction @@ fun (module C) ->
   let module U = Entity_utils (C) in
   let* add_dsupers =
     Lwt_list.map_p (U.Entity.select_one ?time) add_dsupers in

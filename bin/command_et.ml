@@ -27,7 +27,8 @@ let et_name_t =
   let doc = "The name of the entity type." in
   Arg.(required & pos 0 (some string) None & info [] ~docv:"ET-NAME" ~doc)
 
-let et_info etn = run @@ fun (module C) ->
+let et_info etn =
+  run @@ fun (module C) ->
   (C.Entity_type.of_name etn >>= function
    | None ->
       Lwt.return (`Error (false, sprintf "No entity type is named %s." etn))
@@ -46,7 +47,8 @@ let et_info_cmd =
   in
   Cmd.v info (with_log term)
 
-let et_create etn = run_exn @@ fun (module C) ->
+let et_create etn =
+  run_exn @@ fun (module C) ->
   let* et = C.Entity_type.create etn in
   let* et_idstr = C.Entity_type.(soid et >|= Soid.to_string) in
   Log.info (fun f -> f "Created type %s = %s." et_idstr etn)
@@ -56,7 +58,9 @@ let et_create_cmd =
   let info = Cmd.info ~docs ~doc:"Create an entity type." "et-create" in
   Cmd.v info (with_log term)
 
-let et_modify etn ent_opt = run @@ fun (module C) ->
+let et_modify etn ent_opt =
+  run @@ fun (module C) ->
+  C.transaction @@ fun (module C) ->
   (C.Entity_type.of_name etn >>= function
    | None ->
       Lwt.return (`Error (false, sprintf "No entity type is named %s." etn))
@@ -80,7 +84,9 @@ let et_modify_cmd =
   let info = Cmd.info ~docs ~doc:"Modify an entity type." "et-modify" in
   Cmd.v info (with_log term)
 
-let et_delete etn = run @@ fun (module C) ->
+let et_delete etn =
+  run @@ fun (module C) ->
+  C.transaction @@ fun (module C) ->
   (C.Entity_type.of_name etn >>= function
    | None ->
       Lwt.return (`Error (false, sprintf "No type is named %s." etn))
@@ -99,7 +105,8 @@ let et_delete_cmd =
   let info = Cmd.info ~docs ~doc:"Delete an entity type." "et-delete" in
   Cmd.v info (with_log term)
 
-let et_list () = run_exn @@ fun (module C) ->
+let et_list () =
+  run_exn @@ fun (module C) ->
   C.Entity_type.all () >>=
   C.Entity_type.Set.iter_s (fun et -> C.Entity_type.name et >>= Lwt_io.printl)
 

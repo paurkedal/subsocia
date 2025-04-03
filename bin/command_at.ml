@@ -24,7 +24,8 @@ open Subsocia_common
 
 let docs = "ATTRIBUTE TYPE COMMANDS"
 
-let at_create (Type.Any vt) atn mult = run_exn @@ fun (module C) ->
+let at_create (Type.Any vt) atn mult =
+  run_exn @@ fun (module C) ->
   C.Attribute_type.create ~mult vt atn >>= fun at ->
   let* at_idstr = C.Attribute_type.(soid at >|= Soid.to_string) in
   Log.info (fun f -> f "Created attribute type %s %s." at_idstr atn)
@@ -47,7 +48,9 @@ let at_create_cmd =
   let info = Cmd.info ~docs ~doc:"Create an attribute type." "at-create" in
   Cmd.v info (with_log term)
 
-let at_delete atn = run_int_exn @@ fun (module C) ->
+let at_delete atn =
+  run_int_exn @@ fun (module C) ->
+  C.transaction @@ fun (module C) ->
   (match%lwt C.Attribute_type.any_of_name_exn atn with
    | exception Subsocia_error.Exn (`Attribute_type_missing _) ->
       Log.err (fun f -> f "No attribute type is named %s." atn) >>= fun () ->

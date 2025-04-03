@@ -23,7 +23,9 @@ open Subsocia_common
 
 let docs = "ATTRIBUTION COMMANDS"
 
-let an_allow atn etn0 etn1 = run_exn @@ fun (module C) ->
+let an_allow atn etn0 etn1 =
+  run_exn @@ fun (module C) ->
+  C.transaction @@ fun (module C) ->
   let* C.Attribute_type.Any at = C.Attribute_type.any_of_name_exn atn in
   let* et0 = C.Entity_type.of_name_exn etn0 in
   let* et1 = C.Entity_type.of_name_exn etn1 in
@@ -40,7 +42,9 @@ let an_allow_cmd =
   let info = Cmd.info ~docs ~doc:"Allow an attribution." "an-allow" in
   Cmd.v info (with_log term)
 
-let an_disallow atn etn0 etn1 = run_exn @@ fun (module C) ->
+let an_disallow atn etn0 etn1 =
+  run_exn @@ fun (module C) ->
+  C.transaction @@ fun (module C) ->
   let* C.Attribute_type.Any at = C.Attribute_type.any_of_name_exn atn in
   let* et0 = C.Entity_type.of_name_exn etn0 in
   let* et1 = C.Entity_type.of_name_exn etn1 in

@@ -95,6 +95,7 @@ let angstrom_file_parser =
   white *> many (Caqti_query.angstrom_parser <* char ';' <* white)
 
 let load_sql (module C : Caqti_lwt.CONNECTION) sql =
+  C.with_transaction @@ fun () ->
   let open Caqti_request.Infix in
   Lwt_io.with_file ~mode:Lwt_io.input sql @@ fun ic ->
   let* unconsumed, result = Angstrom_lwt_unix.parse angstrom_file_parser ic in
