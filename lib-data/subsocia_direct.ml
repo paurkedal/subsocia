@@ -1895,7 +1895,7 @@ let connect db_uri =
        and type 'a Entity.Map.t = 'a Entity.Map.t
 
     let transaction f =
-      M.with_db_exn @@ fun ((module C : CONNECTION) as conn) ->
+      M.with_db_exn ~transaction:true @@ fun ((module C : CONNECTION) as conn) ->
       let module C' = struct
         module M = Make (struct
           let db_schema = db_schema
