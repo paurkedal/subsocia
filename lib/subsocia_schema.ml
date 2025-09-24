@@ -95,20 +95,20 @@ module Make (C : Subsocia_intf.S) = struct
             C.Entity.remove_values at vs e' e))
       attrs
 
-  let exec_mod e = function
+  let exec_mod ?force_time ?relax_time e = function
     | `Aux_selector (p, _) ->
       Subsocia_error.fail_lwt "Entities have no property %s." p
     | `Add_sub sel ->
       let* e' = Su.select_one sel in
-      C.Entity.force_dsub e e'
+      C.Entity.force_dsub ?time:force_time e e'
     | `Remove_sub sel ->
       let* e' = Su.select_one sel in
-      C.Entity.relax_dsub e e'
+      C.Entity.relax_dsub ?time:relax_time e e'
     | `Add_attr asel -> add_set_helper `Add e asel
     | `Set_attr asel -> add_set_helper `Set e asel
     | `Remove_attr sel' -> del_helper e sel'
 
-  let exec_schema_entry = function
+  let exec_schema_entry ?force_time ?relax_time = function
     | `At_create (atn, tn) ->
       let Type.Any t = Type.any_of_string tn in
       C.Attribute_type.create t atn >|= fun _ -> ()
@@ -166,11 +166,11 @@ module Make (C : Subsocia_intf.S) = struct
     | `E_force_dsub (sel0, sel1) ->
       let* e0 = Su.select_one sel0 in
       let* e1 = Su.select_one sel1 in
-      C.Entity.force_dsub e0 e1
+      C.Entity.force_dsub ?time:force_time e0 e1
     | `E_relax_dsub (sel0, sel1) ->
       let* e0 = Su.select_one sel0 in
       let* e1 = Su.select_one sel1 in
-      C.Entity.relax_dsub e0 e1
+      C.Entity.relax_dsub ?time:relax_time e0 e1
     | `E_add_value (atn, vr, sel0, sel1) ->
       let* C.Attribute_type.Any at = C.Attribute_type.any_of_name_exn atn in
       let vt = C.Attribute_type.value_type at in
@@ -196,15 +196,16 @@ module Make (C : Subsocia_intf.S) = struct
       (C.Entity_type.of_name etn >>= function
        | Some et ->
           let* e = C.Entity.create et in
-          Lwt_list.iter_s (exec_mod e) addl
+          Lwt_list.iter_s (exec_mod ?force_time ?relax_time e) addl
        | None ->
           Subsocia_error.fail_lwt "No entity type is called %s." etn)
     | `Modify (sel, modl) ->
       let* e = Su.select_one sel in
-      Lwt_list.iter_s (exec_mod e) modl
+      Lwt_list.iter_s (exec_mod ?force_time ?relax_time e) modl
     | `Delete sel ->
       let* e = Su.select_one sel in
       C.Entity.delete e
 
-  let exec = Lwt_list.iter_s exec_schema_entry
+  let exec ?force_time ?relax_time =
+    Lwt_list.iter_s (exec_schema_entry ?force_time ?relax_time)
 end

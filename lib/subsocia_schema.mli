@@ -22,5 +22,6 @@ open Subsocia_schema_types
 val load : string -> schema
 
 module Make (_ : Subsocia_intf.S) : sig
-  val exec : schema -> unit Lwt.t
+  val exec :
+    ?force_time: Ptime.t -> ?relax_time: Ptime.t -> schema -> unit Lwt.t
 end

@@ -29,23 +29,26 @@ open Command_e
 
 (* Entities *)
 
-let load schema_path disable_transaction =
+let load schema_path disable_transaction time =
   let schema = Subsocia_schema.load schema_path in
   run_exn @@ fun (module C) ->
   if disable_transaction then
     let module Schema = Subsocia_schema.Make (C) in
-    Schema.exec schema
+    Schema.exec ?force_time:time ?relax_time:time schema
   else
     C.transaction @@
       (fun (module C) ->
         let module Schema = Subsocia_schema.Make (C) in
-        Schema.exec schema)
+        Schema.exec ?force_time:time ?relax_time:time schema)
 
 let load_cmd =
   let schema =
     Arg.(required & pos 0 (some file) None & info ~docv:"PATH" [])
   in
-  let term = Term.(const load $ schema $ Arg.disable_transaction) in
+  let time =
+    Arg.(value & opt (some ptime) None & info ~docv:"TIME" ["time"])
+  in
+  let term = Term.(const load $ schema $ Arg.disable_transaction $ time) in
   let info =
     let doc =
       "Add, modify, and delete attributes according to the schema loaded \
