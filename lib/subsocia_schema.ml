@@ -98,12 +98,14 @@ module Make (C : Subsocia_intf.S) = struct
   let exec_mod ?force_time ?relax_time e = function
     | `Aux_selector (p, _) ->
       Subsocia_error.fail_lwt "Entities have no property %s." p
-    | `Add_sub sel ->
+    | `Add_sub (sel, from) ->
       let* e' = Su.select_one sel in
-      C.Entity.force_dsub ?time:force_time e e'
-    | `Remove_sub sel ->
+      C.Entity.force_dsub e e'
+        ?time:(Option.fold ~some:Option.some ~none:force_time from)
+    | `Remove_sub (sel, from) ->
       let* e' = Su.select_one sel in
-      C.Entity.relax_dsub ?time:relax_time e e'
+      C.Entity.relax_dsub e e'
+        ?time:(Option.fold ~some:Option.some ~none:relax_time from)
     | `Add_attr asel -> add_set_helper `Add e asel
     | `Set_attr asel -> add_set_helper `Set e asel
     | `Remove_attr sel' -> del_helper e sel'
@@ -163,14 +165,16 @@ module Make (C : Subsocia_intf.S) = struct
     | `Et_display (etn, template) ->
       let* et = req_et etn in
       C.Entity_type.set_entity_name_tmpl et template
-    | `E_force_dsub (sel0, sel1) ->
+    | `E_force_dsub (sel0, sel1, from) ->
       let* e0 = Su.select_one sel0 in
       let* e1 = Su.select_one sel1 in
-      C.Entity.force_dsub ?time:force_time e0 e1
-    | `E_relax_dsub (sel0, sel1) ->
+      C.Entity.force_dsub e0 e1
+        ?time:(Option.fold ~some:Option.some ~none:force_time from)
+    | `E_relax_dsub (sel0, sel1, from) ->
       let* e0 = Su.select_one sel0 in
       let* e1 = Su.select_one sel1 in
-      C.Entity.relax_dsub ?time:relax_time e0 e1
+      C.Entity.relax_dsub e0 e1
+        ?time:(Option.fold ~some:Option.some ~none:relax_time from)
     | `E_add_value (atn, vr, sel0, sel1) ->
       let* C.Attribute_type.Any at = C.Attribute_type.any_of_name_exn atn in
       let vt = C.Attribute_type.value_type at in

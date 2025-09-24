@@ -41,6 +41,7 @@
       "drop_entity", E_DELETE;
       "force", E_FORCE;
       "relax", E_RELAX;
+      "from", FROM;
     |]
 }
 

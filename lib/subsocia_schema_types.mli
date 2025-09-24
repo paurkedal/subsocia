@@ -32,12 +32,12 @@ type et_adjust =
 
 type schema_add =
   [ `Aux_selector of string * selector
-  | `Add_sub of selector
+  | `Add_sub of selector * Ptime.t option
   | `Add_attr of selector ]
 
 type schema_mod =
   [ schema_add
-  | `Remove_sub of selector
+  | `Remove_sub of selector * Ptime.t option
   | `Remove_attr of selector
   | `Set_attr of selector ]
 
@@ -55,8 +55,8 @@ type schema_entry =
   | `Et_disallow_attribution of string * string * string
   | `Et_display of string * string
   | `E_create of selector * string
-  | `E_force_dsub of selector * selector
-  | `E_relax_dsub of selector * selector
+  | `E_force_dsub of selector * selector * Ptime.t option
+  | `E_relax_dsub of selector * selector * Ptime.t option
   | `E_add_value of string * string * selector * selector
   | `E_remove_value of string * string * selector * selector
   | `Create of string * schema_add list

@@ -25,6 +25,12 @@ let parse_error msg =
   let open Lexing in
   fprintf stderr "%s:%d:%d: %s\n%!" pos.pos_fname
           pos.pos_lnum (pos.pos_cnum - pos.pos_bol) msg
+
+let parse_time str =
+  let str = if String.length str = 10 then str ^ "T00:00:00Z" else str in
+  (match Ptime.of_rfc3339 str with
+   | Ok (time, _, _) -> time
+   | Error _ -> raise Parsing.Parse_error)
 %}
 
 %token EOF CREATE MODIFY
@@ -35,7 +41,7 @@ let parse_error msg =
 %token E_CREATE E_DELETE E_FORCE E_RELAX
 %token DELINCL ADDINCL ADDATTR DELATTR SETATTR
 %token ARROW EQ LT LEQ GEQ SLASH COLON TOP MINUS PLUS COMMA
-%token LBRACE RBRACE UNDERSCORE
+%token LBRACE RBRACE UNDERSCORE FROM
 %token<string> EQ_VERB STR STRING TYPE_FILTER AUX_STRING AUX_SELECTOR
 %token<int32> ID
 
@@ -47,6 +53,11 @@ schema: entries EOF { List.rev $1 };
 entries:
     /* empty */ { [] }
   | entries entry { $2 :: $1 }
+  ;
+
+from_time:
+    /* empty */ { None }
+  | FROM STRING { Some (parse_time $2) }
   ;
 
 entry:
@@ -67,8 +78,8 @@ entry:
   | ET_DISPLAY STR STRING { `Et_display ($2, $3) }
   | E_CREATE path COLON STR { `E_create ($2, $4) }
   | E_DELETE path { `Delete $2 }
-  | E_FORCE path LT path { `E_force_dsub ($2, $4) }
-  | E_RELAX path LT path { `E_relax_dsub ($2, $4) }
+  | E_FORCE path LT path from_time { `E_force_dsub ($2, $4, $5) }
+  | E_RELAX path LT path from_time { `E_relax_dsub ($2, $4, $5) }
   | E_FORCE STR EQ STR COLON path ARROW path { `E_add_value ($2, $4, $6, $8) }
   | E_RELAX STR EQ STR COLON path ARROW path { `E_remove_value ($2,$4,$6,$8) }
   | E_FORCE STR EQ_VERB COLON path ARROW path { `E_add_value ($2, $3, $5, $7) }
@@ -99,7 +110,7 @@ create_constraints:
   | create_constraints create_constraint { $2 :: $1 }
   ;
 create_constraint:
-    ADDINCL path { `Add_sub $2 }
+    ADDINCL path from_time { `Add_sub ($2, $3) }
   | ADDATTR path { `Add_attr $2 }
   ;
 modify_constraints:
@@ -107,8 +118,8 @@ modify_constraints:
   | modify_constraints modify_constraint { $2 :: $1 }
   ;
 modify_constraint:
-    ADDINCL path { `Add_sub $2 }
-  | DELINCL path { `Remove_sub $2 }
+    ADDINCL path from_time { `Add_sub ($2, $3) }
+  | DELINCL path from_time { `Remove_sub ($2, $3) }
   | ADDATTR path { `Add_attr $2 }
   | DELATTR path { `Remove_attr $2 }
   | SETATTR path { `Set_attr $2 }
