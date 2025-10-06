@@ -1,3 +1,15 @@
+## v0.22.0 - 2025-10-06
+
+  - Fixed `Subsocia_direct.transaction` and added missing transaction scopes
+    to `subsocia` subcommands which modify the database.
+  - The `subsocia delete` command now has `-d` and `-r` options to allow
+    stripping inclusions and attributes in the same operation that the
+    entity is deleted.
+  - The enforcement time for inclusions can now be specified in schema files
+    with the new `%from` attribute after inclusion constraints.  The default
+    enforcement time can now also be provided by passing `--time` to the
+    `load`, `create`, and `db-init` subcommands.
+
 ## v0.21.0 - 2023-09-19
 
   - Upgrade to Caqti 2.0.
