@@ -113,7 +113,7 @@ let load_sql (module C : Caqti_lwt.CONNECTION) sql =
    | Error msg -> Lwt.return_error (`Msg (sql ^ ": " ^ msg))
    | Ok stmts -> submit stmts)
 
-let db_init disable_transaction disable_core_schema = Lwt_main.run begin
+let db_init disable_transaction disable_core_schema time = Lwt_main.run begin
   let uri = Subsocia_connection.db_uri in
   let* cc = Caqti_lwt_unix.connect ~env uri >>= Caqti_lwt.or_fail in
   let module Cc = (val cc) in
@@ -148,12 +148,12 @@ let db_init disable_transaction disable_core_schema = Lwt_main.run begin
         let schema = Subsocia_schema.load fp in
         if disable_transaction then
           let module Schema = Subsocia_schema.Make (Sc) in
-          Schema.exec schema
+          Schema.exec ?force_time:time ?relax_time:time schema
         else
           Sc.transaction @@
             (fun (module Sc) ->
               let module Schema = Subsocia_schema.Make (Sc) in
-              Schema.exec schema))
+              Schema.exec ?force_time:time ?relax_time:time schema))
       subsocia_schemas
   in
   0
@@ -166,8 +166,14 @@ let db_init_cmd =
   let term =
     Term.(const db_init $ Arg.disable_transaction $ disable_core_schema)
   in
+  let time =
+    let doc =
+      "Time at which to enforce inclusions in the base schema. Defaults to now."
+    in
+    Arg.(value & opt (some ptime) None & info ~docv:"TIME" ~doc ["time"])
+  in
   let info = Cmd.info ~docs ~doc:"Initialize the database." "db-init" in
-  Cmd.v info (with_log term)
+  Cmd.v info (with_log Term.(term $ time))
 
 let get_schema_version_q =
   let open Caqti_request.Infix in

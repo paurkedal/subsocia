@@ -327,8 +327,10 @@ let e_create_cmd =
     Arg.(non_empty & opt_all add_selector [] & info ~docv:"APATH" ["a"])
   in
   let time =
-    let doc = "Time at which to traverse inclusion. Defaults to now." in
-    Arg.(value & opt (some ptime) None & info ~docv:"QUERY-TIME" ~doc ["time"])
+    let doc =
+      "Time at which to enforce and traverse inclusions. Defaults to now."
+    in
+    Arg.(value & opt (some ptime) None & info ~docv:"TIME" ~doc ["time"])
   in
   let term = Term.(const e_create $ etn $ succs $ attrs $ time) in
   let info = Cmd.info ~docs ~doc:"Create an entity." "create" in
