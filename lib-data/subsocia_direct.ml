@@ -1385,6 +1385,9 @@ module Make (P : Param) = struct
       with_db_exn @@ fun (module C : CONNECTION) ->
       C.fold Q.e_asub1_search_fts Set.add (e, x) Set.empty
 
+    let image p es = image_generic p (Set.elements es)
+    let preimage p es = preimage_generic p (Set.elements es)
+
     let image1 p e =
       (match p with
        | B.Relation.Inter _ | B.Relation.In _ -> image_generic p [e]

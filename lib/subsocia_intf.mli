@@ -322,6 +322,14 @@ module type ENTITY = sig
   (** [set_values at xs e e'] replaces values of attributions from [e] to
       [e'] of type [at] with [xs]. *)
 
+  val image : Relation.t -> Set.t -> Set.t Lwt.t
+  (** [image r ps] is the set of entities reachable by crossing an arrow which
+      satisfies [r] starting from any entity in [ps]. *)
+
+  val preimage : Relation.t -> Set.t -> Set.t Lwt.t
+  (** [preimage r ps] is the set of entites reachable by crossing an arrow which
+      satisifies [r] in reverse direction starting from any entity in [ps]. *)
+
   val image1 : Relation.t -> t -> Set.t Lwt.t
   (** [image1 p e] are the target entities of attributions with source [e] along
       attributes for which [p] holds. *)
