@@ -20,7 +20,6 @@ open Lwt.Infix
 open Lwt.Syntax
 open Printf
 open Subsocia_common
-open Subsocia_derived_intf
 open Subsocia_prereq
 open Subsocia_selector_types
 open Unprime_list
@@ -238,75 +237,25 @@ module Make (Base : Subsocia_intf.S) = struct
       let search_s = find_map_s
     end
 
-    let make_visit () =
-      let ht = Hashtbl.create 61 in
-      fun e -> if Hashtbl.mem ht e then true else (Hashtbl.add ht e (); false)
-
-    module Transitive (Dir : ITERABLE with type t := t) = struct
-      exception Prune
-
-      let rec fold_s' ?time visit max_depth f e acc =
-        if visit e then Lwt.return acc else
-        try%lwt
-          let* acc = f e acc in
-          if max_depth = 0 then Lwt.return acc else
-          Dir.fold_s ?time (fold_s' ?time visit (max_depth - 1) f) e acc
-        with Prune -> Lwt.return acc
-
-      let fold_s ?time ?(max_depth = max_int) f e acc =
-        fold_s' ?time (make_visit ()) max_depth f e acc
-
-      let rec iter_s' ?time visit max_depth f e =
-        if visit e then Lwt.return_unit else
-        try%lwt
-          f e >>= fun () ->
-          if max_depth = 0 then Lwt.return_unit else
-          Dir.iter_s ?time (iter_s' ?time visit (max_depth - 1) f) e
-        with Prune -> Lwt.return_unit
-
-      let iter_s ?time ?(max_depth = max_int) f e =
-        iter_s' ?time (make_visit ()) max_depth f e
-
-      let rec for_all_s' ?time visit max_depth f e =
-        if visit e then Lwt.return_true else
-        (match%lwt f e with
-         | exception Prune -> Lwt.return_true
-         | false -> Lwt.return_false
-         | true ->
-            if max_depth <= 0 then Lwt.return_true else
-            Dir.for_all_s ?time (for_all_s' ?time visit (max_depth - 1) f) e)
-
-      let for_all_s ?time ?(max_depth = max_int) f e =
-        for_all_s' ?time (make_visit ()) max_depth f e
-
-      let rec exists_s' ?time visit max_depth f e =
-        if visit e then Lwt.return_false else
-        (match%lwt f e with
-         | exception Prune -> Lwt.return_false
-         | true -> Lwt.return_true
-         | false ->
-            if max_depth <= 0 then Lwt.return_false else
-            Dir.exists_s ?time (exists_s' ?time visit (max_depth - 1) f) e)
-
-      let exists_s ?time ?(max_depth = max_int) f e =
-        exists_s' ?time (make_visit ()) max_depth f e
-
-      let rec find_map_s' ?time visit max_depth f e =
-        if visit e then Lwt.return_none else
-        (match%lwt f e with
-         | exception Prune -> Lwt.return_none
-         | Some _ as x -> Lwt.return x
-         | None ->
-            if max_depth <= 0 then Lwt.return_none else
-            Dir.find_map_s ?time (find_map_s' ?time visit (max_depth - 1) f) e)
-
-      let find_map_s ?time ?(max_depth = max_int) f e =
-        find_map_s' ?time (make_visit ()) max_depth f e
-
+    module Super = struct
+      let fold_s ?time f e acc =
+        super ?time e >>= (fun xs -> Set.fold_s f xs acc)
+      let iter_s ?time f e = super ?time e >>= Set.iter_s f
+      let for_all_s ?time f e = super ?time e >>= Set.for_all_s f
+      let exists_s ?time f e = super ?time e >>= Set.exists_s f
+      let find_map_s ?time f e = super ?time e >>= Set.find_map_s f
       let search_s = find_map_s
     end
-    module Super = Transitive (Dsuper)
-    module Sub = Transitive (Dsub)
+
+    module Sub = struct
+      let fold_s ?time f e acc =
+        sub ?time e >>= (fun xs -> Set.fold_s f xs acc)
+      let iter_s ?time f e = sub ?time e >>= Set.iter_s f
+      let for_all_s ?time f e = sub ?time e >>= Set.for_all_s f
+      let exists_s ?time f e = sub ?time e >>= Set.exists_s f
+      let find_map_s ?time f e = sub ?time e >>= Set.find_map_s f
+      let search_s = find_map_s
+    end
 
     let has_role_for_entity role subj obj =
       let* at_role = Const.at_role in

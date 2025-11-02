@@ -273,6 +273,12 @@ module type ENTITY = sig
   (** [dsuper e] fetches the direct superentities of [e].
       @param time The time at which to probe for inclusion, defaults to now. *)
 
+  val sub : ?time: Ptime.t -> t -> Set.t Lwt.t
+  (** The transitive closure of {!dsub}. *)
+
+  val super : ?time: Ptime.t -> t -> Set.t Lwt.t
+  (** The transitive closure of {!dsuper}. *)
+
   val dsub_history :
     ?since: Ptime.t -> ?until: Ptime.t -> ?et: Entity_type.t ->
     t -> (Ptime.t * Ptime.t option * t) list Lwt.t

@@ -268,6 +268,36 @@ module Q = struct
      WHERE dsuper_id = $1 AND entity_type_id = $2 \
        AND since <= $3 AND coalesce($3 < until, true)"
 
+  let e_super_any = (t2 int32 ptime ->* int32) {|
+    WITH RECURSIVE
+      acc (entity_id) AS (
+        SELECT dsuper_id AS entity_id
+          FROM $.inclusion
+          WHERE dsub_id = $1
+            AND coalesce($2 < until, true)
+        UNION SELECT DISTINCT dsuper_id AS entity_id
+          FROM acc
+          JOIN $.inclusion ON dsub_id = entity_id
+          WHERE coalesce($2 < until, true)
+      )
+    SELECT entity_id FROM acc
+  |}
+
+  let e_sub_any = (t2 int32 ptime ->* int32) {|
+    WITH RECURSIVE
+      acc (entity_id) AS (
+        SELECT dsub_id AS entity_id
+          FROM $.inclusion
+          WHERE dsuper_id = $1
+            AND coalesce($2 < until, true)
+        UNION SELECT DISTINCT dsub_id AS entity_id
+          FROM acc
+          JOIN $.inclusion ON dsuper_id = entity_id
+          WHERE coalesce($2 < until, true)
+      )
+    SELECT entity_id FROM acc
+  |}
+
   let e_dsub_history =
     (t3 int32 (option ptime) (option ptime) ->* t3 ptime (option ptime) int32)
     "SELECT since, until, dsub_id FROM $.inclusion \
@@ -1160,6 +1190,14 @@ module Make (P : Param) = struct
        | None -> dsuper_any ?time e
        | Some et -> dsuper_typed ?time et e)
 
+    let super, super_cache = memo_t1lwt @@ fun ~time e ->
+      with_db_exn @@ fun (module C) ->
+      C.fold Q.e_super_any Set.add (e, time) Set.empty
+
+    let sub, sub_cache = memo_t1lwt @@ fun ~time e ->
+      with_db_exn @@ fun (module C) ->
+      C.fold Q.e_sub_any Set.add (e, time) Set.empty
+
     let dsub_history ?since ?until ?et e =
       with_db_exn @@ fun (module C) ->
       (match et with
@@ -1186,6 +1224,8 @@ module Make (P : Param) = struct
       Cache.clear minimums_cache;
       Cache.clear dsub_any_cache;
       Cache.clear dsub_typed_cache;
+      Cache.clear sub_cache;
+      Cache.clear super_cache;
       r
 
     let is_dsub, is_dsub_cache = memo_t2lwt @@ fun ~time (e, e') ->
@@ -1224,6 +1264,8 @@ module Make (P : Param) = struct
       Cache.clear dsub_typed_cache;
       Cache.clear dsuper_any_cache;
       Cache.clear dsuper_typed_cache;
+      Cache.clear sub_cache;
+      Cache.clear super_cache;
       Cache.clear inclusion_cache
 
     let get_values_bool, get_values_bool_cache =
