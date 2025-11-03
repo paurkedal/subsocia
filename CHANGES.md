@@ -1,3 +1,8 @@
+## v0.23.0 - 2025-11-03
+
+  - New functions: `Entity.super`, `Entity.sub`, `Entity.image`,
+    `Entity.preimage`.
+
 ## v0.22.0 - 2025-10-06
 
   - Fixed `Subsocia_direct.transaction` and added missing transaction scopes
