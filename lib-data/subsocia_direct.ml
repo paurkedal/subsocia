@@ -274,11 +274,11 @@ module Q = struct
         SELECT dsuper_id AS entity_id
           FROM $.inclusion
           WHERE dsub_id = $1
-            AND coalesce($2 < until, true)
+            AND since <= $2 AND coalesce($2 < until, true)
         UNION SELECT DISTINCT dsuper_id AS entity_id
           FROM acc
           JOIN $.inclusion ON dsub_id = entity_id
-          WHERE coalesce($2 < until, true)
+          WHERE since <= $2 AND coalesce($2 < until, true)
       )
     SELECT entity_id FROM acc
   |}
@@ -289,11 +289,11 @@ module Q = struct
         SELECT dsub_id AS entity_id
           FROM $.inclusion
           WHERE dsuper_id = $1
-            AND coalesce($2 < until, true)
+            AND since <= $2 AND coalesce($2 < until, true)
         UNION SELECT DISTINCT dsub_id AS entity_id
           FROM acc
           JOIN $.inclusion ON dsuper_id = entity_id
-          WHERE coalesce($2 < until, true)
+          WHERE since <= $2 AND coalesce($2 < until, true)
       )
     SELECT entity_id FROM acc
   |}
@@ -357,7 +357,7 @@ module Q = struct
         JOIN successors c ON i.dsub_id = c.entity_id \
         WHERE i.until is NULL AND e.entity_rank >= $3 \
      ) \
-     SELECT count(*) FROM successors WHERE entity_id = $2 LIMIT 1"
+     SELECT count(*) FROM successors WHERE entity_id = $2"
 
   let e_select_precedes_past = (t3 int32 int32 ptime ->! int)
     "WITH RECURSIVE successors(entity_id) AS ( \
@@ -371,7 +371,7 @@ module Q = struct
         JOIN successors c ON i.dsub_id = c.entity_id \
         WHERE i.since <= $3 AND coalesce($3 < i.until, true) \
      ) \
-     SELECT count(*) FROM successors WHERE entity_id = $2 LIMIT 1"
+     SELECT count(*) FROM successors WHERE entity_id = $2"
 
   let e_create_entity = (int32 ->! int32)
     "INSERT INTO $.entity (entity_type_id) \
