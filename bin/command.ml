@@ -93,6 +93,7 @@ let cmds = [
   e_create_cmd;
   e_delete_cmd;
   e_modify_cmd;
+  e_is_sub_cmd;
 
   load_cmd;
 ]

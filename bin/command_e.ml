@@ -441,3 +441,33 @@ let e_modify_cmd =
   in
   let info = Cmd.info ~docs ~doc:"Modify an entity." "modify" in
   Cmd.v info (with_log term)
+
+let e_is_sub e e' time quiet =
+  run_int_exn @@ fun (module C) ->
+  let module U = Entity_utils (C) in
+  let* e = U.Entity.select_one e in
+  let* e' = U.Entity.select_one e' in
+  let* c = U.Entity.is_sub ?time e e' in
+  let+ () = if quiet then Lwt.return_unit else Lwt_io.printlf "%b" c in
+  if c then 0 else 1
+
+let e_is_sub_cmd =
+  let e =
+    let doc = "The candidate subentity if the relation." in
+    Arg.(required & pos 0 (some selector) None & info ~docv:"PATH" ~doc [])
+  in
+  let e' =
+    let doc = "The candidate superentity if the relation." in
+    Arg.(required & pos 1 (some selector) None & info ~docv:"PATH" ~doc [])
+  in
+  let time =
+    let doc = "Time at which to traverse inclusions." in
+    Arg.(value & opt (some ptime) None & info ~docv:"TIME" ~doc ["time"])
+  in
+  let quiet =
+    let doc = "Don't print to stdout." in
+    Arg.(value & flag & info ~doc ["q"; "quiet"])
+  in
+  let doc = "Test whether the first argument is a included in the latter." in
+  let info = Cmd.info ~docs ~doc "is-sub" in
+  Cmd.v info Term.(const e_is_sub $ e $ e' $ time $ quiet)
