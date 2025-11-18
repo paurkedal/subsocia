@@ -1,4 +1,4 @@
-(* Copyright (C) 2014--2023  Petter A. Urkedal <paurkedal@gmail.com>
+(* Copyright (C) 2014--2025  Petter A. Urkedal <paurkedal@gmail.com>
  *
  * This library is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published by
@@ -63,7 +63,6 @@ let rec lwt_list_iter_rs f = function
 
 let fetch_grade = 1e-3 *. cache_second
 let attribute_type_grade = fetch_grade
-let preceq_grade = 1e-2 *. cache_second (* TODO: Highly non-constant. *)
 
 let bool_of_int = function 0 -> false | 1 -> true | _ -> assert false
 
@@ -343,23 +342,7 @@ module Q = struct
      WHERE NOT EXISTS \
       (SELECT 0 FROM $.inclusion WHERE dsuper_id = entity_id)"
 
-  let e_select_precedes_now = (t3 int32 int32 int ->! int)
-    "WITH RECURSIVE successors(entity_id) AS ( \
-        SELECT i.dsuper_id AS entity_id \
-        FROM $.inclusion i \
-        JOIN $.entity e ON e.entity_id = i.dsuper_id \
-        WHERE i.dsub_id = $1 \
-          AND i.until IS NULL AND e.entity_rank >= $3 \
-      UNION \
-        SELECT DISTINCT i.dsuper_id \
-        FROM $.inclusion i \
-        JOIN $.entity e ON e.entity_id = i.dsuper_id \
-        JOIN successors c ON i.dsub_id = c.entity_id \
-        WHERE i.until is NULL AND e.entity_rank >= $3 \
-     ) \
-     SELECT count(*) FROM successors WHERE entity_id = $2"
-
-  let e_select_precedes_past = (t3 int32 int32 ptime ->! int)
+  let e_is_sub = (t3 int32 int32 ptime ->? int)
     "WITH RECURSIVE successors(entity_id) AS ( \
         SELECT i.dsuper_id AS entity_id \
         FROM $.inclusion i \
@@ -371,7 +354,7 @@ module Q = struct
         JOIN successors c ON i.dsub_id = c.entity_id \
         WHERE i.since <= $3 AND coalesce($3 < i.until, true) \
      ) \
-     SELECT count(*) FROM successors WHERE entity_id = $2"
+     SELECT 1 FROM successors WHERE entity_id = $2 LIMIT 1"
 
   let e_create_entity = (int32 ->! int32)
     "INSERT INTO $.entity (entity_type_id) \
@@ -613,10 +596,7 @@ end
 
 module type CACHE = sig
   type ('a, 'b) t
-  val create :  cache_metric: Prime_cache_metric.t -> int -> ('a, 'b) t
   val clear : ('a, 'b) t -> unit
-  val find : ('a, 'b) t -> 'a -> 'b
-  val replace : ('a, 'b) t -> float -> 'a -> 'b -> unit
   val remove : ('a, 'b) t -> 'a -> unit
   val memo_lwt : ('a -> 'b Lwt.t) -> ('a -> 'b Lwt.t) * ('a, 'b) t
   val memo_lwt_conn : (?conn: 'c -> 'a -> 'b Lwt.t) ->
@@ -651,10 +631,7 @@ end
 
 module Disabled_cache = struct
   type ('a, 'b) t = unit
-  let create ~cache_metric:_ _n = ()
   let clear _ = ()
-  let find _ _ = raise Not_found
-  let replace _ _ _ _ = ()
   let remove _ _ = ()
   let memo_lwt f = f, ()
   let memo_lwt_conn f = f, ()
@@ -801,8 +778,6 @@ module type Param = sig
 end
 
 module Make (P : Param) = struct
-
-  let inclusion_cache = Cache.create ~cache_metric 61
 
   let with_db ?conn ?(transaction = false) f =
     (match conn with
@@ -1234,23 +1209,9 @@ module Make (P : Param) = struct
 
     let is_sub ?time subentity superentity =
       if subentity = superentity then Lwt.return_true else
-      (match time with
-       | Some time ->
-          with_db_exn begin fun (module C) ->
-            C.find Q.e_select_precedes_past (subentity, superentity, time)
-              >|=? bool_of_int
-          end
-       | None ->
-          let k = subentity, superentity in
-          try Lwt.return (Cache.find inclusion_cache k)
-          with Not_found ->
-            let* r_lim = rank superentity in
-            let* c = with_db_exn @@ fun (module C) ->
-              C.find Q.e_select_precedes_now (subentity, superentity, r_lim)
-                >|=? bool_of_int
-            in
-            Cache.replace inclusion_cache preceq_grade k c;
-            Lwt.return c)
+      let time = match time with Some t -> t | None -> Ptime_clock.now() in
+      with_db_exn @@ fun (module C) ->
+      C.find_opt Q.e_is_sub (subentity, superentity, time) >|=? ((<>) None)
 
     let clear_misc_caches () =
       Cache.clear entity_type_cache;
@@ -1265,8 +1226,7 @@ module Make (P : Param) = struct
       Cache.clear dsuper_any_cache;
       Cache.clear dsuper_typed_cache;
       Cache.clear sub_cache;
-      Cache.clear super_cache;
-      Cache.clear inclusion_cache
+      Cache.clear super_cache
 
     let get_values_bool, get_values_bool_cache =
       memo_3lwt @@ fun (e, e', at_id) ->
