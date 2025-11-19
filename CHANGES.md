@@ -1,3 +1,9 @@
+## v0.23.1 - 2025-11-19
+
+  - Added `is-sub` subcommand.
+  - Fixed lower time check for `Entity.sub` and `Entity.super`.
+  - Dropped rank optimisation and caching for `Entity.is_sub`.
+
 ## v0.23.0 - 2025-11-03
 
   - New functions: `Entity.super`, `Entity.sub`, `Entity.image`,
