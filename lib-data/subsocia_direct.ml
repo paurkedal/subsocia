@@ -571,13 +571,13 @@ module Q = struct
 
   let e_connected_by_bool = (t2 int32 bool ->* t2 int32 int32)
     "SELECT input_id, output_id FROM $.attribution_bool \
-     WHERE attribute_type = ? AND value = ?"
+     WHERE attribute_type_id = ? AND value = ?"
   let e_connected_by_int = (t2 int32 int ->* t2 int32 int32)
     "SELECT input_id, output_id FROM $.attribution_int \
-     WHERE attribute_type = ? AND value = ?"
+     WHERE attribute_type_id = ? AND value = ?"
   let e_connected_by_string = (t2 int32 string ->* t2 int32 int32)
     "SELECT input_id, output_id FROM $.attribution_string \
-     WHERE attribute_type = ? AND value = ?"
+     WHERE attribute_type_id = ? AND value = ?"
 
   let fts_clear = (t2 int32 int32 ->. unit)
     "DELETE FROM $.attribution_string_fts \
