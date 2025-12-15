@@ -1,3 +1,7 @@
+## v0.23.2 - 2025-12-15
+
+  - Fix `Entity.connected_by`.
+
 ## v0.23.1 - 2025-11-19
 
   - Added `is-sub` subcommand.
