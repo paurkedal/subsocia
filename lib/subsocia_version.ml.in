@@ -20,7 +20,7 @@ let pkg_hash = match "%{subsocia:hash}%" with "" -> None | h -> Some h
 let pkg_share =
   try Sys.getenv "SUBSOCIA_SHARE" with Not_found -> "%{subsocia:share}%"
 
-let schema_version = 6
+let schema_version = 7
 (* NB: Also update schema/subsocia_tables.sql and update the "schema_version"
  * row in the subsocia.global_integer table in the latest schema. *)
 

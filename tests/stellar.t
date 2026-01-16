@@ -19,12 +19,7 @@ Test schema:
   $ subsocia et-create planet
   $ subsocia et-create moon
 
-  $ subsocia et-modify --name-template '${proper_name}' organization
-  $ subsocia et-modify --name-template '${proper_name}' galaxy
-  $ subsocia et-modify --name-template '${proper_name}' star_system
-  $ subsocia et-modify --name-template '${proper_name}' star
-  $ subsocia et-modify --name-template '${proper_name}' planet
-  $ subsocia et-modify --name-template '${proper_name}' moon
+  $ subsocia at-modify proper_name --display-cost 1000
 
   $ subsocia in-allow star		star_system
   $ subsocia in-allow star_system	star_system
@@ -51,7 +46,7 @@ Inspect the schema:
 
   $ subsocia at-list
   unique_name : string*
-  proper_name : string*
+  proper_name : string* (+1000)
   orbit : int*
   $ subsocia au-list
   {unique_name}

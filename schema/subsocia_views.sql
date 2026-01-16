@@ -46,3 +46,42 @@ CREATE VIEW $.attribution_present (input_id, output_id, attribute_type_id) AS
   SELECT input_id, output_id, attribute_type_id FROM $.attribution_bool UNION
   SELECT input_id, output_id, attribute_type_id FROM $.attribution_int UNION
   SELECT input_id, output_id, attribute_type_id FROM $.attribution_string;
+
+-- Display name cache
+
+DROP MATERIALIZED VIEW IF EXISTS $.absolute_display_name;
+CREATE MATERIALIZED VIEW $.absolute_display_name (entity_id, name) AS
+  WITH RECURSIVE
+    step (input_id, output_id, name, cost) AS (
+      SELECT input_id, output_id, name, cost FROM (
+        SELECT
+            a.input_id,
+            a.output_id,
+            a.value AS name,
+            t.display_cost AS cost,
+            rank() OVER (
+              PARTITION BY input_id, output_id ORDER BY t.display_cost
+            ) AS pos
+          FROM $.attribution_string a
+          JOIN $.attribute_type t ON t.attribute_type_id = a.attribute_type_id
+          WHERE t.display_cost IS NOT NULL
+      ) AS tmp
+      WHERE pos = 1
+    ),
+    absolute (entity_id, name, cost) AS (
+      SELECT
+          r.output_id AS entity_id,
+          r.name,
+          r.cost
+        FROM step r WHERE r.input_id = 1
+      UNION
+      SELECT
+          r.output_id AS entity_id,
+          a.name || ' / ' || r.name AS name,
+          a.cost + r.cost AS cost
+        FROM step r, absolute a WHERE a.entity_id = r.input_id
+    )
+  SELECT DISTINCT
+      entity_id,
+      first_value(name) OVER (PARTITION BY entity_id ORDER BY cost)
+    FROM absolute;

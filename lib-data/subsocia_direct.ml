@@ -109,6 +109,10 @@ module Q = struct
      VALUES (?, ?, ?, ?) RETURNING attribute_type_id"
   let at_delete = (int32 ->. unit)
     "DELETE FROM $.attribute_type WHERE attribute_type_id = ?"
+  let at_display_cost = (int32 ->! option int)
+    "SELECT display_cost FROM $.attribute_type WHERE attribute_type_id = ?"
+  let at_set_display_cost = (t2 int32 (option int) ->. unit)
+    "UPDATE $.attribute_type SET display_cost = $2 WHERE attribute_type_id = $1"
   let at_all = (unit ->* int32)
     "SELECT attribute_type_id FROM $.attribute_type"
 
@@ -592,6 +596,9 @@ module Q = struct
      WHERE NOT at.fts_config IS NULL \
        AND a.input_id = ? AND a.output_id = ? \
      GROUP BY a.input_id, a.output_id, at.fts_config"
+
+  let e_absolute_display_name = (int32 ->! option string)
+    "SELECT $.absolute_display_name(?)"
 end
 
 module type CACHE = sig
@@ -867,6 +874,14 @@ module Make (P : Param) = struct
     let delete at =
       with_db_exn @@ fun (module C : CONNECTION) ->
       C.exec Q.at_delete at.at_id
+
+    let display_cost at =
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.find Q.at_display_cost at.at_id
+
+    let set_display_cost at cost =
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.exec Q.at_set_display_cost (at.at_id, cost)
 
     let all () =
       with_db_exn @@ fun ((module C : CONNECTION) as conn) ->
@@ -1600,6 +1615,10 @@ module Make (P : Param) = struct
           connected_by_int at.B.Attribute_type.at_id v
        | Type.String ->
           connected_by_string at.B.Attribute_type.at_id v)
+
+    let absolute_display_name e =
+      with_db_exn @@ fun (module C : CONNECTION) ->
+      C.find Q.e_absolute_display_name e
 
     let clear_poly_caches () =
       Cache.clear asub_present_any_cache;

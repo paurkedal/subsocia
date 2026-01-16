@@ -48,6 +48,31 @@ let at_create_cmd =
   let info = Cmd.info ~docs ~doc:"Create an attribute type." "at-create" in
   Cmd.v info (with_log term)
 
+let at_modify atn display_cost =
+  run_exn @@ fun (module C) ->
+  (match display_cost with
+   | None -> Lwt.return_unit
+   | Some display_cost ->
+      let* C.Attribute_type.Any at = C.Attribute_type.any_of_name_exn atn in
+      C.Attribute_type.set_display_cost at display_cost)
+
+let at_modify_cmd =
+  let atn =
+    let doc = "The name of the attribute type to modify." in
+    Arg.(required & pos 0 (some string) None & info ~docv:"NAME" ~doc [])
+  in
+  let display_cost =
+    let doc =
+      "The cost of using this attribute when constructing the display names. \
+       The value must be an integer between 1 and 32767"
+    in
+    Arg.(value & opt (some (some int)) None &
+         info ~docv:"COST" ~doc ["display-cost"])
+  in
+  let term = Term.(const at_modify $ atn $ display_cost) in
+  let info = Cmd.info ~docs ~doc:"Modify an attribute type" "at-modify" in
+  Cmd.v info (with_log term)
+
 let at_delete atn =
   run_int_exn @@ fun (module C) ->
   C.transaction @@ fun (module C) ->
@@ -77,9 +102,15 @@ let at_list verbose = run_exn @@ fun (module C) ->
     let ms =
       match C.Attribute_type.value_mult at with
       | Multiplicity.Must1 -> ""
-      | m -> Multiplicity.to_string m in
+      | m -> Multiplicity.to_string m
+    in
+    let* dc =
+      (C.Attribute_type.display_cost at >|= function
+       | None -> ""
+       | Some c -> Fmt.str " (+%d)" c)
+    in
     let vt = C.Attribute_type.value_type at in
-    Lwt_io.printlf "%s : %s%s" atn (Type.to_string vt) ms >>= fun () ->
+    Lwt_io.printlf "%s : %s%s%s" atn (Type.to_string vt) ms dc >>= fun () ->
     if not verbose then Lwt.return_unit else
     let show_mapping (et0, et1) =
       let* etn0 = C.Entity_type.name et0 in

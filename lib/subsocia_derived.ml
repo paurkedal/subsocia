@@ -441,10 +441,24 @@ module Make (Base : Subsocia_intf.S) = struct
       let* tmpl = Base.Entity_type.entity_name_tmpl et in
       Lwt_list.find_map_s aux (Prime_string.chop_affix "|" tmpl)
 
-    let display_name ?(context = Entity.Set.empty) ?(langs = []) e =
-      display_name_tmpl ~context ~langs e >>= function
-       | None -> Entity.soid e >|= Soid.to_string
-       | Some s -> Lwt.return s
+    let rec display_name ?(context = Entity.Set.empty) ?(langs = []) e =
+      (Entity.absolute_display_name e >>= function
+       | None ->
+          (display_name_tmpl ~context ~langs e >>= function
+           | None -> Entity.soid e >|= Soid.to_string
+           | Some s -> Lwt.return s)
+       | Some name ->
+          let add_context covered_length eC =
+            let+ nameC = display_name ~langs eC in
+            let prefix = nameC ^ " / " in
+            if String.starts_with ~prefix name
+            then Int.max (String.length prefix) covered_length
+            else covered_length
+          in
+          let+ covered_length =
+            Lwt_list.fold_left_s add_context 0 (Entity.Set.elements context)
+          in
+          String.sub name covered_length (String.length name - covered_length))
 
     let candidate_dsupers ?(include_current = false) e =
       let* et = Entity.entity_type e in

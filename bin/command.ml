@@ -76,6 +76,7 @@ let cmds = [
   in_list_cmd;
 
   at_create_cmd;
+  at_modify_cmd;
   at_delete_cmd;
   at_list_cmd;
 

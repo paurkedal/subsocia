@@ -19,7 +19,7 @@ CREATE TABLE $.global_integer (
   global_value integer NOT NULL
 );
 -- NB: Also update lib/subsocia_version.ml.ab.
-INSERT INTO $.global_integer VALUES ('schema_version', 5);
+INSERT INTO $.global_integer VALUES ('schema_version', 7);
 
 -- Types
 
@@ -41,6 +41,7 @@ CREATE TABLE $.attribute_type (
   attribute_name text UNIQUE NOT NULL,
   value_type text NOT NULL,
   value_mult smallint NOT NULL,
+  display_cost smallint,
   fts_config text
 );
 CREATE SEQUENCE $.attribute_uniqueness_id_seq;
@@ -106,6 +107,10 @@ CREATE TABLE $.attribution_string_fts (
   PRIMARY KEY (input_id, output_id, fts_config)
 );
 CREATE INDEX ON $.attribution_string_fts USING gin(fts_vector);
+
+CREATE TRIGGER refresh_absolute_display_name
+  AFTER INSERT OR UPDATE OR DELETE ON $.attribution_string
+  EXECUTE PROCEDURE $.refresh_absolute_display_name();
 
 -- Mandatory Initial Data (#1 root : #1 root)
 

@@ -99,3 +99,41 @@ $$
       GROUP BY a.asub_id, a.asuper_id, aty.fts_config;
   END
 $$;
+
+
+------------------
+-- Display Name --
+------------------
+
+CREATE OR REPLACE FUNCTION
+  $.refresh_absolute_display_name() RETURNS trigger LANGUAGE plpgsql AS
+$$
+  BEGIN
+    REFRESH MATERIALIZED VIEW $.absolute_display_name WITH NO DATA;
+    RETURN NULL;
+  END
+$$;
+
+CREATE OR REPLACE FUNCTION
+  $.absolute_display_name(id integer)
+  RETURNS text LANGUAGE plpgsql AS
+$$
+  DECLARE
+    rec record;
+  BEGIN
+    FOR rec IN
+      SELECT 0 FROM pg_matviews
+      WHERE schemaname = '$()'
+        AND matviewname = 'absolute_display_name'
+        AND ispopulated = false
+    LOOP
+      REFRESH MATERIALIZED VIEW $.absolute_display_name;
+    END LOOP;
+    FOR rec IN
+      SELECT name FROM $.absolute_display_name WHERE entity_id = id
+    LOOP
+      RETURN rec.name;
+    END LOOP;
+    RETURN NULL;
+  END
+$$;

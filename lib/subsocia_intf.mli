@@ -70,6 +70,9 @@ module type ATTRIBUTE_TYPE = sig
   val create : ?mult: Multiplicity.t -> 'a Type.t -> string -> 'a t Lwt.t
   val delete : 'a t -> unit Lwt.t
   val all : unit -> Set.t Lwt.t
+
+  val display_cost : 'a t -> int option Lwt.t
+  val set_display_cost : 'a t -> int option -> unit Lwt.t
 end
 
 module type ATTRIBUTE_UNIQUENESS = sig
@@ -384,6 +387,9 @@ module type ENTITY = sig
       an attribution of type [at] and value [v] from the first entity of the
       pair to the second. The result of a call to this function is not
       cached. *)
+
+  (**/**)
+  val absolute_display_name : t -> string option Lwt.t
 end
 
 module type S = sig
